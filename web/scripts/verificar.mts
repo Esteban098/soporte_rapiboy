@@ -4,10 +4,9 @@
  */
 import { cargarPedidos, cargarCancelaciones, cargarVistasDelDia } from "../src/lib/datos";
 import {
+  antiguedadAbiertos,
   dispersionRepartidores,
   porDia,
-  porDiaSemana,
-  porLeadTime,
   porVisitas,
   ranking,
   resumen,
@@ -29,11 +28,8 @@ for (const d of porDia(pedidos)) {
 console.log("\npor visitas:");
 for (const t of porVisitas(pedidos)) console.log(`  ${t.tramo}: ${t.casos} casos, ${t.tasaDevolucion.toFixed(1)}%`);
 
-console.log("\npor lead time:");
-for (const t of porLeadTime(pedidos)) console.log(`  ${t.tramo}: ${t.casos} casos, ${t.tasaDevolucion.toFixed(1)}%`);
-
-console.log("\npor día:");
-for (const t of porDiaSemana(pedidos)) console.log(`  ${t.tramo}: ${t.casos} casos, ${t.tasaDevolucion.toFixed(1)}%`);
+console.log("\nantigüedad de los abiertos:");
+for (const t of antiguedadAbiertos(pedidos)) console.log(`  ${t.tramo}: ${t.casos} casos (${t.porcentaje.toFixed(1)}%)`);
 
 const d = dispersionRepartidores(pedidos);
 console.log(

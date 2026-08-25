@@ -1,11 +1,10 @@
 import { cargarPedidos } from "@/lib/datos";
 import {
+  antiguedadAbiertos,
   cierre,
   dispersionRepartidores,
   porDia,
-  porDiaSemana,
   porEstado,
-  porLeadTime,
   porVisitas,
   reclamos,
   resumen,
@@ -14,6 +13,7 @@ import { diaCorto, mesLargo, numero, porcentaje, puntos } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
+import { AntiguedadTable } from "@/components/AntiguedadTable";
 import { BarrasSerie } from "@/components/charts/BarrasSerie";
 import { LineaSerie } from "@/components/charts/LineaSerie";
 import { BarrasTramo } from "@/components/charts/BarrasTramo";
@@ -29,8 +29,7 @@ export default async function Resumen() {
   const tienda = reclamos(pedidos);
   const dias = porDia(pedidos);
   const visitas = porVisitas(pedidos);
-  const lead = porLeadTime(pedidos);
-  const semana = porDiaSemana(pedidos);
+  const antiguedad = antiguedadAbiertos(pedidos);
   const dispersion = dispersionRepartidores(pedidos);
 
   const ultimo = dias.at(-1);
@@ -91,15 +90,15 @@ export default async function Resumen() {
         </Card>
 
         <Card
-          titulo="Casos por día"
-          nota="Cada barra son los paquetes que tenían que entregarse ese día. Los valles son domingos."
+          titulo="Movimientos por día"
+          nota="Cada barra son los casos que cambiaron de estado ese día: entregas, devoluciones, ingresos a depósito. Los valles son domingos."
         >
           <BarrasSerie datos={dias} escala="dia" />
         </Card>
 
         <Card
           titulo="Tasa de devolución por día"
-          nota="De los paquetes que había que entregar cada día, qué porcentaje terminó volviendo al vendedor. La línea gris es el promedio del mes."
+          nota="De los casos que se movieron cada día, qué porcentaje quedó en devolución. La línea gris es el promedio del mes."
         >
           <LineaSerie datos={dias} promedio={total.tasaDevolucion} escala="dia" />
         </Card>
@@ -113,19 +112,12 @@ export default async function Resumen() {
           </Card>
 
           <Card
-            titulo="Resultado según días hasta la entrega"
-            nota="Cuántos días pasaron entre que entró el pedido y el día en que había que entregarlo. Pasada la primera semana, el caso casi no se recupera."
+            titulo="Hace cuánto que no se mueven los abiertos"
+            nota="De los casos todavía sin resolver, cuántos días llevan sin ningún cambio de estado. Los de más de cuatro días son los que hay que empujar."
           >
-            <BarrasTramo datos={lead} etiquetaTramo="Demora" destacarSobre={50} />
+            <AntiguedadTable filas={antiguedad} />
           </Card>
         </div>
-
-        <Card
-          titulo="Devolución por día de la semana"
-          nota="Según el día de la semana en que había que entregar. Sirve para decidir cuándo reforzar dotación."
-        >
-          <BarrasTramo datos={semana} etiquetaTramo="Día" />
-        </Card>
 
         {noEntregados ? (
           <Callout tono="warning" titulo="Los que no se pudieron entregar">

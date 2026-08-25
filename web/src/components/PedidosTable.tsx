@@ -3,13 +3,19 @@ import { fechaCorta, numero } from "@/lib/formato";
 import { Chip } from "./Card";
 import estilos from "./ui.module.css";
 
-/** Semáforo de demora, igual al que la planilla arma con la columna DEMORA. */
+/**
+ * Hace cuántos días que el caso no se mueve. Sale de comparar hoy contra el
+ * último cambio de estado, que es lo que guarda la columna del libro.
+ */
 function semaforo(pedido: Pedido, hoy: Date) {
-  if (!pedido.programado) return { tono: "neutral" as const, texto: "Sin fecha" };
-  const dias = Math.floor((hoy.getTime() - pedido.programado.getTime()) / (24 * 60 * 60 * 1000));
-  if (dias > 2) return { tono: "critical" as const, texto: `Urgente · ${dias} d` };
-  if (dias > 1) return { tono: "warning" as const, texto: `Retrasada · ${dias} d` };
-  return { tono: "good" as const, texto: "A tiempo" };
+  if (!pedido.ultimoMovimiento) return { tono: "neutral" as const, texto: "Sin fecha" };
+  const dias = Math.floor(
+    (hoy.getTime() - pedido.ultimoMovimiento.getTime()) / (24 * 60 * 60 * 1000),
+  );
+  if (dias > 2) return { tono: "critical" as const, texto: `${dias} d quieto` };
+  if (dias > 1) return { tono: "warning" as const, texto: `${dias} d quieto` };
+  if (dias === 1) return { tono: "good" as const, texto: "Ayer" };
+  return { tono: "good" as const, texto: "Hoy" };
 }
 
 export function PedidosTable({
@@ -35,8 +41,8 @@ export function PedidosTable({
           <thead>
             <tr>
               <th>Pedido</th>
-              <th>Demora</th>
-              <th>Programado</th>
+              <th>Sin moverse</th>
+              <th>Último movimiento</th>
               <th>Estado</th>
               <th>Repartidor</th>
               <th>Tienda</th>
@@ -53,7 +59,7 @@ export function PedidosTable({
                   <td>
                     <Chip tono={estado.tono}>{estado.texto}</Chip>
                   </td>
-                  <td>{fechaCorta(pedido.programado)}</td>
+                  <td>{fechaCorta(pedido.ultimoMovimiento)}</td>
                   <td>{pedido.estado || "—"}</td>
                   <td className={estilos.nombre} title={pedido.repartidor}>
                     {pedido.repartidor || "—"}

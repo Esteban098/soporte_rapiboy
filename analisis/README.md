@@ -23,7 +23,14 @@ Detalles a tener en cuenta al leer el libro:
 
 `entregas_fallidas.py` normaliza las 15 hojas con detalle de pedidos a un único dataset
 y calcula las métricas de operación (volumen mensual, tasa de devolución, efecto de las
-visitas y del lead time, rankings por repartidor, polígono y tienda).
+visitas, rankings por repartidor, polígono y tienda).
+
+> **Ojo con `FechaProgramado`.** No es una entrega comprometida: es la fecha del
+> último cambio de estado, y se pisa cada vez que el paquete se mueve. Un pedido
+> que no se entregó el 20 y volvió a la tienda el 24 queda con fecha 24. Por eso
+> la distancia entre creación y esa fecha **no** mide anticipación: un caso
+> devuelto siempre da alto porque la devolución ocurre después. Cualquier lectura
+> de "los casos que tardan se devuelven" a partir de esa resta es circular.
 
 ```bash
 pip install pandas openpyxl

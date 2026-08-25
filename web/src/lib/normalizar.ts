@@ -10,19 +10,30 @@
 export type Pedido = {
   id: number;
   creacion: Date | null;
-  programado: Date | null;
+  /**
+   * Fecha del último cambio de estado, no una entrega comprometida. La columna
+   * se pisa cada vez que el paquete se mueve: si no se entregó el 20 y volvió a
+   * la tienda el 24, queda en el 24. Por eso no sirve para saber para cuándo
+   * estaba prometida la entrega, y sí para saber hace cuánto que el caso no se
+   * mueve.
+   */
+  ultimoMovimiento: Date | null;
   estado: string;
   repartidor: string;
   tienda: string;
   poligono: string;
   visitas: number | null;
-  /** Mes de la fecha programada, como `2026-08`. */
+  /** Mes del último movimiento, como `2026-08`. */
   mes: string;
   devuelto: boolean;
   entregado: boolean;
   abierto: boolean;
-  /** Días entre la creación del pedido y su fecha programada. */
-  leadTime: number | null;
+  /**
+   * Días que el caso lleva vivo: de la creación al último movimiento. Ojo al
+   * interpretarlo: un caso devuelto tiene un valor alto porque la devolución
+   * ocurre después, no porque tardar lo haya hecho devolverse.
+   */
+  diasDeVida: number | null;
   /**
    * Caso resuelto. Sale de la columna CASO del libro, que cierra con
    * Entregado, Devuelto o Siniestrado; `Devolucion` sigue abierto porque la
@@ -86,7 +97,7 @@ const MESES_RESIDUALES = new Set(["2026-01", "2026-06"]);
 const COL = {
   id: 0,
   creacion: 1,
-  programado: 2,
+  ultimoMovimiento: 2,
   estado: 3,
   repartidor: 4,
   tienda: 5,
@@ -148,8 +159,8 @@ export function parsearPedido(fila: string[]): Pedido | null {
   const id = Number(celda(fila, COL.id));
   if (!Number.isFinite(id) || id <= 0) return null;
 
-  const programado = parsearFecha(celda(fila, COL.programado));
-  if (!programado) return null;
+  const ultimoMovimiento = parsearFecha(celda(fila, COL.ultimoMovimiento));
+  if (!ultimoMovimiento) return null;
 
   const creacion = parsearFecha(celda(fila, COL.creacion));
   const estado = celda(fila, COL.estado);
@@ -160,17 +171,19 @@ export function parsearPedido(fila: string[]): Pedido | null {
   return {
     id,
     creacion,
-    programado,
+    ultimoMovimiento,
     estado,
     repartidor: celda(fila, COL.repartidor),
     tienda: celda(fila, COL.tienda),
     poligono: celda(fila, COL.poligono),
     visitas: visitasCrudo !== "" && Number.isFinite(visitas) ? visitas : null,
-    mes: mesDe(programado),
+    mes: mesDe(ultimoMovimiento),
     devuelto: ESTADOS_DEVOLUCION.has(normalizado),
     entregado: normalizado === "entregado",
     abierto: ESTADOS_ABIERTOS.has(normalizado),
-    leadTime: creacion ? Math.round((programado.getTime() - creacion.getTime()) / DIA_MS) : null,
+    diasDeVida: creacion
+      ? Math.round((ultimoMovimiento.getTime() - creacion.getTime()) / DIA_MS)
+      : null,
     cerrado: cerradoDe(fila, normalizado),
     reclamoTienda: celda(fila, COL.reclamo),
     tieneUbicacion: celda(fila, COL.ubicacion) !== "",
@@ -191,8 +204,8 @@ function cerradoDe(fila: string[], estadoNormalizado: string): boolean {
 }
 
 /**
- * Un pedido reprogramado a fin de mes queda cargado en dos pestañas. Nos
- * quedamos con la primera aparición y descartamos los meses residuales.
+ * Un pedido puede aparecer en más de una pestaña. Nos quedamos con el registro
+ * de movimiento más reciente, que es el que refleja en qué quedó el caso.
  */
 export function consolidarPedidos(filas: string[][][]): Pedido[] {
   const porId = new Map<number, Pedido>();
@@ -203,13 +216,15 @@ export function consolidarPedidos(filas: string[][][]): Pedido[] {
       if (!pedido || MESES_RESIDUALES.has(pedido.mes)) continue;
 
       const previo = porId.get(pedido.id);
-      if (!previo || pedido.programado! < previo.programado!) {
+      if (!previo || pedido.ultimoMovimiento! > previo.ultimoMovimiento!) {
         porId.set(pedido.id, pedido);
       }
     }
   }
 
-  return [...porId.values()].sort((a, b) => a.programado!.getTime() - b.programado!.getTime());
+  return [...porId.values()].sort(
+    (a, b) => a.ultimoMovimiento!.getTime() - b.ultimoMovimiento!.getTime(),
+  );
 }
 
 const MINUTO_MS = 60 * 1000;

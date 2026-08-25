@@ -127,9 +127,12 @@ function agrupar(pedidos: Pedido[], clave: (pedido: Pedido) => string): PuntoSer
     });
 }
 
-/** Serie día a día, sobre la fecha programada de entrega. */
+/**
+ * Serie día a día por fecha del último movimiento: cuántos casos se tocaron
+ * cada día y cuántos de esos quedaron en devolución.
+ */
 export function porDia(pedidos: Pedido[]): PuntoSerie[] {
-  return agrupar(pedidos, (pedido) => pedido.programado!.toISOString().slice(0, 10));
+  return agrupar(pedidos, (pedido) => pedido.ultimoMovimiento!.toISOString().slice(0, 10));
 }
 
 /** Serie mes a mes. Útil solo si alguna vez se carga más de un mes. */
@@ -281,61 +284,40 @@ export function porVisitas(pedidos: Pedido[]): Tramo[] {
     }));
 }
 
-const TRAMOS_LEAD: { tramo: string; hasta: number }[] = [
-  { tramo: "0–1 d", hasta: 1 },
-  { tramo: "2–3 d", hasta: 3 },
-  { tramo: "4–7 d", hasta: 7 },
-  { tramo: "8–14 d", hasta: 14 },
-  { tramo: "15–30 d", hasta: 30 },
+const TRAMOS_ANTIGUEDAD: { tramo: string; hasta: number }[] = [
+  { tramo: "Hoy", hasta: 0 },
+  { tramo: "1 día", hasta: 1 },
+  { tramo: "2–3 días", hasta: 3 },
+  { tramo: "4–7 días", hasta: 7 },
+  { tramo: "Más de 7", hasta: Infinity },
 ];
 
-/** Tasa de devolución según los días entre creación y fecha programada. */
-export function porLeadTime(pedidos: Pedido[]): Tramo[] {
-  const grupos = new Map<string, Pedido[]>();
+export type FilaAntiguedad = { tramo: string; casos: number; porcentaje: number };
 
-  for (const pedido of pedidos) {
-    const dias = pedido.leadTime;
-    if (dias == null || dias < 0 || dias > 30) continue;
-    const tramo = TRAMOS_LEAD.find((t) => dias <= t.hasta)?.tramo;
-    if (!tramo) continue;
-    const lista = grupos.get(tramo);
-    if (lista) lista.push(pedido);
-    else grupos.set(tramo, [pedido]);
+/**
+ * Hace cuánto que no se mueve cada caso abierto.
+ *
+ * Es la lectura que sí permite la fecha del libro: como se pisa en cada cambio
+ * de estado, la distancia hasta hoy dice cuántos días lleva el caso quieto. Un
+ * caso abierto y sin movimiento hace una semana es el que hay que empujar.
+ */
+export function antiguedadAbiertos(pedidos: Pedido[], hoy = new Date()): FilaAntiguedad[] {
+  const abiertos = pedidos.filter((p) => !p.cerrado && p.ultimoMovimiento);
+  const grupos = new Map<string, number>();
+
+  for (const pedido of abiertos) {
+    const dias = Math.floor(
+      (hoy.getTime() - pedido.ultimoMovimiento!.getTime()) / (24 * 60 * 60 * 1000),
+    );
+    const tramo = TRAMOS_ANTIGUEDAD.find((t) => dias <= t.hasta)?.tramo ?? "Más de 7";
+    grupos.set(tramo, (grupos.get(tramo) ?? 0) + 1);
   }
 
-  return TRAMOS_LEAD.filter((t) => grupos.has(t.tramo)).map(({ tramo }) => {
-    const lista = grupos.get(tramo)!;
-    return {
-      tramo,
-      casos: lista.length,
-      tasaDevolucion: pct(lista.filter((p) => p.devuelto).length, lista.length),
-    };
-  });
-}
-
-const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-
-export function porDiaSemana(pedidos: Pedido[]): Tramo[] {
-  const grupos = new Map<number, Pedido[]>();
-  for (const pedido of pedidos) {
-    const dia = pedido.programado!.getUTCDay();
-    const lista = grupos.get(dia);
-    if (lista) lista.push(pedido);
-    else grupos.set(dia, [pedido]);
-  }
-
-  // Empezamos la semana en lunes, que es como la mira la operación.
-  const orden = [1, 2, 3, 4, 5, 6, 0];
-  return orden
-    .filter((dia) => grupos.has(dia))
-    .map((dia) => {
-      const lista = grupos.get(dia)!;
-      return {
-        tramo: DIAS[dia],
-        casos: lista.length,
-        tasaDevolucion: pct(lista.filter((p) => p.devuelto).length, lista.length),
-      };
-    });
+  return TRAMOS_ANTIGUEDAD.filter((t) => grupos.has(t.tramo)).map(({ tramo }) => ({
+    tramo,
+    casos: grupos.get(tramo)!,
+    porcentaje: pct(grupos.get(tramo)!, abiertos.length),
+  }));
 }
 
 export type DispersionRepartidores = {

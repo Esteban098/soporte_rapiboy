@@ -14,7 +14,7 @@ export default async function Operacion() {
 
   const estadosAyer = porEstado(ayer);
   const resolucionAyer = cierre(ayer);
-  const urgentes = demorados.filter((p) => diasDesde(p.programado) > 2).length;
+  const quietos = demorados.filter((p) => diasDesde(p.ultimoMovimiento) > 2).length;
 
   return (
     <>
@@ -38,10 +38,10 @@ export default async function Operacion() {
           nota="pasaron su fecha y siguen abiertos"
         />
         <Kpi
-          etiqueta="Urgentes"
-          valor={numero(urgentes)}
-          tono={urgentes > 0 ? "bad" : "good"}
-          nota="más de 2 días pasados de fecha"
+          etiqueta="Quietos"
+          valor={numero(quietos)}
+          tono={quietos > 0 ? "bad" : "good"}
+          nota="más de 2 días sin ningún cambio de estado"
         />
         <Kpi
           etiqueta="Sin entregar"
@@ -52,15 +52,15 @@ export default async function Operacion() {
       </div>
 
       <div className={estilos.stack}>
-        <Callout tono={urgentes > 0 ? "critical" : "neutral"} titulo="Por dónde empezar el turno">
+        <Callout tono={quietos > 0 ? "critical" : "neutral"} titulo="Por dónde empezar el turno">
           {demorados.length === 0
             ? "No hay pedidos demorados. La cola del día arranca limpia."
-            : `${numero(demorados.length)} pedidos pasaron su fecha comprometida y ${numero(urgentes)} llevan más de dos días. Esos son los que hay que tocar primero.`}
+            : `${numero(demorados.length)} pedidos están demorados y ${numero(quietos)} llevan más de dos días sin moverse. Esos son los que hay que tocar primero.`}
         </Callout>
 
         <Card
           titulo="Demorados"
-          nota="Prioridad del día: cada uno pasó su fecha comprometida. El semáforo usa el mismo criterio que la columna DEMORA de la planilla."
+          nota="Prioridad del día. La columna «sin moverse» cuenta los días desde el último cambio de estado del paquete."
         >
           <PedidosTable pedidos={demorados} vacio="No hay pedidos demorados. Buen día." />
         </Card>

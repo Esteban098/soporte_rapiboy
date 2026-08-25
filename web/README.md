@@ -21,6 +21,12 @@ Tres decisiones que vale la pena tener presentes:
   no salen del servidor: de esas columnas solo se transmite si el dato existe o
   no, nunca su contenido. Las páginas que muestran pedidos individuales lo hacen
   con id, estado, repartidor, comercio y zona: nada de datos del cliente.
+- **`FechaProgramado` es la fecha del último cambio de estado, no una entrega
+  comprometida.** Se pisa cada vez que el paquete se mueve: si no se entregó el
+  20 y volvió a la tienda el 24, queda en el 24. Sirve para saber hace cuánto
+  que un caso no se mueve, y **no** para medir anticipación ni cumplimiento de
+  fecha: un caso devuelto siempre daría "tarde" porque la devolución ocurre
+  después.
 - **Un caso está cerrado cuando queda en Entregado, Devuelto o Siniestrado.** Es
   la misma regla que la columna `CASO` del libro, y el tablero la lee de ahí
   cuando está disponible. `Devolucion` **no** cierra: la devolución está en
