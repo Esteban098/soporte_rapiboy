@@ -48,18 +48,13 @@ export type Pedido = {
    */
   tieneUbicacion: boolean;
   tieneTelefono: boolean;
-  /** La columna AVISO del libro quedó en "NO AVISADO". */
+  /**
+   * Valor crudo de la columna AVISO: "AVISADO", "NO AVISADO" o vacío. Hoy la
+   * fórmula del libro solo produce "NO AVISADO", pero se guarda tal cual para
+   * que la tabla distinga los dos casos en cuanto la columna sepa hacerlo.
+   */
+  aviso: string;
   avisoPendiente: boolean;
-};
-
-export type Cancelacion = {
-  id: number;
-  tienda: string;
-  estadoRpb: string;
-  colectado: Date | null;
-  cancelado: Date | null;
-  /** Minutos en ruta antes de que Mercado Libre cancelara. */
-  minutos: number | null;
 };
 
 /** Estados que significan que el paquete volvió al vendedor. */
@@ -140,15 +135,6 @@ export function parsearFecha(valor: string): Date | null {
   return null;
 }
 
-function parsearFechaHora(valor: string): Date | null {
-  if (!valor) return null;
-  const m = valor.match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?/);
-  if (m) {
-    return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], m[6] ? +m[6] : 0));
-  }
-  return parsearFecha(valor);
-}
-
 function mesDe(fecha: Date): string {
   return `${fecha.getUTCFullYear()}-${String(fecha.getUTCMonth() + 1).padStart(2, "0")}`;
 }
@@ -188,6 +174,7 @@ export function parsearPedido(fila: string[]): Pedido | null {
     reclamoTienda: celda(fila, COL.reclamo),
     tieneUbicacion: celda(fila, COL.ubicacion) !== "",
     tieneTelefono: celda(fila, COL.telefono) !== "",
+    aviso: celda(fila, COL.aviso).toUpperCase(),
     avisoPendiente: celda(fila, COL.aviso).toLowerCase() === "no avisado",
   };
 }
@@ -227,40 +214,3 @@ export function consolidarPedidos(filas: string[][][]): Pedido[] {
   );
 }
 
-const MINUTO_MS = 60 * 1000;
-
-/** Columnas que se buscan por nombre en la pestaña de cancelaciones. */
-export const COLUMNAS_CANCELADOS = [
-  "Id",
-  "Tienda",
-  "Estado_RBP",
-  "Fecha_ColectadoMEX",
-  "Fecha_CanceladoMEX",
-  "Minutos_Diferencia",
-];
-
-export function parsearCancelacion(fila: string[], indices: number[]): Cancelacion | null {
-  const [iId, iTienda, iEstado, iColectado, iCancelado, iMinutos] = indices;
-
-  const id = Number(celda(fila, iId));
-  if (!Number.isFinite(id) || id <= 0) return null;
-
-  const colectado = parsearFechaHora(celda(fila, iColectado));
-  const cancelado = parsearFechaHora(celda(fila, iCancelado));
-
-  // La hoja de 2026 dejó de calcular los minutos, así que los derivamos de las
-  // dos fechas y solo usamos la columna cuando ya viene cargada.
-  const declarados = Number(celda(fila, iMinutos));
-  const calculados =
-    colectado && cancelado ? Math.round((cancelado.getTime() - colectado.getTime()) / MINUTO_MS) : null;
-  const minutos = Number.isFinite(declarados) && declarados > 0 ? declarados : calculados;
-
-  return {
-    id,
-    tienda: celda(fila, iTienda),
-    estadoRpb: celda(fila, iEstado),
-    colectado,
-    cancelado,
-    minutos: minutos != null && minutos > 0 ? minutos : null,
-  };
-}

@@ -1,4 +1,4 @@
-import type { Cancelacion, Pedido } from "./normalizar";
+import type { Pedido } from "./normalizar";
 
 export type Resumen = {
   casos: number;
@@ -67,6 +67,7 @@ export type Reclamos = {
   /** Y cuántos entre los que no tuvieron reclamo, para comparar. */
   tasaEntregaSinReclamo: number;
   avisoPendiente: number;
+  avisados: number;
   conUbicacion: number;
   conTelefono: number;
   porTipo: FilaReclamo[];
@@ -208,6 +209,7 @@ export function reclamos(pedidos: Pedido[]): Reclamos {
     tasaEntregaConReclamo: pct(entregadosCon, con.length),
     tasaEntregaSinReclamo: pct(sin.filter((p) => p.entregado).length, sin.length),
     avisoPendiente: con.filter((p) => p.avisoPendiente).length,
+    avisados: con.filter((p) => p.aviso === "AVISADO").length,
     conUbicacion: con.filter((p) => p.tieneUbicacion).length,
     conTelefono: con.filter((p) => p.tieneTelefono).length,
     porTipo,
@@ -355,42 +357,5 @@ export function dispersionRepartidores(pedidos: Pedido[], minimoCasos = 200): Di
       tasaDevolucion: f.tasaDevolucion,
       visitasPromedio: f.visitasPromedio,
     })),
-  };
-}
-
-export type ResumenCancelaciones = {
-  casos: number;
-  conMinutos: number;
-  medianaMinutos: number;
-  masDeDosHoras: number;
-  porTienda: { nombre: string; casos: number; medianaMinutos: number }[];
-};
-
-export function resumenCancelaciones(cancelaciones: Cancelacion[]): ResumenCancelaciones {
-  const minutos = cancelaciones.map((c) => c.minutos).filter((m): m is number => m != null);
-
-  const grupos = new Map<string, number[]>();
-  for (const c of cancelaciones) {
-    if (!c.tienda) continue;
-    const lista = grupos.get(c.tienda) ?? [];
-    if (c.minutos != null) lista.push(c.minutos);
-    grupos.set(c.tienda, lista);
-  }
-
-  const porTienda = [...grupos.entries()]
-    .map(([nombre, lista]) => ({
-      nombre,
-      casos: cancelaciones.filter((c) => c.tienda === nombre).length,
-      medianaMinutos: mediana(lista),
-    }))
-    .sort((a, b) => b.casos - a.casos)
-    .slice(0, 10);
-
-  return {
-    casos: cancelaciones.length,
-    conMinutos: minutos.length,
-    medianaMinutos: mediana(minutos),
-    masDeDosHoras: minutos.filter((m) => m > 120).length,
-    porTienda,
   };
 }

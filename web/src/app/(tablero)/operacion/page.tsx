@@ -1,13 +1,13 @@
 import { cargarVistasDelDia } from "@/lib/datos";
 import { cierre, porEstado } from "@/lib/metricas";
-import { numero, porcentaje } from "@/lib/formato";
+import { numero } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
 import { PedidosTable } from "@/components/PedidosTable";
 import estilos from "@/components/ui.module.css";
 
-export const metadata = { title: "Ayer y demorados" };
+export const metadata = { title: "Ayer" };
 
 export default async function Operacion() {
   const { ayer, demorados, demoradosNoEntregados } = await cargarVistasDelDia();
@@ -20,8 +20,8 @@ export default async function Operacion() {
     <>
       <PageHead
         eyebrow="Cola del día"
-        titulo="Ayer y demorados"
-        dek="Solo lo pendiente de la jornada anterior y lo que ya pasó su fecha comprometida. Es un recorte del día: el acumulado del mes está en Mes en curso."
+        titulo="Ayer"
+        dek="Los casos de la pestaña Ayer del libro: lo que quedó sin cerrar en la jornada anterior. Abajo, los demorados. El acumulado del mes está en Mes en curso."
       />
 
       <div className={estilos.kpis}>
@@ -59,6 +59,20 @@ export default async function Operacion() {
         </Callout>
 
         <Card
+          titulo="Casos de ayer"
+          nota="El detalle completo de la pestaña Ayer. La columna «sin moverse» cuenta los días desde el último cambio de estado del paquete."
+        >
+          <PedidosTable pedidos={ayer} vacio="Ayer cerró sin casos abiertos." />
+        </Card>
+
+        <Card
+          titulo="En qué estado quedaron"
+          nota="Los casos de ayer agrupados por estado, con cuáles cuentan como resueltos."
+        >
+          <EstadosTable filas={estadosAyer} />
+        </Card>
+
+        <Card
           titulo="Demorados"
           nota="Prioridad del día. La columna «sin moverse» cuenta los días desde el último cambio de estado del paquete."
         >
@@ -75,19 +89,6 @@ export default async function Operacion() {
           />
         </Card>
 
-        <Card
-          titulo="En qué estado quedaron los de ayer"
-          nota={`Los ${numero(ayer.length)} casos que arrastra la jornada anterior, por estado.`}
-        >
-          <EstadosTable filas={estadosAyer} />
-        </Card>
-
-        <Card
-          titulo="Abiertos de ayer"
-          nota={`El detalle de lo que quedó sin cerrar al final del día anterior: ${porcentaje(resolucionAyer.tasaApertura)} de esa lista sigue sin resolverse.`}
-        >
-          <PedidosTable pedidos={ayer} vacio="Ayer cerró sin casos abiertos." />
-        </Card>
       </div>
     </>
   );

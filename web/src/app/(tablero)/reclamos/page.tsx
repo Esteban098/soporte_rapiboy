@@ -4,6 +4,7 @@ import { numero, porcentaje, puntos } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
+import { ReclamosTable } from "@/components/ReclamosTable";
 import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Reclamos de tienda" };
@@ -11,6 +12,17 @@ export const metadata = { title: "Reclamos de tienda" };
 export default async function Reclamos() {
   const pedidos = await cargarPedidos();
   const datos = reclamos(pedidos);
+
+  // El detalle va ordenado por lo que hay que atender primero: sin avisar y
+  // todavía abierto, arriba de todo.
+  const conReclamo = pedidos
+    .filter((p) => p.reclamoTienda !== "")
+    .sort((a, b) => {
+      const prioridad = (p: typeof a) => (p.avisoPendiente ? 0 : 1) + (p.cerrado ? 2 : 0);
+      return prioridad(a) - prioridad(b) || b.ultimoMovimiento!.getTime() - a.ultimoMovimiento!.getTime();
+    });
+  const sinAvisar = conReclamo.filter((p) => p.avisoPendiente);
+  const avisados = conReclamo.filter((p) => !p.avisoPendiente);
   const diferencia = datos.tasaEntregaConReclamo - datos.tasaEntregaSinReclamo;
 
   return (
@@ -42,7 +54,7 @@ export default async function Reclamos() {
           etiqueta="Sin avisar"
           valor={numero(datos.avisoPendiente)}
           tono={datos.avisoPendiente > 0 ? "bad" : "good"}
-          nota="marcados NO AVISADO en la planilla"
+          nota={`${numero(datos.avisados)} marcados como avisados`}
         />
       </div>
 
@@ -69,6 +81,26 @@ export default async function Reclamos() {
           avisar» son exactamente los {numero(datos.conReclamo)} casos con datos. Para que esta
           métrica sirva hace falta una casilla que soporte marque al avisar.
         </Callout>
+
+        <Card
+          titulo="Sin avisar al repartidor"
+          nota="Casos donde la tienda ya pasó información y el repartidor todavía no la tiene. Ordenados con los que siguen abiertos arriba."
+        >
+          <ReclamosTable
+            pedidos={sinAvisar}
+            vacio="No queda ningún caso sin avisar."
+          />
+        </Card>
+
+        <Card
+          titulo="Avisados"
+          nota="Casos con información de la tienda donde el aviso ya salió."
+        >
+          <ReclamosTable
+            pedidos={avisados}
+            vacio="Todavía no hay ningún caso marcado como avisado: la columna AVISO del libro no puede registrarlo."
+          />
+        </Card>
 
         <Card
           titulo="Qué tipo de dato aporta la tienda"

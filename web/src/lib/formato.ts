@@ -48,11 +48,3 @@ export function fechaCorta(fecha: Date | null): string {
   if (!fecha) return "—";
   return new Intl.DateTimeFormat("es-MX", { day: "2-digit", month: "short", timeZone: "UTC" }).format(fecha);
 }
-
-/** 148 -> `2 h 28 min`. */
-export function duracion(minutos: number): string {
-  const horas = Math.floor(minutos / 60);
-  const resto = Math.round(minutos % 60);
-  if (horas === 0) return `${resto} min`;
-  return `${horas} h ${String(resto).padStart(2, "0")} min`;
-}

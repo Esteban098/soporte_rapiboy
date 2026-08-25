@@ -6,11 +6,10 @@ import estilos from "./ui.module.css";
 
 const SECCIONES = [
   { href: "/", etiqueta: "Mes en curso" },
-  { href: "/operacion", etiqueta: "Ayer y demorados" },
+  { href: "/operacion", etiqueta: "Ayer" },
   { href: "/reclamos", etiqueta: "Reclamos de tienda" },
   { href: "/repartidores", etiqueta: "Repartidores" },
   { href: "/comercios", etiqueta: "Comercios y zonas" },
-  { href: "/cancelaciones", etiqueta: "Cancelaciones" },
 ];
 
 export function Shell({

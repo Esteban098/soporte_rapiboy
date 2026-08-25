@@ -19,8 +19,6 @@ export const TAB_AYER = "Ayer";
 export const TAB_DEMORADOS = "Demorados";
 export const TAB_DEMORADO_NO_ENTREGADO = "DemoradoNoEntregado";
 
-/** Cancelaciones de Mercado Libre. */
-export const TAB_CANCELADOS = "Cancelados";
 
 export type ModoDatos = "sheet" | "fixture";
 

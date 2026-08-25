@@ -1,20 +1,16 @@
 import "server-only";
 import { cache } from "react";
-import { indicesPorNombre, leerFilas } from "./csv";
+import { leerFilas } from "./csv";
 import {
   TAB_MENSUAL,
   TAB_AYER,
-  TAB_CANCELADOS,
   TAB_DEMORADOS,
   TAB_DEMORADO_NO_ENTREGADO,
   modoDatos,
 } from "./config";
 import {
-  COLUMNAS_CANCELADOS,
   consolidarPedidos,
-  parsearCancelacion,
   parsearPedido,
-  type Cancelacion,
   type Pedido,
 } from "./normalizar";
 
@@ -56,16 +52,6 @@ export const cargarVistasDelDia = cache(async (): Promise<VistasDelDia> => {
     demorados: parsear(demorados),
     demoradosNoEntregados: parsear(noEntregados),
   };
-});
-
-export const cargarCancelaciones = cache(async (): Promise<Cancelacion[]> => {
-  const [encabezado, ...filas] = await leerFilas(TAB_CANCELADOS);
-  const indices = indicesPorNombre(encabezado ?? [], COLUMNAS_CANCELADOS);
-
-  return filas
-    .map((fila) => parsearCancelacion(fila, indices))
-    .filter((c): c is Cancelacion => c !== null)
-    .sort((a, b) => (b.colectado?.getTime() ?? 0) - (a.colectado?.getTime() ?? 0));
 });
 
 export function estadoFuente(pestanas: number): EstadoFuente {

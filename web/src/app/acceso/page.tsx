@@ -20,7 +20,7 @@ export default async function Acceso({
         <span className={estilos.marca} aria-hidden="true" />
         <h1 className={estilos.titulo}>Tablero de Operación</h1>
         <p className={estilos.dek}>
-          Entregas fallidas, demoras y cancelaciones de la operación de México. El acceso está
+          Casos abiertos, demoras y reclamos de tienda de la operación de México. El acceso está
           limitado al equipo de soporte.
         </p>
 

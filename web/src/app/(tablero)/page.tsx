@@ -42,7 +42,7 @@ export default async function Resumen() {
     <>
       <PageHead
         eyebrow={`Mes en curso · ${mesLargo(total.hasta)}`}
-        titulo="Todos los casos del mes"
+        titulo="Entregas fallidas mensual"
         dek={`${numero(total.casos)} casos acumulados en ${mesLargo(total.hasta)}. Para ver solo lo que quedó pendiente del día anterior, entrá a Operación del día.`}
       />
 

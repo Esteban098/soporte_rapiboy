@@ -2,7 +2,7 @@
  * Comprueba que la normalización de la web da los mismos números que el
  * análisis en Python sobre el libro original. Corre contra los fixtures.
  */
-import { cargarPedidos, cargarCancelaciones, cargarVistasDelDia } from "../src/lib/datos";
+import { cargarPedidos, cargarVistasDelDia } from "../src/lib/datos";
 import {
   antiguedadAbiertos,
   dispersionRepartidores,
@@ -10,7 +10,6 @@ import {
   porVisitas,
   ranking,
   resumen,
-  resumenCancelaciones,
 } from "../src/lib/metricas";
 
 const pedidos = await cargarPedidos();
@@ -44,9 +43,4 @@ for (const f of ranking(pedidos, "tienda", { limite: 5 }))
 const vistas = await cargarVistasDelDia();
 console.log(
   `\nvistas del día: ayer=${vistas.ayer.length} demorados=${vistas.demorados.length} noEntregados=${vistas.demoradosNoEntregados.length}`,
-);
-
-const c = resumenCancelaciones(await cargarCancelaciones());
-console.log(
-  `cancelaciones: ${c.casos} casos, ${c.conMinutos} con minutos, mediana ${c.medianaMinutos} min, ${c.masDeDosHoras} de más de 2 h`,
 );

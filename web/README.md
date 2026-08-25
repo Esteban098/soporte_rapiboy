@@ -42,8 +42,8 @@ Tres decisiones que vale la pena tener presentes:
 | Ruta | Qué muestra |
 |---|---|
 | `/` | **Mes en curso**: abiertos contra cerrados —la métrica principal—, el desglose de todos los estados, y la serie día a día. |
-| `/operacion` | **Ayer y demorados**: solo el recorte del día, con el mismo semáforo que la columna `DEMORA` de la planilla. |
-| `/reclamos` | Casos donde la tienda aportó datos para concretar la entrega, en qué terminaron y cuántos siguen sin avisar. |
+| `/operacion` | **Ayer**: los casos de la pestaña `Ayer`, más los demorados. |
+| `/reclamos` | Casos donde la tienda aportó datos, separados en avisados y sin avisar, con la información del viaje. |
 | `/repartidores` | Dispersión del equipo, ranking por tasa de devolución y cuántas devoluciones evitaría llevar a los críticos a la mediana. |
 | `/comercios` | De dónde salen los casos y a qué zonas van. |
 | `/cancelaciones` | Tiempo en ruta antes de que Mercado Libre cancele. El tablero recalcula los minutos que la hoja de 2026 dejó de calcular. |
@@ -110,11 +110,10 @@ Solo cuatro, más la de cancelaciones:
 
 | Pestaña | Para qué |
 |---|---|
-| `Mensual` | Los casos del mes en curso. Es la única fuente de pedidos. |
-| `Ayer` | Lo que quedó abierto del día anterior. |
+| `Mensual` | Los casos del mes en curso. Alimenta la sección Mes en curso. |
+| `Ayer` | Lo que quedó abierto del día anterior. Alimenta la sección Ayer. |
 | `Demorados` | Los que pasaron su fecha y siguen abiertos. |
 | `DemoradoNoEntregado` | Demorados que además están sin entregar. |
-| `Cancelados` | Cancelaciones de Mercado Libre. |
 
 Las pestañas de meses anteriores quedaron como archivo y varias fueron vaciadas
 o reutilizadas, así que no se leen: no son una fuente confiable de historial. Si

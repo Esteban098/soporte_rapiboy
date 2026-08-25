@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     default: "Tablero de Operación",
     template: "%s · Tablero de Operación",
   },
-  description: "Entregas fallidas, demoras y cancelaciones de la operación de México.",
+  description: "Casos abiertos, demoras y reclamos de tienda de la operación de México.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
