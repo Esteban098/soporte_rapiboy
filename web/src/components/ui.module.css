@@ -1,0 +1,432 @@
+/* Piezas compartidas por todos los tableros. */
+
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--plane) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--rule);
+}
+
+.topbarInner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  min-height: 60px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+.brandMark {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  background: var(--accent);
+  flex: none;
+  align-self: center;
+}
+
+.brandSub {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.nav {
+  display: flex;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+
+.navLink {
+  padding: 6px 11px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.navLink:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.navLinkActive {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 500;
+}
+
+.topbarEnd {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.main {
+  flex: 1;
+  max-width: 1180px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+}
+
+.pageHead {
+  margin-bottom: 26px;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 9px;
+}
+
+.pageTitle {
+  font-size: 27px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.pageDek {
+  color: var(--ink-2);
+  max-width: 68ch;
+  margin: 0;
+  font-size: 15px;
+}
+
+/* --- tarjetas --- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio);
+  box-shadow: var(--shadow);
+  padding: 20px 20px 16px;
+}
+
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 3px;
+}
+
+.cardTitle {
+  font-size: 15.5px;
+  font-weight: 600;
+}
+
+.cardNote {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 3px 0 16px;
+  max-width: 72ch;
+}
+
+/* --- kpis --- */
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio);
+  box-shadow: var(--shadow);
+  padding: 17px 18px 15px;
+}
+
+.kpiLabel {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.kpiValue {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 31px;
+  line-height: 1.12;
+  letter-spacing: -0.022em;
+  margin: 7px 0 3px;
+}
+
+.kpiValueGood {
+  color: var(--good);
+}
+
+.kpiValueBad {
+  color: var(--critical);
+}
+
+.kpiNote {
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+
+/* --- grilla --- */
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 14px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* --- tablas --- */
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13.5px;
+}
+
+.table th,
+.table td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--rule-soft);
+  white-space: nowrap;
+}
+
+.table th {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.nombre {
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* barra dentro de la celda: da la magnitud sin necesidad de un gráfico aparte */
+.barCell {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  justify-content: flex-end;
+}
+
+.barTrack {
+  width: 74px;
+  height: 6px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  overflow: hidden;
+  flex: none;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+}
+
+.barFillBad {
+  background: var(--critical);
+}
+
+.barFillGood {
+  background: var(--good);
+}
+
+/* --- chips de estado --- */
+
+.chip {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.chipGood {
+  color: var(--good);
+  background: var(--good-soft);
+}
+
+.chipWarning {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.chipCritical {
+  color: var(--critical);
+  background: var(--critical-soft);
+}
+
+.chipNeutral {
+  color: var(--muted);
+  background: var(--surface-2);
+}
+
+/* --- varios --- */
+
+.details {
+  margin-top: 12px;
+}
+
+.summary {
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 5px 0;
+  list-style: none;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary::before {
+  content: "▸ ";
+}
+
+details[open] > .summary::before {
+  content: "▾ ";
+}
+
+.summary:hover {
+  color: var(--ink-2);
+}
+
+.empty {
+  padding: 28px 4px;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.fuente {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.fuenteDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--good);
+  flex: none;
+}
+
+.fuenteDotFixture {
+  background: var(--warning);
+}
+
+.callout {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radio) var(--radio) 0;
+  box-shadow: var(--shadow);
+  padding: 15px 17px;
+}
+
+.calloutCritical {
+  border-left-color: var(--critical);
+}
+
+.calloutWarning {
+  border-left-color: var(--warning);
+}
+
+.calloutTitle {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.calloutBody {
+  font-size: 14px;
+  color: var(--ink-2);
+  margin: 0;
+  max-width: 70ch;
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: 24px 16px 64px;
+  }
+
+  .topbarInner {
+    padding: 8px 16px;
+    gap: 14px;
+  }
+
+  .kpiValue {
+    font-size: 27px;
+  }
+}

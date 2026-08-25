@@ -1,0 +1,18 @@
+node_modules
+.next
+out
+build
+.DS_Store
+*.pem
+
+# Variables de entorno: nunca al repo
+.env
+.env*.local
+
+# Fixtures generados desde el libro con analisis/generar_fixtures.py
+fixtures/
+
+# Vercel y TypeScript
+.vercel
+*.tsbuildinfo
+next-env.d.ts

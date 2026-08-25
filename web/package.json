@@ -1,0 +1,33 @@
+{
+  "name": "tablero-operacion-mexico",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "fixtures": "python3 ../analisis/generar_fixtures.py \"$XLSX\" -o fixtures",
+    "verificar": "tsx --conditions react-server scripts/verificar.mts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "16.3.3",
+    "next-auth": "^5.0.0-beta.32",
+    "papaparse": "^5.7.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "recharts": "^3.10.1",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.3",
+    "tsx": "^4.23.12",
+    "typescript": "^5"
+  }
+}

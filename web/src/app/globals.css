@@ -1,0 +1,160 @@
+/* ---------------------------------------------------------------------------
+   Sistema de diseño. Todo color pasa por un token para que el tema claro y el
+   oscuro se resuelvan como conjunto y ningún componente quede con un literal
+   que solo funciona en uno de los dos.
+   --------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: light;
+
+  --plane: #eceff2;
+  --surface: #ffffff;
+  --surface-2: #f4f6f8;
+  --surface-3: #e9edf1;
+
+  --ink: #0d1117;
+  --ink-2: #4b5058;
+  --muted: #767c85;
+
+  --rule: rgba(13, 17, 23, 0.11);
+  --rule-soft: rgba(13, 17, 23, 0.06);
+
+  --accent: #2a78d6;
+  --accent-ink: #1f5fae;
+  --accent-soft: rgba(42, 120, 214, 0.1);
+  --serie-2: #eb6834;
+
+  --good: #0a7d33;
+  --good-soft: rgba(10, 125, 51, 0.11);
+  --warning: #98700a;
+  --warning-soft: rgba(152, 112, 10, 0.12);
+  --critical: #c0392f;
+  --critical-soft: rgba(192, 57, 47, 0.11);
+
+  --grid: #e4e7ea;
+  --axis: #c7ccd2;
+
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 12px 28px -22px rgba(16, 24, 40, 0.5);
+  --radio: 12px;
+
+  --sans: var(--fuente-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: var(--fuente-display), var(--sans);
+  --mono: var(--fuente-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --plane: #0b0d0f;
+    --surface: #16191c;
+    --surface-2: #1d2125;
+    --surface-3: #23282d;
+
+    --ink: #f2f4f6;
+    --ink-2: #b4bac1;
+    --muted: #868d95;
+
+    --rule: rgba(255, 255, 255, 0.12);
+    --rule-soft: rgba(255, 255, 255, 0.06);
+
+    --accent: #5b9df0;
+    --accent-ink: #85b8f5;
+    --accent-soft: rgba(91, 157, 240, 0.16);
+    --serie-2: #e0703a;
+
+    --good: #4cb96e;
+    --good-soft: rgba(76, 185, 110, 0.16);
+    --warning: #d8a83a;
+    --warning-soft: rgba(216, 168, 58, 0.16);
+    --critical: #eb7a72;
+    --critical-soft: rgba(235, 122, 114, 0.16);
+
+    --grid: #262b30;
+    --axis: #363c43;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px -22px rgba(0, 0, 0, 0.9);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --plane: #0b0d0f;
+  --surface: #16191c;
+  --surface-2: #1d2125;
+  --surface-3: #23282d;
+
+  --ink: #f2f4f6;
+  --ink-2: #b4bac1;
+  --muted: #868d95;
+
+  --rule: rgba(255, 255, 255, 0.12);
+  --rule-soft: rgba(255, 255, 255, 0.06);
+
+  --accent: #5b9df0;
+  --accent-ink: #85b8f5;
+  --accent-soft: rgba(91, 157, 240, 0.16);
+  --serie-2: #e0703a;
+
+  --good: #4cb96e;
+  --good-soft: rgba(76, 185, 110, 0.16);
+  --warning: #d8a83a;
+  --warning-soft: rgba(216, 168, 58, 0.16);
+  --critical: #eb7a72;
+  --critical-soft: rgba(235, 122, 114, 0.16);
+
+  --grid: #262b30;
+  --axis: #363c43;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px -22px rgba(0, 0, 0, 0.9);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--plane);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--display);
+  letter-spacing: -0.015em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -1,0 +1,56 @@
+.pantalla {
+  min-height: 70vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.caja {
+  max-width: 520px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 28px 28px 24px;
+}
+
+.titulo {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.texto {
+  color: var(--ink-2);
+  font-size: 14.5px;
+  margin: 0 0 16px;
+}
+
+.detalle {
+  background: var(--surface-2);
+  border: 1px solid var(--rule-soft);
+  border-radius: 8px;
+  padding: 11px 13px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-2);
+  overflow-x: auto;
+  margin: 0 0 18px;
+  white-space: pre-wrap;
+}
+
+.boton {
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: #ffffff;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.boton:hover {
+  background: var(--accent-ink);
+}
