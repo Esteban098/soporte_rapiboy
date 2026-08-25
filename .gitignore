@@ -1,0 +1,6 @@
+# Salida generada por analisis/entregas_fallidas.py
+analisis/metricas.json
+
+# Python
+__pycache__/
+*.pyc
