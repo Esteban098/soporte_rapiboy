@@ -92,14 +92,14 @@ export default async function Resumen() {
 
         <Card
           titulo="Casos por día"
-          nota="Agrupado por la fecha programada de entrega, dentro del mes en curso."
+          nota="Cada barra son los paquetes que tenían que entregarse ese día. Los valles son domingos."
         >
           <BarrasSerie datos={dias} escala="dia" />
         </Card>
 
         <Card
           titulo="Tasa de devolución por día"
-          nota="Porcentaje de casos que terminaron volviendo al vendedor, sobre el total del día. La línea gris es el promedio del mes."
+          nota="De los paquetes que había que entregar cada día, qué porcentaje terminó volviendo al vendedor. La línea gris es el promedio del mes."
         >
           <LineaSerie datos={dias} promedio={total.tasaDevolucion} escala="dia" />
         </Card>
@@ -107,14 +107,14 @@ export default async function Resumen() {
         <div className={estilos.grid2}>
           <Card
             titulo="Resultado según visitas"
-            nota="Cuántas veces se visitó el domicilio antes de cerrar el caso. La segunda visita es la que más pedidos salva."
+            nota="Cuántas veces el repartidor pasó por el domicilio antes de cerrar el caso. La segunda visita es la que más pedidos salva."
           >
             <BarrasTramo datos={visitas} etiquetaTramo="Visitas" destacarSobre={50} />
           </Card>
 
           <Card
             titulo="Resultado según días hasta la entrega"
-            nota="Días entre la creación del pedido y su fecha programada. Pasada la primera semana, el caso casi no se recupera."
+            nota="Cuántos días pasaron entre que entró el pedido y el día en que había que entregarlo. Pasada la primera semana, el caso casi no se recupera."
           >
             <BarrasTramo datos={lead} etiquetaTramo="Demora" destacarSobre={50} />
           </Card>
@@ -122,7 +122,7 @@ export default async function Resumen() {
 
         <Card
           titulo="Devolución por día de la semana"
-          nota="Sobre la fecha programada de entrega. Sirve para decidir dónde reforzar dotación."
+          nota="Según el día de la semana en que había que entregar. Sirve para decidir cuándo reforzar dotación."
         >
           <BarrasTramo datos={semana} etiquetaTramo="Día" />
         </Card>
