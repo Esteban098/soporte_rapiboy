@@ -31,6 +31,48 @@ export type FilaRanking = {
 
 export type Tramo = { tramo: string; casos: number; tasaDevolucion: number };
 
+/** Cuántos casos quedaron resueltos y cuántos siguen en la cola. */
+export type Cierre = {
+  total: number;
+  cerrados: number;
+  abiertos: number;
+  tasaCierre: number;
+  tasaApertura: number;
+};
+
+export type FilaEstado = {
+  estado: string;
+  casos: number;
+  porcentaje: number;
+  cerrado: boolean;
+};
+
+/** Un tipo de reclamo de tienda y en qué terminaron esos casos. */
+export type FilaReclamo = {
+  tipo: string;
+  casos: number;
+  entregados: number;
+  tasaEntrega: number;
+  abiertos: number;
+};
+
+export type Reclamos = {
+  /** Casos donde la tienda pasó datos para concretar la entrega. */
+  conReclamo: number;
+  sinReclamo: number;
+  porcentaje: number;
+  /** De los que tienen reclamo, cuántos terminaron entregados. */
+  entregadosConReclamo: number;
+  tasaEntregaConReclamo: number;
+  /** Y cuántos entre los que no tuvieron reclamo, para comparar. */
+  tasaEntregaSinReclamo: number;
+  avisoPendiente: number;
+  conUbicacion: number;
+  conTelefono: number;
+  porTipo: FilaReclamo[];
+  porEstado: FilaEstado[];
+};
+
 const pct = (parte: number, total: number) => (total === 0 ? 0 : (parte / total) * 100);
 
 function promedio(valores: number[]): number {
@@ -91,6 +133,85 @@ export function porDia(pedidos: Pedido[]): PuntoSerie[] {
 }
 
 /** Serie mes a mes. Útil solo si alguna vez se carga más de un mes. */
+/** La métrica principal de la operación: resueltos contra pendientes. */
+export function cierre(pedidos: Pedido[]): Cierre {
+  const cerrados = pedidos.filter((p) => p.cerrado).length;
+  const abiertos = pedidos.length - cerrados;
+  return {
+    total: pedidos.length,
+    cerrados,
+    abiertos,
+    tasaCierre: pct(cerrados, pedidos.length),
+    tasaApertura: pct(abiertos, pedidos.length),
+  };
+}
+
+/** Todos los estados con su volumen, no solo entregado y devuelto. */
+export function porEstado(pedidos: Pedido[]): FilaEstado[] {
+  const grupos = new Map<string, Pedido[]>();
+  for (const pedido of pedidos) {
+    const estado = pedido.estado || "Sin estado";
+    const lista = grupos.get(estado);
+    if (lista) lista.push(pedido);
+    else grupos.set(estado, [pedido]);
+  }
+
+  return [...grupos.entries()]
+    .map(([estado, lista]) => ({
+      estado,
+      casos: lista.length,
+      porcentaje: pct(lista.length, pedidos.length),
+      cerrado: lista[0].cerrado,
+    }))
+    .sort((a, b) => b.casos - a.casos);
+}
+
+/**
+ * Casos donde la tienda compartió datos para concretar la entrega. Interesa
+ * sobre todo si esa información sirvió: comparamos la tasa de entrega de los
+ * casos con reclamo contra la de los que no tuvieron ninguno.
+ */
+export function reclamos(pedidos: Pedido[]): Reclamos {
+  const con = pedidos.filter((p) => p.reclamoTienda !== "");
+  const sin = pedidos.filter((p) => p.reclamoTienda === "");
+  const entregadosCon = con.filter((p) => p.entregado).length;
+
+  const grupos = new Map<string, Pedido[]>();
+  for (const pedido of con) {
+    const tipo = pedido.reclamoTienda.toUpperCase();
+    const lista = grupos.get(tipo);
+    if (lista) lista.push(pedido);
+    else grupos.set(tipo, [pedido]);
+  }
+
+  const porTipo = [...grupos.entries()]
+    .map(([tipo, lista]) => {
+      const entregados = lista.filter((p) => p.entregado).length;
+      return {
+        tipo,
+        casos: lista.length,
+        entregados,
+        tasaEntrega: pct(entregados, lista.length),
+        abiertos: lista.filter((p) => !p.cerrado).length,
+      };
+    })
+    .sort((a, b) => b.casos - a.casos);
+
+  return {
+    conReclamo: con.length,
+    sinReclamo: sin.length,
+    porcentaje: pct(con.length, pedidos.length),
+    entregadosConReclamo: entregadosCon,
+    tasaEntregaConReclamo: pct(entregadosCon, con.length),
+    tasaEntregaSinReclamo: pct(sin.filter((p) => p.entregado).length, sin.length),
+    avisoPendiente: con.filter((p) => p.avisoPendiente).length,
+    conUbicacion: con.filter((p) => p.tieneUbicacion).length,
+    conTelefono: con.filter((p) => p.tieneTelefono).length,
+    porTipo,
+    porEstado: porEstado(con),
+  };
+}
+
 export function porMes(pedidos: Pedido[]): PuntoSerie[] {
   return agrupar(pedidos, (pedido) => pedido.mes);
 }

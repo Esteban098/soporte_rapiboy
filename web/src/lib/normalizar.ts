@@ -23,6 +23,22 @@ export type Pedido = {
   abierto: boolean;
   /** Días entre la creación del pedido y su fecha programada. */
   leadTime: number | null;
+  /**
+   * Caso resuelto. Sale de la columna CASO del libro, que cierra con
+   * Entregado, Devuelto o Siniestrado; `Devolucion` sigue abierto porque la
+   * devolución está en curso.
+   */
+  cerrado: boolean;
+  /** Tipificación que cargó soporte con lo que pasó la tienda. Vacío si no hay. */
+  reclamoTienda: string;
+  /**
+   * Si la tienda pasó ubicación o teléfono. Se guarda solo el hecho de que
+   * existan: el dato en sí es del cliente y no sale del servidor.
+   */
+  tieneUbicacion: boolean;
+  tieneTelefono: boolean;
+  /** La columna AVISO del libro quedó en "NO AVISADO". */
+  avisoPendiente: boolean;
 };
 
 export type Cancelacion = {
@@ -77,7 +93,15 @@ const COL = {
   destino: 6,
   poligono: 7,
   visitas: 8,
+  reclamo: 10,
+  ubicacion: 11,
+  telefono: 12,
+  aviso: 13,
+  caso: 14,
 } as const;
+
+/** Estados que la columna CASO del libro considera resueltos. */
+const ESTADOS_CERRADOS = new Set(["entregado", "devuelto", "siniestrado"]);
 
 function celda(fila: string[], indice: number): string {
   const valor = fila[indice];
@@ -147,7 +171,23 @@ export function parsearPedido(fila: string[]): Pedido | null {
     entregado: normalizado === "entregado",
     abierto: ESTADOS_ABIERTOS.has(normalizado),
     leadTime: creacion ? Math.round((programado.getTime() - creacion.getTime()) / DIA_MS) : null,
+    cerrado: cerradoDe(fila, normalizado),
+    reclamoTienda: celda(fila, COL.reclamo),
+    tieneUbicacion: celda(fila, COL.ubicacion) !== "",
+    tieneTelefono: celda(fila, COL.telefono) !== "",
+    avisoPendiente: celda(fila, COL.aviso).toLowerCase() === "no avisado",
   };
+}
+
+/**
+ * Usa la columna CASO cuando viene calculada y, si no está, aplica la misma
+ * regla en código. Las vistas del día no traen esa columna.
+ */
+function cerradoDe(fila: string[], estadoNormalizado: string): boolean {
+  const declarado = celda(fila, COL.caso).toLowerCase();
+  if (declarado === "cerrado") return true;
+  if (declarado === "abierto") return false;
+  return ESTADOS_CERRADOS.has(estadoNormalizado);
 }
 
 /**

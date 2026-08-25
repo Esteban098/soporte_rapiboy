@@ -1,0 +1,49 @@
+.boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 5px 12px 5px 10px;
+  cursor: pointer;
+  color: var(--ink-2);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.boton:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--ink);
+  border-color: var(--axis);
+}
+
+.boton:disabled {
+  cursor: progress;
+  color: var(--muted);
+}
+
+.icono {
+  font-size: 14px;
+  line-height: 1;
+  display: inline-block;
+}
+
+.girando {
+  animation: girar 0.9s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .girando {
+    animation: none;
+    opacity: 0.6;
+  }
+}

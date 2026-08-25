@@ -1,55 +1,63 @@
 import { cargarVistasDelDia } from "@/lib/datos";
-import { numero } from "@/lib/formato";
+import { cierre, porEstado } from "@/lib/metricas";
+import { numero, porcentaje } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
-import { Card, Kpi } from "@/components/Card";
+import { Callout, Card, Kpi } from "@/components/Card";
+import { EstadosTable } from "@/components/EstadosTable";
 import { PedidosTable } from "@/components/PedidosTable";
 import estilos from "@/components/ui.module.css";
 
-export const metadata = { title: "Operación del día" };
+export const metadata = { title: "Ayer y demorados" };
 
 export default async function Operacion() {
   const { ayer, demorados, demoradosNoEntregados } = await cargarVistasDelDia();
 
-  const porEstado = new Map<string, number>();
-  for (const pedido of ayer) {
-    porEstado.set(pedido.estado, (porEstado.get(pedido.estado) ?? 0) + 1);
-  }
-  const estados = [...porEstado.entries()].sort((a, b) => b[1] - a[1]);
+  const estadosAyer = porEstado(ayer);
+  const resolucionAyer = cierre(ayer);
+  const urgentes = demorados.filter((p) => diasDesde(p.programado) > 2).length;
 
   return (
     <>
       <PageHead
-        eyebrow="Cola de trabajo"
-        titulo="Operación del día"
-        dek="Las tres vistas que el equipo vuelve a pegar cada mañana: lo que quedó abierto ayer, lo que ya pasó su fecha y lo que sigue sin entregarse."
+        eyebrow="Cola del día"
+        titulo="Ayer y demorados"
+        dek="Solo lo pendiente de la jornada anterior y lo que ya pasó su fecha comprometida. Es un recorte del día: el acumulado del mes está en Mes en curso."
       />
 
       <div className={estilos.kpis}>
         <Kpi
           etiqueta="Abiertos de ayer"
-          valor={numero(ayer.length)}
-          nota="casos que cerraron el día sin resolverse"
+          valor={numero(resolucionAyer.abiertos)}
+          tono={resolucionAyer.abiertos > 0 ? "bad" : "good"}
+          nota="cerraron el día sin resolverse"
         />
         <Kpi
           etiqueta="Demorados"
           valor={numero(demorados.length)}
           tono={demorados.length > 0 ? "bad" : "good"}
-          nota="pasaron su fecha programada y siguen abiertos"
+          nota="pasaron su fecha y siguen abiertos"
+        />
+        <Kpi
+          etiqueta="Urgentes"
+          valor={numero(urgentes)}
+          tono={urgentes > 0 ? "bad" : "good"}
+          nota="más de 2 días pasados de fecha"
         />
         <Kpi
           etiqueta="Sin entregar"
           valor={numero(demoradosNoEntregados.length)}
           tono={demoradosNoEntregados.length > 0 ? "bad" : "good"}
-          nota="demorados que además están como no entregados"
-        />
-        <Kpi
-          etiqueta="Estado más frecuente"
-          valor={estados[0] ? String(estados[0][1]) : "—"}
-          nota={estados[0] ? `en ${estados[0][0].toLowerCase()}` : "sin casos abiertos"}
+          nota="demorados que además están sin entregar"
         />
       </div>
 
       <div className={estilos.stack}>
+        <Callout tono={urgentes > 0 ? "critical" : "neutral"} titulo="Por dónde empezar el turno">
+          {demorados.length === 0
+            ? "No hay pedidos demorados. La cola del día arranca limpia."
+            : `${numero(demorados.length)} pedidos pasaron su fecha comprometida y ${numero(urgentes)} llevan más de dos días. Esos son los que hay que tocar primero.`}
+        </Callout>
+
         <Card
           titulo="Demorados"
           nota="Prioridad del día: cada uno pasó su fecha comprometida. El semáforo usa el mismo criterio que la columna DEMORA de la planilla."
@@ -68,12 +76,24 @@ export default async function Operacion() {
         </Card>
 
         <Card
+          titulo="En qué estado quedaron los de ayer"
+          nota={`Los ${numero(ayer.length)} casos que arrastra la jornada anterior, por estado.`}
+        >
+          <EstadosTable filas={estadosAyer} />
+        </Card>
+
+        <Card
           titulo="Abiertos de ayer"
-          nota="Lo que quedó sin cerrar al final del día anterior. Es el punto de partida del turno."
+          nota={`El detalle de lo que quedó sin cerrar al final del día anterior: ${porcentaje(resolucionAyer.tasaApertura)} de esa lista sigue sin resolverse.`}
         >
           <PedidosTable pedidos={ayer} vacio="Ayer cerró sin casos abiertos." />
         </Card>
       </div>
     </>
   );
+}
+
+function diasDesde(fecha: Date | null): number {
+  if (!fecha) return 0;
+  return Math.floor((Date.now() - fecha.getTime()) / (24 * 60 * 60 * 1000));
 }

@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { NavLink } from "./NavLink";
 import { SignOutButton } from "./SignOutButton";
+import { BotonActualizar } from "./BotonActualizar";
 import estilos from "./ui.module.css";
 
 const SECCIONES = [
-  { href: "/", etiqueta: "Resumen" },
-  { href: "/operacion", etiqueta: "Operación del día" },
+  { href: "/", etiqueta: "Mes en curso" },
+  { href: "/operacion", etiqueta: "Ayer y demorados" },
+  { href: "/reclamos", etiqueta: "Reclamos de tienda" },
   { href: "/repartidores", etiqueta: "Repartidores" },
   { href: "/comercios", etiqueta: "Comercios y zonas" },
   { href: "/cancelaciones", etiqueta: "Cancelaciones" },
@@ -39,6 +41,7 @@ export function Shell({
           </nav>
 
           <div className={estilos.topbarEnd}>
+            <BotonActualizar />
             <span className={estilos.fuente} title={fuenteTitulo(modo)}>
               <span
                 className={`${estilos.fuenteDot} ${modo === "fixture" ? estilos.fuenteDotFixture : ""}`}

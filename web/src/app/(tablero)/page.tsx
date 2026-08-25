@@ -1,25 +1,32 @@
 import { cargarPedidos } from "@/lib/datos";
 import {
+  cierre,
   dispersionRepartidores,
   porDia,
   porDiaSemana,
+  porEstado,
   porLeadTime,
   porVisitas,
+  reclamos,
   resumen,
 } from "@/lib/metricas";
 import { diaCorto, mesLargo, numero, porcentaje, puntos } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
+import { EstadosTable } from "@/components/EstadosTable";
 import { BarrasSerie } from "@/components/charts/BarrasSerie";
 import { LineaSerie } from "@/components/charts/LineaSerie";
 import { BarrasTramo } from "@/components/charts/BarrasTramo";
 import estilos from "@/components/ui.module.css";
 
-export const metadata = { title: "Resumen" };
+export const metadata = { title: "Mes en curso" };
 
 export default async function Resumen() {
   const pedidos = await cargarPedidos();
   const total = resumen(pedidos);
+  const resolucion = cierre(pedidos);
+  const estados = porEstado(pedidos);
+  const tienda = reclamos(pedidos);
   const dias = porDia(pedidos);
   const visitas = porVisitas(pedidos);
   const lead = porLeadTime(pedidos);
@@ -30,46 +37,59 @@ export default async function Resumen() {
   const anterior = dias.at(-2);
   const delta = ultimo && anterior ? ultimo.tasaDevolucion - anterior.tasaDevolucion : null;
   const sinVisita = visitas.find((v) => v.tramo === "0");
+  const noEntregados = estados.find((e) => e.estado.toLowerCase() === "pedido no entregado");
 
   return (
     <>
       <PageHead
-        eyebrow="Panorama general"
-        titulo="Resumen de la operación"
-        dek={`${numero(total.casos)} pedidos con incidencia en ${mesLargo(total.hasta)}. Sale de la pestaña viva del libro y se recalcula solo cuando el equipo la actualiza.`}
+        eyebrow={`Mes en curso · ${mesLargo(total.hasta)}`}
+        titulo="Todos los casos del mes"
+        dek={`${numero(total.casos)} casos acumulados en ${mesLargo(total.hasta)}. Para ver solo lo que quedó pendiente del día anterior, entrá a Operación del día.`}
       />
 
       <div className={estilos.kpis}>
         <Kpi
-          etiqueta="Casos gestionados"
-          valor={numero(total.casos)}
-          nota="pedidos con incidencia, sin duplicados"
-        />
-        <Kpi
-          etiqueta="Devoluciones"
-          valor={porcentaje(total.tasaDevolucion)}
+          etiqueta="Casos abiertos"
+          valor={numero(resolucion.abiertos)}
           tono="bad"
-          nota={`${numero(total.devoluciones)} paquetes volvieron al vendedor`}
+          nota={`${porcentaje(resolucion.tasaApertura)} del mes sigue sin resolverse`}
         />
         <Kpi
-          etiqueta="Recuperados"
-          valor={porcentaje((total.entregados / total.casos) * 100)}
+          etiqueta="Casos cerrados"
+          valor={porcentaje(resolucion.tasaCierre)}
           tono="good"
-          nota={`${numero(total.entregados)} casos que soporte logró entregar`}
+          nota={`${numero(resolucion.cerrados)} casos resueltos`}
         />
         <Kpi
-          etiqueta={ultimo ? `Tasa del ${diaCorto(ultimo.clave)}` : "Último día"}
-          valor={ultimo ? porcentaje(ultimo.tasaDevolucion) : "—"}
-          tono={delta == null ? "neutral" : delta > 0 ? "bad" : "good"}
-          nota={
-            delta == null
-              ? "sin día previo para comparar"
-              : `${puntos(delta)} contra el día anterior`
-          }
+          etiqueta="Casos del mes"
+          valor={numero(resolucion.total)}
+          nota="pedidos con incidencia registrados"
+        />
+        <Kpi
+          etiqueta="Con datos de la tienda"
+          valor={numero(tienda.conReclamo)}
+          nota={`${numero(tienda.avisoPendiente)} sin avisar al repartidor`}
         />
       </div>
 
       <div className={estilos.stack}>
+        <Callout
+          tono={resolucion.tasaApertura > 20 ? "critical" : "neutral"}
+          titulo="Abiertos contra cerrados"
+        >
+          De los {numero(resolucion.total)} casos del mes, {numero(resolucion.cerrados)} están
+          resueltos y {numero(resolucion.abiertos)} siguen en la cola. Un caso cierra cuando queda
+          en Entregado, Devuelto o Siniestrado; <b>Devolucion no cierra</b>, porque la devolución
+          todavía está en curso.
+        </Callout>
+
+        <Card
+          titulo="Todos los estados"
+          nota="Cada estado en el que puede quedar un caso, con cuántos hay y si cuenta como resuelto."
+        >
+          <EstadosTable filas={estados} />
+        </Card>
+
         <Card
           titulo="Casos por día"
           nota="Agrupado por la fecha programada de entrega, dentro del mes en curso."
@@ -86,14 +106,14 @@ export default async function Resumen() {
 
         <div className={estilos.grid2}>
           <Card
-            titulo="Devolución según visitas"
-            nota="Cuántas visitas registró el repartidor antes de cerrar el caso. La segunda visita es la que más pedidos salva."
+            titulo="Resultado según visitas"
+            nota="Cuántas veces se visitó el domicilio antes de cerrar el caso. La segunda visita es la que más pedidos salva."
           >
             <BarrasTramo datos={visitas} etiquetaTramo="Visitas" destacarSobre={50} />
           </Card>
 
           <Card
-            titulo="Devolución según días hasta la entrega"
+            titulo="Resultado según días hasta la entrega"
             nota="Días entre la creación del pedido y su fecha programada. Pasada la primera semana, el caso casi no se recupera."
           >
             <BarrasTramo datos={lead} etiquetaTramo="Demora" destacarSobre={50} />
@@ -107,21 +127,36 @@ export default async function Resumen() {
           <BarrasTramo datos={semana} etiquetaTramo="Día" />
         </Card>
 
+        {noEntregados ? (
+          <Callout tono="warning" titulo="Los que no se pudieron entregar">
+            {numero(noEntregados.casos)} casos quedaron en «Pedido no entregado», el{" "}
+            {porcentaje(noEntregados.porcentaje)} del mes. Son entregas fallidas todavía sin
+            resolver: no volvieron al vendedor, pero tampoco llegaron.
+          </Callout>
+        ) : null}
+
         {sinVisita ? (
           <Callout tono="critical" titulo="Sin visita no hay entrega">
-            {numero(sinVisita.casos)} casos se cerraron con cero visitas registradas y{" "}
+            {numero(sinVisita.casos)} casos se cerraron con cero visitas al domicilio y{" "}
             {porcentaje(sinVisita.tasaDevolucion)} de ellos terminó devuelto. Es la única variable
             del tablero que, por sí sola, decide el resultado del caso.
           </Callout>
         ) : null}
 
         <Callout tono="warning" titulo="La brecha entre repartidores es lo más accionable">
-          Entre los {numero(dispersion.evaluados)} repartidores con volumen suficiente, la mediana de
-          devolución es {porcentaje(dispersion.mediana)}. Los {numero(dispersion.criticos)} que
+          Entre los {numero(dispersion.evaluados)} repartidores con volumen suficiente, la mediana
+          de devolución es {porcentaje(dispersion.mediana)}. Los {numero(dispersion.criticos)} que
           superan el 25% concentran {numero(dispersion.casosCriticos)} casos: llevarlos a la mediana
           evitaría {numero(dispersion.devolucionesEvitables)} devoluciones sin tocar nada más de la
           operación.
         </Callout>
+
+        {delta != null && ultimo ? (
+          <Callout titulo={`Último día con datos: ${diaCorto(ultimo.clave)}`}>
+            {numero(ultimo.casos)} casos con {porcentaje(ultimo.tasaDevolucion)} de devolución,{" "}
+            {puntos(delta)} contra el día anterior.
+          </Callout>
+        ) : null}
       </div>
     </>
   );

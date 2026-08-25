@@ -18,8 +18,13 @@ Tres decisiones que vale la pena tener presentes:
   variable de entorno y nunca llega al navegador. Por eso el login protege de
   verdad: no hay forma de saltearlo pidiendo el CSV por afuera.
 - **Al navegador solo viajan agregados.** Teléfonos, domicilios y links de Maps
-  no salen del servidor. Las páginas que muestran pedidos individuales lo hacen
+  no salen del servidor: de esas columnas solo se transmite si el dato existe o
+  no, nunca su contenido. Las páginas que muestran pedidos individuales lo hacen
   con id, estado, repartidor, comercio y zona: nada de datos del cliente.
+- **Un caso está cerrado cuando queda en Entregado, Devuelto o Siniestrado.** Es
+  la misma regla que la columna `CASO` del libro, y el tablero la lee de ahí
+  cuando está disponible. `Devolucion` **no** cierra: la devolución está en
+  curso. Abiertos contra cerrados es la métrica principal del tablero.
 - **Las columnas se leen por posición, no por nombre.** Los encabezados del
   libro no son confiables: `Junio` no tiene fila de encabezado y el de `Sep` es
   un bloque de HTML pegado desde WhatsApp. Las nueve primeras columnas, en
@@ -30,8 +35,9 @@ Tres decisiones que vale la pena tener presentes:
 
 | Ruta | Qué muestra |
 |---|---|
-| `/` | Volumen y tasa de devolución día a día del mes en curso, y las tres variables que deciden el resultado: visitas, demora y repartidor. |
-| `/operacion` | La cola del día: demorados, demorados sin entregar y abiertos de ayer, con el mismo semáforo que la columna `DEMORA` de la planilla. |
+| `/` | **Mes en curso**: abiertos contra cerrados —la métrica principal—, el desglose de todos los estados, y la serie día a día. |
+| `/operacion` | **Ayer y demorados**: solo el recorte del día, con el mismo semáforo que la columna `DEMORA` de la planilla. |
+| `/reclamos` | Casos donde la tienda aportó datos para concretar la entrega, en qué terminaron y cuántos siguen sin avisar. |
 | `/repartidores` | Dispersión del equipo, ranking por tasa de devolución y cuántas devoluciones evitaría llevar a los críticos a la mediana. |
 | `/comercios` | De dónde salen los casos y a qué zonas van. |
 | `/cancelaciones` | Tiempo en ruta antes de que Mercado Libre cancele. El tablero recalcula los minutos que la hoja de 2026 dejó de calcular. |
@@ -115,6 +121,11 @@ sin tocar el código.
   el tablero muestra el mes en curso día a día. Para tener tendencia mensual hay
   que guardar una foto diaria (una GitHub Action que commitee un JSON, o una
   base de datos); todavía no está hecho.
+- **La columna `AVISO` no sirve para medir avisos.** Se calcula con
+  `=IF(RECLAMO TIENDA <> ""; "NO AVISADO"; "")`, así que marca como pendiente
+  todo caso con datos cargados y nada la vuelve a poner en blanco cuando el
+  aviso se manda. El tablero lo muestra, pero el número es igual al de casos con
+  reclamo. Para que mida algo hace falta una casilla que soporte marque al avisar.
 - `Mensual` tiene que incluir los casos cerrados. Si queda filtrada solo con los
   abiertos, la tasa de recuperación se muestra en 0% porque no hay ningún
   `Entregado` con qué compararla.
