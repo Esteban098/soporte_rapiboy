@@ -4,7 +4,8 @@ import { numero, porcentaje, puntos } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
-import { ReclamosTable } from "@/components/ReclamosTable";
+import { Tabla } from "@/components/Tabla";
+import { filasDeReclamos } from "@/lib/filas";
 import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Reclamos de tienda" };
@@ -21,8 +22,7 @@ export default async function Reclamos() {
       const prioridad = (p: typeof a) => (p.avisoPendiente ? 0 : 1) + (p.cerrado ? 2 : 0);
       return prioridad(a) - prioridad(b) || b.ultimoMovimiento!.getTime() - a.ultimoMovimiento!.getTime();
     });
-  const sinAvisar = conReclamo.filter((p) => p.avisoPendiente);
-  const avisados = conReclamo.filter((p) => !p.avisoPendiente);
+  const filas = filasDeReclamos(conReclamo);
   const diferencia = datos.tasaEntregaConReclamo - datos.tasaEntregaSinReclamo;
 
   return (
@@ -83,22 +83,33 @@ export default async function Reclamos() {
         </Callout>
 
         <Card
-          titulo="Sin avisar al repartidor"
-          nota="Casos donde la tienda ya pasó información y el repartidor todavía no la tiene. Ordenados con los que siguen abiertos arriba."
+          titulo="Casos con datos de la tienda"
+          nota="Todo lo que el comercio aportó para concretar la entrega, con la información del viaje. Se puede filtrar por aviso y estado, y ordenar por cualquier columna."
         >
-          <ReclamosTable
-            pedidos={sinAvisar}
-            vacio="No queda ningún caso sin avisar."
-          />
-        </Card>
-
-        <Card
-          titulo="Avisados"
-          nota="Casos con información de la tienda donde el aviso ya salió."
-        >
-          <ReclamosTable
-            pedidos={avisados}
-            vacio="Todavía no hay ningún caso marcado como avisado: la columna AVISO del libro no puede registrarlo."
+          <Tabla
+            columnas={[
+              { clave: "id", titulo: "Viaje", tipo: "texto" },
+              { clave: "aviso", titulo: "Aviso", tipo: "aviso" },
+              { clave: "reclamo", titulo: "Tipo de dato", tipo: "texto", ancho: 190 },
+              { clave: "ubicacion", titulo: "Ubicación", tipo: "texto", ancho: 230 },
+              { clave: "telefono", titulo: "Teléfono o referencia", tipo: "texto", ancho: 230 },
+              { clave: "estado", titulo: "Estado", tipo: "estado" },
+              { clave: "caso", titulo: "Caso", tipo: "caso" },
+              { clave: "repartidor", titulo: "Repartidor", tipo: "texto", ancho: 180 },
+              { clave: "tienda", titulo: "Tienda", tipo: "texto", ancho: 180 },
+              { clave: "zona", titulo: "Zona", tipo: "texto", ancho: 170 },
+              { clave: "visitas", titulo: "Visitas", tipo: "numero" },
+              { clave: "quieto", titulo: "Sin moverse", tipo: "dias" },
+            ]}
+            filas={filas}
+            filtros={[
+              { clave: "aviso", etiqueta: "Aviso", opciones: ["NO AVISADO", "AVISADO"] },
+              { clave: "estado", etiqueta: "Estado" },
+              { clave: "caso", etiqueta: "Caso", opciones: ["Abierto", "Cerrado"] },
+            ]}
+            ordenInicial={{ clave: "quieto", asc: false }}
+            limite={30}
+            vacio="No hay casos con datos de la tienda."
           />
         </Card>
 

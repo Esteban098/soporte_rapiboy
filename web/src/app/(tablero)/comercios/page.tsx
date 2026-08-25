@@ -63,7 +63,7 @@ export default async function Comercios() {
             titulo="Comercios por volumen"
             nota="Los que más casos generan. Sirve para dimensionar el impacto: un punto de mejora acá vale más que en la lista de al lado."
           >
-            <RankingTable filas={tiendasVolumen} etiquetaDimension="Comercio" tono="neutro" />
+            <RankingTable filas={tiendasVolumen} etiquetaDimension="Comercio" />
           </Card>
         </div>
 
@@ -79,7 +79,7 @@ export default async function Comercios() {
             titulo="Zonas por volumen"
             nota="Dónde se concentra la operación. Los nombres salen tal cual están cargados en el sheet."
           >
-            <RankingTable filas={zonasVolumen} etiquetaDimension="Zona" tono="neutro" />
+            <RankingTable filas={zonasVolumen} etiquetaDimension="Zona" />
           </Card>
         </div>
       </div>

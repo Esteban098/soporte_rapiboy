@@ -320,6 +320,11 @@
   background: var(--critical-soft);
 }
 
+.chipInfo {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+
 .chipNeutral {
   color: var(--muted);
   background: var(--surface-2);

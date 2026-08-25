@@ -76,7 +76,7 @@ export function Chip({
   tono = "neutral",
   children,
 }: {
-  tono?: "neutral" | "good" | "warning" | "critical";
+  tono?: "neutral" | "good" | "warning" | "critical" | "info";
   children: React.ReactNode;
 }) {
   const clase = {
@@ -84,6 +84,7 @@ export function Chip({
     good: estilos.chipGood,
     warning: estilos.chipWarning,
     critical: estilos.chipCritical,
+    info: estilos.chipInfo,
   }[tono];
 
   return <span className={`${estilos.chip} ${clase}`}>{children}</span>;

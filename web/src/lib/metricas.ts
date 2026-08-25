@@ -11,26 +11,6 @@ export type Resumen = {
   hasta: string;
 };
 
-/** Un punto de una serie temporal: sirve tanto para días como para meses. */
-export type PuntoSerie = {
-  /** Clave ordenable: `2026-08-24` para días, `2026-08` para meses. */
-  clave: string;
-  casos: number;
-  devoluciones: number;
-  tasaDevolucion: number;
-  visitasPromedio: number;
-};
-
-export type FilaRanking = {
-  nombre: string;
-  casos: number;
-  devoluciones: number;
-  tasaDevolucion: number;
-  visitasPromedio: number;
-};
-
-export type Tramo = { tramo: string; casos: number; tasaDevolucion: number };
-
 /** Cuántos casos quedaron resueltos y cuántos siguen en la cola. */
 export type Cierre = {
   total: number;
@@ -104,39 +84,6 @@ export function resumen(pedidos: Pedido[]): Resumen {
   };
 }
 
-function agrupar(pedidos: Pedido[], clave: (pedido: Pedido) => string): PuntoSerie[] {
-  const grupos = new Map<string, Pedido[]>();
-  for (const pedido of pedidos) {
-    const k = clave(pedido);
-    const lista = grupos.get(k);
-    if (lista) lista.push(pedido);
-    else grupos.set(k, [pedido]);
-  }
-
-  return [...grupos.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([k, lista]) => {
-      const devoluciones = lista.filter((p) => p.devuelto).length;
-      const visitas = lista.filter((p) => p.visitas != null).map((p) => p.visitas!);
-      return {
-        clave: k,
-        casos: lista.length,
-        devoluciones,
-        tasaDevolucion: pct(devoluciones, lista.length),
-        visitasPromedio: promedio(visitas),
-      };
-    });
-}
-
-/**
- * Serie día a día por fecha del último movimiento: cuántos casos se tocaron
- * cada día y cuántos de esos quedaron en devolución.
- */
-export function porDia(pedidos: Pedido[]): PuntoSerie[] {
-  return agrupar(pedidos, (pedido) => pedido.ultimoMovimiento!.toISOString().slice(0, 10));
-}
-
-/** Serie mes a mes. Útil solo si alguna vez se carga más de un mes. */
 /** La métrica principal de la operación: resueltos contra pendientes. */
 export function cierre(pedidos: Pedido[]): Cierre {
   const cerrados = pedidos.filter((p) => p.cerrado).length;
@@ -217,14 +164,14 @@ export function reclamos(pedidos: Pedido[]): Reclamos {
   };
 }
 
-export function porMes(pedidos: Pedido[]): PuntoSerie[] {
-  return agrupar(pedidos, (pedido) => pedido.mes);
-}
+export type FilaRanking = {
+  nombre: string;
+  casos: number;
+  devoluciones: number;
+  tasaDevolucion: number;
+  visitasPromedio: number;
+};
 
-/**
- * Ranking por una dimensión del pedido. `minimoCasos` evita que un repartidor
- * con seis entregas aparezca primero por una casualidad.
- */
 export function ranking(
   pedidos: Pedido[],
   dimension: "repartidor" | "tienda" | "poligono",
@@ -265,24 +212,62 @@ export function ranking(
   return filas.sort(comparar).slice(0, limite);
 }
 
-/** Tasa de devolución según cuántas visitas registró el repartidor. */
-export function porVisitas(pedidos: Pedido[]): Tramo[] {
-  const conVisitas = pedidos.filter((p) => p.visitas != null);
-  const tramos = new Map<number, Pedido[]>();
+const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
-  for (const pedido of conVisitas) {
-    const tramo = Math.min(pedido.visitas!, 5);
-    const lista = tramos.get(tramo);
-    if (lista) lista.push(pedido);
-    else tramos.set(tramo, [pedido]);
+export type FilaDiaSemana = { dia: string; devueltos: number };
+
+/**
+ * Cuántos paquetes se devolvieron cada día de la semana.
+ *
+ * Se apoya en la fecha del último movimiento, que para un caso devuelto es
+ * justamente el día en que volvió al vendedor. Sirve para ver si las
+ * devoluciones se concentran en algún día.
+ */
+export function devueltosPorDiaSemana(pedidos: Pedido[]): FilaDiaSemana[] {
+  const conteo = new Map<number, number>();
+  for (const pedido of pedidos) {
+    if (!pedido.devuelto || !pedido.ultimoMovimiento) continue;
+    const dia = pedido.ultimoMovimiento.getUTCDay();
+    conteo.set(dia, (conteo.get(dia) ?? 0) + 1);
   }
 
-  return [...tramos.entries()]
+  // La semana arranca en lunes, que es como la mira la operación.
+  return [1, 2, 3, 4, 5, 6, 0].map((dia) => ({
+    dia: DIAS_SEMANA[dia],
+    devueltos: conteo.get(dia) ?? 0,
+  }));
+}
+
+export type FilaVisitas = {
+  visitas: string;
+  entregados: number;
+  devueltos: number;
+};
+
+/**
+ * Cuántas visitas al domicilio hubo antes de que el caso terminara entregado, y
+ * cuántas antes de que terminara devuelto. Son dos distribuciones distintas y
+ * conviene leerlas separadas.
+ */
+export function visitasPorResultado(pedidos: Pedido[]): FilaVisitas[] {
+  const conteo = new Map<number, { entregados: number; devueltos: number }>();
+
+  for (const pedido of pedidos) {
+    if (pedido.visitas == null) continue;
+    if (!pedido.entregado && !pedido.devuelto) continue;
+    const tramo = Math.min(pedido.visitas, 5);
+    const actual = conteo.get(tramo) ?? { entregados: 0, devueltos: 0 };
+    if (pedido.entregado) actual.entregados += 1;
+    else actual.devueltos += 1;
+    conteo.set(tramo, actual);
+  }
+
+  return [...conteo.entries()]
     .sort(([a], [b]) => a - b)
-    .map(([tramo, lista]) => ({
-      tramo: tramo === 5 ? "5 o más" : String(tramo),
-      casos: lista.length,
-      tasaDevolucion: pct(lista.filter((p) => p.devuelto).length, lista.length),
+    .map(([tramo, v]) => ({
+      visitas: tramo === 5 ? "5 o más" : String(tramo),
+      entregados: v.entregados,
+      devueltos: v.devueltos,
     }));
 }
 

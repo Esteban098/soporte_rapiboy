@@ -17,9 +17,11 @@ Tres decisiones que vale la pena tener presentes:
 - **El sheet se lee solo desde el servidor.** La URL del documento vive en una
   variable de entorno y nunca llega al navegador. Por eso el login protege de
   verdad: no hay forma de saltearlo pidiendo el CSV por afuera.
-- **Al navegador solo viajan agregados.** Teléfonos, domicilios y links de Maps
-  no salen del servidor: de esas columnas solo se transmite si el dato existe o
-  no, nunca su contenido. Las páginas que muestran pedidos individuales lo hacen
+- **La sección de reclamos muestra los datos que aporta la tienda.** El teléfono
+  alterno y el link de ubicación se ven tal cual, porque son justamente lo que el
+  equipo necesita para trabajar el caso. Es información del cliente, así que el
+  login no es opcional: cualquiera con acceso al tablero los ve. El resto de las
+  secciones sigue trabajando solo con agregados. Las páginas que muestran pedidos individuales lo hacen
   con id, estado, repartidor, comercio y zona: nada de datos del cliente.
 - **`FechaProgramado` es la fecha del último cambio de estado, no una entrega
   comprometida.** Se pisa cada vez que el paquete se mueve: si no se entregó el
@@ -41,9 +43,9 @@ Tres decisiones que vale la pena tener presentes:
 
 | Ruta | Qué muestra |
 |---|---|
-| `/` | **Mes en curso**: abiertos contra cerrados —la métrica principal—, el desglose de todos los estados, los demorados y la serie día a día. |
+| `/` | **Mes en curso**: abiertos contra cerrados —la métrica principal—, el desglose de estados, los demorados, las devoluciones por día de la semana y las visitas antes de cerrar. |
 | `/operacion` | **Ayer**: los casos de la pestaña `Ayer`, lo que quedó sin cerrar la jornada anterior. |
-| `/reclamos` | Casos donde la tienda aportó datos, separados en avisados y sin avisar, con la información del viaje. |
+| `/reclamos` | Casos donde la tienda aportó datos, con el dato tal cual y la información del viaje. Se filtra por avisado / no avisado. |
 | `/repartidores` | Dispersión del equipo, ranking por tasa de devolución y cuántas devoluciones evitaría llevar a los críticos a la mediana. |
 | `/comercios` | De dónde salen los casos y a qué zonas van. |
 | `/cancelaciones` | Tiempo en ruta antes de que Mercado Libre cancele. El tablero recalcula los minutos que la hoja de 2026 dejó de calcular. |
@@ -118,6 +120,17 @@ Las pestañas de meses anteriores quedaron como archivo y varias fueron vaciadas
 o reutilizadas, así que no se leen: no son una fuente confiable de historial. Si
 alguna vez cambia el nombre de la pestaña viva, se ajusta con `SHEET_TAB_MENSUAL`
 sin tocar el código.
+
+## Tablas
+
+Todas las tablas del proyecto usan el mismo componente (`src/components/Tabla.tsx`):
+se ordenan haciendo clic en cualquier encabezado y varias traen filtros por
+estado, caso o aviso. Los estados van siempre con el mismo color, definido en
+`src/lib/estados.ts`.
+
+Como la tabla es un componente de cliente, las páginas le pasan filas planas
+—valores serializables— y una descripción de las columnas; nunca funciones de
+render, que no cruzan el límite entre servidor y cliente.
 
 ## Límites conocidos
 

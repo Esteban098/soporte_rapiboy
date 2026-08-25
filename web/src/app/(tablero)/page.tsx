@@ -3,21 +3,20 @@ import {
   antiguedadAbiertos,
   cierre,
   dispersionRepartidores,
-  porDia,
+  devueltosPorDiaSemana,
   porEstado,
-  porVisitas,
+  visitasPorResultado,
   reclamos,
   resumen,
 } from "@/lib/metricas";
-import { diaCorto, mesLargo, numero, porcentaje, puntos } from "@/lib/formato";
+import { mesLargo, numero, porcentaje } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
 import { PedidosTable } from "@/components/PedidosTable";
 import { AntiguedadTable } from "@/components/AntiguedadTable";
-import { BarrasSerie } from "@/components/charts/BarrasSerie";
-import { LineaSerie } from "@/components/charts/LineaSerie";
-import { BarrasTramo } from "@/components/charts/BarrasTramo";
+import { BarrasVisitas } from "@/components/charts/BarrasVisitas";
+import { BarrasDevueltos } from "@/components/charts/BarrasDevueltos";
 import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Mes en curso" };
@@ -28,15 +27,12 @@ export default async function Resumen() {
   const resolucion = cierre(pedidos);
   const estados = porEstado(pedidos);
   const tienda = reclamos(pedidos);
-  const dias = porDia(pedidos);
-  const visitas = porVisitas(pedidos);
+  const devueltosSemana = devueltosPorDiaSemana(pedidos);
+  const visitas = visitasPorResultado(pedidos);
   const antiguedad = antiguedadAbiertos(pedidos);
   const dispersion = dispersionRepartidores(pedidos);
 
-  const ultimo = dias.at(-1);
-  const anterior = dias.at(-2);
-  const delta = ultimo && anterior ? ultimo.tasaDevolucion - anterior.tasaDevolucion : null;
-  const sinVisita = visitas.find((v) => v.tramo === "0");
+  const sinVisita = visitas.find((v) => v.visitas === "0");
   const noEntregados = estados.find((e) => e.estado.toLowerCase() === "pedido no entregado");
 
   return (
@@ -104,25 +100,18 @@ export default async function Resumen() {
         </Card>
 
         <Card
-          titulo="Movimientos por día"
-          nota="Cada barra son los casos que cambiaron de estado ese día: entregas, devoluciones, ingresos a depósito. Los valles son domingos."
+          titulo="Paquetes devueltos por día de la semana"
+          nota="Cuántos paquetes volvieron al vendedor en cada día. Se cuenta el día en que se procesó la devolución."
         >
-          <BarrasSerie datos={dias} escala="dia" />
-        </Card>
-
-        <Card
-          titulo="Tasa de devolución por día"
-          nota="De los casos que se movieron cada día, qué porcentaje quedó en devolución. La línea gris es el promedio del mes."
-        >
-          <LineaSerie datos={dias} promedio={total.tasaDevolucion} escala="dia" />
+          <BarrasDevueltos datos={devueltosSemana} />
         </Card>
 
         <div className={estilos.grid2}>
           <Card
-            titulo="Resultado según visitas"
-            nota="Cuántas veces el repartidor pasó por el domicilio antes de cerrar el caso. La segunda visita es la que más pedidos salva."
+            titulo="Visitas antes de entregar o devolver"
+            nota="Cuántas veces se pasó por el domicilio antes de cerrar el caso, separando los que terminaron entregados de los devueltos."
           >
-            <BarrasTramo datos={visitas} etiquetaTramo="Visitas" destacarSobre={50} />
+            <BarrasVisitas datos={visitas} />
           </Card>
 
           <Card
@@ -143,9 +132,9 @@ export default async function Resumen() {
 
         {sinVisita ? (
           <Callout tono="critical" titulo="Sin visita no hay entrega">
-            {numero(sinVisita.casos)} casos se cerraron con cero visitas al domicilio y{" "}
-            {porcentaje(sinVisita.tasaDevolucion)} de ellos terminó devuelto. Es la única variable
-            del tablero que, por sí sola, decide el resultado del caso.
+            Con cero visitas al domicilio, {numero(sinVisita.devueltos)} casos terminaron devueltos
+            contra {numero(sinVisita.entregados)} entregados. Es la única variable del tablero que,
+            por sí sola, decide el resultado del caso.
           </Callout>
         ) : null}
 
@@ -157,12 +146,6 @@ export default async function Resumen() {
           operación.
         </Callout>
 
-        {delta != null && ultimo ? (
-          <Callout titulo={`Último día con datos: ${diaCorto(ultimo.clave)}`}>
-            {numero(ultimo.casos)} casos con {porcentaje(ultimo.tasaDevolucion)} de devolución,{" "}
-            {puntos(delta)} contra el día anterior.
-          </Callout>
-        ) : null}
       </div>
     </>
   );

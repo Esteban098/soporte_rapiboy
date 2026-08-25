@@ -5,9 +5,9 @@
 import { cargarAyer, cargarDemorados, cargarPedidos } from "../src/lib/datos";
 import {
   antiguedadAbiertos,
+  devueltosPorDiaSemana,
+  visitasPorResultado,
   dispersionRepartidores,
-  porDia,
-  porVisitas,
   ranking,
   resumen,
 } from "../src/lib/metricas";
@@ -19,13 +19,12 @@ console.log(`casos: ${r.casos}  devoluciones: ${r.devoluciones} (${r.tasaDevoluc
 console.log(`entregados: ${r.entregados}  abiertos: ${r.abiertos}`);
 console.log(`período: ${r.desde} .. ${r.hasta}  visitas promedio: ${r.visitasPromedio.toFixed(2)}`);
 
-console.log("\npor día:");
-for (const d of porDia(pedidos)) {
-  console.log(`  ${d.clave}  casos=${d.casos}  dev=${d.devoluciones}  tasa=${d.tasaDevolucion.toFixed(1)}%`);
-}
+console.log("\ndevueltos por día de la semana:");
+for (const d of devueltosPorDiaSemana(pedidos)) console.log(`  ${d.dia}: ${d.devueltos}`);
 
-console.log("\npor visitas:");
-for (const t of porVisitas(pedidos)) console.log(`  ${t.tramo}: ${t.casos} casos, ${t.tasaDevolucion.toFixed(1)}%`);
+console.log("\nvisitas antes de cerrar:");
+for (const v of visitasPorResultado(pedidos))
+  console.log(`  ${v.visitas}: entregados=${v.entregados} devueltos=${v.devueltos}`);
 
 console.log("\nantigüedad de los abiertos:");
 for (const t of antiguedadAbiertos(pedidos)) console.log(`  ${t.tramo}: ${t.casos} casos (${t.porcentaje.toFixed(1)}%)`);

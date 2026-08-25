@@ -43,9 +43,13 @@ export type Pedido = {
   /** Tipificación que cargó soporte con lo que pasó la tienda. Vacío si no hay. */
   reclamoTienda: string;
   /**
-   * Si la tienda pasó ubicación o teléfono. Se guarda solo el hecho de que
-   * existan: el dato en sí es del cliente y no sale del servidor.
+   * Lo que pasó la tienda para concretar la entrega: un link de mapa y un
+   * teléfono o referencia del domicilio. Son datos del cliente, y se muestran
+   * en el tablero porque el equipo los necesita para trabajar el caso; por eso
+   * el acceso está restringido por login.
    */
+  ubicacion: string;
+  telefono: string;
   tieneUbicacion: boolean;
   tieneTelefono: boolean;
   /**
@@ -172,6 +176,8 @@ export function parsearPedido(fila: string[]): Pedido | null {
       : null,
     cerrado: cerradoDe(fila, normalizado),
     reclamoTienda: celda(fila, COL.reclamo),
+    ubicacion: celda(fila, COL.ubicacion),
+    telefono: celda(fila, COL.telefono),
     tieneUbicacion: celda(fila, COL.ubicacion) !== "",
     tieneTelefono: celda(fila, COL.telefono) !== "",
     aviso: celda(fila, COL.aviso).toUpperCase(),

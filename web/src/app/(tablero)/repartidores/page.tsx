@@ -93,8 +93,6 @@ export default async function Repartidores() {
           <RankingTable
             filas={mejores}
             etiquetaDimension="Repartidor"
-            tono="bueno"
-            referencia={Math.max(...peores.map((f) => f.tasaDevolucion), 1)}
           />
         </Card>
       </div>
