@@ -5,7 +5,6 @@ import {
   TAB_MENSUAL,
   TAB_AYER,
   TAB_DEMORADOS,
-  TAB_DEMORADO_NO_ENTREGADO,
   modoDatos,
 } from "./config";
 import {
@@ -30,28 +29,16 @@ export const cargarPedidos = cache(async (): Promise<Pedido[]> => {
   return consolidarPedidos([filas]);
 });
 
-export type VistasDelDia = {
-  ayer: Pedido[];
-  demorados: Pedido[];
-  demoradosNoEntregados: Pedido[];
-};
+/** Los casos que quedaron sin cerrar en la jornada anterior. */
+export const cargarAyer = cache(async (): Promise<Pedido[]> => {
+  const filas = await leerFilas(TAB_AYER);
+  return filas.map(parsearPedido).filter((p): p is Pedido => p !== null);
+});
 
-/** Las tres pestañas que el equipo vuelve a pegar cada mañana. */
-export const cargarVistasDelDia = cache(async (): Promise<VistasDelDia> => {
-  const [ayer, demorados, noEntregados] = await Promise.all([
-    leerFilas(TAB_AYER),
-    leerFilas(TAB_DEMORADOS),
-    leerFilas(TAB_DEMORADO_NO_ENTREGADO),
-  ]);
-
-  const parsear = (filas: string[][]) =>
-    filas.map(parsearPedido).filter((p): p is Pedido => p !== null);
-
-  return {
-    ayer: parsear(ayer),
-    demorados: parsear(demorados),
-    demoradosNoEntregados: parsear(noEntregados),
-  };
+/** Los casos que pasaron su fecha y siguen abiertos. */
+export const cargarDemorados = cache(async (): Promise<Pedido[]> => {
+  const filas = await leerFilas(TAB_DEMORADOS);
+  return filas.map(parsearPedido).filter((p): p is Pedido => p !== null);
 });
 
 export function estadoFuente(pestanas: number): EstadoFuente {

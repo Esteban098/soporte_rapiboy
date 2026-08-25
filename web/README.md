@@ -41,8 +41,8 @@ Tres decisiones que vale la pena tener presentes:
 
 | Ruta | Qué muestra |
 |---|---|
-| `/` | **Mes en curso**: abiertos contra cerrados —la métrica principal—, el desglose de todos los estados, y la serie día a día. |
-| `/operacion` | **Ayer**: los casos de la pestaña `Ayer`, más los demorados. |
+| `/` | **Mes en curso**: abiertos contra cerrados —la métrica principal—, el desglose de todos los estados, los demorados y la serie día a día. |
+| `/operacion` | **Ayer**: los casos de la pestaña `Ayer`, lo que quedó sin cerrar la jornada anterior. |
 | `/reclamos` | Casos donde la tienda aportó datos, separados en avisados y sin avisar, con la información del viaje. |
 | `/repartidores` | Dispersión del equipo, ranking por tasa de devolución y cuántas devoluciones evitaría llevar a los críticos a la mediana. |
 | `/comercios` | De dónde salen los casos y a qué zonas van. |
@@ -106,14 +106,13 @@ en vez de quedar abierto.
 
 ## Qué pestañas lee
 
-Solo cuatro, más la de cancelaciones:
+Solo tres:
 
 | Pestaña | Para qué |
 |---|---|
 | `Mensual` | Los casos del mes en curso. Alimenta la sección Mes en curso. |
 | `Ayer` | Lo que quedó abierto del día anterior. Alimenta la sección Ayer. |
-| `Demorados` | Los que pasaron su fecha y siguen abiertos. |
-| `DemoradoNoEntregado` | Demorados que además están sin entregar. |
+| `Demorados` | Los que pasaron su fecha y siguen abiertos. Se muestran en Mes en curso. |
 
 Las pestañas de meses anteriores quedaron como archivo y varias fueron vaciadas
 o reutilizadas, así que no se leen: no son una fuente confiable de historial. Si

@@ -1,4 +1,4 @@
-import { cargarPedidos } from "@/lib/datos";
+import { cargarDemorados, cargarPedidos } from "@/lib/datos";
 import {
   antiguedadAbiertos,
   cierre,
@@ -13,6 +13,7 @@ import { diaCorto, mesLargo, numero, porcentaje, puntos } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
+import { PedidosTable } from "@/components/PedidosTable";
 import { AntiguedadTable } from "@/components/AntiguedadTable";
 import { BarrasSerie } from "@/components/charts/BarrasSerie";
 import { LineaSerie } from "@/components/charts/LineaSerie";
@@ -22,7 +23,7 @@ import estilos from "@/components/ui.module.css";
 export const metadata = { title: "Mes en curso" };
 
 export default async function Resumen() {
-  const pedidos = await cargarPedidos();
+  const [pedidos, demorados] = await Promise.all([cargarPedidos(), cargarDemorados()]);
   const total = resumen(pedidos);
   const resolucion = cierre(pedidos);
   const estados = porEstado(pedidos);
@@ -65,6 +66,12 @@ export default async function Resumen() {
           nota="pedidos con incidencia registrados"
         />
         <Kpi
+          etiqueta="Demorados"
+          valor={numero(demorados.length)}
+          tono={demorados.length > 0 ? "bad" : "good"}
+          nota="pasaron su fecha y siguen abiertos"
+        />
+        <Kpi
           etiqueta="Con datos de la tienda"
           valor={numero(tienda.conReclamo)}
           nota={`${numero(tienda.avisoPendiente)} sin avisar al repartidor`}
@@ -87,6 +94,13 @@ export default async function Resumen() {
           nota="Cada estado en el que puede quedar un caso, con cuántos hay y si cuenta como resuelto."
         >
           <EstadosTable filas={estados} />
+        </Card>
+
+        <Card
+          titulo="Demorados"
+          nota="Los casos que pasaron su fecha y siguen abiertos. Es la cola de escalamiento: lo que no se resolvió por el flujo normal."
+        >
+          <PedidosTable pedidos={demorados} vacio="No hay pedidos demorados." />
         </Card>
 
         <Card

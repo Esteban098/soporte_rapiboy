@@ -17,7 +17,6 @@ export const TAB_MENSUAL = process.env.SHEET_TAB_MENSUAL?.trim() || "Mensual";
 /** Vistas que el equipo vuelve a pegar cada mañana. */
 export const TAB_AYER = "Ayer";
 export const TAB_DEMORADOS = "Demorados";
-export const TAB_DEMORADO_NO_ENTREGADO = "DemoradoNoEntregado";
 
 
 export type ModoDatos = "sheet" | "fixture";
