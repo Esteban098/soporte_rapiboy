@@ -35,13 +35,21 @@ async function leerCrudo(tab: string): Promise<string> {
   return respuesta.text();
 }
 
-/** Devuelve las filas de una pestaña como objetos, con los encabezados como claves. */
-export async function leerTab(tab: string): Promise<Record<string, string>[]> {
+/**
+ * Devuelve las filas de una pestaña como arreglos de celdas, sin interpretar la
+ * primera fila como encabezado.
+ *
+ * Es a propósito: los encabezados de este libro no son confiables. `Junio` no
+ * tiene fila de encabezado, el de `Sep` es un bloque de HTML pegado desde
+ * WhatsApp, y varios traen saltos de línea en el medio. Las nueve primeras
+ * columnas, en cambio, están siempre en el mismo orden, así que se lee por
+ * posición y se descarta la fila de encabezado cuando aparece.
+ */
+export async function leerFilas(tab: string): Promise<string[][]> {
   const texto = await leerCrudo(tab);
-  const { data, errors } = Papa.parse<Record<string, string>>(texto, {
-    header: true,
+  const { data, errors } = Papa.parse<string[]>(texto, {
+    header: false,
     skipEmptyLines: "greedy",
-    transformHeader: (h) => h.replace(/\s+/g, " ").trim(),
   });
 
   // Papa reporta filas sueltas mal formadas; el libro tiene varias por las
@@ -49,5 +57,17 @@ export async function leerTab(tab: string): Promise<Record<string, string>[]> {
   if (errors.length > 0 && errors.length === data.length) {
     throw new Error(`La pestaña "${tab}" no se pudo parsear como CSV`);
   }
-  return data;
+  return data.map((fila) => fila.map((celda) => (celda ?? "").replace(/\s+/g, " ").trim()));
+}
+
+/**
+ * Ubica las columnas de una pestaña por nombre de encabezado.
+ *
+ * Solo se usa para `Cancelados`, donde las columnas útiles están intercaladas
+ * con auxiliares y la posición no alcanza. Devuelve el índice de cada nombre
+ * pedido, o -1 si no está.
+ */
+export function indicesPorNombre(encabezado: string[], nombres: string[]): number[] {
+  const normalizado = encabezado.map((c) => c.toLowerCase().replace(/\s+/g, " ").trim());
+  return nombres.map((nombre) => normalizado.indexOf(nombre.toLowerCase()));
 }

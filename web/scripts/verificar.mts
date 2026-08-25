@@ -5,9 +5,9 @@
 import { cargarPedidos, cargarCancelaciones, cargarVistasDelDia } from "../src/lib/datos";
 import {
   dispersionRepartidores,
+  porDia,
   porDiaSemana,
   porLeadTime,
-  porMes,
   porVisitas,
   ranking,
   resumen,
@@ -21,9 +21,9 @@ console.log(`casos: ${r.casos}  devoluciones: ${r.devoluciones} (${r.tasaDevoluc
 console.log(`entregados: ${r.entregados}  abiertos: ${r.abiertos}`);
 console.log(`período: ${r.desde} .. ${r.hasta}  visitas promedio: ${r.visitasPromedio.toFixed(2)}`);
 
-console.log("\npor mes:");
-for (const m of porMes(pedidos)) {
-  console.log(`  ${m.mes}  casos=${m.casos}  dev=${m.devoluciones}  tasa=${m.tasaDevolucion.toFixed(1)}%`);
+console.log("\npor día:");
+for (const d of porDia(pedidos)) {
+  console.log(`  ${d.clave}  casos=${d.casos}  dev=${d.devoluciones}  tasa=${d.tasaDevolucion.toFixed(1)}%`);
 }
 
 console.log("\npor visitas:");

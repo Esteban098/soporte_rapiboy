@@ -21,26 +21,19 @@ import pandas as pd
 
 warnings.filterwarnings("ignore")
 
-# Pestaña del libro -> nombre del fixture. Son las que consume la web.
+# Pestañas que consume la web. Las de meses anteriores quedaron como archivo en
+# el libro y no se leen, así que tampoco se exportan.
 TABS = {
     "Mensual": "Mensual",
-    "Julio2026": "Julio2026",
-    "Mayo2026": "Mayo2026",
-    "dic": "dic",
-    "nov": "nov",
-    "Oct": "Oct",
-    "Sep": "Sep",
-    "Agosto": "Agosto",
-    "Julio": "Julio",
-    "Junio": "Junio",
-    "Mayo": "Mayo",
     "Ayer": "Ayer",
     "Demorados": "Demorados",
     "DemoradoNoEntregado": "DemoradoNoEntregado",
     "Cancelados": "Cancelados",
 }
 
-# Encabezados que la app espera, ya normalizados.
+# La app lee las nueve primeras columnas por posición, así que el fixture
+# conserva ese orden. Los encabezados van solo como referencia para quien lo
+# abra: la app descarta la fila de encabezado por sí sola.
 COLUMNAS_PEDIDO = [
     "Id", "FechaCreacion", "FechaProgramado", "Estado",
     "Repartidor", "Tienda", "Destino", "Poligono", "Visitas",

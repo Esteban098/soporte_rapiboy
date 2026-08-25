@@ -7,28 +7,12 @@ import "server-only";
  */
 
 /**
- * Pestañas con detalle de pedidos, de la más nueva a la más vieja. Cuando el
- * equipo archive un mes nuevo, alcanza con agregarlo a SHEET_TABS en Vercel:
- * no hace falta tocar el código ni volver a desplegar.
+ * Pestaña con el detalle de los casos abiertos del mes en curso. Es la única
+ * del libro que la web lee como fuente de pedidos: las pestañas de meses
+ * anteriores quedaron como archivo y varias fueron vaciadas o reutilizadas, así
+ * que no son una fuente confiable de historial.
  */
-const TABS_POR_DEFECTO = [
-  "Mensual",
-  "Julio2026",
-  "Mayo2026",
-  "dic",
-  "nov",
-  "Oct",
-  "Sep",
-  "Agosto",
-  "Julio",
-  "Junio",
-  "Mayo",
-];
-
-export const TABS_PEDIDOS: string[] =
-  process.env.SHEET_TABS?.split(",")
-    .map((t) => t.trim())
-    .filter(Boolean) ?? TABS_POR_DEFECTO;
+export const TAB_MENSUAL = process.env.SHEET_TAB_MENSUAL?.trim() || "Mensual";
 
 /** Vistas que el equipo vuelve a pegar cada mañana. */
 export const TAB_AYER = "Ayer";

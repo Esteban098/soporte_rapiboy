@@ -1,8 +1,8 @@
 import "server-only";
 import { cache } from "react";
-import { leerTab } from "./csv";
+import { indicesPorNombre, leerFilas } from "./csv";
 import {
-  TABS_PEDIDOS,
+  TAB_MENSUAL,
   TAB_AYER,
   TAB_CANCELADOS,
   TAB_DEMORADOS,
@@ -10,6 +10,7 @@ import {
   modoDatos,
 } from "./config";
 import {
+  COLUMNAS_CANCELADOS,
   consolidarPedidos,
   parsearCancelacion,
   parsearPedido,
@@ -24,22 +25,13 @@ export type EstadoFuente = {
 };
 
 /**
- * Carga el histórico completo de pedidos. `cache` de React evita releer las
- * pestañas cuando varias partes de la misma página piden los datos; el caché
- * entre visitas lo maneja `fetch` con su revalidación.
+ * Carga los casos del mes en curso desde la pestaña viva del libro. Es la única
+ * fuente de pedidos de la web; el historial se arma con lógica propia sobre
+ * estos datos, no leyendo las pestañas de meses anteriores.
  */
 export const cargarPedidos = cache(async (): Promise<Pedido[]> => {
-  const tabs = await Promise.all(TABS_PEDIDOS.map((tab) => leerTab(tab)));
-  return consolidarPedidos(tabs);
-});
-
-/** Pedidos del mes vivo, que es lo que mira la operación día a día. */
-export const cargarMesActual = cache(async (): Promise<Pedido[]> => {
-  const filas = await leerTab(TABS_PEDIDOS[0]);
-  return filas
-    .map(parsearPedido)
-    .filter((p): p is Pedido => p !== null)
-    .sort((a, b) => b.programado!.getTime() - a.programado!.getTime());
+  const filas = await leerFilas(TAB_MENSUAL);
+  return consolidarPedidos([filas]);
 });
 
 export type VistasDelDia = {
@@ -51,12 +43,12 @@ export type VistasDelDia = {
 /** Las tres pestañas que el equipo vuelve a pegar cada mañana. */
 export const cargarVistasDelDia = cache(async (): Promise<VistasDelDia> => {
   const [ayer, demorados, noEntregados] = await Promise.all([
-    leerTab(TAB_AYER),
-    leerTab(TAB_DEMORADOS),
-    leerTab(TAB_DEMORADO_NO_ENTREGADO),
+    leerFilas(TAB_AYER),
+    leerFilas(TAB_DEMORADOS),
+    leerFilas(TAB_DEMORADO_NO_ENTREGADO),
   ]);
 
-  const parsear = (filas: Record<string, string>[]) =>
+  const parsear = (filas: string[][]) =>
     filas.map(parsearPedido).filter((p): p is Pedido => p !== null);
 
   return {
@@ -67,9 +59,11 @@ export const cargarVistasDelDia = cache(async (): Promise<VistasDelDia> => {
 });
 
 export const cargarCancelaciones = cache(async (): Promise<Cancelacion[]> => {
-  const filas = await leerTab(TAB_CANCELADOS);
+  const [encabezado, ...filas] = await leerFilas(TAB_CANCELADOS);
+  const indices = indicesPorNombre(encabezado ?? [], COLUMNAS_CANCELADOS);
+
   return filas
-    .map(parsearCancelacion)
+    .map((fila) => parsearCancelacion(fila, indices))
     .filter((c): c is Cancelacion => c !== null)
     .sort((a, b) => (b.colectado?.getTime() ?? 0) - (a.colectado?.getTime() ?? 0));
 });

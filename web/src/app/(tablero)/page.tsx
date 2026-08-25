@@ -1,17 +1,17 @@
 import { cargarPedidos } from "@/lib/datos";
 import {
   dispersionRepartidores,
+  porDia,
   porDiaSemana,
   porLeadTime,
-  porMes,
   porVisitas,
   resumen,
 } from "@/lib/metricas";
-import { mesLargo, numero, porcentaje, puntos } from "@/lib/formato";
+import { diaCorto, mesLargo, numero, porcentaje, puntos } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
-import { BarrasMes } from "@/components/charts/BarrasMes";
-import { LineaTasa } from "@/components/charts/LineaTasa";
+import { BarrasSerie } from "@/components/charts/BarrasSerie";
+import { LineaSerie } from "@/components/charts/LineaSerie";
 import { BarrasTramo } from "@/components/charts/BarrasTramo";
 import estilos from "@/components/ui.module.css";
 
@@ -20,14 +20,14 @@ export const metadata = { title: "Resumen" };
 export default async function Resumen() {
   const pedidos = await cargarPedidos();
   const total = resumen(pedidos);
-  const meses = porMes(pedidos);
+  const dias = porDia(pedidos);
   const visitas = porVisitas(pedidos);
   const lead = porLeadTime(pedidos);
-  const dias = porDiaSemana(pedidos);
+  const semana = porDiaSemana(pedidos);
   const dispersion = dispersionRepartidores(pedidos);
 
-  const ultimo = meses.at(-1);
-  const anterior = meses.at(-2);
+  const ultimo = dias.at(-1);
+  const anterior = dias.at(-2);
   const delta = ultimo && anterior ? ultimo.tasaDevolucion - anterior.tasaDevolucion : null;
   const sinVisita = visitas.find((v) => v.tramo === "0");
 
@@ -36,7 +36,7 @@ export default async function Resumen() {
       <PageHead
         eyebrow="Panorama general"
         titulo="Resumen de la operación"
-        dek={`${numero(total.casos)} pedidos con incidencia entre ${mesLargo(total.desde)} y ${mesLargo(total.hasta)}. Todo lo que sigue se recalcula solo cuando el equipo actualiza el sheet.`}
+        dek={`${numero(total.casos)} pedidos con incidencia en ${mesLargo(total.hasta)}. Sale de la pestaña viva del libro y se recalcula solo cuando el equipo la actualiza.`}
       />
 
       <div className={estilos.kpis}>
@@ -58,30 +58,30 @@ export default async function Resumen() {
           nota={`${numero(total.entregados)} casos que soporte logró entregar`}
         />
         <Kpi
-          etiqueta={ultimo ? `Tasa en ${mesLargo(ultimo.mes)}` : "Último mes"}
+          etiqueta={ultimo ? `Tasa del ${diaCorto(ultimo.clave)}` : "Último día"}
           valor={ultimo ? porcentaje(ultimo.tasaDevolucion) : "—"}
           tono={delta == null ? "neutral" : delta > 0 ? "bad" : "good"}
           nota={
             delta == null
-              ? "sin mes previo para comparar"
-              : `${puntos(delta)} contra el mes anterior`
+              ? "sin día previo para comparar"
+              : `${puntos(delta)} contra el día anterior`
           }
         />
       </div>
 
       <div className={estilos.stack}>
         <Card
-          titulo="Volumen de casos por mes"
-          nota="Agrupado por la fecha programada de entrega. Los meses que el libro no tiene cargados no aparecen en la serie."
+          titulo="Casos por día"
+          nota="Agrupado por la fecha programada de entrega, dentro del mes en curso."
         >
-          <BarrasMes datos={meses} />
+          <BarrasSerie datos={dias} escala="dia" />
         </Card>
 
         <Card
-          titulo="Tasa de devolución por mes"
-          nota="Porcentaje de casos que terminaron volviendo al vendedor, sobre el total gestionado en cada mes."
+          titulo="Tasa de devolución por día"
+          nota="Porcentaje de casos que terminaron volviendo al vendedor, sobre el total del día. La línea gris es el promedio del mes."
         >
-          <LineaTasa datos={meses} promedio={total.tasaDevolucion} />
+          <LineaSerie datos={dias} promedio={total.tasaDevolucion} escala="dia" />
         </Card>
 
         <div className={estilos.grid2}>
@@ -104,7 +104,7 @@ export default async function Resumen() {
           titulo="Devolución por día de la semana"
           nota="Sobre la fecha programada de entrega. Sirve para decidir dónde reforzar dotación."
         >
-          <BarrasTramo datos={dias} etiquetaTramo="Día" />
+          <BarrasTramo datos={semana} etiquetaTramo="Día" />
         </Card>
 
         {sinVisita ? (

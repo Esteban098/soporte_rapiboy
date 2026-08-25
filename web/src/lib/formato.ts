@@ -30,6 +30,20 @@ export function mesLargo(mes: string): string {
   return `${MESES[Number(numeroMes) - 1]} de ${anio}`;
 }
 
+/** `2026-08-24` -> `24 ago`. */
+export function diaCorto(clave: string): string {
+  const [, mes, dia] = clave.split("-").map(Number);
+  return `${dia} ${MESES[mes - 1].slice(0, 3)}`;
+}
+
+/** `2026-08-24` -> `lunes 24 de agosto`. */
+export function diaLargo(clave: string): string {
+  const [anio, mes, dia] = clave.split("-").map(Number);
+  const fecha = new Date(Date.UTC(anio, mes - 1, dia));
+  const semana = new Intl.DateTimeFormat("es-MX", { weekday: "long", timeZone: "UTC" }).format(fecha);
+  return `${semana} ${dia} de ${MESES[mes - 1]}`;
+}
+
 export function fechaCorta(fecha: Date | null): string {
   if (!fecha) return "—";
   return new Intl.DateTimeFormat("es-MX", { day: "2-digit", month: "short", timeZone: "UTC" }).format(fecha);

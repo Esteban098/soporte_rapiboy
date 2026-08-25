@@ -10,25 +10,37 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { PuntoMes } from "@/lib/metricas";
-import { mesCorto, mesLargo, numero, porcentaje } from "@/lib/formato";
+import type { PuntoSerie } from "@/lib/metricas";
+import { diaCorto, diaLargo, mesCorto, mesLargo, numero, porcentaje } from "@/lib/formato";
 import { CajaTooltip } from "./Tooltip";
 import estilos from "./chart.module.css";
+
+type SerieProps = {
+  datos: PuntoSerie[];
+  /**
+   * Escala de la serie. Va como string y no como par de funciones porque las
+   * funciones no cruzan el límite entre Server y Client Components.
+   */
+  escala: "dia" | "mes";
+};
 
 /**
  * Tasa de devolución mes a mes, con el promedio del período como referencia.
  * Va en su propio gráfico y no como segundo eje del de volumen: dos escalas en
  * un mismo plot inventan correlaciones que los datos no tienen.
  */
-export function LineaTasa({ datos, promedio }: { datos: PuntoMes[]; promedio: number }) {
+export function LineaSerie({ datos, promedio, escala }: SerieProps & { promedio: number }) {
+  const etiquetaCorta = escala === "dia" ? diaCorto : mesCorto;
+  const etiquetaLarga = escala === "dia" ? diaLargo : mesLargo;
+
   return (
     <div className={estilos.wrap}>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={datos} margin={{ top: 12, right: 24, bottom: 4, left: 4 }}>
           <CartesianGrid stroke="var(--grid)" vertical={false} />
           <XAxis
-            dataKey="mes"
-            tickFormatter={mesCorto}
+            dataKey="clave"
+            tickFormatter={etiquetaCorta}
             tick={{ fill: "var(--muted)", fontSize: 11, fontFamily: "var(--mono)" }}
             axisLine={{ stroke: "var(--axis)" }}
             tickLine={false}
@@ -62,10 +74,10 @@ export function LineaTasa({ datos, promedio }: { datos: PuntoMes[]; promedio: nu
             cursor={{ stroke: "var(--axis)", strokeWidth: 1 }}
             content={({ active, payload }) => {
               if (!active || !payload?.length) return null;
-              const punto = payload[0].payload as PuntoMes;
+              const punto = payload[0].payload as PuntoSerie;
               return (
                 <CajaTooltip
-                  titulo={mesLargo(punto.mes)}
+                  titulo={etiquetaLarga(punto.clave)}
                   lineas={[
                     { etiqueta: "Tasa de devolución", valor: porcentaje(punto.tasaDevolucion) },
                     { etiqueta: "Devoluciones", valor: numero(punto.devoluciones) },

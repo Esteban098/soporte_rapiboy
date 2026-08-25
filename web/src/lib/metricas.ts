@@ -11,8 +11,10 @@ export type Resumen = {
   hasta: string;
 };
 
-export type PuntoMes = {
-  mes: string;
+/** Un punto de una serie temporal: sirve tanto para días como para meses. */
+export type PuntoSerie = {
+  /** Clave ordenable: `2026-08-24` para días, `2026-08` para meses. */
+  clave: string;
   casos: number;
   devoluciones: number;
   tasaDevolucion: number;
@@ -59,27 +61,38 @@ export function resumen(pedidos: Pedido[]): Resumen {
   };
 }
 
-export function porMes(pedidos: Pedido[]): PuntoMes[] {
+function agrupar(pedidos: Pedido[], clave: (pedido: Pedido) => string): PuntoSerie[] {
   const grupos = new Map<string, Pedido[]>();
   for (const pedido of pedidos) {
-    const lista = grupos.get(pedido.mes);
+    const k = clave(pedido);
+    const lista = grupos.get(k);
     if (lista) lista.push(pedido);
-    else grupos.set(pedido.mes, [pedido]);
+    else grupos.set(k, [pedido]);
   }
 
   return [...grupos.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([mes, lista]) => {
+    .map(([k, lista]) => {
       const devoluciones = lista.filter((p) => p.devuelto).length;
       const visitas = lista.filter((p) => p.visitas != null).map((p) => p.visitas!);
       return {
-        mes,
+        clave: k,
         casos: lista.length,
         devoluciones,
         tasaDevolucion: pct(devoluciones, lista.length),
         visitasPromedio: promedio(visitas),
       };
     });
+}
+
+/** Serie día a día, sobre la fecha programada de entrega. */
+export function porDia(pedidos: Pedido[]): PuntoSerie[] {
+  return agrupar(pedidos, (pedido) => pedido.programado!.toISOString().slice(0, 10));
+}
+
+/** Serie mes a mes. Útil solo si alguna vez se carga más de un mes. */
+export function porMes(pedidos: Pedido[]): PuntoSerie[] {
+  return agrupar(pedidos, (pedido) => pedido.mes);
 }
 
 /**

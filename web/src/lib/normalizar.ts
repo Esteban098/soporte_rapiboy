@@ -62,35 +62,28 @@ const ESTADOS_ABIERTOS = new Set([
  */
 const MESES_RESIDUALES = new Set(["2026-01", "2026-06"]);
 
-const ALIAS: Record<string, string[]> = {
-  id: ["id"],
-  creacion: ["fechacreacion", "fecha creacion", "fecha creación"],
-  programado: ["fechaprogramado", "fecha programado", "fecha progra", "fecha programada"],
-  estado: ["estado"],
-  repartidor: ["repartidor", "driver"],
-  tienda: ["tienda", "empresa", "seller"],
-  poligono: ["poligono", "polígono"],
-  visitas: ["visitas"],
-  idMeli: ["idmeli", "id meli", "id_meli"],
-  estadoRpb: ["estadorpb", "estado rpb", "estado_rbp", "estado_rpb"],
-  colectado: ["fechacolectado", "fecha colectado", "fecha_colectadomex", "fecha colectado arg"],
-  cancelado: ["fechacancelado", "fecha cancelado", "fecha_canceladomex", "fecha cancelado arg"],
-  minutos: ["minutos", "minutos_diferencia"],
-};
+/**
+ * Orden de las nueve primeras columnas en las pestañas de pedidos. Es estable
+ * en todo el libro, incluso donde los encabezados cambiaron de nombre o
+ * directamente no existen.
+ */
+const COL = {
+  id: 0,
+  creacion: 1,
+  programado: 2,
+  estado: 3,
+  repartidor: 4,
+  tienda: 5,
+  destino: 6,
+  poligono: 7,
+  visitas: 8,
+} as const;
 
-function clave(encabezado: string): string {
-  return encabezado.toLowerCase().replace(/\s+/g, " ").trim();
-}
-
-/** Busca el valor de un campo probando todos los nombres que tuvo en el libro. */
-function campo(fila: Record<string, string>, nombre: keyof typeof ALIAS): string {
-  const nombres = ALIAS[nombre];
-  for (const [encabezado, valor] of Object.entries(fila)) {
-    if (nombres.includes(clave(encabezado)) && valor != null && valor !== "") {
-      return String(valor).trim();
-    }
-  }
-  return "";
+function celda(fila: string[], indice: number): string {
+  const valor = fila[indice];
+  if (valor == null) return "";
+  const texto = String(valor).replace(/\s+/g, " ").trim();
+  return texto.toLowerCase() === "nan" ? "" : texto;
 }
 
 export function parsearFecha(valor: string): Date | null {
@@ -99,9 +92,15 @@ export function parsearFecha(valor: string): Date | null {
   if (iso) {
     return new Date(Date.UTC(+iso[1], +iso[2] - 1, +iso[3]));
   }
-  const local = valor.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (local) {
-    return new Date(Date.UTC(+local[3], +local[2] - 1, +local[1]));
+  // El endpoint gviz de Google devuelve las fechas con el formato del
+  // documento, que en este libro es el de EE.UU.: M/D/AAAA. Cuando el primer
+  // número supera 12 no puede ser un mes, así que ahí se lee como D/M/AAAA.
+  const barras = valor.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (barras) {
+    const primero = +barras[1];
+    const segundo = +barras[2];
+    const [mes, dia] = primero > 12 ? [segundo, primero] : [primero, segundo];
+    return new Date(Date.UTC(+barras[3], mes - 1, dia));
   }
   return null;
 }
@@ -121,27 +120,28 @@ function mesDe(fecha: Date): string {
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
-export function parsearPedido(fila: Record<string, string>): Pedido | null {
-  const id = Number(campo(fila, "id"));
+export function parsearPedido(fila: string[]): Pedido | null {
+  const id = Number(celda(fila, COL.id));
   if (!Number.isFinite(id) || id <= 0) return null;
 
-  const programado = parsearFecha(campo(fila, "programado"));
+  const programado = parsearFecha(celda(fila, COL.programado));
   if (!programado) return null;
 
-  const creacion = parsearFecha(campo(fila, "creacion"));
-  const estado = campo(fila, "estado");
+  const creacion = parsearFecha(celda(fila, COL.creacion));
+  const estado = celda(fila, COL.estado);
   const normalizado = estado.toLowerCase();
-  const visitasCrudo = Number(campo(fila, "visitas"));
+  const visitasCrudo = celda(fila, COL.visitas);
+  const visitas = Number(visitasCrudo);
 
   return {
     id,
     creacion,
     programado,
     estado,
-    repartidor: campo(fila, "repartidor"),
-    tienda: campo(fila, "tienda"),
-    poligono: campo(fila, "poligono"),
-    visitas: Number.isFinite(visitasCrudo) && campo(fila, "visitas") !== "" ? visitasCrudo : null,
+    repartidor: celda(fila, COL.repartidor),
+    tienda: celda(fila, COL.tienda),
+    poligono: celda(fila, COL.poligono),
+    visitas: visitasCrudo !== "" && Number.isFinite(visitas) ? visitas : null,
     mes: mesDe(programado),
     devuelto: ESTADOS_DEVOLUCION.has(normalizado),
     entregado: normalizado === "entregado",
@@ -154,7 +154,7 @@ export function parsearPedido(fila: Record<string, string>): Pedido | null {
  * Un pedido reprogramado a fin de mes queda cargado en dos pestañas. Nos
  * quedamos con la primera aparición y descartamos los meses residuales.
  */
-export function consolidarPedidos(filas: Record<string, string>[][]): Pedido[] {
+export function consolidarPedidos(filas: string[][][]): Pedido[] {
   const porId = new Map<number, Pedido>();
 
   for (const tab of filas) {
@@ -174,24 +174,36 @@ export function consolidarPedidos(filas: Record<string, string>[][]): Pedido[] {
 
 const MINUTO_MS = 60 * 1000;
 
-export function parsearCancelacion(fila: Record<string, string>): Cancelacion | null {
-  const id = Number(campo(fila, "id"));
+/** Columnas que se buscan por nombre en la pestaña de cancelaciones. */
+export const COLUMNAS_CANCELADOS = [
+  "Id",
+  "Tienda",
+  "Estado_RBP",
+  "Fecha_ColectadoMEX",
+  "Fecha_CanceladoMEX",
+  "Minutos_Diferencia",
+];
+
+export function parsearCancelacion(fila: string[], indices: number[]): Cancelacion | null {
+  const [iId, iTienda, iEstado, iColectado, iCancelado, iMinutos] = indices;
+
+  const id = Number(celda(fila, iId));
   if (!Number.isFinite(id) || id <= 0) return null;
 
-  const colectado = parsearFechaHora(campo(fila, "colectado"));
-  const cancelado = parsearFechaHora(campo(fila, "cancelado"));
+  const colectado = parsearFechaHora(celda(fila, iColectado));
+  const cancelado = parsearFechaHora(celda(fila, iCancelado));
 
   // La hoja de 2026 dejó de calcular los minutos, así que los derivamos de las
-  // dos fechas y solo usamos la columna si ya viene cargada.
-  const declarados = Number(campo(fila, "minutos"));
+  // dos fechas y solo usamos la columna cuando ya viene cargada.
+  const declarados = Number(celda(fila, iMinutos));
   const calculados =
     colectado && cancelado ? Math.round((cancelado.getTime() - colectado.getTime()) / MINUTO_MS) : null;
   const minutos = Number.isFinite(declarados) && declarados > 0 ? declarados : calculados;
 
   return {
     id,
-    tienda: campo(fila, "tienda"),
-    estadoRpb: campo(fila, "estadoRpb"),
+    tienda: celda(fila, iTienda),
+    estadoRpb: celda(fila, iEstado),
     colectado,
     cancelado,
     minutos: minutos != null && minutos > 0 ? minutos : null,

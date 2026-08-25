@@ -20,16 +20,17 @@ Tres decisiones que vale la pena tener presentes:
 - **Al navegador solo viajan agregados.** Teléfonos, domicilios y links de Maps
   no salen del servidor. Las páginas que muestran pedidos individuales lo hacen
   con id, estado, repartidor, comercio y zona: nada de datos del cliente.
-- **El esquema cambiante del libro se resuelve en un solo lugar.**
-  `src/lib/normalizar.ts` conoce todos los nombres que tuvo cada columna
-  (`Repartidor`/`Driver`, `Polígono`/`Poligono`, los tres formatos de fecha) y
-  deduplica los pedidos que aparecen en más de una pestaña.
+- **Las columnas se leen por posición, no por nombre.** Los encabezados del
+  libro no son confiables: `Junio` no tiene fila de encabezado y el de `Sep` es
+  un bloque de HTML pegado desde WhatsApp. Las nueve primeras columnas, en
+  cambio, están siempre en el mismo orden. `src/lib/normalizar.ts` concentra eso
+  y la conversión de fechas, que llegan en `M/D/AAAA` desde el endpoint gviz.
 
 ## Secciones
 
 | Ruta | Qué muestra |
 |---|---|
-| `/` | Volumen y tasa de devolución mes a mes, y las tres variables que deciden el resultado: visitas, demora y repartidor. |
+| `/` | Volumen y tasa de devolución día a día del mes en curso, y las tres variables que deciden el resultado: visitas, demora y repartidor. |
 | `/operacion` | La cola del día: demorados, demorados sin entregar y abiertos de ayer, con el mismo semáforo que la columna `DEMORA` de la planilla. |
 | `/repartidores` | Dispersión del equipo, ranking por tasa de devolución y cuántas devoluciones evitaría llevar a los críticos a la mediana. |
 | `/comercios` | De dónde salen los casos y a qué zonas van. |
@@ -91,22 +92,32 @@ en vez de quedar abierto.
 - `ALLOWED_EMAILS=ana@gmail.com,juan@gmail.com` habilita cuentas sueltas.
 - Se pueden usar las dos a la vez. Si no se configura ninguna, no entra nadie.
 
-## Cuando el equipo archiva un mes nuevo
+## Qué pestañas lee
 
-Agregá el nombre de la pestaña al principio de `SHEET_TABS` en Vercel:
+Solo cuatro, más la de cancelaciones:
 
-```
-SHEET_TABS=Septiembre2026,Mensual,Julio2026,Mayo2026,dic,nov,Oct,Sep,Agosto,Julio,Junio,Mayo
-```
+| Pestaña | Para qué |
+|---|---|
+| `Mensual` | Los casos del mes en curso. Es la única fuente de pedidos. |
+| `Ayer` | Lo que quedó abierto del día anterior. |
+| `Demorados` | Los que pasaron su fecha y siguen abiertos. |
+| `DemoradoNoEntregado` | Demorados que además están sin entregar. |
+| `Cancelados` | Cancelaciones de Mercado Libre. |
 
-No hace falta tocar el código. Si `SHEET_TABS` está vacío, se usa la lista de
-`src/lib/config.ts`.
+Las pestañas de meses anteriores quedaron como archivo y varias fueron vaciadas
+o reutilizadas, así que no se leen: no son una fuente confiable de historial. Si
+alguna vez cambia el nombre de la pestaña viva, se ajusta con `SHEET_TAB_MENSUAL`
+sin tocar el código.
 
 ## Límites conocidos
 
-- Los meses de febrero a abril de 2025 no están en la serie: esas pestañas
-  arrastran filas de `#REF!` de la planilla vieja y sus nombres no coinciden con
-  el mes que contienen. Se pueden sumar a `SHEET_TABS` si hiciera falta.
+- **No hay historial entre meses.** El sheet muestra el estado actual, así que
+  el tablero muestra el mes en curso día a día. Para tener tendencia mensual hay
+  que guardar una foto diaria (una GitHub Action que commitee un JSON, o una
+  base de datos); todavía no está hecho.
+- `Mensual` tiene que incluir los casos cerrados. Si queda filtrada solo con los
+  abiertos, la tasa de recuperación se muestra en 0% porque no hay ningún
+  `Entregado` con qué compararla.
 - Los nombres de zona salen tal cual están cargados en el sheet, con sus
   variantes de acento y sufijo. Normalizarlos en la planilla mejora los
   rankings de `/comercios`.
