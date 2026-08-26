@@ -14,7 +14,7 @@ export function RankingTable({
   return (
     <Tabla
       columnas={[
-        { clave: "nombre", titulo: etiquetaDimension, tipo: "texto", ancho: 240 },
+        { clave: "nombre", titulo: etiquetaDimension, tipo: "texto" },
         { clave: "casos", titulo: "Casos", tipo: "numero" },
         { clave: "devoluciones", titulo: "Devoluciones", tipo: "numero" },
         { clave: "tasa", titulo: "% devolución", tipo: "porcentaje" },

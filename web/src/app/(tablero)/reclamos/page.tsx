@@ -90,14 +90,14 @@ export default async function Reclamos() {
             columnas={[
               { clave: "id", titulo: "Viaje", tipo: "viaje" },
               { clave: "aviso", titulo: "Aviso", tipo: "aviso" },
-              { clave: "reclamo", titulo: "Tipo de dato", tipo: "texto", ancho: 190 },
-              { clave: "ubicacion", titulo: "Ubicación", tipo: "texto", ancho: 230 },
-              { clave: "telefono", titulo: "Teléfono o referencia", tipo: "texto", ancho: 230 },
+              { clave: "reclamo", titulo: "Tipo de dato", tipo: "texto" },
+              { clave: "ubicacion", titulo: "Ubicación", tipo: "texto" },
+              { clave: "telefono", titulo: "Teléfono o referencia", tipo: "texto" },
               { clave: "estado", titulo: "Estado", tipo: "estado" },
               { clave: "caso", titulo: "Caso", tipo: "caso" },
-              { clave: "repartidor", titulo: "Repartidor", tipo: "texto", ancho: 180 },
-              { clave: "tienda", titulo: "Tienda", tipo: "texto", ancho: 180 },
-              { clave: "zona", titulo: "Zona", tipo: "texto", ancho: 170 },
+              { clave: "repartidor", titulo: "Repartidor", tipo: "texto" },
+              { clave: "tienda", titulo: "Tienda", tipo: "texto" },
+              { clave: "zona", titulo: "Zona", tipo: "texto" },
               { clave: "visitas", titulo: "Visitas", tipo: "numero" },
               { clave: "quieto", titulo: "Sin moverse", tipo: "dias" },
             ]}
@@ -134,9 +134,7 @@ export default async function Reclamos() {
                 <tbody>
                   {datos.porTipo.map((fila) => (
                     <tr key={fila.tipo}>
-                      <td className={estilos.nombre} title={fila.tipo}>
-                        {fila.tipo}
-                      </td>
+                      <td>{fila.tipo}</td>
                       <td className={estilos.num}>{numero(fila.casos)}</td>
                       <td className={estilos.num}>{numero(fila.entregados)}</td>
                       <td className={estilos.num}>

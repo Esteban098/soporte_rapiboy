@@ -30,8 +30,6 @@ export type Columna = {
   clave: string;
   titulo: string;
   tipo?: TipoColumna;
-  /** Ancho máximo antes de recortar con puntos suspensivos. */
-  ancho?: number;
 };
 
 export type Fila = Record<string, string | number | boolean | null>;
@@ -194,13 +192,13 @@ function esNumerica(tipo?: TipoColumna): boolean {
 }
 
 function Celda({ columna, valor }: { columna: Columna; valor: Fila[string] }) {
-  const numerica = esNumerica(columna.tipo);
-  const clase = numerica ? estilos.num : columna.ancho ? estilos.nombre : undefined;
-  const estilo = columna.ancho ? { maxWidth: columna.ancho } : undefined;
+  // Sin recortes: cada celda muestra su contenido completo y la tabla scrollea
+  // en horizontal si no entra.
+  const clase = esNumerica(columna.tipo) ? estilos.num : undefined;
 
   if (valor == null || valor === "") {
     return (
-      <td className={clase} style={estilo}>
+      <td className={clase}>
         —
       </td>
     );
@@ -209,7 +207,7 @@ function Celda({ columna, valor }: { columna: Columna; valor: Fila[string] }) {
   switch (columna.tipo) {
     case "viaje":
       return (
-        <td className={clase} style={estilo}>
+        <td className={clase}>
           <a
             className={tabla.enlaceViaje}
             href={enlaceViaje(String(valor))}
@@ -223,19 +221,19 @@ function Celda({ columna, valor }: { columna: Columna; valor: Fila[string] }) {
       );
     case "estado":
       return (
-        <td className={clase} style={estilo}>
+        <td className={clase}>
           <Chip tono={tonoEstado(String(valor))}>{String(valor)}</Chip>
         </td>
       );
     case "caso":
       return (
-        <td className={clase} style={estilo}>
+        <td className={clase}>
           <Chip tono={valor === "Cerrado" ? "good" : "warning"}>{String(valor)}</Chip>
         </td>
       );
     case "aviso":
       return (
-        <td className={clase} style={estilo}>
+        <td className={clase}>
           <Chip tono={String(valor).toUpperCase() === "AVISADO" ? "good" : "critical"}>
             {String(valor)}
           </Chip>
@@ -245,32 +243,32 @@ function Celda({ columna, valor }: { columna: Columna; valor: Fila[string] }) {
       const dias = Number(valor);
       const tono = dias > 2 ? "critical" : dias > 1 ? "warning" : "good";
       return (
-        <td className={clase} style={estilo}>
+        <td className={clase}>
           <Chip tono={tono}>{dias === 0 ? "Hoy" : dias === 1 ? "Ayer" : `${dias} d quieto`}</Chip>
         </td>
       );
     }
     case "numero":
       return (
-        <td className={clase} style={estilo}>
+        <td className={clase}>
           {numero(Number(valor))}
         </td>
       );
     case "decimal":
       return (
-        <td className={clase} style={estilo}>
+        <td className={clase}>
           {decimal(Number(valor))}
         </td>
       );
     case "porcentaje":
       return (
-        <td className={clase} style={estilo}>
+        <td className={clase}>
           {porcentaje(Number(valor))}
         </td>
       );
     default:
       return (
-        <td className={clase} style={estilo} title={String(valor)}>
+        <td className={clase} title={String(valor)}>
           {String(valor)}
         </td>
       );

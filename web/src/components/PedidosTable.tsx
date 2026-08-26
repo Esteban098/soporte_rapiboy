@@ -19,9 +19,9 @@ export function PedidosTable({
         { clave: "quieto", titulo: "Sin moverse", tipo: "dias" },
         { clave: "estado", titulo: "Estado", tipo: "estado" },
         { clave: "caso", titulo: "Caso", tipo: "caso" },
-        { clave: "repartidor", titulo: "Repartidor", tipo: "texto", ancho: 190 },
-        { clave: "tienda", titulo: "Tienda", tipo: "texto", ancho: 190 },
-        { clave: "zona", titulo: "Zona", tipo: "texto", ancho: 175 },
+        { clave: "repartidor", titulo: "Repartidor", tipo: "texto" },
+        { clave: "tienda", titulo: "Tienda", tipo: "texto" },
+        { clave: "zona", titulo: "Zona", tipo: "texto" },
         { clave: "visitas", titulo: "Visitas", tipo: "numero" },
         { clave: "movimiento", titulo: "Último mov.", tipo: "texto" },
       ]}
