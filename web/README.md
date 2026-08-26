@@ -136,6 +136,12 @@ render, que no cruzan el límite entre servidor y cliente.
 
 ## Límites conocidos
 
+- **Los rankings piden 30 casos como mínimo** (`MINIMO_CASOS` en
+  `src/lib/metricas.ts`). Está calibrado para un mes de datos: el repartidor con
+  más viajes ronda los 90 casos. Con ese volumen una tasa de devolución arrastra
+  unos 6 puntos de ruido, así que los rankings sirven para ver los extremos, no
+  para ordenar a los del medio.
+
 - **No hay historial entre meses.** El sheet muestra el estado actual, así que
   el tablero muestra el mes en curso día a día. Para tener tendencia mensual hay
   que guardar una foto diaria (una GitHub Action que commitee un JSON, o una

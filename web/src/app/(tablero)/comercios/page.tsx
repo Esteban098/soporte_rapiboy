@@ -1,5 +1,5 @@
 import { cargarPedidos } from "@/lib/datos";
-import { ranking, resumen } from "@/lib/metricas";
+import { MINIMO_CASOS, ranking, resumen } from "@/lib/metricas";
 import { numero, porcentaje } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
@@ -7,8 +7,6 @@ import { RankingTable } from "@/components/RankingTable";
 import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Comercios y zonas" };
-
-const MINIMO_CASOS = 200;
 
 export default async function Comercios() {
   const pedidos = await cargarPedidos();

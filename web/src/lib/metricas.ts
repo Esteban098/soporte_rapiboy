@@ -177,7 +177,7 @@ export function ranking(
   dimension: "repartidor" | "tienda" | "poligono",
   opciones: { minimoCasos?: number; limite?: number; orden?: "peores" | "mejores" | "volumen" } = {},
 ): FilaRanking[] {
-  const { minimoCasos = 200, limite = 10, orden = "peores" } = opciones;
+  const { minimoCasos = MINIMO_CASOS, limite = 10, orden = "peores" } = opciones;
 
   const grupos = new Map<string, Pedido[]>();
   for (const pedido of pedidos) {
@@ -320,7 +320,20 @@ export type DispersionRepartidores = {
 /** Umbral a partir del cual un repartidor entra en revisión individual. */
 export const UMBRAL_CRITICO = 25;
 
-export function dispersionRepartidores(pedidos: Pedido[], minimoCasos = 200): DispersionRepartidores {
+/**
+ * Volumen mínimo para entrar en un ranking.
+ *
+ * Está calibrado para un mes de datos: el repartidor con más viajes ronda los
+ * 90 casos, así que un piso alto vaciaría todas las tablas. Con 30 casos una
+ * tasa de devolución todavía arrastra unos 6 puntos de ruido, que es tolerable
+ * para ordenar pero no para sacar conclusiones de diferencias chicas.
+ */
+export const MINIMO_CASOS = 30;
+
+export function dispersionRepartidores(
+  pedidos: Pedido[],
+  minimoCasos = MINIMO_CASOS,
+): DispersionRepartidores {
   const filas = ranking(pedidos, "repartidor", { minimoCasos, limite: Infinity, orden: "volumen" });
   const medianaTasa = mediana(filas.map((f) => f.tasaDevolucion));
   const criticos = filas.filter((f) => f.tasaDevolucion > UMBRAL_CRITICO);

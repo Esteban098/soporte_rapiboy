@@ -1,5 +1,11 @@
 import { cargarPedidos } from "@/lib/datos";
-import { dispersionRepartidores, ranking, resumen, UMBRAL_CRITICO } from "@/lib/metricas";
+import {
+  dispersionRepartidores,
+  MINIMO_CASOS,
+  ranking,
+  resumen,
+  UMBRAL_CRITICO,
+} from "@/lib/metricas";
 import { decimal, numero, porcentaje } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
@@ -8,9 +14,6 @@ import { DispersionRepartidores } from "@/components/charts/DispersionRepartidor
 import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Repartidores" };
-
-/** Volumen mínimo para que un repartidor entre en los rankings. */
-const MINIMO_CASOS = 200;
 
 export default async function Repartidores() {
   const pedidos = await cargarPedidos();
@@ -31,7 +34,7 @@ export default async function Repartidores() {
       <PageHead
         eyebrow="Desempeño individual"
         titulo="Repartidores"
-        dek={`${numero(dispersion.evaluados)} repartidores con ${MINIMO_CASOS} casos o más. La comparación es válida porque todos trabajan sobre el mismo tipo de zonas y el mismo mix de comercios.`}
+        dek={`${numero(dispersion.evaluados)} repartidores con ${MINIMO_CASOS} casos o más en el mes. Con estos volúmenes las diferencias chicas son ruido: sirve para ver los extremos, no para ordenar a los del medio.`}
       />
 
       <div className={estilos.kpis}>
@@ -81,7 +84,7 @@ export default async function Repartidores() {
 
         <Card
           titulo="Mayor tasa de devolución"
-          nota="Ordenado por porcentaje de casos devueltos. La columna de visitas casi siempre explica el resto."
+          nota={`Repartidores con ${MINIMO_CASOS} casos o más, ordenados por porcentaje de casos devueltos. La columna de visitas casi siempre explica el resto.`}
         >
           <RankingTable filas={peores} etiquetaDimension="Repartidor" />
         </Card>
