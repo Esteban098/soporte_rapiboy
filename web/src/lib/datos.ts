@@ -5,6 +5,7 @@ import {
   TAB_MENSUAL,
   TAB_AYER,
   TAB_DEMORADOS,
+  TAB_DEMORADO_NO_ENTREGADO,
   modoDatos,
 } from "./config";
 import {
@@ -38,6 +39,12 @@ export const cargarAyer = cache(async (): Promise<Pedido[]> => {
 /** Los casos que pasaron su fecha y siguen abiertos. */
 export const cargarDemorados = cache(async (): Promise<Pedido[]> => {
   const filas = await leerFilas(TAB_DEMORADOS);
+  return filas.map(parsearPedido).filter((p): p is Pedido => p !== null);
+});
+
+/** Los demorados que además siguen sin entregarse. */
+export const cargarDemoradosNoEntregados = cache(async (): Promise<Pedido[]> => {
+  const filas = await leerFilas(TAB_DEMORADO_NO_ENTREGADO);
   return filas.map(parsearPedido).filter((p): p is Pedido => p !== null);
 });
 
