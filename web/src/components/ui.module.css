@@ -320,6 +320,47 @@
   background: var(--critical-soft);
 }
 
+/* Un color por estado del paquete. */
+.estadoEntregado {
+  color: var(--estado-entregado);
+  background: var(--estado-entregado-fondo);
+}
+
+.estadoDevuelto {
+  color: var(--estado-devuelto);
+  background: var(--estado-devuelto-fondo);
+}
+
+.estadoDevolucion {
+  color: var(--estado-devolucion);
+  background: var(--estado-devolucion-fondo);
+}
+
+.estadoDeposito {
+  color: var(--estado-deposito);
+  background: var(--estado-deposito-fondo);
+}
+
+.estadoRetirado {
+  color: var(--estado-retirado);
+  background: var(--estado-retirado-fondo);
+}
+
+.estadoPararetirar {
+  color: var(--estado-pararetirar);
+  background: var(--estado-pararetirar-fondo);
+}
+
+.estadoSiniestrado {
+  color: var(--estado-siniestrado);
+  background: var(--estado-siniestrado-fondo);
+}
+
+.estadoNoentregado {
+  color: var(--estado-noentregado);
+  background: var(--estado-noentregado-fondo);
+}
+
 .chipInfo {
   color: var(--accent-ink);
   background: var(--accent-soft);

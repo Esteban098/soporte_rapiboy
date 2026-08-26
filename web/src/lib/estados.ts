@@ -5,28 +5,40 @@
  * vistazo sin tener que interpretar el texto. Vive fuera de `lib/normalizar`
  * porque lo usan componentes de cliente.
  */
-export type TonoEstado = "good" | "warning" | "critical" | "info" | "neutral";
+export type ColorEstado =
+  | "entregado"
+  | "devuelto"
+  | "devolucion"
+  | "deposito"
+  | "retirado"
+  | "pararetirar"
+  | "siniestrado"
+  | "noentregado"
+  | "neutral";
 
-const TONOS: Record<string, TonoEstado> = {
-  entregado: "good",
-  devuelto: "critical",
-  devolucion: "warning",
-  "devolución": "warning",
-  "devolucion en centro de dropoff": "warning",
-  "devolución en centro de dropoff": "warning",
-  "pedido no entregado": "critical",
-  siniestrado: "critical",
-  "en deposito": "info",
-  "en depósito": "info",
-  "en deposito con direccion incorrecta": "warning",
-  "en centro de dropoff": "info",
-  "para retirar": "info",
-  "retirado en camino a destino": "info",
-  colectado: "info",
-  bonificado: "neutral",
-  cancelado: "neutral",
+const COLORES: Record<string, ColorEstado> = {
+  entregado: "entregado",
+  devuelto: "devuelto",
+
+  // Devolución en curso: se distingue de "Devuelto", que ya cerró el caso.
+  devolucion: "devolucion",
+  "devolución": "devolucion",
+  "devolucion en centro de dropoff": "devolucion",
+  "devolución en centro de dropoff": "devolucion",
+
+  "pedido no entregado": "noentregado",
+  siniestrado: "siniestrado",
+
+  "en deposito": "deposito",
+  "en depósito": "deposito",
+  "en deposito con direccion incorrecta": "deposito",
+  "en centro de dropoff": "deposito",
+
+  "retirado en camino a destino": "retirado",
+  colectado: "retirado",
+  "para retirar": "pararetirar",
 };
 
-export function tonoEstado(estado: string): TonoEstado {
-  return TONOS[estado.toLowerCase().trim()] ?? "neutral";
+export function colorEstado(estado: string): ColorEstado {
+  return COLORES[estado.toLowerCase().trim()] ?? "neutral";
 }

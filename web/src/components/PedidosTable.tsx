@@ -1,8 +1,12 @@
 import type { Pedido } from "@/lib/normalizar";
-import { filasDePedidos } from "@/lib/filas";
+import { COLUMNAS_PEDIDO, filasDePedidos } from "@/lib/filas";
 import { Tabla } from "./Tabla";
 
-/** Listado de pedidos, filtrable por estado y ordenable por cualquier columna. */
+/**
+ * Listado de pedidos con todas las columnas del libro disponibles. Se filtra
+ * por estado y caso, se ordena por cualquier encabezado y las columnas que no
+ * interesen se ocultan desde el menú de la tabla.
+ */
 export function PedidosTable({
   pedidos,
   vacio = "No quedó ningún caso en esta vista.",
@@ -14,17 +18,7 @@ export function PedidosTable({
 }) {
   return (
     <Tabla
-      columnas={[
-        { clave: "id", titulo: "Viaje", tipo: "viaje" },
-        { clave: "quieto", titulo: "Sin moverse", tipo: "dias" },
-        { clave: "estado", titulo: "Estado", tipo: "estado" },
-        { clave: "caso", titulo: "Caso", tipo: "caso" },
-        { clave: "repartidor", titulo: "Repartidor", tipo: "texto" },
-        { clave: "tienda", titulo: "Tienda", tipo: "texto" },
-        { clave: "zona", titulo: "Zona", tipo: "texto" },
-        { clave: "visitas", titulo: "Visitas", tipo: "numero" },
-        { clave: "movimiento", titulo: "Último mov.", tipo: "texto" },
-      ]}
+      columnas={COLUMNAS_PEDIDO}
       filas={filasDePedidos(pedidos)}
       filtros={[
         { clave: "estado", etiqueta: "Estado" },

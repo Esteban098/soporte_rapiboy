@@ -37,6 +37,25 @@
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 12px 28px -22px rgba(16, 24, 40, 0.5);
   --radio: 12px;
 
+  /* Un color por estado del paquete, pedido por la operación. */
+  --estado-entregado: #0a6b2d;
+  --estado-entregado-fondo: rgba(10, 107, 45, 0.12);
+  --estado-devuelto: #4f8a22;
+  --estado-devuelto-fondo: rgba(79, 138, 34, 0.14);
+  --estado-devolucion: #6b4bc4;
+  --estado-devolucion-fondo: rgba(107, 75, 196, 0.13);
+  --estado-deposito: #8a6d0b;
+  --estado-deposito-fondo: rgba(212, 168, 18, 0.18);
+  --estado-retirado: #0f7fa3;
+  --estado-retirado-fondo: rgba(29, 165, 208, 0.16);
+  --estado-pararetirar: #2a5fd6;
+  --estado-pararetirar-fondo: rgba(42, 95, 214, 0.13);
+  --estado-siniestrado: #c2560a;
+  --estado-siniestrado-fondo: rgba(194, 86, 10, 0.13);
+  --estado-noentregado: #c0392f;
+  --estado-noentregado-fondo: rgba(192, 57, 47, 0.12);
+
+
   --sans: var(--fuente-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
   --display: var(--fuente-display), var(--sans);
   --mono: var(--fuente-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -74,6 +93,23 @@
     --axis: #363c43;
 
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px -22px rgba(0, 0, 0, 0.9);
+
+  --estado-entregado: #4cb96e;
+  --estado-entregado-fondo: rgba(76, 185, 110, 0.18);
+  --estado-devuelto: #94cf50;
+  --estado-devuelto-fondo: rgba(148, 207, 80, 0.18);
+  --estado-devolucion: #a891ea;
+  --estado-devolucion-fondo: rgba(168, 145, 234, 0.18);
+  --estado-deposito: #e0b93a;
+  --estado-deposito-fondo: rgba(224, 185, 58, 0.18);
+  --estado-retirado: #4fc3e8;
+  --estado-retirado-fondo: rgba(79, 195, 232, 0.18);
+  --estado-pararetirar: #7ba6f7;
+  --estado-pararetirar-fondo: rgba(123, 166, 247, 0.18);
+  --estado-siniestrado: #f08a4b;
+  --estado-siniestrado-fondo: rgba(240, 138, 75, 0.18);
+  --estado-noentregado: #eb7a72;
+  --estado-noentregado-fondo: rgba(235, 122, 114, 0.18);
   }
 }
 
@@ -108,6 +144,23 @@
   --axis: #363c43;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px -22px rgba(0, 0, 0, 0.9);
+
+  --estado-entregado: #4cb96e;
+  --estado-entregado-fondo: rgba(76, 185, 110, 0.18);
+  --estado-devuelto: #94cf50;
+  --estado-devuelto-fondo: rgba(148, 207, 80, 0.18);
+  --estado-devolucion: #a891ea;
+  --estado-devolucion-fondo: rgba(168, 145, 234, 0.18);
+  --estado-deposito: #e0b93a;
+  --estado-deposito-fondo: rgba(224, 185, 58, 0.18);
+  --estado-retirado: #4fc3e8;
+  --estado-retirado-fondo: rgba(79, 195, 232, 0.18);
+  --estado-pararetirar: #7ba6f7;
+  --estado-pararetirar-fondo: rgba(123, 166, 247, 0.18);
+  --estado-siniestrado: #f08a4b;
+  --estado-siniestrado-fondo: rgba(240, 138, 75, 0.18);
+  --estado-noentregado: #eb7a72;
+  --estado-noentregado-fondo: rgba(235, 122, 114, 0.18);
 }
 
 *,

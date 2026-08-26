@@ -21,6 +21,8 @@ export type Pedido = {
   estado: string;
   repartidor: string;
   tienda: string;
+  /** Domicilio de entrega, tal como viene del sistema. */
+  destino: string;
   poligono: string;
   visitas: number | null;
   /** Mes del último movimiento, como `2026-08`. */
@@ -59,6 +61,11 @@ export type Pedido = {
    */
   aviso: string;
   avisoPendiente: boolean;
+  /** Columnas auxiliares del libro, que el equipo usa para operar. */
+  enlace: string;
+  copiar: string;
+  demora: string;
+  ids: string;
 };
 
 /** Estados que significan que el paquete volvió al vendedor. */
@@ -103,11 +110,15 @@ const COL = {
   destino: 6,
   poligono: 7,
   visitas: 8,
+  enlace: 9,
   reclamo: 10,
   ubicacion: 11,
   telefono: 12,
   aviso: 13,
   caso: 14,
+  ids: 15,
+  copiar: 16,
+  demora: 17,
 } as const;
 
 /** Estados que la columna CASO del libro considera resueltos. */
@@ -165,6 +176,7 @@ export function parsearPedido(fila: string[]): Pedido | null {
     estado,
     repartidor: celda(fila, COL.repartidor),
     tienda: celda(fila, COL.tienda),
+    destino: celda(fila, COL.destino),
     poligono: celda(fila, COL.poligono),
     visitas: visitasCrudo !== "" && Number.isFinite(visitas) ? visitas : null,
     mes: mesDe(ultimoMovimiento),
@@ -182,6 +194,10 @@ export function parsearPedido(fila: string[]): Pedido | null {
     tieneTelefono: celda(fila, COL.telefono) !== "",
     aviso: celda(fila, COL.aviso).toUpperCase(),
     avisoPendiente: celda(fila, COL.aviso).toLowerCase() === "no avisado",
+    enlace: celda(fila, COL.enlace),
+    copiar: celda(fila, COL.copiar),
+    demora: celda(fila, COL.demora),
+    ids: celda(fila, COL.ids),
   };
 }
 

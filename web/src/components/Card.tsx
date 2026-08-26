@@ -1,3 +1,4 @@
+import type { ColorEstado } from "@/lib/estados";
 import estilos from "./ui.module.css";
 
 export function Card({
@@ -70,6 +71,23 @@ export function Kpi({
       {nota ? <div className={estilos.kpiNote}>{nota}</div> : null}
     </div>
   );
+}
+
+/** Chip con el color propio de un estado del paquete. */
+export function ChipEstado({ estado, color }: { estado: string; color: ColorEstado }) {
+  const clase = {
+    entregado: estilos.estadoEntregado,
+    devuelto: estilos.estadoDevuelto,
+    devolucion: estilos.estadoDevolucion,
+    deposito: estilos.estadoDeposito,
+    retirado: estilos.estadoRetirado,
+    pararetirar: estilos.estadoPararetirar,
+    siniestrado: estilos.estadoSiniestrado,
+    noentregado: estilos.estadoNoentregado,
+    neutral: estilos.chipNeutral,
+  }[color];
+
+  return <span className={`${estilos.chip} ${clase}`}>{estado}</span>;
 }
 
 export function Chip({

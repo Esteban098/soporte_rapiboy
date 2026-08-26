@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { tonoEstado } from "@/lib/estados";
+import { colorEstado } from "@/lib/estados";
 import { enlaceViaje } from "@/lib/enlaces";
 import { CeldaTexto } from "./CeldaTexto";
 import { numero, porcentaje, decimal } from "@/lib/formato";
-import { Chip } from "./Card";
+import { Chip, ChipEstado } from "./Card";
 import estilos from "./ui.module.css";
 import tabla from "./tabla.module.css";
 
@@ -257,7 +257,7 @@ function Celda({ columna, valor }: { columna: Columna; valor: Fila[string] }) {
     case "estado":
       return (
         <td className={clase}>
-          <Chip tono={tonoEstado(String(valor))}>{String(valor)}</Chip>
+          <ChipEstado estado={String(valor)} color={colorEstado(String(valor))} />
         </td>
       );
     case "caso":

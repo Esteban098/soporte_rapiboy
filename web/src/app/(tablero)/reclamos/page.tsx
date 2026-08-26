@@ -5,7 +5,7 @@ import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
 import { Tabla } from "@/components/Tabla";
-import { filasDeReclamos } from "@/lib/filas";
+import { COLUMNAS_PEDIDO, filasDePedidos } from "@/lib/filas";
 import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Reclamos de tienda" };
@@ -22,7 +22,7 @@ export default async function Reclamos() {
       const prioridad = (p: typeof a) => (p.avisoPendiente ? 0 : 1) + (p.cerrado ? 2 : 0);
       return prioridad(a) - prioridad(b) || b.ultimoMovimiento!.getTime() - a.ultimoMovimiento!.getTime();
     });
-  const filas = filasDeReclamos(conReclamo);
+  const filas = filasDePedidos(conReclamo);
   const diferencia = datos.tasaEntregaConReclamo - datos.tasaEntregaSinReclamo;
 
   return (
@@ -87,20 +87,7 @@ export default async function Reclamos() {
           nota="Todo lo que el comercio aportó para concretar la entrega, con la información del viaje. Se puede filtrar por aviso y estado, y ordenar por cualquier columna."
         >
           <Tabla
-            columnas={[
-              { clave: "id", titulo: "Viaje", tipo: "viaje" },
-              { clave: "aviso", titulo: "Aviso", tipo: "aviso" },
-              { clave: "reclamo", titulo: "Tipo de dato", tipo: "texto" },
-              { clave: "ubicacion", titulo: "Ubicación", tipo: "texto" },
-              { clave: "telefono", titulo: "Teléfono o referencia", tipo: "texto" },
-              { clave: "estado", titulo: "Estado", tipo: "estado" },
-              { clave: "caso", titulo: "Caso", tipo: "caso" },
-              { clave: "repartidor", titulo: "Repartidor", tipo: "texto" },
-              { clave: "tienda", titulo: "Tienda", tipo: "texto" },
-              { clave: "zona", titulo: "Zona", tipo: "texto" },
-              { clave: "visitas", titulo: "Visitas", tipo: "numero" },
-              { clave: "quieto", titulo: "Sin moverse", tipo: "dias" },
-            ]}
+            columnas={COLUMNAS_PEDIDO}
             filas={filas}
             filtros={[
               { clave: "aviso", etiqueta: "Aviso", opciones: ["NO AVISADO", "AVISADO"] },
