@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { tonoEstado } from "@/lib/estados";
 import { enlaceViaje } from "@/lib/enlaces";
+import { CeldaTexto } from "./CeldaTexto";
 import { numero, porcentaje, decimal } from "@/lib/formato";
 import { Chip } from "./Card";
 import estilos from "./ui.module.css";
@@ -60,6 +61,7 @@ export function Tabla({
   limite?: number;
 }) {
   const [orden, setOrden] = useState<Orden>(ordenInicial ?? null);
+  const [ocultas, setOcultas] = useState<Set<string>>(new Set());
   const [seleccion, setSeleccion] = useState<Record<string, string>>({});
   const [expandida, setExpandida] = useState(false);
 
@@ -98,6 +100,16 @@ export function Tabla({
   }, [filtradas, orden]);
 
   const visibles = limite && !expandida ? ordenadas.slice(0, limite) : ordenadas;
+  const columnasVisibles = columnas.filter((c) => !ocultas.has(c.clave));
+
+  function alternarColumna(clave: string) {
+    setOcultas((previo) => {
+      const proximo = new Set(previo);
+      if (proximo.has(clave)) proximo.delete(clave);
+      else proximo.add(clave);
+      return proximo;
+    });
+  }
 
   function alternarOrden(clave: string) {
     setOrden((previo) =>
@@ -107,33 +119,56 @@ export function Tabla({
 
   return (
     <>
-      {filtros.length > 0 ? (
-        <div className={tabla.filtros}>
-          {filtros.map((filtro) => (
-            <label key={filtro.clave} className={tabla.filtro}>
-              <span className={tabla.filtroEtiqueta}>{filtro.etiqueta}</span>
-              <select
-                className={tabla.select}
-                value={seleccion[filtro.clave] ?? ""}
-                onChange={(e) =>
-                  setSeleccion((previo) => ({ ...previo, [filtro.clave]: e.target.value }))
-                }
-              >
-                <option value="">Todos</option>
-                {opcionesPorFiltro[filtro.clave]?.map((opcion) => (
-                  <option key={opcion} value={opcion}>
-                    {opcion}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ))}
-          <span className={tabla.conteo}>
-            {numero(ordenadas.length)}
-            {ordenadas.length === filas.length ? " casos" : ` de ${numero(filas.length)}`}
-          </span>
-        </div>
-      ) : null}
+      <div className={tabla.filtros}>
+        {filtros.map((filtro) => (
+          <label key={filtro.clave} className={tabla.filtro}>
+            <span className={tabla.filtroEtiqueta}>{filtro.etiqueta}</span>
+            <select
+              className={tabla.select}
+              value={seleccion[filtro.clave] ?? ""}
+              onChange={(e) =>
+                setSeleccion((previo) => ({ ...previo, [filtro.clave]: e.target.value }))
+              }
+            >
+              <option value="">Todos</option>
+              {opcionesPorFiltro[filtro.clave]?.map((opcion) => (
+                <option key={opcion} value={opcion}>
+                  {opcion}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
+
+        <details className={tabla.columnas}>
+          <summary className={tabla.columnasResumen}>
+            Columnas
+            {ocultas.size > 0 ? <span className={tabla.ocultasBadge}>{ocultas.size}</span> : null}
+          </summary>
+          <div className={tabla.columnasPanel}>
+            {columnas.map((columna) => (
+              <label key={columna.clave} className={tabla.columnaOpcion}>
+                <input
+                  type="checkbox"
+                  checked={!ocultas.has(columna.clave)}
+                  onChange={() => alternarColumna(columna.clave)}
+                />
+                {columna.titulo}
+              </label>
+            ))}
+            {ocultas.size > 0 ? (
+              <button type="button" className={tabla.mostrarTodas} onClick={() => setOcultas(new Set())}>
+                Mostrar todas
+              </button>
+            ) : null}
+          </div>
+        </details>
+
+        <span className={tabla.conteo}>
+          {numero(ordenadas.length)}
+          {ordenadas.length === filas.length ? " filas" : ` de ${numero(filas.length)}`}
+        </span>
+      </div>
 
       {ordenadas.length === 0 ? (
         <p className={estilos.empty}>{vacio}</p>
@@ -142,7 +177,7 @@ export function Tabla({
           <table className={estilos.table}>
             <thead>
               <tr>
-                {columnas.map((columna) => {
+                {columnasVisibles.map((columna) => {
                   const activa = orden?.clave === columna.clave;
                   const numerica = esNumerica(columna.tipo);
                   return (
@@ -166,7 +201,7 @@ export function Tabla({
             <tbody>
               {visibles.map((fila, indice) => (
                 <tr key={String(fila.id ?? indice)}>
-                  {columnas.map((columna) => (
+                  {columnasVisibles.map((columna) => (
                     <Celda key={columna.clave} columna={columna} valor={fila[columna.clave]} />
                   ))}
                 </tr>
@@ -268,8 +303,8 @@ function Celda({ columna, valor }: { columna: Columna; valor: Fila[string] }) {
       );
     default:
       return (
-        <td className={clase} title={String(valor)}>
-          {String(valor)}
+        <td className={clase}>
+          <CeldaTexto valor={String(valor)} />
         </td>
       );
   }

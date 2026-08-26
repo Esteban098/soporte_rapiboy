@@ -125,9 +125,14 @@ sin tocar el código.
 ## Tablas
 
 Todas las tablas del proyecto usan el mismo componente (`src/components/Tabla.tsx`):
-se ordenan haciendo clic en cualquier encabezado y varias traen filtros por
-estado, caso o aviso. Los estados van siempre con el mismo color, definido en
-`src/lib/estados.ts`.
+
+- Se ordenan haciendo clic en cualquier encabezado.
+- Varias traen filtros por estado, caso o aviso.
+- El menú **Columnas** deja ocultar las que no interesen, tabla por tabla.
+- Las celdas de texto largo se muestran acortadas y se despliegan con un clic;
+  otro clic las vuelve a acortar.
+
+Los estados van siempre con el mismo color, definido en `src/lib/estados.ts`.
 
 Como la tabla es un componente de cliente, las páginas le pasan filas planas
 —valores serializables— y una descripción de las columnas; nunca funciones de
