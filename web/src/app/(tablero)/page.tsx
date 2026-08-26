@@ -2,7 +2,6 @@ import { cargarDemorados, cargarPedidos } from "@/lib/datos";
 import {
   antiguedadAbiertos,
   cierre,
-  dispersionRepartidores,
   devueltosPorDiaSemana,
   porEstado,
   visitasPorResultado,
@@ -30,7 +29,6 @@ export default async function Resumen() {
   const devueltosSemana = devueltosPorDiaSemana(pedidos);
   const visitas = visitasPorResultado(pedidos);
   const antiguedad = antiguedadAbiertos(pedidos);
-  const dispersion = dispersionRepartidores(pedidos);
 
   const sinVisita = visitas.find((v) => v.visitas === "0");
   const noEntregados = estados.find((e) => e.estado.toLowerCase() === "pedido no entregado");
@@ -137,14 +135,6 @@ export default async function Resumen() {
             por sí sola, decide el resultado del caso.
           </Callout>
         ) : null}
-
-        <Callout tono="warning" titulo="La brecha entre repartidores es lo más accionable">
-          Entre los {numero(dispersion.evaluados)} repartidores con volumen suficiente, la mediana
-          de devolución es {porcentaje(dispersion.mediana)}. Los {numero(dispersion.criticos)} que
-          superan el 25% concentran {numero(dispersion.casosCriticos)} casos: llevarlos a la mediana
-          evitaría {numero(dispersion.devolucionesEvitables)} devoluciones sin tocar nada más de la
-          operación.
-        </Callout>
 
       </div>
     </>

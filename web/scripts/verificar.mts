@@ -7,7 +7,6 @@ import {
   antiguedadAbiertos,
   devueltosPorDiaSemana,
   visitasPorResultado,
-  dispersionRepartidores,
   ranking,
   resumen,
 } from "../src/lib/metricas";
@@ -28,12 +27,6 @@ for (const v of visitasPorResultado(pedidos))
 
 console.log("\nantigüedad de los abiertos:");
 for (const t of antiguedadAbiertos(pedidos)) console.log(`  ${t.tramo}: ${t.casos} casos (${t.porcentaje.toFixed(1)}%)`);
-
-const d = dispersionRepartidores(pedidos);
-console.log(
-  `\ndispersión: ${d.evaluados} repartidores, mediana ${d.mediana.toFixed(1)}%, ` +
-    `${d.criticos} críticos con ${d.casosCriticos} casos, ${d.devolucionesEvitables} devoluciones evitables`,
-);
 
 console.log("\npeores tiendas:");
 for (const f of ranking(pedidos, "tienda", { limite: 5 }))

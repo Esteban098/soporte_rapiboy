@@ -164,6 +164,16 @@ export function reclamos(pedidos: Pedido[]): Reclamos {
   };
 }
 
+/**
+ * Volumen mínimo para entrar en un ranking.
+ *
+ * Está calibrado para un mes de datos: el comercio con más casos ronda los 150,
+ * así que un piso alto vaciaría todas las tablas. Con 30 casos una tasa de
+ * devolución todavía arrastra unos 6 puntos de ruido, que es tolerable para
+ * ordenar pero no para sacar conclusiones de diferencias chicas.
+ */
+export const MINIMO_CASOS = 30;
+
 export type FilaRanking = {
   nombre: string;
   casos: number;
@@ -305,55 +315,4 @@ export function antiguedadAbiertos(pedidos: Pedido[], hoy = new Date()): FilaAnt
     casos: grupos.get(tramo)!,
     porcentaje: pct(grupos.get(tramo)!, abiertos.length),
   }));
-}
-
-export type DispersionRepartidores = {
-  evaluados: number;
-  mediana: number;
-  criticos: number;
-  casosCriticos: number;
-  /** Devoluciones de más que generan los críticos respecto de la mediana. */
-  devolucionesEvitables: number;
-  puntos: { nombre: string; casos: number; tasaDevolucion: number; visitasPromedio: number }[];
-};
-
-/** Umbral a partir del cual un repartidor entra en revisión individual. */
-export const UMBRAL_CRITICO = 25;
-
-/**
- * Volumen mínimo para entrar en un ranking.
- *
- * Está calibrado para un mes de datos: el repartidor con más viajes ronda los
- * 90 casos, así que un piso alto vaciaría todas las tablas. Con 30 casos una
- * tasa de devolución todavía arrastra unos 6 puntos de ruido, que es tolerable
- * para ordenar pero no para sacar conclusiones de diferencias chicas.
- */
-export const MINIMO_CASOS = 30;
-
-export function dispersionRepartidores(
-  pedidos: Pedido[],
-  minimoCasos = MINIMO_CASOS,
-): DispersionRepartidores {
-  const filas = ranking(pedidos, "repartidor", { minimoCasos, limite: Infinity, orden: "volumen" });
-  const medianaTasa = mediana(filas.map((f) => f.tasaDevolucion));
-  const criticos = filas.filter((f) => f.tasaDevolucion > UMBRAL_CRITICO);
-
-  const evitables = criticos.reduce(
-    (total, f) => total + (f.devoluciones - (f.casos * medianaTasa) / 100),
-    0,
-  );
-
-  return {
-    evaluados: filas.length,
-    mediana: medianaTasa,
-    criticos: criticos.length,
-    casosCriticos: criticos.reduce((total, f) => total + f.casos, 0),
-    devolucionesEvitables: Math.round(evitables),
-    puntos: filas.map((f) => ({
-      nombre: f.nombre,
-      casos: f.casos,
-      tasaDevolucion: f.tasaDevolucion,
-      visitasPromedio: f.visitasPromedio,
-    })),
-  };
 }

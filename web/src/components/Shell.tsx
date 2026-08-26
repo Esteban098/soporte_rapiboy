@@ -9,7 +9,6 @@ const SECCIONES = [
   { href: "/operacion", etiqueta: "Ayer" },
   { href: "/demorados", etiqueta: "Demorados" },
   { href: "/reclamos", etiqueta: "Reclamos de tienda" },
-  { href: "/repartidores", etiqueta: "Repartidores" },
   { href: "/comercios", etiqueta: "Comercios y zonas" },
 ];
 

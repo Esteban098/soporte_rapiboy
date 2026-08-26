@@ -47,7 +47,6 @@ Tres decisiones que vale la pena tener presentes:
 | `/operacion` | **Ayer**: los casos de la pestaña `Ayer`, lo que quedó sin cerrar la jornada anterior. |
 | `/demorados` | **Demorados**: las pestañas `Demorados` y `DemoradoNoEntregado`, la cola de escalamiento. |
 | `/reclamos` | Casos donde la tienda aportó datos, con el dato tal cual y la información del viaje. Se filtra por avisado / no avisado. |
-| `/repartidores` | Dispersión del equipo, ranking por tasa de devolución y cuántas devoluciones evitaría llevar a los críticos a la mediana. |
 | `/comercios` | De dónde salen los casos y a qué zonas van. |
 | `/cancelaciones` | Tiempo en ruta antes de que Mercado Libre cancele. El tablero recalcula los minutos que la hoja de 2026 dejó de calcular. |
 
