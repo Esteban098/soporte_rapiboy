@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { tonoEstado } from "@/lib/estados";
+import { enlaceViaje } from "@/lib/enlaces";
 import { numero, porcentaje, decimal } from "@/lib/formato";
 import { Chip } from "./Card";
 import estilos from "./ui.module.css";
@@ -16,6 +17,7 @@ import tabla from "./tabla.module.css";
  */
 export type TipoColumna =
   | "texto"
+  | "viaje"
   | "numero"
   | "decimal"
   | "porcentaje"
@@ -205,6 +207,20 @@ function Celda({ columna, valor }: { columna: Columna; valor: Fila[string] }) {
   }
 
   switch (columna.tipo) {
+    case "viaje":
+      return (
+        <td className={clase} style={estilo}>
+          <a
+            className={tabla.enlaceViaje}
+            href={enlaceViaje(String(valor))}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={`Abrir el viaje ${valor} en el operador`}
+          >
+            {String(valor)}
+          </a>
+        </td>
+      );
     case "estado":
       return (
         <td className={clase} style={estilo}>

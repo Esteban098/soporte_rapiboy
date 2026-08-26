@@ -15,7 +15,7 @@ export function PedidosTable({
   return (
     <Tabla
       columnas={[
-        { clave: "id", titulo: "Viaje", tipo: "texto" },
+        { clave: "id", titulo: "Viaje", tipo: "viaje" },
         { clave: "quieto", titulo: "Sin moverse", tipo: "dias" },
         { clave: "estado", titulo: "Estado", tipo: "estado" },
         { clave: "caso", titulo: "Caso", tipo: "caso" },

@@ -88,7 +88,7 @@ export default async function Reclamos() {
         >
           <Tabla
             columnas={[
-              { clave: "id", titulo: "Viaje", tipo: "texto" },
+              { clave: "id", titulo: "Viaje", tipo: "viaje" },
               { clave: "aviso", titulo: "Aviso", tipo: "aviso" },
               { clave: "reclamo", titulo: "Tipo de dato", tipo: "texto", ancho: 190 },
               { clave: "ubicacion", titulo: "Ubicación", tipo: "texto", ancho: 230 },
