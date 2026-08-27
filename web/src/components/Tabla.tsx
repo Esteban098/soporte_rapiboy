@@ -5,9 +5,10 @@ import { colorEstado } from "@/lib/estados";
 import { enlaceViaje } from "@/lib/enlaces";
 import { CeldaTexto } from "./CeldaTexto";
 import {
-  guardarColumnasOcultas,
-  leerColumnasOcultas,
+  guardarPreferencia,
+  leerPreferencia,
   parsearColumnasOcultas,
+  parsearFiltros,
   sinPreferencias,
   suscribirPreferencias,
 } from "@/lib/preferencias";
@@ -75,22 +76,35 @@ export function Tabla({
 
   const ocultasCrudas = useSyncExternalStore(
     suscribirPreferencias,
-    () => leerColumnasOcultas(id),
+    () => leerPreferencia(id, "columnas"),
     sinPreferencias,
   );
   const ocultas = useMemo(() => new Set(parsearColumnasOcultas(ocultasCrudas)), [ocultasCrudas]);
-  const [seleccion, setSeleccion] = useState<Record<string, string>>({});
+
+  const filtrosCrudos = useSyncExternalStore(
+    suscribirPreferencias,
+    () => leerPreferencia(id, "filtros"),
+    sinPreferencias,
+  );
+  const seleccion = useMemo(() => parsearFiltros(filtrosCrudos), [filtrosCrudos]);
   const [expandida, setExpandida] = useState(false);
 
   const opcionesPorFiltro = useMemo(() => {
     const mapa: Record<string, string[]> = {};
     for (const filtro of filtros) {
-      mapa[filtro.clave] =
+      const opciones =
         filtro.opciones ??
         [...new Set(filas.map((f) => String(f[filtro.clave] ?? "")).filter(Boolean))].sort();
+
+      // Un filtro guardado puede apuntar a un valor que hoy no está en los
+      // datos. Se agrega igual para que se vea qué está filtrando y se pueda
+      // sacar, en vez de dejar la tabla vacía sin explicación.
+      const guardado = seleccion[filtro.clave];
+      mapa[filtro.clave] =
+        guardado && !opciones.includes(guardado) ? [...opciones, guardado] : opciones;
     }
     return mapa;
-  }, [filtros, filas]);
+  }, [filtros, filas, seleccion]);
 
   const filtradas = useMemo(() => {
     const activos = Object.entries(seleccion).filter(([, v]) => v !== "");
@@ -125,7 +139,14 @@ export function Tabla({
   const columnasVisibles = columnas.filter((c) => !ocultas.has(c.clave));
 
   function cambiarOcultas(proximo: Set<string>) {
-    guardarColumnasOcultas(id, [...proximo]);
+    guardarPreferencia(id, "columnas", [...proximo]);
+  }
+
+  function cambiarFiltro(clave: string, valor: string) {
+    const proximo = { ...seleccion };
+    if (valor === "") delete proximo[clave];
+    else proximo[clave] = valor;
+    guardarPreferencia(id, "filtros", proximo);
   }
 
   function alternarColumna(clave: string) {
@@ -161,9 +182,7 @@ export function Tabla({
             <select
               className={tabla.select}
               value={seleccion[filtro.clave] ?? ""}
-              onChange={(e) =>
-                setSeleccion((previo) => ({ ...previo, [filtro.clave]: e.target.value }))
-              }
+              onChange={(e) => cambiarFiltro(filtro.clave, e.target.value)}
             >
               <option value="">Todos</option>
               {opcionesPorFiltro[filtro.clave]?.map((opcion) => (
@@ -198,6 +217,19 @@ export function Tabla({
             ) : null}
           </div>
         </details>
+
+        {Object.keys(seleccion).length > 0 || busqueda ? (
+          <button
+            type="button"
+            className={tabla.limpiar}
+            onClick={() => {
+              setBusqueda("");
+              guardarPreferencia(id, "filtros", {});
+            }}
+          >
+            Limpiar filtros
+          </button>
+        ) : null}
 
         <span className={tabla.conteo}>
           {numero(ordenadas.length)}

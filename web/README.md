@@ -130,10 +130,13 @@ Todas las tablas del proyecto usan el mismo componente (`src/components/Tabla.ts
   mayúsculas.
 - Se ordenan haciendo clic en cualquier encabezado.
 - Varias traen filtros por estado, caso o aviso.
-- El menú **Columnas** deja ocultar las que no interesen, tabla por tabla, y la
-  elección queda guardada en el navegador de cada persona (`localStorage`, ver
-  `src/lib/preferencias.ts`). Se consume con `useSyncExternalStore` para que el
-  render del servidor no choque con la hidratación.
+- El menú **Columnas** deja ocultar las que no interesen, tabla por tabla.
+- Las columnas ocultas y los filtros elegidos quedan guardados en el navegador
+  de cada persona (`localStorage`, ver `src/lib/preferencias.ts`), por tabla. Se
+  consumen con `useSyncExternalStore` para que el render del servidor no choque
+  con la hidratación. El buscador no se guarda: es de uso momentáneo.
+- Con algún filtro puesto aparece **Limpiar filtros**, que también sirve cuando
+  una preferencia guardada apunta a un valor que ya no está en los datos.
 - Las celdas de texto largo se muestran acortadas y se despliegan con un clic;
   otro clic las vuelve a acortar.
 
