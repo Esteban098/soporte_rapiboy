@@ -1,9 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { colorEstado } from "@/lib/estados";
 import { enlaceViaje } from "@/lib/enlaces";
 import { CeldaTexto } from "./CeldaTexto";
+import {
+  guardarColumnasOcultas,
+  leerColumnasOcultas,
+  parsearColumnasOcultas,
+  sinPreferencias,
+  suscribirPreferencias,
+} from "@/lib/preferencias";
 import { numero, porcentaje, decimal } from "@/lib/formato";
 import { Chip, ChipEstado } from "./Card";
 import estilos from "./ui.module.css";
@@ -45,6 +52,7 @@ export type Filtro = {
 type Orden = { clave: string; asc: boolean } | null;
 
 export function Tabla({
+  id,
   columnas,
   filas,
   filtros = [],
@@ -52,6 +60,8 @@ export function Tabla({
   vacio = "No hay datos para mostrar.",
   limite,
 }: {
+  /** Identifica la tabla para recordar qué columnas ocultó cada persona. */
+  id: string;
   columnas: Columna[];
   filas: Fila[];
   filtros?: Filtro[];
@@ -61,7 +71,14 @@ export function Tabla({
   limite?: number;
 }) {
   const [orden, setOrden] = useState<Orden>(ordenInicial ?? null);
-  const [ocultas, setOcultas] = useState<Set<string>>(new Set());
+  const [busqueda, setBusqueda] = useState("");
+
+  const ocultasCrudas = useSyncExternalStore(
+    suscribirPreferencias,
+    () => leerColumnasOcultas(id),
+    sinPreferencias,
+  );
+  const ocultas = useMemo(() => new Set(parsearColumnasOcultas(ocultasCrudas)), [ocultasCrudas]);
   const [seleccion, setSeleccion] = useState<Record<string, string>>({});
   const [expandida, setExpandida] = useState(false);
 
@@ -77,9 +94,14 @@ export function Tabla({
 
   const filtradas = useMemo(() => {
     const activos = Object.entries(seleccion).filter(([, v]) => v !== "");
-    if (activos.length === 0) return filas;
-    return filas.filter((fila) => activos.every(([clave, valor]) => String(fila[clave] ?? "") === valor));
-  }, [filas, seleccion]);
+    const texto = normalizar(busqueda);
+
+    return filas.filter((fila) => {
+      if (!activos.every(([clave, valor]) => String(fila[clave] ?? "") === valor)) return false;
+      if (!texto) return true;
+      return columnas.some((columna) => normalizar(String(fila[columna.clave] ?? "")).includes(texto));
+    });
+  }, [filas, seleccion, busqueda, columnas]);
 
   const ordenadas = useMemo(() => {
     if (!orden) return filtradas;
@@ -102,13 +124,15 @@ export function Tabla({
   const visibles = limite && !expandida ? ordenadas.slice(0, limite) : ordenadas;
   const columnasVisibles = columnas.filter((c) => !ocultas.has(c.clave));
 
+  function cambiarOcultas(proximo: Set<string>) {
+    guardarColumnasOcultas(id, [...proximo]);
+  }
+
   function alternarColumna(clave: string) {
-    setOcultas((previo) => {
-      const proximo = new Set(previo);
-      if (proximo.has(clave)) proximo.delete(clave);
-      else proximo.add(clave);
-      return proximo;
-    });
+    const proximo = new Set(ocultas);
+    if (proximo.has(clave)) proximo.delete(clave);
+    else proximo.add(clave);
+    cambiarOcultas(proximo);
   }
 
   function alternarOrden(clave: string) {
@@ -120,6 +144,17 @@ export function Tabla({
   return (
     <>
       <div className={tabla.filtros}>
+        <label className={tabla.filtro}>
+          <span className={tabla.filtroEtiqueta}>Buscar</span>
+          <input
+            type="search"
+            className={tabla.buscador}
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Viaje, tienda, repartidor, zona…"
+          />
+        </label>
+
         {filtros.map((filtro) => (
           <label key={filtro.clave} className={tabla.filtro}>
             <span className={tabla.filtroEtiqueta}>{filtro.etiqueta}</span>
@@ -157,7 +192,7 @@ export function Tabla({
               </label>
             ))}
             {ocultas.size > 0 ? (
-              <button type="button" className={tabla.mostrarTodas} onClick={() => setOcultas(new Set())}>
+              <button type="button" className={tabla.mostrarTodas} onClick={() => cambiarOcultas(new Set())}>
                 Mostrar todas
               </button>
             ) : null}
@@ -220,6 +255,14 @@ export function Tabla({
       ) : null}
     </>
   );
+}
+
+/** Compara sin acentos ni mayúsculas, que es como busca la gente. */
+function normalizar(texto: string): string {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
 }
 
 function esNumerica(tipo?: TipoColumna): boolean {

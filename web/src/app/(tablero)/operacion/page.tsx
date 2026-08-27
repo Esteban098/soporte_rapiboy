@@ -61,14 +61,14 @@ export default async function Ayer() {
           titulo="Casos de ayer"
           nota="El detalle completo de la pestaña Ayer. La columna «sin moverse» cuenta los días desde el último cambio de estado del paquete."
         >
-          <PedidosTable casos={casos} vacio="Ayer cerró sin casos abiertos." />
+          <PedidosTable id="ayer-casos" casos={casos} vacio="Ayer cerró sin casos abiertos." />
         </Card>
 
         <Card
           titulo="En qué estado quedaron"
           nota="Los casos de ayer agrupados por estado, con cuáles cuentan como resueltos."
         >
-          <EstadosTable filas={estados} />
+          <EstadosTable id="ayer-estados" filas={estados} />
         </Card>
       </div>
     </>

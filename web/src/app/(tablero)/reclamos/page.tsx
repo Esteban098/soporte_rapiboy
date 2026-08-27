@@ -88,6 +88,7 @@ export default async function Reclamos() {
           nota="Todo lo que el comercio aportó para concretar la entrega, con la información del viaje. Se puede filtrar por aviso y estado, y ordenar por cualquier columna."
         >
           <Tabla
+            id="reclamos-casos"
             columnas={columnasPara(mes.campos)}
             filas={filas}
             filtros={[
@@ -149,7 +150,7 @@ export default async function Reclamos() {
           titulo="En qué terminaron los casos con datos"
           nota="El desglose completo de estados, solo para los casos donde la tienda aportó información."
         >
-          <EstadosTable filas={datos.porEstado} />
+          <EstadosTable id="reclamos-estados" filas={datos.porEstado} />
         </Card>
 
         <Card

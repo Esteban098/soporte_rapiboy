@@ -36,6 +36,30 @@
   border-color: var(--axis);
 }
 
+.buscador {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-family: var(--sans);
+  font-size: 13px;
+  min-width: 250px;
+}
+
+.buscador::placeholder {
+  color: var(--muted);
+}
+
+.buscador:hover {
+  border-color: var(--axis);
+}
+
+.buscador:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
 .conteo {
   margin-left: auto;
   font-family: var(--mono);

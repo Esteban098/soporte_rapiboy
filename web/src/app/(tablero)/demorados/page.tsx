@@ -71,7 +71,7 @@ export default async function Demorados() {
           titulo="Demorados"
           nota="Todos los casos de la pestaña Demorados. Se puede filtrar por estado y ordenar por cualquier columna."
         >
-          <PedidosTable casos={casosDemorados} vacio="No hay pedidos demorados." />
+          <PedidosTable id="demorados-casos" casos={casosDemorados} vacio="No hay pedidos demorados." />
         </Card>
 
         <Card
@@ -79,6 +79,7 @@ export default async function Demorados() {
           nota="El recorte más fino: los que además siguen sin entregarse."
         >
           <PedidosTable
+            id="demorados-sin-entregar"
             casos={casosSinEntregar}
             vacio="Ningún demorado quedó sin entregar."
           />
@@ -88,7 +89,7 @@ export default async function Demorados() {
           titulo="En qué estado están los demorados"
           nota={`Los ${numero(demorados.length)} casos agrupados por estado. ${numero(resolucion.abiertos)} siguen abiertos.`}
         >
-          <EstadosTable filas={estados} />
+          <EstadosTable id="demorados-estados" filas={estados} />
         </Card>
       </div>
     </>

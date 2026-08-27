@@ -8,16 +8,20 @@ import { Tabla } from "./Tabla";
  * interesen se ocultan desde el menú de la tabla.
  */
 export function PedidosTable({
+  id,
   casos,
   vacio = "No quedó ningún caso en esta vista.",
   limite = 30,
 }: {
+  /** Identifica la tabla para recordar las columnas ocultas. */
+  id: string;
   casos: Casos;
   vacio?: string;
   limite?: number;
 }) {
   return (
     <Tabla
+      id={id}
       columnas={columnasPara(casos.campos)}
       filas={filasDePedidos(casos.pedidos)}
       filtros={[

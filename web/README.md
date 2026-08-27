@@ -126,9 +126,14 @@ sin tocar el código.
 
 Todas las tablas del proyecto usan el mismo componente (`src/components/Tabla.tsx`):
 
+- Traen un buscador que filtra por cualquier columna, sin distinguir acentos ni
+  mayúsculas.
 - Se ordenan haciendo clic en cualquier encabezado.
 - Varias traen filtros por estado, caso o aviso.
-- El menú **Columnas** deja ocultar las que no interesen, tabla por tabla.
+- El menú **Columnas** deja ocultar las que no interesen, tabla por tabla, y la
+  elección queda guardada en el navegador de cada persona (`localStorage`, ver
+  `src/lib/preferencias.ts`). Se consume con `useSyncExternalStore` para que el
+  render del servidor no choque con la hidratación.
 - Las celdas de texto largo se muestran acortadas y se despliegan con un clic;
   otro clic las vuelve a acortar.
 

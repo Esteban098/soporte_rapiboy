@@ -55,14 +55,14 @@ export default async function Comercios() {
             titulo="Comercios con mayor devolución"
             nota={`Solo comercios con ${MINIMO_CASOS} casos o más. Un porcentaje alto suele indicar direcciones o teléfonos incompletos en el alta.`}
           >
-            <RankingTable filas={tiendasPeores} etiquetaDimension="Comercio" />
+            <RankingTable id="comercios-peores" filas={tiendasPeores} etiquetaDimension="Comercio" />
           </Card>
 
           <Card
             titulo="Comercios por volumen"
             nota="Los que más casos generan. Sirve para dimensionar el impacto: un punto de mejora acá vale más que en la lista de al lado."
           >
-            <RankingTable filas={tiendasVolumen} etiquetaDimension="Comercio" />
+            <RankingTable id="comercios-volumen" filas={tiendasVolumen} etiquetaDimension="Comercio" />
           </Card>
         </div>
 
@@ -71,14 +71,14 @@ export default async function Comercios() {
             titulo="Zonas con mayor devolución"
             nota={`Polígonos con ${MINIMO_CASOS} casos o más, ordenados por porcentaje de devolución.`}
           >
-            <RankingTable filas={zonasPeores} etiquetaDimension="Zona" />
+            <RankingTable id="zonas-peores" filas={zonasPeores} etiquetaDimension="Zona" />
           </Card>
 
           <Card
             titulo="Zonas por volumen"
             nota="Dónde se concentra la operación. Los nombres salen tal cual están cargados en el sheet."
           >
-            <RankingTable filas={zonasVolumen} etiquetaDimension="Zona" />
+            <RankingTable id="zonas-volumen" filas={zonasVolumen} etiquetaDimension="Zona" />
           </Card>
         </div>
       </div>

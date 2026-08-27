@@ -89,14 +89,14 @@ export default async function Resumen() {
           titulo="Todos los estados"
           nota="Cada estado en el que puede quedar un caso, con cuántos hay y si cuenta como resuelto."
         >
-          <EstadosTable filas={estados} />
+          <EstadosTable id="mes-estados" filas={estados} />
         </Card>
 
         <Card
           titulo="Demorados"
           nota="Los casos que pasaron su fecha y siguen abiertos. Es la cola de escalamiento: lo que no se resolvió por el flujo normal."
         >
-          <PedidosTable casos={casosDemorados} vacio="No hay pedidos demorados." />
+          <PedidosTable id="mes-demorados" casos={casosDemorados} vacio="No hay pedidos demorados." />
         </Card>
 
         <Card
@@ -118,7 +118,7 @@ export default async function Resumen() {
             titulo="Hace cuánto que no se mueven los abiertos"
             nota="De los casos todavía sin resolver, cuántos días llevan sin ningún cambio de estado. Los de más de cuatro días son los que hay que empujar."
           >
-            <AntiguedadTable filas={antiguedad} />
+            <AntiguedadTable id="mes-antiguedad" filas={antiguedad} />
           </Card>
         </div>
 

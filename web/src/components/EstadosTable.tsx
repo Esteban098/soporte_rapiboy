@@ -6,9 +6,10 @@ import { Tabla } from "./Tabla";
  * como resueltos, que no es evidente: `Devolucion` sigue abierto porque la
  * devolución está en curso, mientras que `Devuelto` ya cierra el caso.
  */
-export function EstadosTable({ filas }: { filas: FilaEstado[] }) {
+export function EstadosTable({ id, filas }: { id: string; filas: FilaEstado[] }) {
   return (
     <Tabla
+      id={id}
       columnas={[
         { clave: "estado", titulo: "Estado", tipo: "estado" },
         { clave: "caso", titulo: "Caso", tipo: "caso" },
