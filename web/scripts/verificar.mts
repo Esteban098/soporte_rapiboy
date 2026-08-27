@@ -2,9 +2,10 @@
  * Comprueba que la normalización de la web da los mismos números que el
  * análisis en Python sobre el libro original. Corre contra los fixtures.
  */
-import { cargarAyer, cargarDemorados, cargarPedidos } from "../src/lib/datos";
+import { cargarAyer, cargarPedidos } from "../src/lib/datos";
 import {
   antiguedadAbiertos,
+  demorados,
   devueltosPorDiaSemana,
   visitasPorResultado,
   ranking,
@@ -33,6 +34,8 @@ console.log("\npeores tiendas:");
 for (const f of ranking(pedidos, "tienda", { limite: 5 }))
   console.log(`  ${f.nombre}: ${f.casos} casos, ${f.tasaDevolucion.toFixed(1)}%`);
 
-const [ayer, demorados] = await Promise.all([cargarAyer(), cargarDemorados()]);
-console.log(`\nayer: ${ayer.pedidos.length} casos | campos: ${ayer.campos.join(", ")}`);
-console.log(`demorados: ${demorados.pedidos.length} casos | campos: ${demorados.campos.join(", ")}`);
+const atrasados = demorados(pedidos);
+console.log(`\ndemorados (derivados de Mensual): ${atrasados.length} casos`);
+
+const ayer = await cargarAyer();
+console.log(`ayer: ${ayer.pedidos.length} casos | campos: ${ayer.campos.join(", ")}`);

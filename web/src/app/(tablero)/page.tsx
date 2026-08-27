@@ -1,7 +1,8 @@
-import { cargarDemorados, cargarPedidos } from "@/lib/datos";
+import { cargarPedidos } from "@/lib/datos";
 import {
   antiguedadAbiertos,
   cierre,
+  demorados,
   devueltosPorDiaSemana,
   porEstado,
   visitasPorResultado,
@@ -21,9 +22,9 @@ import estilos from "@/components/ui.module.css";
 export const metadata = { title: "Mes en curso" };
 
 export default async function Resumen() {
-  const [mes, casosDemorados] = await Promise.all([cargarPedidos(), cargarDemorados()]);
+  const mes = await cargarPedidos();
   const pedidos = mes.pedidos;
-  const demorados = casosDemorados.pedidos;
+  const atrasados = demorados(pedidos);
   const total = resumen(pedidos);
   const resolucion = cierre(pedidos);
   const estados = porEstado(pedidos);
@@ -63,9 +64,9 @@ export default async function Resumen() {
         />
         <Kpi
           etiqueta="Demorados"
-          valor={numero(demorados.length)}
-          tono={demorados.length > 0 ? "bad" : "good"}
-          nota="pasaron su fecha y siguen abiertos"
+          valor={numero(atrasados.length)}
+          tono={atrasados.length > 0 ? "bad" : "good"}
+          nota="más de 2 días sin moverse y sin cerrar"
         />
         <Kpi
           etiqueta="Con datos de la tienda"

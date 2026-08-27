@@ -2,13 +2,7 @@ import type { Pedido } from "./normalizar";
 import type { CampoPedido } from "./normalizar";
 import type { Columna, Fila } from "@/components/Tabla";
 import { fechaCorta } from "./formato";
-
-const DIA_MS = 24 * 60 * 60 * 1000;
-
-function diasQuieto(pedido: Pedido, hoy: number): number | null {
-  if (!pedido.ultimoMovimiento) return null;
-  return Math.floor((hoy - pedido.ultimoMovimiento.getTime()) / DIA_MS);
-}
+import { diasSinMovimiento } from "./metricas";
 
 /**
  * Todas las columnas que trae el libro, en el mismo orden.
@@ -64,7 +58,7 @@ export function columnasPara(campos: CampoPedido[]): Columna[] {
 export function filasDePedidos(pedidos: Pedido[], hoy = Date.now()): Fila[] {
   return pedidos.map((pedido) => ({
     id: pedido.id,
-    quieto: diasQuieto(pedido, hoy),
+    quieto: diasSinMovimiento(pedido, hoy),
     estado: pedido.estado,
     caso: pedido.cerrado ? "Cerrado" : "Abierto",
     demora: pedido.demora,

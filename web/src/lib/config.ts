@@ -14,10 +14,12 @@ import "server-only";
  */
 export const TAB_MENSUAL = process.env.SHEET_TAB_MENSUAL?.trim() || "Mensual";
 
-/** Vistas que el equipo vuelve a pegar cada mañana. */
+/**
+ * Lo que quedó sin cerrar en la jornada anterior. Es la única vista del día que
+ * se sigue leyendo del libro: los demorados se derivan de `Mensual`, así que ya
+ * no hace falta que nadie los vuelva a pegar cada mañana.
+ */
 export const TAB_AYER = "Ayer";
-export const TAB_DEMORADOS = "Demorados";
-export const TAB_DEMORADO_NO_ENTREGADO = "DemoradoNoEntregado";
 
 
 export type ModoDatos = "sheet" | "fixture";

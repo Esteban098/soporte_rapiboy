@@ -1,6 +1,6 @@
-import { cargarDemorados, cargarDemoradosNoEntregados } from "@/lib/datos";
-import { cierre, porEstado } from "@/lib/metricas";
-import { numero } from "@/lib/formato";
+import { cargarPedidos } from "@/lib/datos";
+import { DIAS_PARA_DEMORA, demorados, diasSinMovimiento, porEstado } from "@/lib/metricas";
+import { numero, porcentaje } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
@@ -10,47 +10,43 @@ import estilos from "@/components/ui.module.css";
 export const metadata = { title: "Demorados" };
 
 export default async function Demorados() {
-  const [casosDemorados, casosSinEntregar] = await Promise.all([
-    cargarDemorados(),
-    cargarDemoradosNoEntregados(),
-  ]);
-  const demorados = casosDemorados.pedidos;
-  const sinEntregar = casosSinEntregar.pedidos;
+  const mes = await cargarPedidos();
+  const atrasados = demorados(mes.pedidos);
 
-  const estados = porEstado(demorados);
-  const resolucion = cierre(demorados);
-  const quietos = demorados.filter((p) => diasDesde(p.ultimoMovimiento) > 2).length;
-  const masViejo = demorados.reduce(
-    (peor, p) => Math.max(peor, diasDesde(p.ultimoMovimiento)),
-    0,
-  );
+  const estados = porEstado(atrasados);
+  const dias = atrasados.map((pedido) => diasSinMovimiento(pedido) ?? 0);
+  const masViejo = dias.reduce((peor, d) => Math.max(peor, d), 0);
+  const unaSemana = dias.filter((d) => d > 7).length;
+  const sinEntregar = atrasados.filter(
+    (pedido) => pedido.estado.toLowerCase() === "pedido no entregado",
+  ).length;
 
   return (
     <>
       <PageHead
         eyebrow="Cola de escalamiento"
         titulo="Demorados"
-        dek="Los casos de las pestañas Demorados y DemoradoNoEntregado: lo que pasó su fecha y no se resolvió por el flujo normal."
+        dek={`Los casos del mes que llevan más de ${DIAS_PARA_DEMORA} días sin ningún cambio de estado y todavía no cerraron. Se calculan sobre la pestaña Mensual, así que la lista está siempre al día.`}
       />
 
       <div className={estilos.kpis}>
         <Kpi
           etiqueta="Demorados"
-          valor={numero(demorados.length)}
-          tono={demorados.length > 0 ? "bad" : "good"}
-          nota="pasaron su fecha y siguen abiertos"
+          valor={numero(atrasados.length)}
+          tono={atrasados.length > 0 ? "bad" : "good"}
+          nota={`${porcentaje((atrasados.length / (mes.pedidos.length || 1)) * 100)} de los casos del mes`}
         />
         <Kpi
           etiqueta="Sin entregar"
-          valor={numero(sinEntregar.length)}
-          tono={sinEntregar.length > 0 ? "bad" : "good"}
+          valor={numero(sinEntregar)}
+          tono={sinEntregar > 0 ? "bad" : "good"}
           nota="demorados que además están sin entregar"
         />
         <Kpi
-          etiqueta="Quietos"
-          valor={numero(quietos)}
-          tono={quietos > 0 ? "bad" : "good"}
-          nota="más de 2 días sin ningún cambio de estado"
+          etiqueta="Más de una semana"
+          valor={numero(unaSemana)}
+          tono={unaSemana > 0 ? "bad" : "good"}
+          nota="llevan más de 7 días parados"
         />
         <Kpi
           etiqueta="El más viejo"
@@ -61,42 +57,30 @@ export default async function Demorados() {
       </div>
 
       <div className={estilos.stack}>
-        <Callout tono={quietos > 0 ? "critical" : "neutral"} titulo="Por dónde empezar">
-          {demorados.length === 0
-            ? "No hay pedidos demorados. La cola de escalamiento está limpia."
-            : `${numero(demorados.length)} pedidos están demorados y ${numero(quietos)} llevan más de dos días sin moverse. Ordená por «sin moverse» para atacar los más rezagados primero.`}
+        <Callout tono={atrasados.length > 0 ? "critical" : "neutral"} titulo="Por dónde empezar">
+          {atrasados.length === 0
+            ? "No hay casos demorados. La cola de escalamiento está limpia."
+            : `${numero(atrasados.length)} casos llevan más de ${DIAS_PARA_DEMORA} días sin moverse y siguen abiertos. Vienen ordenados del más viejo al más nuevo: los de arriba son los que más tiempo llevan parados.`}
         </Callout>
 
         <Card
-          titulo="Demorados"
-          nota="Todos los casos de la pestaña Demorados. Se puede filtrar por estado y ordenar por cualquier columna."
-        >
-          <PedidosTable id="demorados-casos" casos={casosDemorados} vacio="No hay pedidos demorados." />
-        </Card>
-
-        <Card
-          titulo="Demorados sin entregar"
-          nota="El recorte más fino: los que además siguen sin entregarse."
+          titulo="Casos demorados"
+          nota="Los mismos datos de Mes en curso, acotados a los que están frenados. Se busca por cualquier columna, se filtra por estado y se ordena por cualquier encabezado."
         >
           <PedidosTable
-            id="demorados-sin-entregar"
-            casos={casosSinEntregar}
-            vacio="Ningún demorado quedó sin entregar."
+            id="demorados-casos"
+            casos={{ pedidos: atrasados, campos: mes.campos }}
+            vacio="No hay casos demorados."
           />
         </Card>
 
         <Card
-          titulo="En qué estado están los demorados"
-          nota={`Los ${numero(demorados.length)} casos agrupados por estado. ${numero(resolucion.abiertos)} siguen abiertos.`}
+          titulo="En qué estado están frenados"
+          nota="Dónde se traban los casos que no avanzan. Es la lectura que dice qué hay que destrabar, más que cuántos hay."
         >
           <EstadosTable id="demorados-estados" filas={estados} />
         </Card>
       </div>
     </>
   );
-}
-
-function diasDesde(fecha: Date | null): number {
-  if (!fecha) return 0;
-  return Math.floor((Date.now() - fecha.getTime()) / (24 * 60 * 60 * 1000));
 }

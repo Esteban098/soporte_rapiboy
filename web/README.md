@@ -45,10 +45,9 @@ Tres decisiones que vale la pena tener presentes:
 |---|---|
 | `/` | **Mes en curso**: abiertos contra cerrados —la métrica principal—, el desglose de estados, todos los casos de `Mensual`, las devoluciones por día de la semana y las visitas antes de cerrar. |
 | `/operacion` | **Ayer**: los casos de la pestaña `Ayer`, lo que quedó sin cerrar la jornada anterior. |
-| `/demorados` | **Demorados**: las pestañas `Demorados` y `DemoradoNoEntregado`, la cola de escalamiento. |
+| `/demorados` | **Demorados**: la cola de escalamiento, derivada de `Mensual`. Entra todo caso que lleve más de 2 días sin cambiar de estado y todavía no haya cerrado. |
 | `/reclamos` | Casos donde la tienda aportó datos, con el dato tal cual y la información del viaje. Se filtra por avisado / no avisado. |
 | `/comercios` | De dónde salen los casos y a qué zonas van. |
-| `/cancelaciones` | Tiempo en ruta antes de que Mercado Libre cancele. El tablero recalcula los minutos que la hoja de 2026 dejó de calcular. |
 
 ## Correrlo local
 
@@ -108,19 +107,23 @@ en vez de quedar abierto.
 
 ## Qué pestañas lee
 
-Cuatro:
+Dos:
 
 | Pestaña | Para qué |
 |---|---|
-| `Mensual` | Los casos del mes en curso. Alimenta la sección Mes en curso. |
+| `Mensual` | Los casos del mes en curso. Alimenta Mes en curso, Demorados, Reclamos y Comercios. |
 | `Ayer` | Lo que quedó abierto del día anterior. Alimenta la sección Ayer. |
-| `Demorados` | Los que pasaron su fecha y siguen abiertos. |
-| `DemoradoNoEntregado` | Demorados que además siguen sin entregarse. |
 
 Las pestañas de meses anteriores quedaron como archivo y varias fueron vaciadas
 o reutilizadas, así que no se leen: no son una fuente confiable de historial. Si
 alguna vez cambia el nombre de la pestaña viva, se ajusta con `SHEET_TAB_MENSUAL`
 sin tocar el código.
+
+`Demorados` y `DemoradoNoEntregado` tampoco se leen más. La cola de escalamiento
+se calcula sobre `Mensual` (`demorados()` en `src/lib/metricas.ts`): un caso
+entra cuando pasaron más de `DIAS_PARA_DEMORA` días desde su último movimiento y
+sigue abierto. Da la misma lista sin que nadie tenga que volver a pegarla cada
+mañana, y no se queda vieja durante el día.
 
 ## Tablas
 

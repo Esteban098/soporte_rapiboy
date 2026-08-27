@@ -1,13 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { leerFilas } from "./csv";
-import {
-  TAB_MENSUAL,
-  TAB_AYER,
-  TAB_DEMORADOS,
-  TAB_DEMORADO_NO_ENTREGADO,
-  modoDatos,
-} from "./config";
+import { TAB_MENSUAL, TAB_AYER, modoDatos } from "./config";
 import {
   camposPresentes,
   consolidarPedidos,
@@ -60,12 +54,6 @@ export const cargarPedidos = cache(async (): Promise<Casos> => {
 
 /** Los casos que quedaron sin cerrar en la jornada anterior. */
 export const cargarAyer = cache(() => leerCasos(TAB_AYER));
-
-/** Los casos que pasaron su fecha y siguen abiertos. */
-export const cargarDemorados = cache(() => leerCasos(TAB_DEMORADOS));
-
-/** Los demorados que además siguen sin entregarse. */
-export const cargarDemoradosNoEntregados = cache(() => leerCasos(TAB_DEMORADO_NO_ENTREGADO));
 
 export function estadoFuente(pestanas: number): EstadoFuente {
   return {

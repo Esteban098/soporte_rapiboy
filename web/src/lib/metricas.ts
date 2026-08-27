@@ -281,6 +281,47 @@ export function visitasPorResultado(pedidos: Pedido[]): FilaVisitas[] {
     }));
 }
 
+const DIA_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Días que un caso lleva sin ningún cambio de estado.
+ *
+ * Vive acá y no en cada página porque la columna «sin moverse» de las tablas y
+ * el corte de demorados tienen que dar lo mismo: si difirieran, una fila podría
+ * aparecer en la cola de demorados mostrando dos días.
+ */
+export function diasSinMovimiento(pedido: Pedido, hoy = Date.now()): number | null {
+  if (!pedido.ultimoMovimiento) return null;
+  return Math.floor((hoy - pedido.ultimoMovimiento.getTime()) / DIA_MS);
+}
+
+/**
+ * A partir de cuántos días sin moverse un caso se considera demorado. Es el
+ * mismo umbral con el que la columna DEMORA del libro marca «URGENTE».
+ */
+export const DIAS_PARA_DEMORA = 2;
+
+/**
+ * La cola de escalamiento, derivada de los casos del mes.
+ *
+ * Un caso está demorado cuando pasaron más de dos días desde su último
+ * movimiento y todavía no cerró. Los cerrados quedan afuera aunque sean
+ * viejos: un pedido entregado la semana pasada no es algo para empujar.
+ *
+ * Antes esto se leía de las pestañas `Demorados` y `DemoradoNoEntregado`, que
+ * el equipo tenía que volver a pegar cada mañana. Calcularlo sobre `Mensual`
+ * da lo mismo sin ese paso manual, y no queda desactualizado durante el día.
+ */
+export function demorados(pedidos: Pedido[], hoy = Date.now()): Pedido[] {
+  return pedidos
+    .filter((pedido) => {
+      if (pedido.cerrado) return false;
+      const dias = diasSinMovimiento(pedido, hoy);
+      return dias != null && dias > DIAS_PARA_DEMORA;
+    })
+    .sort((a, b) => a.ultimoMovimiento!.getTime() - b.ultimoMovimiento!.getTime());
+}
+
 const TRAMOS_ANTIGUEDAD: { tramo: string; hasta: number }[] = [
   { tramo: "Hoy", hasta: 0 },
   { tramo: "1 día", hasta: 1 },
@@ -303,9 +344,7 @@ export function antiguedadAbiertos(pedidos: Pedido[], hoy = new Date()): FilaAnt
   const grupos = new Map<string, number>();
 
   for (const pedido of abiertos) {
-    const dias = Math.floor(
-      (hoy.getTime() - pedido.ultimoMovimiento!.getTime()) / (24 * 60 * 60 * 1000),
-    );
+    const dias = diasSinMovimiento(pedido, hoy.getTime())!;
     const tramo = TRAMOS_ANTIGUEDAD.find((t) => dias <= t.hasta)?.tramo ?? "Más de 7";
     grupos.set(tramo, (grupos.get(tramo) ?? 0) + 1);
   }

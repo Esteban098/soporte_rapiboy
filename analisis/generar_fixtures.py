@@ -26,8 +26,6 @@ warnings.filterwarnings("ignore")
 TABS = {
     "Mensual": "Mensual",
     "Ayer": "Ayer",
-    "Demorados": "Demorados",
-    "DemoradoNoEntregado": "DemoradoNoEntregado",
     "Cancelados": "Cancelados",
 }
 
