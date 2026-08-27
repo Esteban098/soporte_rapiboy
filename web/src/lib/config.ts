@@ -35,6 +35,27 @@ export function sheetId(): string {
 }
 
 /**
+ * Flujos de n8n que rearman el libro, en el orden en que deben correr.
+ *
+ * Son las *Production URL* del nodo Webhook de cada flujo
+ * (`https://…/webhook/…`), separadas por coma. La URL del editor
+ * (`https://…/workflow/…`) no sirve: devuelve la interfaz de n8n y no ejecuta
+ * nada.
+ *
+ * Viven en el servidor: el navegador nunca ve estas URLs, así nadie puede
+ * disparar los flujos desde afuera del tablero.
+ */
+export function flujosActualizacion(): string[] {
+  return (process.env.N8N_WEBHOOKS ?? "")
+    .split(",")
+    .map((url) => url.trim())
+    .filter(Boolean);
+}
+
+/** Cuánto se espera a cada flujo antes de darlo por colgado, en milisegundos. */
+export const TIMEOUT_FLUJO_MS = Number(process.env.N8N_TIMEOUT_MS ?? 120_000);
+
+/**
  * Cada cuánto se vuelve a leer el sheet, en segundos. El libro se actualiza una
  * vez por día, así que una hora es de sobra y mantiene los tableros rápidos.
  */
