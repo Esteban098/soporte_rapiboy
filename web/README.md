@@ -43,7 +43,7 @@ Tres decisiones que vale la pena tener presentes:
 
 | Ruta | Qué muestra |
 |---|---|
-| `/` | **Mes en curso**: abiertos contra cerrados —la métrica principal—, el desglose de estados, los demorados, las devoluciones por día de la semana y las visitas antes de cerrar. |
+| `/` | **Mes en curso**: abiertos contra cerrados —la métrica principal—, el desglose de estados, todos los casos de `Mensual`, las devoluciones por día de la semana y las visitas antes de cerrar. |
 | `/operacion` | **Ayer**: los casos de la pestaña `Ayer`, lo que quedó sin cerrar la jornada anterior. |
 | `/demorados` | **Demorados**: las pestañas `Demorados` y `DemoradoNoEntregado`, la cola de escalamiento. |
 | `/reclamos` | Casos donde la tienda aportó datos, con el dato tal cual y la información del viaje. Se filtra por avisado / no avisado. |

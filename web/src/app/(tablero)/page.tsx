@@ -93,10 +93,10 @@ export default async function Resumen() {
         </Card>
 
         <Card
-          titulo="Demorados"
-          nota="Los casos que pasaron su fecha y siguen abiertos. Es la cola de escalamiento: lo que no se resolvió por el flujo normal."
+          titulo="Casos del mes"
+          nota="Todos los casos de la pestaña Mensual. Se busca por cualquier columna, se filtra por estado y caso, y se ordena por cualquier encabezado."
         >
-          <PedidosTable id="mes-demorados" casos={casosDemorados} vacio="No hay pedidos demorados." />
+          <PedidosTable id="mes-casos" casos={mes} vacio="Todavía no hay casos cargados este mes." />
         </Card>
 
         <Card
