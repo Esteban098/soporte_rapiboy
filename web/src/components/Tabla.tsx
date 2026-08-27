@@ -269,7 +269,12 @@ export function Tabla({
               {visibles.map((fila, indice) => (
                 <tr key={String(fila.id ?? indice)}>
                   {columnasVisibles.map((columna) => (
-                    <Celda key={columna.clave} columna={columna} valor={fila[columna.clave]} />
+                    <Celda
+                      key={columna.clave}
+                      columna={columna}
+                      valor={fila[columna.clave]}
+                      fila={fila}
+                    />
                   ))}
                 </tr>
               ))}
@@ -301,7 +306,15 @@ function esNumerica(tipo?: TipoColumna): boolean {
   return tipo === "numero" || tipo === "decimal" || tipo === "porcentaje" || tipo === "dias";
 }
 
-function Celda({ columna, valor }: { columna: Columna; valor: Fila[string] }) {
+function Celda({
+  columna,
+  valor,
+  fila,
+}: {
+  columna: Columna;
+  valor: Fila[string];
+  fila: Fila;
+}) {
   // Sin recortes: cada celda muestra su contenido completo y la tabla scrollea
   // en horizontal si no entra.
   const clase = esNumerica(columna.tipo) ? estilos.num : undefined;
@@ -329,12 +342,29 @@ function Celda({ columna, valor }: { columna: Columna; valor: Fila[string] }) {
           </a>
         </td>
       );
-    case "estado":
+    case "estado": {
+      const texto = <TextoEstado estado={String(valor)} color={colorEstado(String(valor))} />;
+      // La foto la trae la fila, no la columna: las tablas de agregados no
+      // tienen un viaje detrás, así que ahí el estado queda como texto.
+      const foto = typeof fila.foto === "string" ? fila.foto : "";
       return (
         <td className={clase}>
-          <TextoEstado estado={String(valor)} color={colorEstado(String(valor))} />
+          {foto ? (
+            <a
+              className={tabla.enlaceFoto}
+              href={foto}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={`Ver la foto de la entrega del viaje ${fila.id}`}
+            >
+              {texto}
+            </a>
+          ) : (
+            texto
+          )}
         </td>
       );
+    }
     case "caso":
       return (
         <td className={clase}>
@@ -343,10 +373,15 @@ function Celda({ columna, valor }: { columna: Columna; valor: Fila[string] }) {
       );
     case "aviso": {
       const avisado = String(valor).toUpperCase() === "AVISADO";
+      const etiqueta = avisado ? "Avisado al repartidor" : "Sin avisar al repartidor";
       return (
         <td className={clase}>
-          <span className={avisado ? estilos.textoBueno : estilos.textoCritico}>
-            {String(valor)}
+          <span
+            className={`${tabla.aviso} ${avisado ? tabla.avisoOk : tabla.avisoPendiente}`}
+            title={etiqueta}
+          >
+            <IconoCelular />
+            <span className={tabla.soloLectores}>{etiqueta}</span>
           </span>
         </td>
       );
@@ -388,4 +423,35 @@ function Celda({ columna, valor }: { columna: Columna; valor: Fila[string] }) {
         </td>
       );
   }
+}
+
+/**
+ * Celular para la columna de aviso. El color dice el estado y el `title` más el
+ * texto para lectores de pantalla lo dicen con palabras: el color solo no puede
+ * ser el único portador del dato.
+ */
+function IconoCelular() {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">
+      <rect
+        x="4.25"
+        y="1.75"
+        width="7.5"
+        height="12.5"
+        rx="1.6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.4"
+      />
+      <line
+        x1="6.9"
+        y1="12.1"
+        x2="9.1"
+        y2="12.1"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
 }

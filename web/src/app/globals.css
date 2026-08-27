@@ -7,58 +7,65 @@
 :root {
   color-scheme: light;
 
-  --plane: #eceff2;
-  --surface: #ffffff;
-  --surface-2: #f4f6f8;
-  --surface-3: #e9edf1;
+--plane: #e7e6df;
+  --surface: #faf9f6;
+  --surface-2: #f2f1ea;
+  --surface-3: #e9e8df;
 
-  --ink: #0d1117;
-  --ink-2: #4b5058;
-  --muted: #767c85;
+  /* La barra lateral es oscura en los dos temas: tiene su propia tinta. */
+  --rail: #16232a;
+  --rail-2: #1e2f38;
+  --rail-ink: #cdd6d5;
+  --rail-ink-alta: #eef3f1;
+  --rail-ink-dim: #7b8c8f;
 
-  --rule: rgba(13, 17, 23, 0.11);
-  --rule-soft: rgba(13, 17, 23, 0.06);
+  --ink: #1a2126;
+  --ink-2: #4e5a60;
+  --muted: #7b858b;
 
-  --accent: #2a78d6;
-  --accent-ink: #1f5fae;
-  --accent-soft: rgba(42, 120, 214, 0.1);
-  --serie-2: #eb6834;
+  --rule: rgba(26, 33, 38, 0.14);
+  --rule-soft: rgba(26, 33, 38, 0.07);
 
-  --good: #0a7d33;
-  --good-soft: rgba(10, 125, 51, 0.11);
-  --warning: #98700a;
-  --warning-soft: rgba(152, 112, 10, 0.12);
-  --critical: #c0392f;
-  --critical-soft: rgba(192, 57, 47, 0.11);
+  --accent: #0d7f5f;
+  --accent-ink: #0a6a4f;
+  --accent-soft: rgba(13, 127, 95, 0.12);
+  --serie-2: #42549e;
 
-  --grid: #e4e7ea;
-  --axis: #c7ccd2;
+  --good: #4a7a3f;
+  --good-soft: rgba(74, 122, 63, 0.13);
+  --warning: #b07a1e;
+  --warning-soft: rgba(176, 122, 30, 0.14);
+  --critical: #a34438;
+  --critical-soft: rgba(163, 68, 56, 0.12);
 
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 12px 28px -22px rgba(16, 24, 40, 0.5);
-  --radio: 12px;
+  --grid: #ddddd3;
+  --axis: #c4c4b8;
+
+  --shadow: 0 1px 1px rgba(26, 33, 38, 0.04), 0 6px 14px -10px rgba(26, 33, 38, 0.3);
+  --radio: 7px;
 
   /* Un color por estado del paquete, pedido por la operación. */
-  --caso-cerrado: #0a5c27;
-  --caso-cerrado-fondo: rgba(10, 92, 39, 0.12);
-  --caso-abierto: #9b1c14;
-  --caso-abierto-fondo: rgba(155, 28, 20, 0.11);
+  --caso-cerrado: #4a7a3f;
+  --caso-cerrado-fondo: rgba(74, 122, 63, 0.13);
+  --caso-abierto: #a34438;
+  --caso-abierto-fondo: rgba(163, 68, 56, 0.12);
 
-  --estado-entregado: #0a6b2d;
-  --estado-entregado-fondo: rgba(10, 107, 45, 0.12);
-  --estado-devuelto: #4f8a22;
-  --estado-devuelto-fondo: rgba(79, 138, 34, 0.14);
-  --estado-devolucion: #6b4bc4;
-  --estado-devolucion-fondo: rgba(107, 75, 196, 0.13);
-  --estado-deposito: #8a6d0b;
-  --estado-deposito-fondo: rgba(212, 168, 18, 0.18);
-  --estado-retirado: #0f7fa3;
-  --estado-retirado-fondo: rgba(29, 165, 208, 0.16);
-  --estado-pararetirar: #2a5fd6;
-  --estado-pararetirar-fondo: rgba(42, 95, 214, 0.13);
-  --estado-siniestrado: #c2560a;
-  --estado-siniestrado-fondo: rgba(194, 86, 10, 0.13);
-  --estado-noentregado: #c0392f;
-  --estado-noentregado-fondo: rgba(192, 57, 47, 0.12);
+  --estado-entregado: #0d7f5f;
+  --estado-entregado-fondo: rgba(13, 127, 95, 0.13);
+  --estado-devuelto: #4a7a3f;
+  --estado-devuelto-fondo: rgba(74, 122, 63, 0.13);
+  --estado-devolucion: #b07a1e;
+  --estado-devolucion-fondo: rgba(176, 122, 30, 0.15);
+  --estado-deposito: #42549e;
+  --estado-deposito-fondo: rgba(66, 84, 158, 0.13);
+  --estado-retirado: #2f6f7a;
+  --estado-retirado-fondo: rgba(47, 111, 122, 0.14);
+  --estado-pararetirar: #5a6b8f;
+  --estado-pararetirar-fondo: rgba(90, 107, 143, 0.14);
+  --estado-siniestrado: #96603a;
+  --estado-siniestrado-fondo: rgba(150, 96, 58, 0.14);
+  --estado-noentregado: #a34438;
+  --estado-noentregado-fondo: rgba(163, 68, 56, 0.12);
 
 
   --sans: var(--fuente-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -70,112 +77,126 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-    --plane: #0b0d0f;
-    --surface: #16191c;
-    --surface-2: #1d2125;
-    --surface-3: #23282d;
+--plane: #12181b;
+    --surface: #1d2529;
+    --surface-2: #242d32;
+    --surface-3: #2b353a;
 
-    --ink: #f2f4f6;
-    --ink-2: #b4bac1;
-    --muted: #868d95;
+    --rail: #0d1417;
+    --rail-2: #18242a;
+    --rail-ink: #c3cfce;
+    --rail-ink-alta: #eef3f1;
+    --rail-ink-dim: #6f8084;
 
-    --rule: rgba(255, 255, 255, 0.12);
-    --rule-soft: rgba(255, 255, 255, 0.06);
+    --ink: #eceee9;
+    --ink-2: #a9b3b6;
+    --muted: #7d878b;
 
-    --accent: #5b9df0;
-    --accent-ink: #85b8f5;
-    --accent-soft: rgba(91, 157, 240, 0.16);
-    --serie-2: #e0703a;
+    --rule: rgba(255, 255, 255, 0.13);
+    --rule-soft: rgba(255, 255, 255, 0.07);
 
-    --good: #4cb96e;
-    --good-soft: rgba(76, 185, 110, 0.16);
-    --warning: #d8a83a;
-    --warning-soft: rgba(216, 168, 58, 0.16);
-    --critical: #eb7a72;
-    --critical-soft: rgba(235, 122, 114, 0.16);
+    --accent: #37a081;
+    --accent-ink: #55b89a;
+    --accent-soft: rgba(55, 160, 129, 0.17);
+    --serie-2: #6d84cd;
 
-    --grid: #262b30;
-    --axis: #363c43;
+    --good: #6a9f5c;
+    --good-soft: rgba(106, 159, 92, 0.16);
+    --warning: #cc9a35;
+    --warning-soft: rgba(204, 154, 53, 0.16);
+    --critical: #cf7266;
+    --critical-soft: rgba(207, 114, 102, 0.15);
 
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px -22px rgba(0, 0, 0, 0.9);
+    --grid: #2a343a;
+    --axis: #3a464c;
 
-  --caso-cerrado: #52c077;
-  --caso-cerrado-fondo: rgba(82, 192, 119, 0.18);
-  --caso-abierto: #f08078;
-  --caso-abierto-fondo: rgba(240, 128, 120, 0.18);
+    --shadow: 0 1px 1px rgba(0, 0, 0, 0.4), 0 6px 14px -10px rgba(0, 0, 0, 0.8);
+    --radio: 7px;
 
-  --estado-entregado: #4cb96e;
-  --estado-entregado-fondo: rgba(76, 185, 110, 0.18);
-  --estado-devuelto: #94cf50;
-  --estado-devuelto-fondo: rgba(148, 207, 80, 0.18);
-  --estado-devolucion: #a891ea;
-  --estado-devolucion-fondo: rgba(168, 145, 234, 0.18);
-  --estado-deposito: #e0b93a;
-  --estado-deposito-fondo: rgba(224, 185, 58, 0.18);
-  --estado-retirado: #4fc3e8;
-  --estado-retirado-fondo: rgba(79, 195, 232, 0.18);
-  --estado-pararetirar: #7ba6f7;
-  --estado-pararetirar-fondo: rgba(123, 166, 247, 0.18);
-  --estado-siniestrado: #f08a4b;
-  --estado-siniestrado-fondo: rgba(240, 138, 75, 0.18);
-  --estado-noentregado: #eb7a72;
-  --estado-noentregado-fondo: rgba(235, 122, 114, 0.18);
+    --caso-cerrado: #6a9f5c;
+    --caso-cerrado-fondo: rgba(106, 159, 92, 0.17);
+    --caso-abierto: #cf7266;
+    --caso-abierto-fondo: rgba(207, 114, 102, 0.16);
+
+    --estado-entregado: #37a081;
+    --estado-entregado-fondo: rgba(55, 160, 129, 0.18);
+    --estado-devuelto: #6a9f5c;
+    --estado-devuelto-fondo: rgba(106, 159, 92, 0.17);
+    --estado-devolucion: #cc9a35;
+    --estado-devolucion-fondo: rgba(204, 154, 53, 0.17);
+    --estado-deposito: #6d84cd;
+    --estado-deposito-fondo: rgba(109, 132, 205, 0.18);
+    --estado-retirado: #57a3b0;
+    --estado-retirado-fondo: rgba(87, 163, 176, 0.18);
+    --estado-pararetirar: #8e9cc0;
+    --estado-pararetirar-fondo: rgba(142, 156, 192, 0.17);
+    --estado-siniestrado: #c4906a;
+    --estado-siniestrado-fondo: rgba(196, 144, 106, 0.17);
+    --estado-noentregado: #cf7266;
+    --estado-noentregado-fondo: rgba(207, 114, 102, 0.16);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --plane: #0b0d0f;
-  --surface: #16191c;
-  --surface-2: #1d2125;
-  --surface-3: #23282d;
+--plane: #12181b;
+  --surface: #1d2529;
+  --surface-2: #242d32;
+  --surface-3: #2b353a;
 
-  --ink: #f2f4f6;
-  --ink-2: #b4bac1;
-  --muted: #868d95;
+  --rail: #0d1417;
+  --rail-2: #18242a;
+  --rail-ink: #c3cfce;
+  --rail-ink-alta: #eef3f1;
+  --rail-ink-dim: #6f8084;
 
-  --rule: rgba(255, 255, 255, 0.12);
-  --rule-soft: rgba(255, 255, 255, 0.06);
+  --ink: #eceee9;
+  --ink-2: #a9b3b6;
+  --muted: #7d878b;
 
-  --accent: #5b9df0;
-  --accent-ink: #85b8f5;
-  --accent-soft: rgba(91, 157, 240, 0.16);
-  --serie-2: #e0703a;
+  --rule: rgba(255, 255, 255, 0.13);
+  --rule-soft: rgba(255, 255, 255, 0.07);
 
-  --good: #4cb96e;
-  --good-soft: rgba(76, 185, 110, 0.16);
-  --warning: #d8a83a;
-  --warning-soft: rgba(216, 168, 58, 0.16);
-  --critical: #eb7a72;
-  --critical-soft: rgba(235, 122, 114, 0.16);
+  --accent: #37a081;
+  --accent-ink: #55b89a;
+  --accent-soft: rgba(55, 160, 129, 0.17);
+  --serie-2: #6d84cd;
 
-  --grid: #262b30;
-  --axis: #363c43;
+  --good: #6a9f5c;
+  --good-soft: rgba(106, 159, 92, 0.16);
+  --warning: #cc9a35;
+  --warning-soft: rgba(204, 154, 53, 0.16);
+  --critical: #cf7266;
+  --critical-soft: rgba(207, 114, 102, 0.15);
 
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px -22px rgba(0, 0, 0, 0.9);
+  --grid: #2a343a;
+  --axis: #3a464c;
 
-  --caso-cerrado: #52c077;
-  --caso-cerrado-fondo: rgba(82, 192, 119, 0.18);
-  --caso-abierto: #f08078;
-  --caso-abierto-fondo: rgba(240, 128, 120, 0.18);
+  --shadow: 0 1px 1px rgba(0, 0, 0, 0.4), 0 6px 14px -10px rgba(0, 0, 0, 0.8);
+  --radio: 7px;
 
-  --estado-entregado: #4cb96e;
-  --estado-entregado-fondo: rgba(76, 185, 110, 0.18);
-  --estado-devuelto: #94cf50;
-  --estado-devuelto-fondo: rgba(148, 207, 80, 0.18);
-  --estado-devolucion: #a891ea;
-  --estado-devolucion-fondo: rgba(168, 145, 234, 0.18);
-  --estado-deposito: #e0b93a;
-  --estado-deposito-fondo: rgba(224, 185, 58, 0.18);
-  --estado-retirado: #4fc3e8;
-  --estado-retirado-fondo: rgba(79, 195, 232, 0.18);
-  --estado-pararetirar: #7ba6f7;
-  --estado-pararetirar-fondo: rgba(123, 166, 247, 0.18);
-  --estado-siniestrado: #f08a4b;
-  --estado-siniestrado-fondo: rgba(240, 138, 75, 0.18);
-  --estado-noentregado: #eb7a72;
-  --estado-noentregado-fondo: rgba(235, 122, 114, 0.18);
+  --caso-cerrado: #6a9f5c;
+  --caso-cerrado-fondo: rgba(106, 159, 92, 0.17);
+  --caso-abierto: #cf7266;
+  --caso-abierto-fondo: rgba(207, 114, 102, 0.16);
+
+  --estado-entregado: #37a081;
+  --estado-entregado-fondo: rgba(55, 160, 129, 0.18);
+  --estado-devuelto: #6a9f5c;
+  --estado-devuelto-fondo: rgba(106, 159, 92, 0.17);
+  --estado-devolucion: #cc9a35;
+  --estado-devolucion-fondo: rgba(204, 154, 53, 0.17);
+  --estado-deposito: #6d84cd;
+  --estado-deposito-fondo: rgba(109, 132, 205, 0.18);
+  --estado-retirado: #57a3b0;
+  --estado-retirado-fondo: rgba(87, 163, 176, 0.18);
+  --estado-pararetirar: #8e9cc0;
+  --estado-pararetirar-fondo: rgba(142, 156, 192, 0.17);
+  --estado-siniestrado: #c4906a;
+  --estado-siniestrado-fondo: rgba(196, 144, 106, 0.17);
+  --estado-noentregado: #cf7266;
+  --estado-noentregado-fondo: rgba(207, 114, 102, 0.16);
 }
 
 *,

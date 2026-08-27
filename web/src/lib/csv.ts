@@ -2,18 +2,25 @@ import "server-only";
 import Papa from "papaparse";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { REVALIDAR_SEGUNDOS, modoDatos, sheetId } from "./config";
+import { REVALIDAR_SEGUNDOS, gidDeTab, modoDatos, sheetId } from "./config";
 
 /**
  * Lee una pestaña del Google Sheet como CSV.
  *
- * Se usa el endpoint gviz porque permite pedir la pestaña por nombre, sin tener
- * que averiguar el gid de cada una. Requiere que el documento esté compartido
- * como "cualquiera con el enlace puede ver".
+ * Se usa `/export` y NO el endpoint `gviz`, aunque gviz sea más cómodo porque
+ * acepta el nombre de la pestaña: gviz le asigna un tipo a cada columna mirando
+ * los datos, y descarta en silencio toda celda que no encaje. La columna
+ * TELEFONO tiene números en la mayoría de las filas, así que gviz la marca como
+ * numérica y devuelve vacías las que traen texto —"confirmar si pueden recibir
+ * después del horario de cierre" y demás indicaciones—. Eran 52 casos que en el
+ * tablero figuraban sin datos y en la planilla estaban completos.
+ *
+ * `/export` devuelve lo que la celda muestra, sin interpretar nada. Requiere que
+ * el documento esté compartido como "cualquiera con el enlace puede ver".
  */
 function urlDeTab(tab: string): string {
-  const base = `https://docs.google.com/spreadsheets/d/${sheetId()}/gviz/tq`;
-  return `${base}?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
+  const base = `https://docs.google.com/spreadsheets/d/${sheetId()}/export`;
+  return `${base}?format=csv&gid=${encodeURIComponent(gidDeTab(tab))}`;
 }
 
 async function leerCrudo(tab: string): Promise<string> {
@@ -29,7 +36,7 @@ async function leerCrudo(tab: string): Promise<string> {
   if (!respuesta.ok) {
     throw new Error(
       `No se pudo leer la pestaña "${tab}" (HTTP ${respuesta.status}). ` +
-        `Revisá que el documento esté compartido con enlace de lectura y que la pestaña exista.`,
+        `Revisá que el documento esté compartido con enlace de lectura y que el gid siga siendo válido.`,
     );
   }
   return respuesta.text();

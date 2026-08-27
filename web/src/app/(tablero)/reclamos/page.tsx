@@ -1,6 +1,6 @@
 import { cargarPedidos } from "@/lib/datos";
 import { reclamos } from "@/lib/metricas";
-import { numero, porcentaje, puntos } from "@/lib/formato";
+import { numero, porcentaje } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
@@ -18,7 +18,7 @@ export default async function Reclamos() {
   // El detalle va ordenado por lo que hay que atender primero: sin avisar y
   // todavía abierto, arriba de todo.
   const conReclamo = pedidos
-    .filter((p) => p.reclamoTienda !== "")
+    .filter((p) => p.tieneDatosTienda)
     .sort((a, b) => {
       const prioridad = (p: typeof a) => (p.avisoPendiente ? 0 : 1) + (p.cerrado ? 2 : 0);
       return prioridad(a) - prioridad(b) || b.ultimoMovimiento!.getTime() - a.ultimoMovimiento!.getTime();
@@ -31,7 +31,7 @@ export default async function Reclamos() {
       <PageHead
         eyebrow="Datos que aporta el comercio"
         titulo="Reclamos de tienda"
-        dek="Casos donde la tienda nos compartió información para concretar la entrega: un teléfono alterno, una ubicación exacta o indicaciones del domicilio. Lo que importa es si esa información terminó sirviendo."
+        dek="Casos donde la tienda nos compartió algo con qué trabajar: un teléfono, una ubicación o una indicación del domicilio. No importa en qué columna quedó cargado; lo que importa es si esa información terminó sirviendo."
       />
 
       <div className={estilos.kpis}>
@@ -52,36 +52,23 @@ export default async function Reclamos() {
           nota="referencia: casos donde la tienda no aportó nada"
         />
         <Kpi
-          etiqueta="Sin avisar"
-          valor={numero(datos.avisoPendiente)}
-          tono={datos.avisoPendiente > 0 ? "bad" : "good"}
-          nota={`${numero(datos.avisados)} marcados como avisados`}
+          etiqueta="Tipificados sin dato"
+          valor={numero(datos.tipificadosSinDatos)}
+          tono={datos.tipificadosSinDatos > 0 ? "bad" : "good"}
+          nota="con reclamo cargado pero sin ningún dato atrás"
         />
       </div>
 
       <div className={estilos.stack}>
-        <Callout
-          tono={diferencia >= 0 ? "neutral" : "critical"}
-          titulo={
-            diferencia >= 0
-              ? "Los datos de la tienda ayudan"
-              : "Los datos de la tienda no están moviendo la aguja"
-          }
-        >
-          Los casos con información del comercio se entregan en{" "}
-          {porcentaje(datos.tasaEntregaConReclamo)} contra {porcentaje(datos.tasaEntregaSinReclamo)}{" "}
-          de los que no la tienen: {puntos(diferencia)} de diferencia. Tener en cuenta que no son
-          grupos comparables — la tienda manda datos justamente en los casos que ya venían
-          complicados, así que la comparación marca una tendencia, no una causa.
-        </Callout>
 
-        <Callout tono="critical" titulo="La columna AVISO no distingue avisados de no avisados">
-          En la planilla, AVISO se calcula con <code>=IF(RECLAMO TIENDA &lt;&gt; &quot;&quot;, &quot;NO AVISADO&quot;, &quot;&quot;)</code>:
-          marca como pendiente <b>todo</b> caso que tenga datos cargados, y nada la vuelve a poner
-          en blanco cuando el aviso se manda. Por eso los {numero(datos.avisoPendiente)} «sin
-          avisar» son exactamente los {numero(datos.conReclamo)} casos con datos. Para que esta
-          métrica sirva hace falta una casilla que soporte marque al avisar.
-        </Callout>
+        {datos.tipificadosSinDatos > 0 ? (
+          <Callout tono="warning" titulo="Casos tipificados que no traen ningún dato">
+            {numero(datos.tipificadosSinDatos)} casos tienen la columna RECLAMO TIENDA cargada
+            pero ningún dato atrás: ni teléfono, ni ubicación, ni indicaciones. Quedan fuera de
+            esta sección, porque si la tienda no pasó nada con qué trabajar no son casos con
+            datos por más que estén clasificados. Vale revisar por qué se tipifican sin completar.
+          </Callout>
+        ) : null}
 
         <Card
           titulo="Casos con datos de la tienda"
@@ -153,38 +140,6 @@ export default async function Reclamos() {
           <EstadosTable id="reclamos-estados" filas={datos.porEstado} />
         </Card>
 
-        <Card
-          titulo="Qué se cargó exactamente"
-          nota="Cuántos de esos casos traen ubicación y cuántos un teléfono alterno. El contenido en sí es dato del cliente y no sale del servidor: acá solo se cuenta si existe."
-        >
-          <div className={estilos.tableWrap}>
-            <table className={estilos.table}>
-              <thead>
-                <tr>
-                  <th>Dato aportado</th>
-                  <th className={estilos.num}>Casos</th>
-                  <th className={estilos.num}>% de los que tienen reclamo</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Ubicación (link de mapa)</td>
-                  <td className={estilos.num}>{numero(datos.conUbicacion)}</td>
-                  <td className={estilos.num}>
-                    {porcentaje((datos.conUbicacion / Math.max(1, datos.conReclamo)) * 100)}
-                  </td>
-                </tr>
-                <tr>
-                  <td>Teléfono o referencia del domicilio</td>
-                  <td className={estilos.num}>{numero(datos.conTelefono)}</td>
-                  <td className={estilos.num}>
-                    {porcentaje((datos.conTelefono / Math.max(1, datos.conReclamo)) * 100)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </Card>
       </div>
     </>
   );

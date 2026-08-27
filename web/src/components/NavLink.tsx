@@ -11,7 +11,7 @@ export function NavLink({ href, children }: { href: string; children: React.Reac
   return (
     <Link
       href={href}
-      className={`${estilos.navLink} ${activo ? estilos.navLinkActive : ""}`}
+      className={`${estilos.railItem} ${activo ? estilos.railItemActivo : ""}`}
       aria-current={activo ? "page" : undefined}
     >
       {children}

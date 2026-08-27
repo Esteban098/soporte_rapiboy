@@ -107,3 +107,65 @@
   background: var(--surface-3);
   color: var(--ink);
 }
+
+/* --- pantalla de espera --- */
+
+/*
+ * Cubre todo mientras corren los flujos. Es a propósito bloqueante: la
+ * actualización puede tardar un minuto y, sin esto, el equipo sigue leyendo
+ * datos viejos creyendo que ya se actualizaron.
+ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--plane) 78%, transparent);
+  backdrop-filter: blur(3px);
+}
+
+.overlayCaja {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 28px 32px 24px;
+  text-align: center;
+  max-width: 340px;
+}
+
+.overlayRueda {
+  display: block;
+  width: 30px;
+  height: 30px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  border: 2.5px solid var(--surface-3);
+  border-top-color: var(--accent);
+  animation: girar 0.8s linear infinite;
+}
+
+.overlayTitulo {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 15.5px;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+
+.overlayTexto {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin: 0;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlayRueda {
+    animation: none;
+    border-top-color: var(--accent);
+    opacity: 0.7;
+  }
+}

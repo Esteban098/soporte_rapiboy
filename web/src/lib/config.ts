@@ -21,6 +21,37 @@ export const TAB_MENSUAL = process.env.SHEET_TAB_MENSUAL?.trim() || "Mensual";
  */
 export const TAB_AYER = "Ayer";
 
+/**
+ * Identificador interno de cada pestaña dentro del libro.
+ *
+ * Hacen falta porque la app descarga las hojas por el endpoint `/export`, que
+ * las pide por gid y no por nombre. Se ven en la URL al abrir la pestaña en
+ * Google Sheets (`...#gid=1701594461`). Si alguna vez se recrea una pestaña, su
+ * gid cambia y hay que actualizarlo acá o por `SHEET_GIDS`.
+ */
+const GIDS_POR_DEFECTO: Record<string, string> = {
+  [TAB_MENSUAL]: "1701594461",
+  [TAB_AYER]: "0",
+};
+
+export function gidDeTab(tab: string): string {
+  const propios = Object.fromEntries(
+    (process.env.SHEET_GIDS ?? "")
+      .split(",")
+      .map((par) => par.split(":").map((x) => x.trim()))
+      .filter((par) => par.length === 2 && par[0] && par[1]),
+  );
+
+  const gid = propios[tab] ?? GIDS_POR_DEFECTO[tab];
+  if (!gid) {
+    throw new Error(
+      `No sé el gid de la pestaña "${tab}". Abrila en Google Sheets, copiá el número que ` +
+        `aparece en la URL después de #gid= y agregalo a SHEET_GIDS (por ejemplo: "${tab}:123456").`,
+    );
+  }
+  return gid;
+}
+
 
 export type ModoDatos = "sheet" | "fixture";
 

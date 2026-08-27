@@ -1,19 +1,24 @@
 import type { Metadata } from "next";
-import { Archivo, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { Asap, Bitter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
 // Las fuentes se sirven desde el mismo dominio: una request menos y sin salto
 // de tipografía al cargar.
-const sans = IBM_Plex_Sans({
+// Asap para la interfaz: humanista, con modulación de trazo y terminales
+// levemente suavizadas. Legible en cuerpos chicos sin el aire neutro de las
+// grotescas de sistema.
+const sans = Asap({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--fuente-sans",
   display: "swap",
 });
 
-const display = Archivo({
+// Bitter, una slab pensada para pantalla, en títulos y cifras: le da peso
+// técnico a los números sin recurrir a una geométrica.
+const display = Bitter({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["600", "700"],
   variable: "--fuente-display",
   display: "swap",
 });

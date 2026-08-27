@@ -37,19 +37,22 @@ export type FilaReclamo = {
 };
 
 export type Reclamos = {
-  /** Casos donde la tienda pasó datos para concretar la entrega. */
+  /**
+   * Casos donde la tienda pasó algo utilizable. No alcanza con que esté
+   * tipificado el reclamo: tiene que haber un dato cargado.
+   */
   conReclamo: number;
   sinReclamo: number;
   porcentaje: number;
-  /** De los que tienen reclamo, cuántos terminaron entregados. */
+  /** De los que tienen datos, cuántos terminaron entregados. */
   entregadosConReclamo: number;
   tasaEntregaConReclamo: number;
-  /** Y cuántos entre los que no tuvieron reclamo, para comparar. */
+  /** Y cuántos entre los que no tuvieron ninguno, para comparar. */
   tasaEntregaSinReclamo: number;
   avisoPendiente: number;
   avisados: number;
-  conUbicacion: number;
-  conTelefono: number;
+  /** Tipificados por soporte pero sin ningún dato cargado: no aportan nada. */
+  tipificadosSinDatos: number;
   porTipo: FilaReclamo[];
   porEstado: FilaEstado[];
 };
@@ -118,18 +121,22 @@ export function porEstado(pedidos: Pedido[]): FilaEstado[] {
 }
 
 /**
- * Casos donde la tienda compartió datos para concretar la entrega. Interesa
- * sobre todo si esa información sirvió: comparamos la tasa de entrega de los
- * casos con reclamo contra la de los que no tuvieron ninguno.
+ * Casos donde la tienda compartió algo que sirve para concretar la entrega.
+ *
+ * El corte es que haya un dato cargado, sin mirar en qué columna cayó: un
+ * teléfono, un link de mapa o una indicación del domicilio sirven igual para
+ * trabajar el caso. No se usa RECLAMO TIENDA como criterio porque estar
+ * tipificado no significa que haya llegado un dato: hay casos con el reclamo
+ * cargado y ningún dato atrás, y contarlos infla la métrica.
  */
 export function reclamos(pedidos: Pedido[]): Reclamos {
-  const con = pedidos.filter((p) => p.reclamoTienda !== "");
-  const sin = pedidos.filter((p) => p.reclamoTienda === "");
+  const con = pedidos.filter((p) => p.tieneDatosTienda);
+  const sin = pedidos.filter((p) => !p.tieneDatosTienda);
   const entregadosCon = con.filter((p) => p.entregado).length;
 
   const grupos = new Map<string, Pedido[]>();
   for (const pedido of con) {
-    const tipo = pedido.reclamoTienda.toUpperCase();
+    const tipo = pedido.reclamoTienda.toUpperCase() || "SIN TIPIFICAR";
     const lista = grupos.get(tipo);
     if (lista) lista.push(pedido);
     else grupos.set(tipo, [pedido]);
@@ -157,8 +164,7 @@ export function reclamos(pedidos: Pedido[]): Reclamos {
     tasaEntregaSinReclamo: pct(sin.filter((p) => p.entregado).length, sin.length),
     avisoPendiente: con.filter((p) => p.avisoPendiente).length,
     avisados: con.filter((p) => p.aviso === "AVISADO").length,
-    conUbicacion: con.filter((p) => p.tieneUbicacion).length,
-    conTelefono: con.filter((p) => p.tieneTelefono).length,
+    tipificadosSinDatos: pedidos.filter((p) => p.reclamoTienda !== "" && !p.tieneDatosTienda).length,
     porTipo,
     porEstado: porEstado(con),
   };
@@ -354,4 +360,35 @@ export function antiguedadAbiertos(pedidos: Pedido[], hoy = new Date()): FilaAnt
     casos: grupos.get(tramo)!,
     porcentaje: pct(grupos.get(tramo)!, abiertos.length),
   }));
+}
+
+export type FilaConteo = { nombre: string; casos: number; porcentaje: number };
+
+/**
+ * Los casos que quedaron sin entregar, agrupados por quien los tenía.
+ *
+ * Sirve para ver si un día malo se explica por un repartidor, una zona o un
+ * comercio puntual, en vez de mirar solo el total. Los que no tienen el dato
+ * cargado quedan afuera: sumarlos como "sin asignar" ensucia el ranking.
+ */
+export function noEntregadosPor(
+  pedidos: Pedido[],
+  dimension: "repartidor" | "poligono" | "tienda",
+): FilaConteo[] {
+  const sinEntregar = pedidos.filter((p) => p.estado.toLowerCase() === "pedido no entregado");
+  const conteo = new Map<string, number>();
+
+  for (const pedido of sinEntregar) {
+    const nombre = pedido[dimension];
+    if (!nombre) continue;
+    conteo.set(nombre, (conteo.get(nombre) ?? 0) + 1);
+  }
+
+  return [...conteo.entries()]
+    .map(([nombre, casos]) => ({
+      nombre,
+      casos,
+      porcentaje: pct(casos, sinEntregar.length),
+    }))
+    .sort((a, b) => b.casos - a.casos);
 }

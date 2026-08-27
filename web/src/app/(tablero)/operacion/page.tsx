@@ -1,10 +1,11 @@
 import { cargarAyer } from "@/lib/datos";
-import { cierre, porEstado } from "@/lib/metricas";
+import { cierre, noEntregadosPor, porEstado } from "@/lib/metricas";
 import { numero, porcentaje } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
 import { PedidosTable } from "@/components/PedidosTable";
+import { ConteoTable } from "@/components/ConteoTable";
 import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Ayer" };
@@ -14,15 +15,19 @@ export default async function Ayer() {
   const ayer = casos.pedidos;
   const estados = porEstado(ayer);
   const resolucion = cierre(ayer);
-  const quietos = ayer.filter((p) => diasDesde(p.ultimoMovimiento) > 2).length;
   const masFrecuente = estados[0];
+
+  const porRepartidor = noEntregadosPor(ayer, "repartidor");
+  const porPoligono = noEntregadosPor(ayer, "poligono");
+  const porTienda = noEntregadosPor(ayer, "tienda");
+  const sinEntregar = porRepartidor.reduce((total, f) => total + f.casos, 0);
 
   return (
     <>
       <PageHead
         eyebrow="Cola del día"
         titulo="Ayer"
-        dek="Los casos de la pestaña Ayer del libro: lo que quedó sin cerrar en la jornada anterior. El acumulado del mes está en Mes en curso."
+        dek="Los casos de la pestaña Ayer: lo que quedó sin cerrar en la jornada anterior. El acumulado del mes está en Mes en curso."
       />
 
       <div className={estilos.kpis}>
@@ -38,10 +43,10 @@ export default async function Ayer() {
           nota={`${porcentaje(resolucion.tasaApertura)} de la lista sigue abierta`}
         />
         <Kpi
-          etiqueta="Quietos"
-          valor={numero(quietos)}
-          tono={quietos > 0 ? "bad" : "good"}
-          nota="más de 2 días sin ningún cambio de estado"
+          etiqueta="Sin entregar"
+          valor={numero(sinEntregar)}
+          tono={sinEntregar > 0 ? "bad" : "good"}
+          nota="quedaron en «Pedido no entregado»"
         />
         <Kpi
           etiqueta="Estado más frecuente"
@@ -51,10 +56,13 @@ export default async function Ayer() {
       </div>
 
       <div className={estilos.stack}>
-        <Callout tono={quietos > 0 ? "critical" : "neutral"} titulo="Por dónde empezar el turno">
+        <Callout
+          tono={resolucion.abiertos > 0 ? "critical" : "neutral"}
+          titulo="Por dónde empezar el turno"
+        >
           {ayer.length === 0
             ? "Ayer cerró sin casos abiertos. La cola arranca limpia."
-            : `${numero(resolucion.abiertos)} casos de ayer siguen sin resolverse y ${numero(quietos)} llevan más de dos días sin moverse. Esos son los que hay que tocar primero.`}
+            : `${numero(resolucion.abiertos)} casos de ayer siguen sin resolverse, y ${numero(sinEntregar)} quedaron directamente sin entregar.`}
         </Callout>
 
         <Card
@@ -70,12 +78,27 @@ export default async function Ayer() {
         >
           <EstadosTable id="ayer-estados" filas={estados} />
         </Card>
+
+        <Card
+          titulo="Dónde se concentran los no entregados"
+          nota="Los casos que quedaron en «Pedido no entregado», mirados por repartidor, zona y comercio. Sirve para ver si un día malo se explica por uno solo de los tres."
+        >
+          <div className={estilos.grid3}>
+            <div>
+              <h3 className={estilos.subtitulo}>Por repartidor</h3>
+              <ConteoTable id="ayer-ne-repartidor" filas={porRepartidor} etiqueta="Repartidor" />
+            </div>
+            <div>
+              <h3 className={estilos.subtitulo}>Por zona</h3>
+              <ConteoTable id="ayer-ne-poligono" filas={porPoligono} etiqueta="Zona" />
+            </div>
+            <div>
+              <h3 className={estilos.subtitulo}>Por comercio</h3>
+              <ConteoTable id="ayer-ne-tienda" filas={porTienda} etiqueta="Comercio" />
+            </div>
+          </div>
+        </Card>
       </div>
     </>
   );
-}
-
-function diasDesde(fecha: Date | null): number {
-  if (!fecha) return 0;
-  return Math.floor((Date.now() - fecha.getTime()) / (24 * 60 * 60 * 1000));
 }

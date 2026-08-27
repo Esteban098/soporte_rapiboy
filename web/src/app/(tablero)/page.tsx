@@ -41,7 +41,7 @@ export default async function Resumen() {
       <PageHead
         eyebrow={`Mes en curso · ${mesLargo(total.hasta)}`}
         titulo="Entregas fallidas mensual"
-        dek={`${numero(total.casos)} casos acumulados en ${mesLargo(total.hasta)}. Para ver solo lo que quedó pendiente del día anterior, entrá a Operación del día.`}
+        dek={`${numero(total.casos)} casos acumulados en ${mesLargo(total.hasta)}. Para ver solo lo que quedó pendiente del día anterior, entrá a Ayer. Se refiere a entregas que no se realizaron en el dia, que por algun inconveniente no cumplieron la promesa de entrega. `}
       />
 
       <div className={estilos.kpis}>
@@ -71,7 +71,7 @@ export default async function Resumen() {
         <Kpi
           etiqueta="Con datos de la tienda"
           valor={numero(tienda.conReclamo)}
-          nota={`${numero(tienda.avisoPendiente)} sin avisar al repartidor`}
+          nota={`la tienda pasó algo con qué trabajar · ${numero(tienda.tipificadosSinDatos)} tipificados sin dato`}
         />
       </div>
 
@@ -82,8 +82,7 @@ export default async function Resumen() {
         >
           De los {numero(resolucion.total)} casos del mes, {numero(resolucion.cerrados)} están
           resueltos y {numero(resolucion.abiertos)} siguen en la cola. Un caso cierra cuando queda
-          en Entregado, Devuelto o Siniestrado; <b>Devolucion no cierra</b>, porque la devolución
-          todavía está en curso.
+          en Entregado, Devuelto o Siniestrado.
         </Callout>
 
         <Card

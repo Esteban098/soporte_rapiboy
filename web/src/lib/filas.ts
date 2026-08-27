@@ -1,6 +1,7 @@
 import type { Pedido } from "./normalizar";
 import type { CampoPedido } from "./normalizar";
 import type { Columna, Fila } from "@/components/Tabla";
+import { enlaceFotoEntrega } from "./enlaces";
 import { fechaCorta } from "./formato";
 import { diasSinMovimiento } from "./metricas";
 
@@ -54,6 +55,10 @@ export function columnasPara(campos: CampoPedido[]): Columna[] {
  *
  * La tabla es un componente de cliente, así que solo puede recibir valores
  * serializables: acá se resuelve todo lo que dependa de fechas o de funciones.
+ *
+ * `foto` no es una columna: viaja con la fila para que el estado pueda abrir la
+ * foto de la entrega. Queda en `null` mientras el libro no traiga esa URL, y
+ * entonces el estado se muestra como texto.
  */
 export function filasDePedidos(pedidos: Pedido[], hoy = Date.now()): Fila[] {
   return pedidos.map((pedido) => ({
@@ -76,5 +81,6 @@ export function filasDePedidos(pedidos: Pedido[], hoy = Date.now()): Fila[] {
     enlace: pedido.enlace,
     copiar: pedido.copiar,
     ids: pedido.ids,
+    foto: enlaceFotoEntrega(pedido.foto),
   }));
 }

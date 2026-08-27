@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { actualizarDatos } from "@/app/actualizar";
 import estilos from "./boton-actualizar.module.css";
@@ -38,6 +39,29 @@ export function BotonActualizar() {
         </span>
         {cargando ? "Actualizando…" : "Actualizar"}
       </button>
+
+      {/*
+        El overlay va al body con un portal, no acá adentro: la barra superior
+        tiene `backdrop-filter`, y eso la convierte en el bloque contenedor de
+        cualquier `position: fixed` que cuelgue de ella. Sin el portal, la
+        pantalla de espera queda encerrada en los 60 px de la barra y no tapa
+        nada. Solo se monta con `cargando` en true, que nunca pasa en el
+        servidor, así que `document` siempre existe cuando se ejecuta.
+      */}
+      {cargando
+        ? createPortal(
+            <div className={estilos.overlay} role="status" aria-live="polite">
+              <div className={estilos.overlayCaja}>
+                <span className={estilos.overlayRueda} aria-hidden="true" />
+                <p className={estilos.overlayTitulo}>Actualizando el tablero</p>
+                <p className={estilos.overlayTexto}>
+                  Se están rearmando las hojas del libro. Puede tardar un minuto.
+                </p>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {fallas.length > 0 ? (
         <div className={estilos.aviso} role="alert">

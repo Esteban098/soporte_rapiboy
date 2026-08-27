@@ -45,15 +45,21 @@ export type Pedido = {
   /** Tipificación que cargó soporte con lo que pasó la tienda. Vacío si no hay. */
   reclamoTienda: string;
   /**
-   * Lo que pasó la tienda para concretar la entrega: un link de mapa y un
-   * teléfono o referencia del domicilio. Son datos del cliente, y se muestran
-   * en el tablero porque el equipo los necesita para trabajar el caso; por eso
-   * el acceso está restringido por login.
+   * Lo que pasó la tienda para concretar la entrega. Son datos del cliente, y
+   * se muestran en el tablero porque el equipo los necesita para trabajar el
+   * caso; por eso el acceso está restringido por login.
    */
   ubicacion: string;
   telefono: string;
-  tieneUbicacion: boolean;
-  tieneTelefono: boolean;
+  /**
+   * La tienda aportó algo con qué trabajar.
+   *
+   * Es un solo dato y no uno por columna a propósito: `UBICACION` y `TELEFONO`
+   * son nombres de columna, no categorías. La tienda manda un teléfono, un link
+   * de mapa o una indicación del domicilio, y cae en la que haya a mano. Lo que
+   * importa es si mandó algo, no dónde quedó escrito.
+   */
+  tieneDatosTienda: boolean;
   /**
    * Valor crudo de la columna AVISO: "AVISADO", "NO AVISADO" o vacío. Hoy la
    * fórmula del libro solo produce "NO AVISADO", pero se guarda tal cual para
@@ -61,6 +67,11 @@ export type Pedido = {
    */
   aviso: string;
   avisoPendiente: boolean;
+  /**
+   * URL de la foto de la entrega, si el libro la trae. No se puede reconstruir
+   * desde el id: ver `enlaceFotoEntrega`.
+   */
+  foto: string;
   /** Columnas auxiliares del libro, que el equipo usa para operar. */
   enlace: string;
   copiar: string;
@@ -117,7 +128,8 @@ export type CampoPedido =
   | "caso"
   | "ids"
   | "copiar"
-  | "demora";
+  | "demora"
+  | "foto";
 
 /**
  * Nombres con los que cada campo aparece en el libro.
@@ -146,6 +158,7 @@ const ALIAS: Record<CampoPedido, string[]> = {
   ids: ["ids", "idcoma", "ids sql"],
   copiar: ["copiar"],
   demora: ["demora"],
+  foto: ["foto", "foto entrega", "firma", "url foto", "evidencia"],
 };
 
 export type MapaColumnas = Partial<Record<CampoPedido, number>>;
@@ -237,10 +250,10 @@ export function parsearPedido(fila: string[], mapa: MapaColumnas): Pedido | null
     reclamoTienda: celda(fila, mapa.reclamo),
     ubicacion: celda(fila, mapa.ubicacion),
     telefono: celda(fila, mapa.telefono),
-    tieneUbicacion: celda(fila, mapa.ubicacion) !== "",
-    tieneTelefono: celda(fila, mapa.telefono) !== "",
+    tieneDatosTienda: celda(fila, mapa.ubicacion) !== "" || celda(fila, mapa.telefono) !== "",
     aviso: celda(fila, mapa.aviso).toUpperCase(),
     avisoPendiente: celda(fila, mapa.aviso).toLowerCase() === "no avisado",
+    foto: celda(fila, mapa.foto),
     enlace: celda(fila, mapa.enlace),
     copiar: celda(fila, mapa.copiar),
     demora: celda(fila, mapa.demora),
