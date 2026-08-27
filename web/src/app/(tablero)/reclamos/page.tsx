@@ -5,13 +5,14 @@ import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
 import { Tabla } from "@/components/Tabla";
-import { COLUMNAS_PEDIDO, filasDePedidos } from "@/lib/filas";
+import { columnasPara, filasDePedidos } from "@/lib/filas";
 import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Reclamos de tienda" };
 
 export default async function Reclamos() {
-  const pedidos = await cargarPedidos();
+  const mes = await cargarPedidos();
+  const pedidos = mes.pedidos;
   const datos = reclamos(pedidos);
 
   // El detalle va ordenado por lo que hay que atender primero: sin avisar y
@@ -87,7 +88,7 @@ export default async function Reclamos() {
           nota="Todo lo que el comercio aportó para concretar la entrega, con la información del viaje. Se puede filtrar por aviso y estado, y ordenar por cualquier columna."
         >
           <Tabla
-            columnas={COLUMNAS_PEDIDO}
+            columnas={columnasPara(mes.campos)}
             filas={filas}
             filtros={[
               { clave: "aviso", etiqueta: "Aviso", opciones: ["NO AVISADO", "AVISADO"] },

@@ -1,4 +1,5 @@
 import type { Pedido } from "./normalizar";
+import type { CampoPedido } from "./normalizar";
 import type { Columna, Fila } from "@/components/Tabla";
 import { fechaCorta } from "./formato";
 
@@ -16,27 +17,43 @@ function diasQuieto(pedido: Pedido, hoy: number): number | null {
  * tabla las que no le interesan en cada momento, en lugar de que el tablero
  * decida por él cuáles se pueden ver.
  */
-export const COLUMNAS_PEDIDO: Columna[] = [
-  { clave: "id", titulo: "Viaje", tipo: "viaje" },
+type ColumnaPedido = Columna & {
+  /** Campo del libro que la alimenta. Sin campo, es un derivado siempre disponible. */
+  campo?: CampoPedido;
+};
+
+const TODAS: ColumnaPedido[] = [
+  { clave: "id", titulo: "Viaje", tipo: "viaje" , campo: "id" },
   { clave: "quieto", titulo: "Sin moverse", tipo: "dias" },
-  { clave: "estado", titulo: "Estado", tipo: "estado" },
+  { clave: "estado", titulo: "Estado", tipo: "estado" , campo: "estado" },
   { clave: "caso", titulo: "Caso", tipo: "caso" },
-  { clave: "demora", titulo: "Demora", tipo: "texto" },
-  { clave: "creacion", titulo: "Creación", tipo: "texto" },
+  { clave: "demora", titulo: "Demora", tipo: "texto" , campo: "demora" },
+  { clave: "creacion", titulo: "Creación", tipo: "texto" , campo: "creacion" },
   { clave: "movimiento", titulo: "Último mov.", tipo: "texto" },
-  { clave: "repartidor", titulo: "Repartidor", tipo: "texto" },
-  { clave: "tienda", titulo: "Tienda", tipo: "texto" },
-  { clave: "destino", titulo: "Domicilio", tipo: "texto" },
-  { clave: "zona", titulo: "Zona", tipo: "texto" },
-  { clave: "visitas", titulo: "Visitas", tipo: "numero" },
-  { clave: "reclamo", titulo: "Reclamo tienda", tipo: "texto" },
-  { clave: "ubicacion", titulo: "Ubicación", tipo: "texto" },
-  { clave: "telefono", titulo: "Teléfono", tipo: "texto" },
-  { clave: "aviso", titulo: "Aviso", tipo: "aviso" },
-  { clave: "enlace", titulo: "Enlace", tipo: "texto" },
-  { clave: "copiar", titulo: "Mensaje", tipo: "texto" },
-  { clave: "ids", titulo: "IDs", tipo: "texto" },
+  { clave: "repartidor", titulo: "Repartidor", tipo: "texto" , campo: "repartidor" },
+  { clave: "tienda", titulo: "Tienda", tipo: "texto" , campo: "tienda" },
+  { clave: "destino", titulo: "Domicilio", tipo: "texto" , campo: "destino" },
+  { clave: "zona", titulo: "Zona", tipo: "texto" , campo: "poligono" },
+  { clave: "visitas", titulo: "Visitas", tipo: "numero" , campo: "visitas" },
+  { clave: "reclamo", titulo: "Reclamo tienda", tipo: "texto" , campo: "reclamo" },
+  { clave: "ubicacion", titulo: "Ubicación", tipo: "texto" , campo: "ubicacion" },
+  { clave: "telefono", titulo: "Teléfono", tipo: "texto" , campo: "telefono" },
+  { clave: "aviso", titulo: "Aviso", tipo: "aviso" , campo: "aviso" },
+  { clave: "enlace", titulo: "Enlace", tipo: "texto" , campo: "enlace" },
+  { clave: "copiar", titulo: "Mensaje", tipo: "texto" , campo: "copiar" },
+  { clave: "ids", titulo: "IDs", tipo: "texto" , campo: "ids" },
 ];
+
+/**
+ * Las columnas que corresponden a una pestaña: solo las que esa hoja trae, más
+ * los derivados que se calculan siempre.
+ */
+export function columnasPara(campos: CampoPedido[]): Columna[] {
+  const disponibles = new Set(campos);
+  return TODAS.filter((columna) => !columna.campo || disponibles.has(columna.campo)).map(
+    (columna) => ({ clave: columna.clave, titulo: columna.titulo, tipo: columna.tipo }),
+  );
+}
 
 /**
  * Convierte pedidos en filas planas para la tabla.

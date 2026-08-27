@@ -11,7 +11,8 @@ import {
   resumen,
 } from "../src/lib/metricas";
 
-const pedidos = await cargarPedidos();
+const { pedidos, campos } = await cargarPedidos();
+console.log(`campos que trae Mensual: ${campos.join(", ")}\n`);
 const r = resumen(pedidos);
 
 console.log(`casos: ${r.casos}  devoluciones: ${r.devoluciones} (${r.tasaDevolucion.toFixed(1)}%)`);
@@ -33,4 +34,5 @@ for (const f of ranking(pedidos, "tienda", { limite: 5 }))
   console.log(`  ${f.nombre}: ${f.casos} casos, ${f.tasaDevolucion.toFixed(1)}%`);
 
 const [ayer, demorados] = await Promise.all([cargarAyer(), cargarDemorados()]);
-console.log(`\nayer: ${ayer.length} casos | demorados: ${demorados.length} casos`);
+console.log(`\nayer: ${ayer.pedidos.length} casos | campos: ${ayer.campos.join(", ")}`);
+console.log(`demorados: ${demorados.pedidos.length} casos | campos: ${demorados.campos.join(", ")}`);

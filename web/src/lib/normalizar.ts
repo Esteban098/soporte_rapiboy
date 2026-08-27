@@ -96,40 +96,87 @@ const ESTADOS_ABIERTOS = new Set([
 const MESES_RESIDUALES = new Set(["2026-01", "2026-06"]);
 
 /**
- * Orden de las nueve primeras columnas en las pestañas de pedidos. Es estable
- * en todo el libro, incluso donde los encabezados cambiaron de nombre o
- * directamente no existen.
+ * Campos que puede traer una pestaña. No están todos en todas: `Ayer` no tiene
+ * visitas, y solo `Mensual` trae reclamo, aviso y caso.
  */
-const COL = {
-  id: 0,
-  creacion: 1,
-  ultimoMovimiento: 2,
-  estado: 3,
-  repartidor: 4,
-  tienda: 5,
-  destino: 6,
-  poligono: 7,
-  visitas: 8,
-  enlace: 9,
-  reclamo: 10,
-  ubicacion: 11,
-  telefono: 12,
-  aviso: 13,
-  caso: 14,
-  ids: 15,
-  copiar: 16,
-  demora: 17,
-} as const;
+export type CampoPedido =
+  | "id"
+  | "creacion"
+  | "ultimoMovimiento"
+  | "estado"
+  | "repartidor"
+  | "tienda"
+  | "destino"
+  | "poligono"
+  | "visitas"
+  | "enlace"
+  | "reclamo"
+  | "ubicacion"
+  | "telefono"
+  | "aviso"
+  | "caso"
+  | "ids"
+  | "copiar"
+  | "demora";
 
-/** Estados que la columna CASO del libro considera resueltos. */
-const ESTADOS_CERRADOS = new Set(["entregado", "devuelto", "siniestrado"]);
+/**
+ * Nombres con los que cada campo aparece en el libro.
+ *
+ * Se lee por nombre y no por posición porque las pestañas no comparten el mismo
+ * orden: en `Ayer`, la columna 8 es `IDcoma`, mientras que en `Mensual` esa
+ * posición es `Visitas`. Leer por posición metía una lista de IDs donde iban
+ * las visitas.
+ */
+const ALIAS: Record<CampoPedido, string[]> = {
+  id: ["id"],
+  creacion: ["fechacreacion", "fecha creacion", "fecha creación"],
+  ultimoMovimiento: ["fechaprogramado", "fecha programado", "fecha progra", "fecha programada"],
+  estado: ["estado"],
+  repartidor: ["repartidor", "driver"],
+  tienda: ["tienda", "empresa", "seller"],
+  destino: ["destino", "domicilio"],
+  poligono: ["poligono", "polígono"],
+  visitas: ["visitas"],
+  enlace: ["enlace"],
+  reclamo: ["reclamo tienda", "reclamotienda"],
+  ubicacion: ["ubicacion", "ubicación"],
+  telefono: ["telefono", "teléfono"],
+  aviso: ["aviso"],
+  caso: ["caso"],
+  ids: ["ids", "idcoma", "ids sql"],
+  copiar: ["copiar"],
+  demora: ["demora"],
+};
 
-function celda(fila: string[], indice: number): string {
+export type MapaColumnas = Partial<Record<CampoPedido, number>>;
+
+/** Ubica cada campo en el encabezado de una pestaña. */
+export function mapearColumnas(encabezado: string[]): MapaColumnas {
+  const normalizado = encabezado.map((c) => c.toLowerCase().replace(/\s+/g, " ").trim());
+  const mapa: MapaColumnas = {};
+
+  for (const [campo, nombres] of Object.entries(ALIAS) as [CampoPedido, string[]][]) {
+    const indice = normalizado.findIndex((c) => nombres.includes(c));
+    if (indice >= 0) mapa[campo] = indice;
+  }
+  return mapa;
+}
+
+/** Qué campos trae realmente la pestaña, para armar sus columnas. */
+export function camposPresentes(mapa: MapaColumnas): CampoPedido[] {
+  return Object.keys(mapa) as CampoPedido[];
+}
+
+function celda(fila: string[], indice: number | undefined): string {
+  if (indice == null) return "";
   const valor = fila[indice];
   if (valor == null) return "";
   const texto = String(valor).replace(/\s+/g, " ").trim();
   return texto.toLowerCase() === "nan" ? "" : texto;
 }
+
+/** Estados que la columna CASO del libro considera resueltos. */
+const ESTADOS_CERRADOS = new Set(["entregado", "devuelto", "siniestrado"]);
 
 export function parsearFecha(valor: string): Date | null {
   if (!valor) return null;
@@ -156,17 +203,17 @@ function mesDe(fecha: Date): string {
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
-export function parsearPedido(fila: string[]): Pedido | null {
-  const id = Number(celda(fila, COL.id));
+export function parsearPedido(fila: string[], mapa: MapaColumnas): Pedido | null {
+  const id = Number(celda(fila, mapa.id));
   if (!Number.isFinite(id) || id <= 0) return null;
 
-  const ultimoMovimiento = parsearFecha(celda(fila, COL.ultimoMovimiento));
+  const ultimoMovimiento = parsearFecha(celda(fila, mapa.ultimoMovimiento));
   if (!ultimoMovimiento) return null;
 
-  const creacion = parsearFecha(celda(fila, COL.creacion));
-  const estado = celda(fila, COL.estado);
+  const creacion = parsearFecha(celda(fila, mapa.creacion));
+  const estado = celda(fila, mapa.estado);
   const normalizado = estado.toLowerCase();
-  const visitasCrudo = celda(fila, COL.visitas);
+  const visitasCrudo = celda(fila, mapa.visitas);
   const visitas = Number(visitasCrudo);
 
   return {
@@ -174,10 +221,10 @@ export function parsearPedido(fila: string[]): Pedido | null {
     creacion,
     ultimoMovimiento,
     estado,
-    repartidor: celda(fila, COL.repartidor),
-    tienda: celda(fila, COL.tienda),
-    destino: celda(fila, COL.destino),
-    poligono: celda(fila, COL.poligono),
+    repartidor: celda(fila, mapa.repartidor),
+    tienda: celda(fila, mapa.tienda),
+    destino: celda(fila, mapa.destino),
+    poligono: celda(fila, mapa.poligono),
     visitas: visitasCrudo !== "" && Number.isFinite(visitas) ? visitas : null,
     mes: mesDe(ultimoMovimiento),
     devuelto: ESTADOS_DEVOLUCION.has(normalizado),
@@ -186,18 +233,18 @@ export function parsearPedido(fila: string[]): Pedido | null {
     diasDeVida: creacion
       ? Math.round((ultimoMovimiento.getTime() - creacion.getTime()) / DIA_MS)
       : null,
-    cerrado: cerradoDe(fila, normalizado),
-    reclamoTienda: celda(fila, COL.reclamo),
-    ubicacion: celda(fila, COL.ubicacion),
-    telefono: celda(fila, COL.telefono),
-    tieneUbicacion: celda(fila, COL.ubicacion) !== "",
-    tieneTelefono: celda(fila, COL.telefono) !== "",
-    aviso: celda(fila, COL.aviso).toUpperCase(),
-    avisoPendiente: celda(fila, COL.aviso).toLowerCase() === "no avisado",
-    enlace: celda(fila, COL.enlace),
-    copiar: celda(fila, COL.copiar),
-    demora: celda(fila, COL.demora),
-    ids: celda(fila, COL.ids),
+    cerrado: cerradoDe(fila, mapa, normalizado),
+    reclamoTienda: celda(fila, mapa.reclamo),
+    ubicacion: celda(fila, mapa.ubicacion),
+    telefono: celda(fila, mapa.telefono),
+    tieneUbicacion: celda(fila, mapa.ubicacion) !== "",
+    tieneTelefono: celda(fila, mapa.telefono) !== "",
+    aviso: celda(fila, mapa.aviso).toUpperCase(),
+    avisoPendiente: celda(fila, mapa.aviso).toLowerCase() === "no avisado",
+    enlace: celda(fila, mapa.enlace),
+    copiar: celda(fila, mapa.copiar),
+    demora: celda(fila, mapa.demora),
+    ids: celda(fila, mapa.ids),
   };
 }
 
@@ -205,25 +252,23 @@ export function parsearPedido(fila: string[]): Pedido | null {
  * Usa la columna CASO cuando viene calculada y, si no está, aplica la misma
  * regla en código. Las vistas del día no traen esa columna.
  */
-function cerradoDe(fila: string[], estadoNormalizado: string): boolean {
-  const declarado = celda(fila, COL.caso).toLowerCase();
+function cerradoDe(fila: string[], mapa: MapaColumnas, estadoNormalizado: string): boolean {
+  const declarado = celda(fila, mapa.caso).toLowerCase();
   if (declarado === "cerrado") return true;
   if (declarado === "abierto") return false;
   return ESTADOS_CERRADOS.has(estadoNormalizado);
 }
 
 /**
- * Un pedido puede aparecer en más de una pestaña. Nos quedamos con el registro
- * de movimiento más reciente, que es el que refleja en qué quedó el caso.
+ * Un pedido puede aparecer más de una vez. Nos quedamos con el registro de
+ * movimiento más reciente, que es el que refleja en qué quedó el caso.
  */
-export function consolidarPedidos(filas: string[][][]): Pedido[] {
+export function consolidarPedidos(grupos: Pedido[][]): Pedido[] {
   const porId = new Map<number, Pedido>();
 
-  for (const tab of filas) {
-    for (const fila of tab) {
-      const pedido = parsearPedido(fila);
-      if (!pedido || MESES_RESIDUALES.has(pedido.mes)) continue;
-
+  for (const grupo of grupos) {
+    for (const pedido of grupo) {
+      if (MESES_RESIDUALES.has(pedido.mes)) continue;
       const previo = porId.get(pedido.id);
       if (!previo || pedido.ultimoMovimiento! > previo.ultimoMovimiento!) {
         porId.set(pedido.id, pedido);
@@ -235,4 +280,3 @@ export function consolidarPedidos(filas: string[][][]): Pedido[] {
     (a, b) => a.ultimoMovimiento!.getTime() - b.ultimoMovimiento!.getTime(),
   );
 }
-

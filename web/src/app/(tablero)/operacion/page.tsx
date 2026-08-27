@@ -10,7 +10,8 @@ import estilos from "@/components/ui.module.css";
 export const metadata = { title: "Ayer" };
 
 export default async function Ayer() {
-  const ayer = await cargarAyer();
+  const casos = await cargarAyer();
+  const ayer = casos.pedidos;
   const estados = porEstado(ayer);
   const resolucion = cierre(ayer);
   const quietos = ayer.filter((p) => diasDesde(p.ultimoMovimiento) > 2).length;
@@ -60,7 +61,7 @@ export default async function Ayer() {
           titulo="Casos de ayer"
           nota="El detalle completo de la pestaña Ayer. La columna «sin moverse» cuenta los días desde el último cambio de estado del paquete."
         >
-          <PedidosTable pedidos={ayer} vacio="Ayer cerró sin casos abiertos." />
+          <PedidosTable casos={casos} vacio="Ayer cerró sin casos abiertos." />
         </Card>
 
         <Card

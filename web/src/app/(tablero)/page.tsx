@@ -21,7 +21,9 @@ import estilos from "@/components/ui.module.css";
 export const metadata = { title: "Mes en curso" };
 
 export default async function Resumen() {
-  const [pedidos, demorados] = await Promise.all([cargarPedidos(), cargarDemorados()]);
+  const [mes, casosDemorados] = await Promise.all([cargarPedidos(), cargarDemorados()]);
+  const pedidos = mes.pedidos;
+  const demorados = casosDemorados.pedidos;
   const total = resumen(pedidos);
   const resolucion = cierre(pedidos);
   const estados = porEstado(pedidos);
@@ -94,7 +96,7 @@ export default async function Resumen() {
           titulo="Demorados"
           nota="Los casos que pasaron su fecha y siguen abiertos. Es la cola de escalamiento: lo que no se resolvió por el flujo normal."
         >
-          <PedidosTable pedidos={demorados} vacio="No hay pedidos demorados." />
+          <PedidosTable casos={casosDemorados} vacio="No hay pedidos demorados." />
         </Card>
 
         <Card

@@ -10,10 +10,12 @@ import estilos from "@/components/ui.module.css";
 export const metadata = { title: "Demorados" };
 
 export default async function Demorados() {
-  const [demorados, sinEntregar] = await Promise.all([
+  const [casosDemorados, casosSinEntregar] = await Promise.all([
     cargarDemorados(),
     cargarDemoradosNoEntregados(),
   ]);
+  const demorados = casosDemorados.pedidos;
+  const sinEntregar = casosSinEntregar.pedidos;
 
   const estados = porEstado(demorados);
   const resolucion = cierre(demorados);
@@ -69,7 +71,7 @@ export default async function Demorados() {
           titulo="Demorados"
           nota="Todos los casos de la pestaña Demorados. Se puede filtrar por estado y ordenar por cualquier columna."
         >
-          <PedidosTable pedidos={demorados} vacio="No hay pedidos demorados." />
+          <PedidosTable casos={casosDemorados} vacio="No hay pedidos demorados." />
         </Card>
 
         <Card
@@ -77,7 +79,7 @@ export default async function Demorados() {
           nota="El recorte más fino: los que además siguen sin entregarse."
         >
           <PedidosTable
-            pedidos={sinEntregar}
+            casos={casosSinEntregar}
             vacio="Ningún demorado quedó sin entregar."
           />
         </Card>

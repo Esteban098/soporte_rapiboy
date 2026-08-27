@@ -9,7 +9,8 @@ import estilos from "@/components/ui.module.css";
 export const metadata = { title: "Comercios y zonas" };
 
 export default async function Comercios() {
-  const pedidos = await cargarPedidos();
+  const mes = await cargarPedidos();
+  const pedidos = mes.pedidos;
   const total = resumen(pedidos);
 
   const tiendasVolumen = ranking(pedidos, "tienda", { minimoCasos: 1, limite: 10, orden: "volumen" });

@@ -33,11 +33,11 @@ Tres decisiones que vale la pena tener presentes:
   la misma regla que la columna `CASO` del libro, y el tablero la lee de ahí
   cuando está disponible. `Devolucion` **no** cierra: la devolución está en
   curso. Abiertos contra cerrados es la métrica principal del tablero.
-- **Las columnas se leen por posición, no por nombre.** Los encabezados del
-  libro no son confiables: `Junio` no tiene fila de encabezado y el de `Sep` es
-  un bloque de HTML pegado desde WhatsApp. Las nueve primeras columnas, en
-  cambio, están siempre en el mismo orden. `src/lib/normalizar.ts` concentra eso
-  y la conversión de fechas, que llegan en `M/D/AAAA` desde el endpoint gviz.
+- **Las columnas se leen por nombre de encabezado, no por posición.** Las
+  pestañas no comparten esquema: en `Ayer` la columna 8 es `IDcoma`, mientras
+  que en `Mensual` esa posición es `Visitas`. `src/lib/normalizar.ts` mapea cada
+  campo por su nombre —con todos los alias que tuvo en el libro— y concentra
+  también la conversión de fechas, que llegan en `M/D/AAAA` desde gviz.
 
 ## Secciones
 
@@ -132,8 +132,10 @@ Todas las tablas del proyecto usan el mismo componente (`src/components/Tabla.ts
 - Las celdas de texto largo se muestran acortadas y se despliegan con un clic;
   otro clic las vuelve a acortar.
 
-Las tablas de casos ofrecen **todas** las columnas del libro; el equipo oculta
-las que no le interesan en cada momento en lugar de que el tablero decida por él.
+Cada tabla ofrece **las columnas que trae su propia pestaña**: `Ayer` no tiene
+visitas y solo `Mensual` trae reclamo, aviso y caso, así que esas columnas no
+aparecen donde no existen. De las que sí están, el equipo oculta las que no le
+interesan en cada momento.
 
 Cada estado tiene su color, definido en `src/lib/estados.ts` con los tokens de
 `globals.css`: Entregado verde oscuro, Devuelto verde claro, Devolución violeta,
