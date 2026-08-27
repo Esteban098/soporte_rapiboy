@@ -73,8 +73,8 @@ export function Kpi({
   );
 }
 
-/** Chip con el color propio de un estado del paquete. */
-export function ChipEstado({ estado, color }: { estado: string; color: ColorEstado }) {
+/** Estado del paquete: texto con su color, sin pill. */
+export function TextoEstado({ estado, color }: { estado: string; color: ColorEstado }) {
   const clase = {
     entregado: estilos.estadoEntregado,
     devuelto: estilos.estadoDevuelto,
@@ -84,26 +84,21 @@ export function ChipEstado({ estado, color }: { estado: string; color: ColorEsta
     pararetirar: estilos.estadoPararetirar,
     siniestrado: estilos.estadoSiniestrado,
     noentregado: estilos.estadoNoentregado,
-    neutral: estilos.chipNeutral,
+    neutral: estilos.estadoNeutral,
   }[color];
 
-  return <span className={`${estilos.chip} ${clase}`}>{estado}</span>;
+  return <span className={clase}>{estado}</span>;
 }
 
-export function Chip({
-  tono = "neutral",
-  children,
-}: {
-  tono?: "neutral" | "good" | "warning" | "critical" | "info";
-  children: React.ReactNode;
-}) {
-  const clase = {
-    neutral: estilos.chipNeutral,
-    good: estilos.chipGood,
-    warning: estilos.chipWarning,
-    critical: estilos.chipCritical,
-    info: estilos.chipInfo,
-  }[tono];
-
-  return <span className={`${estilos.chip} ${clase}`}>{children}</span>;
+/**
+ * Caso cerrado o abierto. Es la única pill del proyecto: resuelto contra
+ * pendiente es la métrica que la operación mira primero, así que conviene que
+ * salte a la vista por encima del resto.
+ */
+export function ChipCaso({ cerrado }: { cerrado: boolean }) {
+  return (
+    <span className={`${estilos.chip} ${cerrado ? estilos.casoCerrado : estilos.casoAbierto}`}>
+      {cerrado ? "Cerrado" : "Abierto"}
+    </span>
+  );
 }

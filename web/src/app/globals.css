@@ -38,6 +38,11 @@
   --radio: 12px;
 
   /* Un color por estado del paquete, pedido por la operación. */
+  --caso-cerrado: #0a5c27;
+  --caso-cerrado-fondo: rgba(10, 92, 39, 0.12);
+  --caso-abierto: #9b1c14;
+  --caso-abierto-fondo: rgba(155, 28, 20, 0.11);
+
   --estado-entregado: #0a6b2d;
   --estado-entregado-fondo: rgba(10, 107, 45, 0.12);
   --estado-devuelto: #4f8a22;
@@ -94,6 +99,11 @@
 
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px -22px rgba(0, 0, 0, 0.9);
 
+  --caso-cerrado: #52c077;
+  --caso-cerrado-fondo: rgba(82, 192, 119, 0.18);
+  --caso-abierto: #f08078;
+  --caso-abierto-fondo: rgba(240, 128, 120, 0.18);
+
   --estado-entregado: #4cb96e;
   --estado-entregado-fondo: rgba(76, 185, 110, 0.18);
   --estado-devuelto: #94cf50;
@@ -144,6 +154,11 @@
   --axis: #363c43;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 12px 28px -22px rgba(0, 0, 0, 0.9);
+
+  --caso-cerrado: #52c077;
+  --caso-cerrado-fondo: rgba(82, 192, 119, 0.18);
+  --caso-abierto: #f08078;
+  --caso-abierto-fondo: rgba(240, 128, 120, 0.18);
 
   --estado-entregado: #4cb96e;
   --estado-entregado-fondo: rgba(76, 185, 110, 0.18);

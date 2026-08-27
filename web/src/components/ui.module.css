@@ -305,71 +305,72 @@
   white-space: nowrap;
 }
 
-.chipGood {
-  color: var(--good);
-  background: var(--good-soft);
-}
 
-.chipWarning {
-  color: var(--warning);
-  background: var(--warning-soft);
-}
 
-.chipCritical {
-  color: var(--critical);
-  background: var(--critical-soft);
-}
 
-/* Un color por estado del paquete. */
+/* Color del texto por estado. Sin fondo ni borde: la única pill del proyecto
+   es la de Caso, que es la métrica principal. */
 .estadoEntregado {
   color: var(--estado-entregado);
-  background: var(--estado-entregado-fondo);
 }
 
 .estadoDevuelto {
   color: var(--estado-devuelto);
-  background: var(--estado-devuelto-fondo);
 }
 
 .estadoDevolucion {
   color: var(--estado-devolucion);
-  background: var(--estado-devolucion-fondo);
 }
 
 .estadoDeposito {
   color: var(--estado-deposito);
-  background: var(--estado-deposito-fondo);
 }
 
 .estadoRetirado {
   color: var(--estado-retirado);
-  background: var(--estado-retirado-fondo);
 }
 
 .estadoPararetirar {
   color: var(--estado-pararetirar);
-  background: var(--estado-pararetirar-fondo);
 }
 
 .estadoSiniestrado {
   color: var(--estado-siniestrado);
-  background: var(--estado-siniestrado-fondo);
 }
 
 .estadoNoentregado {
   color: var(--estado-noentregado);
-  background: var(--estado-noentregado-fondo);
 }
 
-.chipInfo {
-  color: var(--accent-ink);
-  background: var(--accent-soft);
+.estadoNeutral {
+  color: var(--ink-2);
 }
 
-.chipNeutral {
-  color: var(--muted);
-  background: var(--surface-2);
+/* --- Caso: la única pill --- */
+.casoCerrado {
+  color: var(--caso-cerrado);
+  background: var(--caso-cerrado-fondo);
 }
+
+.casoAbierto {
+  color: var(--caso-abierto);
+  background: var(--caso-abierto-fondo);
+}
+
+/* --- texto suelto con tono --- */
+.textoBueno {
+  color: var(--good);
+}
+
+.textoAlerta {
+  color: var(--warning);
+}
+
+.textoCritico {
+  color: var(--critical);
+}
+
+
 
 /* --- varios --- */
 

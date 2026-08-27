@@ -12,7 +12,7 @@ import {
   suscribirPreferencias,
 } from "@/lib/preferencias";
 import { numero, porcentaje, decimal } from "@/lib/formato";
-import { Chip, ChipEstado } from "./Card";
+import { ChipCaso, TextoEstado } from "./Card";
 import estilos from "./ui.module.css";
 import tabla from "./tabla.module.css";
 
@@ -300,29 +300,34 @@ function Celda({ columna, valor }: { columna: Columna; valor: Fila[string] }) {
     case "estado":
       return (
         <td className={clase}>
-          <ChipEstado estado={String(valor)} color={colorEstado(String(valor))} />
+          <TextoEstado estado={String(valor)} color={colorEstado(String(valor))} />
         </td>
       );
     case "caso":
       return (
         <td className={clase}>
-          <Chip tono={valor === "Cerrado" ? "good" : "warning"}>{String(valor)}</Chip>
+          <ChipCaso cerrado={valor === "Cerrado"} />
         </td>
       );
-    case "aviso":
+    case "aviso": {
+      const avisado = String(valor).toUpperCase() === "AVISADO";
       return (
         <td className={clase}>
-          <Chip tono={String(valor).toUpperCase() === "AVISADO" ? "good" : "critical"}>
+          <span className={avisado ? estilos.textoBueno : estilos.textoCritico}>
             {String(valor)}
-          </Chip>
+          </span>
         </td>
       );
+    }
     case "dias": {
       const dias = Number(valor);
-      const tono = dias > 2 ? "critical" : dias > 1 ? "warning" : "good";
+      const tono =
+        dias > 2 ? estilos.textoCritico : dias > 1 ? estilos.textoAlerta : estilos.textoBueno;
       return (
         <td className={clase}>
-          <Chip tono={tono}>{dias === 0 ? "Hoy" : dias === 1 ? "Ayer" : `${dias} d quieto`}</Chip>
+          <span className={tono}>
+            {dias === 0 ? "Hoy" : dias === 1 ? "Ayer" : `${dias} d quieto`}
+          </span>
         </td>
       );
     }

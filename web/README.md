@@ -145,7 +145,11 @@ interesan en cada momento.
 Cada estado tiene su color, definido en `src/lib/estados.ts` con los tokens de
 `globals.css`: Entregado verde oscuro, Devuelto verde claro, Devolución violeta,
 En depósito amarillo, Retirado celeste, Para retirar azul, Siniestrado naranja y
-Pedido no entregado rojo.
+Pedido no entregado rojo. Van como color de texto, sin recuadro.
+
+La única pill del tablero es la de **Caso** —Cerrado en verde oscuro, Abierto en
+rojo oscuro—, porque resuelto contra pendiente es la métrica que la operación
+mira primero y conviene que salte por encima del resto.
 
 Como la tabla es un componente de cliente, las páginas le pasan filas planas
 —valores serializables— y una descripción de las columnas; nunca funciones de
