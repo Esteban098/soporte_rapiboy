@@ -27,10 +27,13 @@ export function Shell({
   children,
   modo,
   usuario,
+  hayFlujos,
 }: {
   children: React.ReactNode;
   modo: "sheet" | "fixture";
   usuario?: string | null;
+  /** Si hay webhooks de n8n cargados. Define qué promete el botón Actualizar. */
+  hayFlujos: boolean;
 }) {
   return (
     <div className={estilos.app}>
@@ -81,7 +84,7 @@ export function Shell({
             />
             {modo === "fixture" ? "Datos de prueba" : "Sheet en vivo"}
           </span>
-          <BotonActualizar />
+          <BotonActualizar hayFlujos={hayFlujos} />
         </header>
 
         <main className={estilos.main}>{children}</main>

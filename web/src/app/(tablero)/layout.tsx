@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { modoDatos } from "@/lib/config";
+import { flujosActualizacion, modoDatos } from "@/lib/config";
 import { Shell } from "@/components/Shell";
 
 export default async function TableroLayout({ children }: { children: React.ReactNode }) {
@@ -7,7 +7,7 @@ export default async function TableroLayout({ children }: { children: React.Reac
   const usuario = sesion?.user?.name ?? sesion?.user?.email ?? null;
 
   return (
-    <Shell modo={modoDatos()} usuario={usuario}>
+    <Shell modo={modoDatos()} usuario={usuario} hayFlujos={flujosActualizacion().length > 0}>
       {children}
     </Shell>
   );

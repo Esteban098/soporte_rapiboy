@@ -7,6 +7,16 @@ import { actualizarDatos } from "@/app/actualizar";
 import estilos from "./boton-actualizar.module.css";
 
 /**
+ * Lo que queda para contarle al equipo cuando termina la actualización.
+ *
+ * `sinFlujos` no es una falla: los datos se releyeron igual. Se avisa porque sin
+ * webhooks cargados el botón solo refresca la lectura, y eso es indistinguible
+ * de una actualización completa si nadie lo dice. Alguien podría estar tocando
+ * Actualizar todo el día esperando que se rearmen las hojas.
+ */
+type Aviso = { tipo: "fallas"; fallas: string[] } | { tipo: "sinFlujos" };
+
+/**
  * Rearma el libro y vuelve a leerlo.
  *
  * Dispara los flujos de n8n que rehacen las pestañas y, cuando terminan,
@@ -14,9 +24,9 @@ import estilos from "./boton-actualizar.module.css";
  * queda a la vista: es peor dejar al equipo sin saber que la actualización salió
  * a medias.
  */
-export function BotonActualizar() {
+export function BotonActualizar({ hayFlujos }: { hayFlujos: boolean }) {
   const [cargando, iniciar] = useTransition();
-  const [fallas, setFallas] = useState<string[]>([]);
+  const [aviso, setAviso] = useState<Aviso | null>(null);
   const router = useRouter();
 
   return (
@@ -27,9 +37,18 @@ export function BotonActualizar() {
         disabled={cargando}
         onClick={() =>
           iniciar(async () => {
-            setFallas([]);
+            setAviso(null);
             const resultado = await actualizarDatos();
-            setFallas(resultado.fallas);
+
+            // El servidor manda: `hayFlujos` se calculó al pintar la página, y
+            // la configuración pudo cambiar desde entonces.
+            setAviso(
+              resultado.fallas.length > 0
+                ? { tipo: "fallas", fallas: resultado.fallas }
+                : resultado.flujos === 0
+                  ? { tipo: "sinFlujos" }
+                  : null,
+            );
             router.refresh();
           })
         }
@@ -53,9 +72,13 @@ export function BotonActualizar() {
             <div className={estilos.overlay} role="status" aria-live="polite">
               <div className={estilos.overlayCaja}>
                 <span className={estilos.overlayRueda} aria-hidden="true" />
-                <p className={estilos.overlayTitulo}>Actualizando el tablero</p>
+                <p className={estilos.overlayTitulo}>
+                  {hayFlujos ? "Actualizando el tablero" : "Releyendo el sheet"}
+                </p>
                 <p className={estilos.overlayTexto}>
-                  Se están rearmando las hojas del libro. Puede tardar un minuto.
+                  {hayFlujos
+                    ? "Se están rearmando las hojas del libro. Puede tardar un minuto."
+                    : "Se está descartando la copia guardada para leer la planilla de nuevo."}
                 </p>
               </div>
             </div>,
@@ -63,20 +86,42 @@ export function BotonActualizar() {
           )
         : null}
 
-      {fallas.length > 0 ? (
-        <div className={estilos.aviso} role="alert">
-          <p className={estilos.avisoTitulo}>
-            {fallas.length === 1 ? "Un flujo no corrió" : `${fallas.length} flujos no corrieron`}
-          </p>
-          <ul className={estilos.avisoLista}>
-            {fallas.map((falla) => (
-              <li key={falla}>{falla}</li>
-            ))}
-          </ul>
-          <p className={estilos.avisoPie}>
-            Los datos se recargaron igual, pero pueden no incluir lo último.
-          </p>
-          <button type="button" className={estilos.cerrar} onClick={() => setFallas([])}>
+      {aviso ? (
+        <div
+          className={`${estilos.aviso} ${aviso.tipo === "sinFlujos" ? estilos.avisoNeutro : ""}`}
+          role={aviso.tipo === "fallas" ? "alert" : "status"}
+        >
+          {aviso.tipo === "fallas" ? (
+            <>
+              <p className={estilos.avisoTitulo}>
+                {aviso.fallas.length === 1
+                  ? "Un flujo no corrió"
+                  : `${aviso.fallas.length} flujos no corrieron`}
+              </p>
+              <ul className={estilos.avisoLista}>
+                {aviso.fallas.map((falla) => (
+                  <li key={falla}>{falla}</li>
+                ))}
+              </ul>
+              <p className={estilos.avisoPie}>
+                Los datos se recargaron igual, pero pueden no incluir lo último.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className={estilos.avisoTitulo}>Se recargaron los datos</p>
+              <p className={estilos.avisoTexto}>
+                No hay ningún flujo de n8n configurado, así que las hojas del libro quedaron
+                como estaban. Esto solo volvió a leer el sheet.
+              </p>
+              <p className={estilos.avisoPie}>
+                Se cargan en <code className={estilos.clave}>N8N_WEBHOOKS</code>, con la URL de
+                producción de cada webhook.
+              </p>
+            </>
+          )}
+
+          <button type="button" className={estilos.cerrar} onClick={() => setAviso(null)}>
             Entendido
           </button>
         </div>

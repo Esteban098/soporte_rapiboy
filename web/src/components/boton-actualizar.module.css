@@ -169,3 +169,28 @@
     opacity: 0.7;
   }
 }
+
+/*
+ * El aviso de "no hay flujos" no es una falla, así que no lleva la barra roja:
+ * los datos se recargaron bien y lo único que falta es la configuración.
+ */
+.avisoNeutro {
+  border-left-color: var(--axis);
+}
+
+.avisoTexto {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+
+.clave {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 1px 4px;
+  color: var(--ink);
+}
