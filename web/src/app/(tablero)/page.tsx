@@ -13,7 +13,7 @@ import { mesLargo, numero, porcentaje } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
-import { PedidosTable } from "@/components/PedidosTable";
+import { PanelCasos } from "@/components/PanelCasos";
 import { AntiguedadTable } from "@/components/AntiguedadTable";
 import { BarrasVisitas } from "@/components/charts/BarrasVisitas";
 import { BarrasDevueltos } from "@/components/charts/BarrasDevueltos";
@@ -92,12 +92,13 @@ export default async function Resumen() {
           <EstadosTable id="mes-estados" titulo="Mes en curso · todos los estados" filas={estados} />
         </Card>
 
-        <Card
+        <PanelCasos
+          id="mes-casos"
           titulo="Casos del mes"
           nota="Todos los casos de la pestaña Mensual. Se busca por cualquier columna, se filtra por estado y caso, y se ordena por cualquier encabezado."
-        >
-          <PedidosTable id="mes-casos" titulo="Casos del mes" casos={mes} vacio="Todavía no hay casos cargados este mes." />
-        </Card>
+          casos={mes}
+          vacio="Todavía no hay casos cargados este mes."
+        />
 
         <Card
           titulo="Paquetes devueltos por día de la semana"

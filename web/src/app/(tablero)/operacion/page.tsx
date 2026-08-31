@@ -4,7 +4,7 @@ import { numero, porcentaje } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
-import { PedidosTable } from "@/components/PedidosTable";
+import { PanelCasos } from "@/components/PanelCasos";
 import { ConteoTable } from "@/components/ConteoTable";
 import estilos from "@/components/ui.module.css";
 
@@ -65,12 +65,14 @@ export default async function Ayer() {
             : `${numero(resolucion.abiertos)} casos de ayer siguen sin resolverse, y ${numero(sinEntregar)} quedaron directamente sin entregar.`}
         </Callout>
 
-        <Card
+        <PanelCasos
+          id="ayer-casos"
           titulo="Casos de ayer"
           nota="El detalle completo de la pestaña Ayer. La columna «sin moverse» cuenta los días desde el último cambio de estado del paquete."
-        >
-          <PedidosTable id="ayer-casos" titulo="Casos de ayer" casos={casos} vacio="Ayer cerró sin casos abiertos." />
-        </Card>
+          tituloGrafico="Cómo se reparten los casos de ayer"
+          casos={casos}
+          vacio="Ayer cerró sin casos abiertos."
+        />
 
         <Card
           titulo="En qué estado quedaron"

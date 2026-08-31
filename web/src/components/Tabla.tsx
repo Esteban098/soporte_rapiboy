@@ -8,10 +8,10 @@ import {
   guardarPreferencia,
   leerPreferencia,
   parsearColumnasOcultas,
-  parsearFiltros,
   sinPreferencias,
   suscribirPreferencias,
 } from "@/lib/preferencias";
+import { useVista } from "./useVista";
 import { numero, porcentaje, decimal } from "@/lib/formato";
 import { ChipCaso, TextoEstado } from "./Card";
 import estilos from "./ui.module.css";
@@ -75,8 +75,8 @@ export function Tabla({
   limite?: number;
 }) {
   const [orden, setOrden] = useState<Orden>(ordenInicial ?? null);
-  const [busqueda, setBusqueda] = useState("");
   const [imprimiendo, setImprimiendo] = useState(false);
+  const [expandida, setExpandida] = useState(false);
 
   const ocultasCrudas = useSyncExternalStore(
     suscribirPreferencias,
@@ -85,41 +85,17 @@ export function Tabla({
   );
   const ocultas = useMemo(() => new Set(parsearColumnasOcultas(ocultasCrudas)), [ocultasCrudas]);
 
-  const filtrosCrudos = useSyncExternalStore(
-    suscribirPreferencias,
-    () => leerPreferencia(id, "filtros"),
-    sinPreferencias,
-  );
-  const seleccion = useMemo(() => parsearFiltros(filtrosCrudos), [filtrosCrudos]);
-  const [expandida, setExpandida] = useState(false);
-
-  const opcionesPorFiltro = useMemo(() => {
-    const mapa: Record<string, string[]> = {};
-    for (const filtro of filtros) {
-      const opciones =
-        filtro.opciones ??
-        [...new Set(filas.map((f) => String(f[filtro.clave] ?? "")).filter(Boolean))].sort();
-
-      // Un filtro guardado puede apuntar a un valor que hoy no está en los
-      // datos. Se agrega igual para que se vea qué está filtrando y se pueda
-      // sacar, en vez de dejar la tabla vacía sin explicación.
-      const guardado = seleccion[filtro.clave];
-      mapa[filtro.clave] =
-        guardado && !opciones.includes(guardado) ? [...opciones, guardado] : opciones;
-    }
-    return mapa;
-  }, [filtros, filas, seleccion]);
-
-  const filtradas = useMemo(() => {
-    const activos = Object.entries(seleccion).filter(([, v]) => v !== "");
-    const texto = normalizar(busqueda);
-
-    return filas.filter((fila) => {
-      if (!activos.every(([clave, valor]) => String(fila[clave] ?? "") === valor)) return false;
-      if (!texto) return true;
-      return columnas.some((columna) => normalizar(String(fila[columna.clave] ?? "")).includes(texto));
-    });
-  }, [filas, seleccion, busqueda, columnas]);
+  const {
+    seleccion,
+    busqueda,
+    setBusqueda,
+    opcionesPorFiltro,
+    filtradas,
+    alternarValor,
+    limpiarFiltro,
+    limpiarTodo,
+    hayFiltros,
+  } = useVista({ id, filas, columnas, filtros });
 
   const ordenadas = useMemo(() => {
     if (!orden) return filtradas;
@@ -171,13 +147,6 @@ export function Tabla({
     guardarPreferencia(id, "columnas", [...proximo]);
   }
 
-  function cambiarFiltro(clave: string, valor: string) {
-    const proximo = { ...seleccion };
-    if (valor === "") delete proximo[clave];
-    else proximo[clave] = valor;
-    guardarPreferencia(id, "filtros", proximo);
-  }
-
   function alternarColumna(clave: string) {
     const proximo = new Set(ocultas);
     if (proximo.has(clave)) proximo.delete(clave);
@@ -207,23 +176,40 @@ export function Tabla({
           />
         </label>
 
-        {filtros.map((filtro) => (
-          <label key={filtro.clave} className={tabla.filtro}>
-            <span className={tabla.filtroEtiqueta}>{filtro.etiqueta}</span>
-            <select
-              className={tabla.select}
-              value={seleccion[filtro.clave] ?? ""}
-              onChange={(e) => cambiarFiltro(filtro.clave, e.target.value)}
-            >
-              <option value="">Todos</option>
-              {opcionesPorFiltro[filtro.clave]?.map((opcion) => (
-                <option key={opcion} value={opcion}>
-                  {opcion}
-                </option>
-              ))}
-            </select>
-          </label>
-        ))}
+        {filtros.map((filtro) => {
+          const elegidos = seleccion[filtro.clave] ?? [];
+          return (
+            <details key={filtro.clave} className={tabla.columnas}>
+              <summary className={tabla.columnasResumen}>
+                {filtro.etiqueta}
+                {elegidos.length > 0 ? (
+                  <span className={tabla.ocultasBadge}>{elegidos.length}</span>
+                ) : null}
+              </summary>
+              <div className={tabla.columnasPanel}>
+                {opcionesPorFiltro[filtro.clave]?.map((opcion) => (
+                  <label key={opcion} className={tabla.columnaOpcion}>
+                    <input
+                      type="checkbox"
+                      checked={elegidos.includes(opcion)}
+                      onChange={() => alternarValor(filtro.clave, opcion)}
+                    />
+                    {opcion}
+                  </label>
+                ))}
+                {elegidos.length > 0 ? (
+                  <button
+                    type="button"
+                    className={tabla.mostrarTodas}
+                    onClick={() => limpiarFiltro(filtro.clave)}
+                  >
+                    Quitar filtro
+                  </button>
+                ) : null}
+              </div>
+            </details>
+          );
+        })}
 
         <details className={tabla.columnas}>
           <summary className={tabla.columnasResumen}>
@@ -253,15 +239,8 @@ export function Tabla({
           Imprimir
         </button>
 
-        {Object.keys(seleccion).length > 0 || busqueda ? (
-          <button
-            type="button"
-            className={tabla.limpiar}
-            onClick={() => {
-              setBusqueda("");
-              guardarPreferencia(id, "filtros", {});
-            }}
-          >
+        {hayFiltros ? (
+          <button type="button" className={tabla.limpiar} onClick={limpiarTodo}>
             Limpiar filtros
           </button>
         ) : null}
@@ -284,7 +263,9 @@ export function Tabla({
           <p>
             {busqueda ? `Búsqueda: "${busqueda}"` : null}
             {busqueda && filtrosActivos.length > 0 ? " · " : null}
-            {filtrosActivos.map(([clave, valor]) => `${etiquetaDe(filtros, clave)}: ${valor}`).join(" · ")}
+            {filtrosActivos
+              .map(([clave, valores]) => `${etiquetaDe(filtros, clave)}: ${valores.join(", ")}`)
+              .join(" · ")}
           </p>
         ) : null}
       </div>
@@ -348,14 +329,6 @@ export function Tabla({
 
 function etiquetaDe(filtros: Filtro[], clave: string): string {
   return filtros.find((f) => f.clave === clave)?.etiqueta ?? clave;
-}
-
-/** Compara sin acentos ni mayúsculas, que es como busca la gente. */
-function normalizar(texto: string): string {
-  return texto
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "");
 }
 
 function esNumerica(tipo?: TipoColumna): boolean {

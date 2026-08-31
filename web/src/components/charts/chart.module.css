@@ -46,3 +46,10 @@
   color: var(--ink-2);
   font-variant-numeric: tabular-nums;
 }
+
+.vacio {
+  padding: 28px 4px;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}

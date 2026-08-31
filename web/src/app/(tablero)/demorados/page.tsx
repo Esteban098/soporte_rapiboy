@@ -4,7 +4,7 @@ import { numero, porcentaje } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
-import { PedidosTable } from "@/components/PedidosTable";
+import { PanelCasos } from "@/components/PanelCasos";
 import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Demorados" };
@@ -12,6 +12,7 @@ export const metadata = { title: "Demorados" };
 export default async function Demorados() {
   const mes = await cargarPedidos();
   const atrasados = demorados(mes.pedidos);
+  const casosDemorados = { pedidos: atrasados, campos: mes.campos };
 
   const estados = porEstado(atrasados);
   const dias = atrasados.map((pedido) => diasSinMovimiento(pedido) ?? 0);
@@ -63,17 +64,14 @@ export default async function Demorados() {
             : `${numero(atrasados.length)} casos llevan más de ${DIAS_PARA_DEMORA} días sin moverse y siguen abiertos. Vienen ordenados del más viejo al más nuevo: los de arriba son los que más tiempo llevan parados.`}
         </Callout>
 
-        <Card
+        <PanelCasos
+          id="demorados-casos"
           titulo="Casos demorados"
-          nota="Los mismos datos de Mes en curso, acotados a los que están frenados. Se busca por cualquier columna, se filtra por estado y se ordena por cualquier encabezado."
-        >
-          <PedidosTable
-            id="demorados-casos"
-            titulo="Casos demorados"
-            casos={{ pedidos: atrasados, campos: mes.campos }}
-            vacio="No hay casos demorados."
-          />
-        </Card>
+          nota="Los casos abiertos que llevan más de dos días sin cambiar de estado. La columna «sin moverse» cuenta desde el último movimiento."
+          tituloGrafico="Dónde se concentran los demorados"
+          casos={casosDemorados}
+          vacio="No hay pedidos demorados."
+        />
 
         <Card
           titulo="En qué estado están frenados"

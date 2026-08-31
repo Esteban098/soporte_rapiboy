@@ -18,6 +18,17 @@ const PREFIJO = "tablero:";
 
 const oyentes = new Set<() => void>();
 
+/**
+ * Valores que se comparten entre componentes pero no sobreviven a la pantalla,
+ * como el texto del buscador. Van en memoria y no en `localStorage`: sirven
+ * para que la tabla y sus gráficos miren lo mismo, no para recordarlos mañana.
+ */
+const efimeros = new Map<string, string>();
+
+function avisar() {
+  for (const oyente of oyentes) oyente();
+}
+
 export function suscribirPreferencias(oyente: () => void): () => void {
   oyentes.add(oyente);
   window.addEventListener("storage", oyente);
@@ -61,7 +72,17 @@ export function guardarPreferencia(idTabla: string, clave: string, valor: unknow
   } catch {
     // Sin almacenamiento disponible, la elección dura lo que dure la pantalla.
   }
-  for (const oyente of oyentes) oyente();
+  avisar();
+}
+
+export function leerEfimero(idTabla: string, clave: string): string {
+  return efimeros.get(llave(idTabla, clave)) ?? "";
+}
+
+export function guardarEfimero(idTabla: string, clave: string, valor: string): void {
+  if (valor === "") efimeros.delete(llave(idTabla, clave));
+  else efimeros.set(llave(idTabla, clave), valor);
+  avisar();
 }
 
 export function parsearColumnasOcultas(crudo: string): string[] {
@@ -74,15 +95,24 @@ export function parsearColumnasOcultas(crudo: string): string[] {
   }
 }
 
-export function parsearFiltros(crudo: string): Record<string, string> {
+/**
+ * Los filtros admiten varios valores por columna. Se acepta también el formato
+ * viejo, de un solo valor como string, para no perder lo que la gente ya tenía
+ * guardado cuando se pasó a selección múltiple.
+ */
+export function parsearFiltros(crudo: string): Record<string, string[]> {
   if (!crudo) return {};
   try {
     const valor: unknown = JSON.parse(crudo);
     if (!valor || typeof valor !== "object" || Array.isArray(valor)) return {};
 
-    const limpio: Record<string, string> = {};
+    const limpio: Record<string, string[]> = {};
     for (const [clave, v] of Object.entries(valor as Record<string, unknown>)) {
-      if (typeof v === "string" && v !== "") limpio[clave] = v;
+      if (typeof v === "string" && v !== "") limpio[clave] = [v];
+      else if (Array.isArray(v)) {
+        const valores = v.filter((x): x is string => typeof x === "string" && x !== "");
+        if (valores.length > 0) limpio[clave] = valores;
+      }
     }
     return limpio;
   } catch {

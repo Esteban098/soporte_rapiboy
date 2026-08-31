@@ -1,5 +1,5 @@
 import type { Casos } from "@/lib/datos";
-import { columnasPara, filasDePedidos } from "@/lib/filas";
+import { columnasPara, filasDePedidos, FILTROS_PEDIDO } from "@/lib/filas";
 import { Tabla } from "./Tabla";
 
 /**
@@ -28,10 +28,7 @@ export function PedidosTable({
       titulo={titulo}
       columnas={columnasPara(casos.campos)}
       filas={filasDePedidos(casos.pedidos)}
-      filtros={[
-        { clave: "estado", etiqueta: "Estado" },
-        { clave: "caso", etiqueta: "Caso", opciones: ["Abierto", "Cerrado"] },
-      ]}
+      filtros={FILTROS_PEDIDO}
       ordenInicial={{ clave: "quieto", asc: false }}
       limite={limite}
       vacio={vacio}

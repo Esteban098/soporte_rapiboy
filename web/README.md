@@ -132,7 +132,8 @@ Todas las tablas del proyecto usan el mismo componente (`src/components/Tabla.ts
 - Traen un buscador que filtra por cualquier columna, sin distinguir acentos ni
   mayúsculas.
 - Se ordenan haciendo clic en cualquier encabezado.
-- Varias traen filtros por estado, caso o aviso.
+- Varias traen filtros por estado, caso o aviso, y admiten **varios valores a la
+  vez**: se eligen con casillas, no con un desplegable de un solo valor.
 - El menú **Columnas** deja ocultar las que no interesen, tabla por tabla.
 - Las columnas ocultas y los filtros elegidos quedan guardados en el navegador
   de cada persona (`localStorage`, ver `src/lib/preferencias.ts`), por tabla. Se
@@ -166,6 +167,18 @@ mira primero y conviene que salte por encima del resto.
 Como la tabla es un componente de cliente, las páginas le pasan filas planas
 —valores serializables— y una descripción de las columnas; nunca funciones de
 render, que no cruzan el límite entre servidor y cliente.
+
+## Gráficos atados a la tabla
+
+Las secciones con listado de casos abren con un gráfico configurable: se elige
+por qué dimensión agrupar —estado, comercio, zona, repartidor— y qué medir
+—casos, abiertos, % sin resolver, visitas promedio—.
+
+El gráfico **comparte los filtros con su tabla**: filtrar por una zona o buscar
+un comercio lo recalcula al instante. No hay un contexto que los envuelva ni
+props entre medio: los dos llaman a `useVista` con el mismo `id`, y el estado
+vive en el store de preferencias, que avisa a sus suscriptores cuando algo
+cambia (`src/components/useVista.ts`).
 
 ## Límites conocidos
 

@@ -1,6 +1,6 @@
 import type { Pedido } from "./normalizar";
 import type { CampoPedido } from "./normalizar";
-import type { Columna, Fila } from "@/components/Tabla";
+import type { Columna, Fila, Filtro } from "@/components/Tabla";
 import { enlaceFotoEntrega } from "./enlaces";
 import { fechaCorta } from "./formato";
 import { diasSinMovimiento } from "./metricas";
@@ -49,6 +49,16 @@ export function columnasPara(campos: CampoPedido[]): Columna[] {
     (columna) => ({ clave: columna.clave, titulo: columna.titulo, tipo: columna.tipo }),
   );
 }
+
+/**
+ * Filtros de un listado de casos. Están acá y no dentro de la tabla porque el
+ * gráfico que la acompaña tiene que recibir exactamente los mismos: comparten
+ * el estado de filtrado, y una diferencia entre ambos los desincronizaría.
+ */
+export const FILTROS_PEDIDO: Filtro[] = [
+  { clave: "estado", etiqueta: "Estado" },
+  { clave: "caso", etiqueta: "Caso", opciones: ["Abierto", "Cerrado"] },
+];
 
 /**
  * Convierte pedidos en filas planas para la tabla.
