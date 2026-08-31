@@ -69,14 +69,14 @@ export default async function Ayer() {
           titulo="Casos de ayer"
           nota="El detalle completo de la pestaña Ayer. La columna «sin moverse» cuenta los días desde el último cambio de estado del paquete."
         >
-          <PedidosTable id="ayer-casos" casos={casos} vacio="Ayer cerró sin casos abiertos." />
+          <PedidosTable id="ayer-casos" titulo="Casos de ayer" casos={casos} vacio="Ayer cerró sin casos abiertos." />
         </Card>
 
         <Card
           titulo="En qué estado quedaron"
           nota="Los casos de ayer agrupados por estado, con cuáles cuentan como resueltos."
         >
-          <EstadosTable id="ayer-estados" filas={estados} />
+          <EstadosTable id="ayer-estados" titulo="Ayer · en qué estado quedaron" filas={estados} />
         </Card>
 
         <Card
@@ -86,15 +86,15 @@ export default async function Ayer() {
           <div className={estilos.grid3}>
             <div>
               <h3 className={estilos.subtitulo}>Por repartidor</h3>
-              <ConteoTable id="ayer-ne-repartidor" filas={porRepartidor} etiqueta="Repartidor" />
+              <ConteoTable id="ayer-ne-repartidor" titulo="No entregados por repartidor" filas={porRepartidor} etiqueta="Repartidor" />
             </div>
             <div>
               <h3 className={estilos.subtitulo}>Por zona</h3>
-              <ConteoTable id="ayer-ne-poligono" filas={porPoligono} etiqueta="Zona" />
+              <ConteoTable id="ayer-ne-poligono" titulo="No entregados por zona" filas={porPoligono} etiqueta="Zona" />
             </div>
             <div>
               <h3 className={estilos.subtitulo}>Por comercio</h3>
-              <ConteoTable id="ayer-ne-tienda" filas={porTienda} etiqueta="Comercio" />
+              <ConteoTable id="ayer-ne-tienda" titulo="No entregados por comercio" filas={porTienda} etiqueta="Comercio" />
             </div>
           </div>
         </Card>

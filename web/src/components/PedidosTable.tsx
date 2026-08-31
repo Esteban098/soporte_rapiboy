@@ -9,12 +9,15 @@ import { Tabla } from "./Tabla";
  */
 export function PedidosTable({
   id,
+  titulo,
   casos,
   vacio = "No quedó ningún caso en esta vista.",
   limite = 30,
 }: {
   /** Identifica la tabla para recordar las columnas ocultas. */
   id: string;
+  /** Encabezado que lleva la tabla al imprimirse. */
+  titulo?: string;
   casos: Casos;
   vacio?: string;
   limite?: number;
@@ -22,6 +25,7 @@ export function PedidosTable({
   return (
     <Tabla
       id={id}
+      titulo={titulo}
       columnas={columnasPara(casos.campos)}
       filas={filasDePedidos(casos.pedidos)}
       filtros={[

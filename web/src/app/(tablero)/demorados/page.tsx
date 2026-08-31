@@ -69,6 +69,7 @@ export default async function Demorados() {
         >
           <PedidosTable
             id="demorados-casos"
+            titulo="Casos demorados"
             casos={{ pedidos: atrasados, campos: mes.campos }}
             vacio="No hay casos demorados."
           />
@@ -78,7 +79,7 @@ export default async function Demorados() {
           titulo="En qué estado están frenados"
           nota="Dónde se traban los casos que no avanzan. Es la lectura que dice qué hay que destrabar, más que cuántos hay."
         >
-          <EstadosTable id="demorados-estados" filas={estados} />
+          <EstadosTable id="demorados-estados" titulo="Demorados · en qué estado están" filas={estados} />
         </Card>
       </div>
     </>

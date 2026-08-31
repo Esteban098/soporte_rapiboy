@@ -247,3 +247,78 @@ a {
     animation: none !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Impresión. Solo sale al papel la tabla que se pidió imprimir: se la marca con
+   data-imprimir y se oculta todo lo demás con `visibility`, que a diferencia de
+   `display: none` no descoloca el resto del documento mientras se arma la hoja.
+   --------------------------------------------------------------------------- */
+
+@media print {
+  /* El papel es blanco: los colores del tema oscuro no tienen sentido acá. */
+  :root {
+    color-scheme: light;
+    --plane: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #ffffff;
+    --surface-3: #ffffff;
+    --ink: #000000;
+    --ink-2: #333333;
+    --muted: #666666;
+    --rule: rgba(0, 0, 0, 0.25);
+    --rule-soft: rgba(0, 0, 0, 0.15);
+    --shadow: none;
+  }
+
+  @page {
+    size: landscape;
+    margin: 12mm;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  body * {
+    visibility: hidden;
+    box-shadow: none !important;
+  }
+
+  [data-imprimir="si"],
+  [data-imprimir="si"] * {
+    visibility: visible;
+  }
+
+  [data-imprimir="si"] {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+  }
+
+  /* Los controles de pantalla no van al papel. Se marcan uno por uno en vez de
+     ocultar todos los botones: dentro de las celdas también hay botones, y son
+     el contenido. */
+  [data-noimprimir] {
+    display: none !important;
+  }
+
+  /* Una fila no se parte entre dos hojas, y el encabezado se repite en cada una. */
+  table {
+    width: 100%;
+    font-size: 8.5pt;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    break-inside: avoid;
+  }
+
+  th,
+  td {
+    padding: 4px 6px !important;
+    white-space: normal !important;
+  }
+}

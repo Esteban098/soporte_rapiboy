@@ -60,6 +60,53 @@
   outline: none;
 }
 
+.imprimir {
+  align-self: flex-end;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  padding: 6px 11px;
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.imprimir::before {
+  content: "⎙ ";
+  opacity: 0.7;
+}
+
+.imprimir:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+  border-color: var(--axis);
+}
+
+/* Encabezado del PDF: en pantalla no existe. */
+.encabezadoImpreso {
+  display: none;
+}
+
+@media print {
+  .encabezadoImpreso {
+    display: block;
+    margin-bottom: 14px;
+  }
+
+  .encabezadoImpreso h2 {
+    font-size: 15pt;
+    margin: 0 0 4px;
+  }
+
+  .encabezadoImpreso p {
+    font-size: 9pt;
+    color: #555;
+    margin: 0 0 2px;
+  }
+}
+
 .limpiar {
   align-self: flex-end;
   background: none;
@@ -336,4 +383,19 @@
   clip-path: inset(50%);
   white-space: nowrap;
   border: 0;
+}
+
+/* La celda acortada es interactiva en pantalla; en el papel va el texto entero. */
+.soloImpresion {
+  display: none;
+}
+
+@media print {
+  .soloImpresion {
+    display: inline;
+  }
+
+  .celdaTexto {
+    display: none !important;
+  }
 }

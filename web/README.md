@@ -138,6 +138,12 @@ Todas las tablas del proyecto usan el mismo componente (`src/components/Tabla.ts
   de cada persona (`localStorage`, ver `src/lib/preferencias.ts`), por tabla. Se
   consumen con `useSyncExternalStore` para que el render del servidor no choque
   con la hidratación. El buscador no se guarda: es de uso momentáneo.
+- **Imprimir** manda esa tabla —y solo esa— a la impresión del navegador, que
+  ofrece guardar en PDF. Sale con lo que haya en pantalla: los mismos filtros,
+  la misma búsqueda y las mismas columnas visibles, con un encabezado que deja
+  registrado qué se filtró y cuándo. Se usa la impresión del navegador en vez de
+  generar el PDF por código para no reproducir la lógica de la tabla en otro
+  lado; el detalle está en el bloque `@media print` de `globals.css`.
 - Con algún filtro puesto aparece **Limpiar filtros**, que también sirve cuando
   una preferencia guardada apunta a un valor que ya no está en los datos.
 - Las celdas de texto largo se muestran acortadas y se despliegan con un clic;

@@ -7,11 +7,14 @@ import { Tabla } from "./Tabla";
  */
 export function ConteoTable({
   id,
+  titulo,
   filas,
   etiqueta,
   vacio,
 }: {
   id: string;
+  /** Encabezado que lleva la tabla al imprimirse. */
+  titulo?: string;
   filas: FilaConteo[];
   etiqueta: string;
   vacio?: string;
@@ -19,6 +22,7 @@ export function ConteoTable({
   return (
     <Tabla
       id={id}
+      titulo={titulo}
       columnas={[
         { clave: "nombre", titulo: etiqueta, tipo: "texto" },
         { clave: "casos", titulo: "Sin entregar", tipo: "numero" },

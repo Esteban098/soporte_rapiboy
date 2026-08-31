@@ -89,14 +89,14 @@ export default async function Resumen() {
           titulo="Todos los estados"
           nota="Cada estado en el que puede quedar un caso, con cuántos hay y si cuenta como resuelto."
         >
-          <EstadosTable id="mes-estados" filas={estados} />
+          <EstadosTable id="mes-estados" titulo="Mes en curso · todos los estados" filas={estados} />
         </Card>
 
         <Card
           titulo="Casos del mes"
           nota="Todos los casos de la pestaña Mensual. Se busca por cualquier columna, se filtra por estado y caso, y se ordena por cualquier encabezado."
         >
-          <PedidosTable id="mes-casos" casos={mes} vacio="Todavía no hay casos cargados este mes." />
+          <PedidosTable id="mes-casos" titulo="Casos del mes" casos={mes} vacio="Todavía no hay casos cargados este mes." />
         </Card>
 
         <Card
@@ -118,7 +118,7 @@ export default async function Resumen() {
             titulo="Hace cuánto que no se mueven los abiertos"
             nota="De los casos todavía sin resolver, cuántos días llevan sin ningún cambio de estado. Los de más de cuatro días son los que hay que empujar."
           >
-            <AntiguedadTable id="mes-antiguedad" filas={antiguedad} />
+            <AntiguedadTable id="mes-antiguedad" titulo="Antigüedad de los casos abiertos" filas={antiguedad} />
           </Card>
         </div>
 

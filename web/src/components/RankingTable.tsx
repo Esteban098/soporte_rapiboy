@@ -4,12 +4,15 @@ import { Tabla } from "./Tabla";
 /** Ranking por repartidor, comercio o zona. Ordenable por cualquier columna. */
 export function RankingTable({
   id,
+  titulo,
   filas,
   etiquetaDimension,
   mostrarVisitas = true,
 }: {
   /** Identifica la tabla para recordar las columnas ocultas. */
   id: string;
+  /** Encabezado que lleva la tabla al imprimirse. */
+  titulo?: string;
   filas: FilaRanking[];
   etiquetaDimension: string;
   mostrarVisitas?: boolean;
@@ -17,6 +20,7 @@ export function RankingTable({
   return (
     <Tabla
       id={id}
+      titulo={titulo}
       columnas={[
         { clave: "nombre", titulo: etiquetaDimension, tipo: "texto" },
         { clave: "casos", titulo: "Casos", tipo: "numero" },

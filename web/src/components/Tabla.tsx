@@ -54,6 +54,7 @@ type Orden = { clave: string; asc: boolean } | null;
 
 export function Tabla({
   id,
+  titulo,
   columnas,
   filas,
   filtros = [],
@@ -63,6 +64,8 @@ export function Tabla({
 }: {
   /** Identifica la tabla para recordar qué columnas ocultó cada persona. */
   id: string;
+  /** Encabezado que lleva la tabla al imprimirse. */
+  titulo?: string;
   columnas: Columna[];
   filas: Fila[];
   filtros?: Filtro[];
@@ -73,6 +76,7 @@ export function Tabla({
 }) {
   const [orden, setOrden] = useState<Orden>(ordenInicial ?? null);
   const [busqueda, setBusqueda] = useState("");
+  const [imprimiendo, setImprimiendo] = useState(false);
 
   const ocultasCrudas = useSyncExternalStore(
     suscribirPreferencias,
@@ -138,6 +142,31 @@ export function Tabla({
   const visibles = limite && !expandida ? ordenadas.slice(0, limite) : ordenadas;
   const columnasVisibles = columnas.filter((c) => !ocultas.has(c.clave));
 
+  /**
+   * Imprime esta tabla y nada más.
+   *
+   * Se usa la impresión del navegador en lugar de generar el PDF por código:
+   * imprime el DOM tal como está, así lo que sale en el papel es exactamente lo
+   * que hay en pantalla —mismos filtros, misma búsqueda, mismas columnas— sin
+   * tener que reproducir esa lógica en otro lado.
+   */
+  function imprimir() {
+    setImprimiendo(true);
+
+    // El papel no tiene "ver más filas": se despliegan todas antes de imprimir.
+    const limitadaAntes = limite != null && !expandida;
+    if (limitadaAntes) setExpandida(true);
+
+    // Dos cuadros para que React pinte las filas nuevas antes de abrir el diálogo.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        window.print();
+        setImprimiendo(false);
+        if (limitadaAntes) setExpandida(false);
+      }),
+    );
+  }
+
   function cambiarOcultas(proximo: Set<string>) {
     guardarPreferencia(id, "columnas", [...proximo]);
   }
@@ -162,9 +191,11 @@ export function Tabla({
     );
   }
 
+  const filtrosActivos = Object.entries(seleccion);
+
   return (
-    <>
-      <div className={tabla.filtros}>
+    <div data-imprimir={imprimiendo ? "si" : undefined}>
+      <div className={tabla.filtros} data-noimprimir>
         <label className={tabla.filtro}>
           <span className={tabla.filtroEtiqueta}>Buscar</span>
           <input
@@ -218,6 +249,10 @@ export function Tabla({
           </div>
         </details>
 
+        <button type="button" className={tabla.imprimir} onClick={imprimir}>
+          Imprimir
+        </button>
+
         {Object.keys(seleccion).length > 0 || busqueda ? (
           <button
             type="button"
@@ -235,6 +270,23 @@ export function Tabla({
           {numero(ordenadas.length)}
           {ordenadas.length === filas.length ? " filas" : ` de ${numero(filas.length)}`}
         </span>
+      </div>
+
+      <div className={tabla.encabezadoImpreso}>
+        <h2>{titulo ?? "Tabla"}</h2>
+        <p>
+          {numero(ordenadas.length)}
+          {ordenadas.length === filas.length ? " filas" : ` de ${numero(filas.length)} filas`}
+          {" · "}
+          {new Date().toLocaleString("es-MX", { dateStyle: "long", timeStyle: "short" })}
+        </p>
+        {filtrosActivos.length > 0 || busqueda ? (
+          <p>
+            {busqueda ? `Búsqueda: "${busqueda}"` : null}
+            {busqueda && filtrosActivos.length > 0 ? " · " : null}
+            {filtrosActivos.map(([clave, valor]) => `${etiquetaDe(filtros, clave)}: ${valor}`).join(" · ")}
+          </p>
+        ) : null}
       </div>
 
       {ordenadas.length === 0 ? (
@@ -284,14 +336,18 @@ export function Tabla({
       )}
 
       {limite && ordenadas.length > limite ? (
-        <button type="button" className={tabla.masFilas} onClick={() => setExpandida((v) => !v)}>
+        <button type="button" className={tabla.masFilas} onClick={() => setExpandida((v) => !v)} data-noimprimir>
           {expandida
             ? `Mostrar solo ${numero(limite)}`
             : `Ver las ${numero(ordenadas.length)} filas`}
         </button>
       ) : null}
-    </>
+    </div>
   );
+}
+
+function etiquetaDe(filtros: Filtro[], clave: string): string {
+  return filtros.find((f) => f.clave === clave)?.etiqueta ?? clave;
 }
 
 /** Compara sin acentos ni mayúsculas, que es como busca la gente. */

@@ -76,6 +76,7 @@ export default async function Reclamos() {
         >
           <Tabla
             id="reclamos-casos"
+            titulo="Casos con datos de la tienda"
             columnas={columnasPara(mes.campos)}
             filas={filas}
             filtros={[
@@ -93,51 +94,34 @@ export default async function Reclamos() {
           titulo="Qué tipo de dato aporta la tienda"
           nota="La tipificación que carga soporte en la columna RECLAMO TIENDA, con cuántos de esos casos llegaron a entregarse."
         >
-          {datos.porTipo.length === 0 ? (
-            <p className={estilos.empty}>Todavía no hay casos con datos de la tienda este mes.</p>
-          ) : (
-            <div className={estilos.tableWrap}>
-              <table className={estilos.table}>
-                <thead>
-                  <tr>
-                    <th>Tipo de dato</th>
-                    <th className={estilos.num}>Casos</th>
-                    <th className={estilos.num}>Entregados</th>
-                    <th className={estilos.num}>% entrega</th>
-                    <th className={estilos.num}>Abiertos</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {datos.porTipo.map((fila) => (
-                    <tr key={fila.tipo}>
-                      <td>{fila.tipo}</td>
-                      <td className={estilos.num}>{numero(fila.casos)}</td>
-                      <td className={estilos.num}>{numero(fila.entregados)}</td>
-                      <td className={estilos.num}>
-                        <span className={estilos.barCell}>
-                          <span className={estilos.barTrack}>
-                            <span
-                              className={`${estilos.barFill} ${estilos.barFillGood}`}
-                              style={{ width: `${fila.tasaEntrega}%` }}
-                            />
-                          </span>
-                          {porcentaje(fila.tasaEntrega)}
-                        </span>
-                      </td>
-                      <td className={estilos.num}>{numero(fila.abiertos)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <Tabla
+            id="reclamos-tipos"
+            titulo="Qué tipo de dato aporta la tienda"
+            columnas={[
+              { clave: "tipo", titulo: "Tipo de dato", tipo: "texto" },
+              { clave: "casos", titulo: "Casos", tipo: "numero" },
+              { clave: "entregados", titulo: "Entregados", tipo: "numero" },
+              { clave: "tasaEntrega", titulo: "% entrega", tipo: "porcentaje" },
+              { clave: "abiertos", titulo: "Abiertos", tipo: "numero" },
+            ]}
+            filas={datos.porTipo.map((fila) => ({
+              id: fila.tipo,
+              tipo: fila.tipo,
+              casos: fila.casos,
+              entregados: fila.entregados,
+              tasaEntrega: fila.tasaEntrega,
+              abiertos: fila.abiertos,
+            }))}
+            ordenInicial={{ clave: "casos", asc: false }}
+            vacio="Todavía no hay casos con datos de la tienda este mes."
+          />
         </Card>
 
         <Card
           titulo="En qué terminaron los casos con datos"
           nota="El desglose completo de estados, solo para los casos donde la tienda aportó información."
         >
-          <EstadosTable id="reclamos-estados" filas={datos.porEstado} />
+          <EstadosTable id="reclamos-estados" titulo="Reclamos · en qué terminaron" filas={datos.porEstado} />
         </Card>
 
       </div>

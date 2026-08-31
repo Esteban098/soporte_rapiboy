@@ -17,14 +17,19 @@ export function CeldaTexto({ valor }: { valor: string }) {
   if (!largo) return <>{valor}</>;
 
   return (
-    <button
-      type="button"
-      className={`${estilos.celdaTexto} ${abierta ? estilos.celdaAbierta : ""}`}
-      onClick={() => setAbierta((v) => !v)}
-      title={abierta ? "Tocar para acortar" : valor}
-      aria-expanded={abierta}
-    >
-      {abierta ? valor : `${valor.slice(0, LARGO_MAXIMO).trimEnd()}…`}
-    </button>
+    <>
+      <button
+        type="button"
+        className={`${estilos.celdaTexto} ${abierta ? estilos.celdaAbierta : ""}`}
+        onClick={() => setAbierta((v) => !v)}
+        title={abierta ? "Tocar para acortar" : valor}
+        aria-expanded={abierta}
+        >
+        {abierta ? valor : `${valor.slice(0, LARGO_MAXIMO).trimEnd()}…`}
+      </button>
+
+      {/* En el papel no hay dónde tocar, así que va el contenido entero. */}
+      <span className={estilos.soloImpresion}>{valor}</span>
+    </>
   );
 }
