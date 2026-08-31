@@ -2,6 +2,7 @@ import Link from "next/link";
 import { NavLink } from "./NavLink";
 import { SignOutButton } from "./SignOutButton";
 import { BotonActualizar } from "./BotonActualizar";
+import { BotonRefrescar } from "./BotonRefrescar";
 import estilos from "./ui.module.css";
 
 /**
@@ -84,6 +85,7 @@ export function Shell({
             />
             {modo === "fixture" ? "Datos de prueba" : "Sheet en vivo"}
           </span>
+          <BotonRefrescar />
           <BotonActualizar hayFlujos={hayFlujos} />
         </header>
 

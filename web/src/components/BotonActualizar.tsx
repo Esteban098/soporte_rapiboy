@@ -35,6 +35,11 @@ export function BotonActualizar({ hayFlujos }: { hayFlujos: boolean }) {
         type="button"
         className={estilos.boton}
         disabled={cargando}
+        title={
+          hayFlujos
+            ? "Corre los flujos de n8n que rearman las hojas del libro y después vuelve a leerlas. Puede tardar un minuto."
+            : "Vuelve a leer el sheet. No hay flujos de n8n configurados, así que no rearma las hojas."
+        }
         onClick={() =>
           iniciar(async () => {
             setAviso(null);

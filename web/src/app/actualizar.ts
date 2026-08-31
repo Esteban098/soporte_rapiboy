@@ -12,6 +12,24 @@ export type ResultadoActualizacion = {
 };
 
 /**
+ * Vuelve a leer el sheet, sin tocar n8n.
+ *
+ * Es la mitad barata de `actualizarDatos`: descarta la copia guardada y listo.
+ * Sirve para cuando alguien editó la planilla a mano y quiere verlo en el
+ * tablero ya, sin esperar el minuto que tardan los flujos en rearmar las hojas.
+ *
+ * `updateTag` es lo que hace que sirva de verdad. La lectura del sheet se
+ * guarda por `SHEET_REVALIDATE` segundos y, cuando ese plazo vence, Next
+ * entrega igual la copia vieja mientras busca la nueva por detrás: por eso
+ * refrescar el navegador a veces muestra lo de antes y recién al segundo
+ * intento aparece el cambio. `updateTag` vence la copia en el acto y obliga al
+ * próximo pedido a esperar el dato fresco.
+ */
+export async function refrescarDatos(): Promise<void> {
+  updateTag("sheet");
+}
+
+/**
  * Rearma el libro y descarta la copia cacheada del sheet.
  *
  * El orden importa: primero corren los flujos de n8n que rehacen las pestañas,
