@@ -93,6 +93,7 @@ export default async function Resumen() {
         </Card>
 
         <PanelCasos
+          editable
           id="mes-casos"
           titulo="Casos del mes"
           nota="Todos los casos de la pestaña Mensual. Se busca por cualquier columna, se filtra por estado y caso, y se ordena por cualquier encabezado."

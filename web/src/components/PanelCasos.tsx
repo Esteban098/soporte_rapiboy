@@ -20,6 +20,7 @@ export function PanelCasos({
   casos,
   vacio = "No quedó ningún caso en esta vista.",
   limite = 30,
+  editable = false,
 }: {
   id: string;
   titulo: string;
@@ -29,6 +30,8 @@ export function PanelCasos({
   casos: Casos;
   vacio?: string;
   limite?: number;
+  /** Solo para las vistas que leen `mensual`: ver la nota en `Tabla`. */
+  editable?: boolean;
 }) {
   const columnas = columnasPara(casos.campos);
   const filas = filasDePedidos(casos.pedidos);
@@ -49,6 +52,7 @@ export function PanelCasos({
           ordenInicial={{ clave: "quieto", asc: false }}
           limite={limite}
           vacio={vacio}
+          editable={editable}
         />
       </Card>
     </>

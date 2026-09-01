@@ -87,6 +87,7 @@ export default async function Reclamos() {
             ordenInicial={{ clave: "quieto", asc: false }}
             limite={30}
             vacio="No hay casos con datos de la tienda."
+            editable
           />
         </Card>
 

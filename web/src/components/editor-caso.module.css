@@ -1,0 +1,154 @@
+/* Cubre la pantalla mientras se edita: es una operación que escribe en la base
+   y conviene que no se confunda con navegar por la tabla. */
+.fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--plane) 78%, transparent);
+  backdrop-filter: blur(3px);
+  overflow-y: auto;
+}
+
+.panel {
+  width: min(440px, 100%);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 22px 24px 20px;
+}
+
+.titulo {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 16.5px;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+
+.nota {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.campo {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.etiqueta {
+  display: block;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.entrada {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.entrada:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.entrada:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+.error {
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border-left: 3px solid var(--critical);
+  background: var(--critical-soft);
+  font-size: 12.5px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.acciones {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.principal,
+.secundario,
+.borrar,
+.peligro {
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  cursor: pointer;
+  border: 1px solid var(--rule);
+}
+
+.principal {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.principal:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.secundario {
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+
+/* Borrar queda a la derecha y sin relleno: es la acción que no se elige por
+   error, y siempre pasa por una confirmación. */
+.borrar {
+  margin-left: auto;
+  background: transparent;
+  border-color: transparent;
+  color: var(--critical);
+}
+
+.borrar:hover:not(:disabled) {
+  background: var(--critical-soft);
+  border-color: var(--critical);
+}
+
+.peligro {
+  background: var(--critical);
+  border-color: var(--critical);
+  color: #fff;
+}
+
+.confirmar {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 9px;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--critical);
+  background: var(--surface-2);
+}
+
+.confirmarTexto {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  line-height: 1.5;
+}

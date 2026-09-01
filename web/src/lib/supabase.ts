@@ -23,24 +23,96 @@ export async function leerTabla(tabla: string): Promise<string[][]> {
   return [columnas, ...filas.map((fila) => columnas.map((c) => aTexto(fila[c])))];
 }
 
+/**
+ * Un pedido a PostgREST con las credenciales puestas.
+ *
+ * La service key saltea RLS, así que este módulo es `server-only`: nunca llega
+ * al navegador. Lo que protege los datos es el login del sitio.
+ */
+async function pedir(ruta: string, init: RequestInit & { next?: NextFetchRequestConfig }) {
+  const { url, clave } = supabaseConfig();
+  return fetch(`${url}/rest/v1/${ruta}`, {
+    ...init,
+    headers: {
+      apikey: clave,
+      authorization: `Bearer ${clave}`,
+      "content-type": "application/json",
+      ...init.headers,
+    },
+  });
+}
+
+/**
+ * Traduce un error de PostgREST a algo que sirva leer en pantalla.
+ *
+ * El caso que más importa es el 23505: alguien intenta cargar un caso que ya
+ * está en la tabla. Es el error esperable de la operación, no una falla.
+ */
+async function motivoDeFalla(respuesta: Response): Promise<string> {
+  const cuerpo = await respuesta.text().catch(() => "");
+  if (cuerpo.includes("23505")) return "Ese caso ya está cargado.";
+  if (respuesta.status === 401 || respuesta.status === 403) {
+    return "La base rechazó la credencial. Revisá SUPABASE_SERVICE_KEY.";
+  }
+  return `La base respondió ${respuesta.status}. ${cuerpo}`.trim();
+}
+
+/** Inserta una fila. Devuelve `null` si salió bien, o el motivo de la falla. */
+export async function insertarFila(
+  tabla: string,
+  fila: Record<string, unknown>,
+): Promise<string | null> {
+  const respuesta = await pedir(encodeURIComponent(tabla), {
+    method: "POST",
+    body: JSON.stringify(fila),
+    headers: { prefer: "return=minimal" },
+    cache: "no-store",
+  });
+  return respuesta.ok ? null : motivoDeFalla(respuesta);
+}
+
+/** Modifica una fila por id. Devuelve `null` si salió bien. */
+export async function actualizarFila(
+  tabla: string,
+  id: number,
+  cambios: Record<string, unknown>,
+): Promise<string | null> {
+  const respuesta = await pedir(`${encodeURIComponent(tabla)}?id=eq.${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(cambios),
+    headers: { prefer: "return=minimal" },
+    cache: "no-store",
+  });
+  return respuesta.ok ? null : motivoDeFalla(respuesta);
+}
+
+/** Borra una fila por id. Devuelve `null` si salió bien. */
+export async function borrarFila(tabla: string, id: number): Promise<string | null> {
+  const respuesta = await pedir(`${encodeURIComponent(tabla)}?id=eq.${id}`, {
+    method: "DELETE",
+    headers: { prefer: "return=minimal" },
+    cache: "no-store",
+  });
+  return respuesta.ok ? null : motivoDeFalla(respuesta);
+}
+
 /** PostgREST corta en 1000 filas por pedido, así que se pagina hasta el final. */
 const PAGINA = 1000;
 
 async function traerTodo(tabla: string): Promise<Record<string, unknown>[]> {
-  const { url, clave } = supabaseConfig();
   const todo: Record<string, unknown>[] = [];
 
   for (let desde = 0; ; desde += PAGINA) {
-    const pedido = new URL(`${url}/rest/v1/${encodeURIComponent(tabla)}`);
-    pedido.searchParams.set("select", "*");
-    pedido.searchParams.set("limit", String(PAGINA));
-    pedido.searchParams.set("offset", String(desde));
     // Sin un orden explícito, Postgres puede devolver la misma fila en dos
     // páginas y saltearse otra. Con la clave primaria el recorrido es estable.
-    pedido.searchParams.set("order", "id.asc");
+    const consulta = new URLSearchParams({
+      select: "*",
+      limit: String(PAGINA),
+      offset: String(desde),
+      order: "id.asc",
+    });
 
-    const respuesta = await fetch(pedido, {
-      headers: { apikey: clave, authorization: `Bearer ${clave}` },
+    const respuesta = await pedir(`${encodeURIComponent(tabla)}?${consulta}`, {
       next: { revalidate: REVALIDAR_SEGUNDOS, tags: ["datos"] },
     });
 

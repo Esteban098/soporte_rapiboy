@@ -399,3 +399,50 @@
     display: none !important;
   }
 }
+
+/* --- edición de casos --- */
+
+/*
+ * Agregar va con el color de acento porque es la única acción de la barra que
+ * escribe en la base; el resto solo cambia lo que se ve.
+ */
+.agregar {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  padding: 5px 12px;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  align-self: flex-end;
+}
+
+.agregar:hover {
+  filter: brightness(1.08);
+}
+
+.celdaAccion {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* Discreto a propósito: hay uno por fila y no tiene que competir con el dato. */
+.editar {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+tr:hover .editar {
+  color: var(--ink-2);
+  border-color: var(--rule);
+  background: var(--surface-2);
+}

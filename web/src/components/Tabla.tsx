@@ -12,6 +12,7 @@ import {
   suscribirPreferencias,
 } from "@/lib/preferencias";
 import { useVista } from "./useVista";
+import { EditorCaso, type Edicion } from "./EditorCaso";
 import { numero, porcentaje, decimal } from "@/lib/formato";
 import { ChipCaso, TextoEstado } from "./Card";
 import estilos from "./ui.module.css";
@@ -61,6 +62,7 @@ export function Tabla({
   ordenInicial,
   vacio = "No hay datos para mostrar.",
   limite,
+  editable = false,
 }: {
   /** Identifica la tabla para recordar qué columnas ocultó cada persona. */
   id: string;
@@ -73,8 +75,21 @@ export function Tabla({
   vacio?: string;
   /** Cuántas filas mostrar de entrada. El resto se despliega a pedido. */
   limite?: number;
+  /**
+   * Habilita agregar, editar y borrar casos.
+   *
+   * Va como bandera y no como funciones porque esto se usa desde componentes de
+   * servidor, y las funciones no cruzan esa frontera. La tabla se encarga del
+   * formulario, que llama a las acciones directamente.
+   *
+   * Solo tiene sentido en las tablas que leen `mensual`: es la única con
+   * columnas de soporte. `ayer` se rehace entera cada mañana, así que editarla
+   * sería escribir en algo que se borra.
+   */
+  editable?: boolean;
 }) {
   const [orden, setOrden] = useState<Orden>(ordenInicial ?? null);
+  const [edicion, setEdicion] = useState<Edicion | null>(null);
   const [imprimiendo, setImprimiendo] = useState(false);
   const [expandida, setExpandida] = useState(false);
 
@@ -164,7 +179,19 @@ export function Tabla({
 
   return (
     <div data-imprimir={imprimiendo ? "si" : undefined}>
+      {edicion ? <EditorCaso edicion={edicion} alCerrar={() => setEdicion(null)} /> : null}
+
       <div className={tabla.filtros} data-noimprimir>
+        {editable ? (
+          <button
+            type="button"
+            className={tabla.agregar}
+            onClick={() => setEdicion({ modo: "nuevo" })}
+          >
+            + Agregar caso
+          </button>
+        ) : null}
+
         <label className={tabla.filtro}>
           <span className={tabla.filtroEtiqueta}>Buscar</span>
           <input
@@ -296,6 +323,7 @@ export function Tabla({
                     </th>
                   );
                 })}
+                {editable ? <th data-noimprimir aria-label="Acciones" /> : null}
               </tr>
             </thead>
             <tbody>
@@ -309,6 +337,18 @@ export function Tabla({
                       fila={fila}
                     />
                   ))}
+                  {editable ? (
+                    <td data-noimprimir className={tabla.celdaAccion}>
+                      <button
+                        type="button"
+                        className={tabla.editar}
+                        onClick={() => setEdicion(edicionDe(fila))}
+                        aria-label={`Editar el caso ${fila.id}`}
+                      >
+                        Editar
+                      </button>
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
@@ -325,6 +365,24 @@ export function Tabla({
       ) : null}
     </div>
   );
+}
+
+/**
+ * Arma el formulario a partir de la fila que ya está en pantalla, sin volver a
+ * pedirle nada a la base: son los mismos datos que se están mostrando.
+ */
+function edicionDe(fila: Fila): Edicion {
+  const texto = (valor: unknown) => (valor == null ? "" : String(valor));
+  return {
+    modo: "editar",
+    id: Number(fila.id),
+    datos: {
+      reclamoTienda: texto(fila.reclamo),
+      ubicacion: texto(fila.ubicacion),
+      telefono: texto(fila.telefono),
+      aviso: texto(fila.aviso).toUpperCase(),
+    },
+  };
 }
 
 function etiquetaDe(filtros: Filtro[], clave: string): string {
