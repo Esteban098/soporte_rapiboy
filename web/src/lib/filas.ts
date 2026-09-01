@@ -35,7 +35,7 @@ const TODAS: ColumnaPedido[] = [
   { clave: "telefono", titulo: "Teléfono", tipo: "texto" , campo: "telefono" },
   { clave: "aviso", titulo: "Aviso", tipo: "aviso" , campo: "aviso" },
   { clave: "enlace", titulo: "Enlace", tipo: "texto" , campo: "enlace" },
-  { clave: "copiar", titulo: "Mensaje", tipo: "texto" , campo: "copiar" },
+  { clave: "informacionEnviar", titulo: "Información a enviar", tipo: "texto" , campo: "informacionEnviar" },
   { clave: "ids", titulo: "IDs", tipo: "texto" , campo: "ids" },
 ];
 
@@ -89,7 +89,7 @@ export function filasDePedidos(pedidos: Pedido[], hoy = Date.now()): Fila[] {
     telefono: pedido.telefono,
     aviso: pedido.aviso,
     enlace: pedido.enlace,
-    copiar: pedido.copiar,
+    informacionEnviar: pedido.informacionEnviar,
     ids: pedido.ids,
     foto: enlaceFotoEntrega(pedido.foto),
   }));

@@ -287,25 +287,15 @@ export function visitasPorResultado(pedidos: Pedido[]): FilaVisitas[] {
     }));
 }
 
-const DIA_MS = 24 * 60 * 60 * 1000;
-
-/**
- * Días que un caso lleva sin ningún cambio de estado.
- *
- * Vive acá y no en cada página porque la columna «sin moverse» de las tablas y
- * el corte de demorados tienen que dar lo mismo: si difirieran, una fila podría
- * aparecer en la cola de demorados mostrando dos días.
+/*
+ * `diasSinMovimiento` y `DIAS_PARA_DEMORA` viven en `normalizar` porque también
+ * los usa el cálculo de la columna «Demora» al parsear, y desde allá no se
+ * puede importar este módulo sin un ciclo. Se reexportan para que el resto de
+ * la app los siga pidiendo donde siempre: son parte del vocabulario de
+ * métricas, no de la normalización.
  */
-export function diasSinMovimiento(pedido: Pedido, hoy = Date.now()): number | null {
-  if (!pedido.ultimoMovimiento) return null;
-  return Math.floor((hoy - pedido.ultimoMovimiento.getTime()) / DIA_MS);
-}
-
-/**
- * A partir de cuántos días sin moverse un caso se considera demorado. Es el
- * mismo umbral con el que la columna DEMORA del libro marca «URGENTE».
- */
-export const DIAS_PARA_DEMORA = 2;
+import { diasSinMovimiento, DIAS_PARA_DEMORA } from "./normalizar";
+export { diasSinMovimiento, DIAS_PARA_DEMORA };
 
 /**
  * La cola de escalamiento, derivada de los casos del mes.

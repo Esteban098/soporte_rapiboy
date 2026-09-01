@@ -74,7 +74,21 @@ export type Pedido = {
   foto: string;
   /** Columnas auxiliares del libro, que el equipo usa para operar. */
   enlace: string;
-  copiar: string;
+  /**
+   * El mensaje listo para mandarle al repartidor por WhatsApp. En el libro era
+   * la columna COPIAR; en la base se llama `informacion_enviar` y la calcula
+   * Postgres a partir del reclamo, el domicilio, la ubicación y el teléfono.
+   */
+  informacionEnviar: string;
+  /**
+   * Qué tan atrasado está el caso: URGENTE, RETRASADA o A TIEMPO.
+   *
+   * Se calcula al leer, no se guarda. La fórmula del sheet dependía de TODAY(),
+   * así que el valor envejecía hasta que alguien reescribiera la fila: un caso
+   * podía mostrar «A TIEMPO» llevando cuatro días parado. Calculado en cada
+   * lectura siempre dice la verdad, y Postgres tampoco lo aceptaría como
+   * columna generada porque esas tienen que ser deterministas.
+   */
   demora: string;
   ids: string;
 };
@@ -127,7 +141,7 @@ export type CampoPedido =
   | "aviso"
   | "caso"
   | "ids"
-  | "copiar"
+  | "informacionEnviar"
   | "demora"
   | "foto";
 
@@ -145,7 +159,7 @@ export type CampoPedido =
  * los dos juegos acá, el mismo normalizador sirve para los dos orígenes y no
  * hace falta renombrar columnas en la base para que el tablero las encuentre.
  */
-const ALIAS: Record<CampoPedido, string[]> = {
+const ALIAS: Record<Exclude<CampoPedido, "demora">, string[]> = {
   id: ["id"],
   creacion: ["fechacreacion", "fecha creacion", "fecha creación", "fecha_creacion"],
   ultimoMovimiento: [
@@ -169,8 +183,7 @@ const ALIAS: Record<CampoPedido, string[]> = {
   aviso: ["aviso"],
   caso: ["caso"],
   ids: ["ids", "idcoma", "ids sql", "ids_sql"],
-  copiar: ["copiar"],
-  demora: ["demora"],
+  informacionEnviar: ["informacion_enviar", "copiar"],
   foto: ["foto", "foto entrega", "firma", "url foto", "evidencia", "foto_entrega"],
 };
 
@@ -188,9 +201,17 @@ export function mapearColumnas(encabezado: string[]): MapaColumnas {
   return mapa;
 }
 
-/** Qué campos trae realmente la pestaña, para armar sus columnas. */
+/**
+ * Qué campos trae realmente la vista, para armar sus columnas.
+ *
+ * `demora` se suma aparte porque no se lee de ninguna columna: se deduce del
+ * último movimiento. Si no lo declaráramos acá, la columna «Demora» no
+ * aparecería en ninguna tabla aunque el dato exista.
+ */
 export function camposPresentes(mapa: MapaColumnas): CampoPedido[] {
-  return Object.keys(mapa) as CampoPedido[];
+  const campos = Object.keys(mapa) as CampoPedido[];
+  if (mapa.ultimoMovimiento != null) campos.push("demora");
+  return campos;
 }
 
 function celda(fila: string[], indice: number | undefined): string {
@@ -228,6 +249,40 @@ function mesDe(fecha: Date): string {
 }
 
 const DIA_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Días que un caso lleva sin ningún cambio de estado.
+ *
+ * Vive acá y no en cada página porque la columna «sin moverse» de las tablas,
+ * la clasificación de demora y el corte de la cola de escalamiento tienen que
+ * dar lo mismo: si difirieran, una fila podría aparecer entre los demorados
+ * mostrando dos días.
+ */
+export function diasSinMovimiento(
+  pedido: Pick<Pedido, "ultimoMovimiento">,
+  hoy = Date.now(),
+): number | null {
+  if (!pedido.ultimoMovimiento) return null;
+  return Math.floor((hoy - pedido.ultimoMovimiento.getTime()) / DIA_MS);
+}
+
+/**
+ * A partir de cuántos días sin moverse un caso se considera demorado. Es el
+ * mismo umbral con el que la columna DEMORA del libro marcaba «URGENTE».
+ */
+export const DIAS_PARA_DEMORA = 2;
+
+/**
+ * Traduce los días parado a la etiqueta que usaba el libro. Mismos cortes que
+ * la fórmula original: más de dos días URGENTE, más de uno RETRASADA.
+ */
+function clasificarDemora(ultimoMovimiento: Date | null, hoy = Date.now()): string {
+  const dias = diasSinMovimiento({ ultimoMovimiento }, hoy);
+  if (dias == null) return "";
+  if (dias > DIAS_PARA_DEMORA) return "URGENTE";
+  if (dias > 1) return "RETRASADA";
+  return "A TIEMPO";
+}
 
 export function parsearPedido(fila: string[], mapa: MapaColumnas): Pedido | null {
   const id = Number(celda(fila, mapa.id));
@@ -268,8 +323,8 @@ export function parsearPedido(fila: string[], mapa: MapaColumnas): Pedido | null
     avisoPendiente: celda(fila, mapa.aviso).toLowerCase() === "no avisado",
     foto: celda(fila, mapa.foto),
     enlace: celda(fila, mapa.enlace),
-    copiar: celda(fila, mapa.copiar),
-    demora: celda(fila, mapa.demora),
+    informacionEnviar: celda(fila, mapa.informacionEnviar),
+    demora: clasificarDemora(ultimoMovimiento),
     ids: celda(fila, mapa.ids),
   };
 }

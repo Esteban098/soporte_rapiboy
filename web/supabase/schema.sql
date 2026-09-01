@@ -86,10 +86,33 @@ create table if not exists public.mensual (
     end
   ) stored,
 
+  /*
+   * El mensaje listo para mandarle al repartidor por WhatsApp. Generada.
+   *
+   * En el libro era la columna COPIAR, una fórmula. Se reconstruyó mirando las
+   * 178 filas que la tenían cargada: 177 se reproducen exactas con esta regla.
+   * La que no, quedó congelada con un reclamo que después se borró, porque el
+   * flujo de aviso escribía el *valor* de la celda y le pisaba la fórmula. Como
+   * columna generada eso no puede volver a pasar.
+   *
+   * Se llena solo cuando hay reclamo cargado, igual que antes: sin reclamo no
+   * hay nada que mandar.
+   */
+  informacion_enviar text generated always as (
+    case
+      when coalesce(btrim(reclamo_tienda), '') = '' then null
+      else btrim(regexp_replace(
+        'Para el envío te comparto lo siguiente: '
+          || coalesce(btrim(destino), '')
+          || ' *' || btrim(reclamo_tienda) || '*: '
+          || coalesce(btrim(ubicacion), '')
+          || ' ' || coalesce(btrim(telefono), ''),
+        '\s+', ' ', 'g'))
+    end
+  ) stored,
+
   -- Auxiliares que el equipo usa para operar.
   ids               text,
-  copiar            text,
-  demora            text,
   foto              text,
 
   -- Rastro de quién editó desde el tablero.
