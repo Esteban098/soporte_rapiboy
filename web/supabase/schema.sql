@@ -39,8 +39,52 @@ create table if not exists public.mensual (
   reclamo_tienda    text,
   ubicacion         text,
   telefono          text,
+
+  /*
+   * Si ya le avisamos al repartidor por WhatsApp.
+   *
+   * Es un estado, no una fórmula: lo escribe el flujo de las 19hs recién
+   * después de que WAHA mandó el mensaje. Antes vivía en el sheet como
+   * `=IF(K<>"", "NO AVISADO","")`, que solo podía producir NO AVISADO porque
+   * nada la limpiaba; por eso los 153 casos leían siempre lo mismo.
+   *
+   * El ciclo es de un día:
+   *   vacío        no hay datos de tienda, no hay nada que avisar
+   *   NO AVISADO   hay datos y el repartidor todavía no fue avisado
+   *   AVISADO      se le avisó
+   *
+   * Cada mañana, los AVISADOS que siguen abiertos vuelven a NO AVISADO para
+   * que entren de nuevo en la cola: si el paquete no se entregó, hay que
+   * volver a avisar. Los que ya cerraron conservan su AVISADO para siempre.
+   * Ese es el único proceso autorizado a cambiar esta columna, aparte del
+   * envío: el refresco diario de datos no la nombra y por eso no la pisa.
+   */
   aviso             text,
-  caso              text,
+  -- Cuándo se mandó el último aviso. No manda sobre `aviso`, es el registro
+  -- para poder mostrar "avisado hoy 19:04" en el tablero.
+  avisado_en        timestamptz,
+
+  /*
+   * Si el caso está resuelto. Generada, no escrita.
+   *
+   * En el sheet era una fórmula que dos flujos distintos escribían con
+   * definiciones que no coincidían: uno contaba `Devolución en centro de
+   * DropOff` como Cerrado y el otro no, así que el valor dependía de cuál
+   * nodo había tocado la fila último. Acá hay una sola definición y nadie
+   * puede escribirle encima.
+   */
+  caso              text generated always as (
+    case
+      when btrim(lower(estado)) in (
+        'entregado',
+        'devuelto',
+        'siniestrado',
+        'devolución en centro de dropoff',
+        'devolucion en centro de dropoff'
+      ) then 'Cerrado'
+      else 'Abierto'
+    end
+  ) stored,
 
   -- Auxiliares que el equipo usa para operar.
   ids               text,
