@@ -18,7 +18,7 @@
         -1040,
         240
       ],
-      "id": "19:00-lun-a-sáb",
+      "id": "f7507554-7ad5-5b60-8f7b-239d8c5be211",
       "name": "19:00 lun a sáb"
     },
     {
@@ -33,7 +33,7 @@
         -800,
         240
       ],
-      "id": "casos-por-avisar",
+      "id": "c157805e-49e6-52a2-8e61-ecd19c21b76b",
       "name": "Casos por avisar",
       "credentials": {
         "postgres": {
@@ -62,7 +62,7 @@
         -800,
         60
       ],
-      "id": "chats-de-los-repartidores",
+      "id": "78ebbaf5-8d12-5833-9d4f-c6dc2755115d",
       "name": "Chats de los repartidores",
       "executeOnce": true,
       "credentials": {
@@ -93,7 +93,7 @@
         -560,
         160
       ],
-      "id": "cruzar-con-el-chat",
+      "id": "fb2415d6-7ae1-5708-9348-8fb357a741f2",
       "name": "Cruzar con el chat"
     },
     {
@@ -126,7 +126,7 @@
         -340,
         160
       ],
-      "id": "¿tiene-chat-cargado?",
+      "id": "faa75e3d-5265-5f52-89a2-05d6d3d9fc82",
       "name": "¿Tiene chat cargado?"
     },
     {
@@ -139,7 +139,7 @@
         -120,
         160
       ],
-      "id": "esperar-2-s",
+      "id": "091a86f0-53eb-5363-8840-740a60b90437",
       "name": "Esperar 2 s",
       "webhookId": "c41d0f92-88ab-47e6-9a5d-3f0b7c25d811"
     },
@@ -181,7 +181,7 @@
         100,
         160
       ],
-      "id": "avisar-al-repartidor",
+      "id": "c0efebc2-fb2f-5ec1-b0ca-14e1f0267bd4",
       "name": "Avisar al repartidor",
       "disabled": true,
       "notes": "Apagado a propósito hasta terminar las pruebas de la migración. Para prenderlo: sacar el Disabled de este nodo y activar el workflow."
@@ -198,7 +198,7 @@
         320,
         160
       ],
-      "id": "marcar-como-avisado",
+      "id": "d4701f65-7a2a-5a47-979b-419d2c438aa7",
       "name": "Marcar como avisado",
       "credentials": {
         "postgres": {
@@ -226,7 +226,7 @@
         -1040,
         700
       ],
-      "id": "11:30-lun-a-sáb",
+      "id": "a63ed443-9253-5066-b7a6-c76d64bd24d7",
       "name": "11:30 lun a sáb"
     },
     {
@@ -254,7 +254,7 @@
         -800,
         700
       ],
-      "id": "redactar-el-mensaje",
+      "id": "e81e8faa-7530-5642-b923-04d5798fe14c",
       "name": "Redactar el mensaje",
       "credentials": {
         "openAiApi": {
@@ -275,7 +275,7 @@
         -560,
         780
       ],
-      "id": "demorados-sin-entregar",
+      "id": "b2ae6459-f1eb-5b92-8363-57bcac960b3e",
       "name": "Demorados sin entregar",
       "credentials": {
         "postgres": {
@@ -304,7 +304,7 @@
         -560,
         620
       ],
-      "id": "chats-de-los-grupos",
+      "id": "cd6a6dde-71bd-51d4-877c-524ea3e55c4f",
       "name": "Chats de los grupos",
       "executeOnce": true,
       "credentials": {
@@ -334,7 +334,7 @@
         -340,
         700
       ],
-      "id": "cruzar-con-el-grupo",
+      "id": "b734ce55-d863-590d-82cc-445b8eacaec2",
       "name": "Cruzar con el grupo"
     },
     {
@@ -347,7 +347,7 @@
         -120,
         700
       ],
-      "id": "un-mensaje-por-repartidor",
+      "id": "fb0e60bd-1ab8-55d7-801b-365bb3843ad2",
       "name": "Un mensaje por repartidor"
     },
     {
@@ -380,7 +380,7 @@
         100,
         700
       ],
-      "id": "¿tiene-grupo-cargado?",
+      "id": "a50e10e0-2b36-5263-ab42-a31a20dddb35",
       "name": "¿Tiene grupo cargado?"
     },
     {
@@ -393,7 +393,7 @@
         320,
         700
       ],
-      "id": "esperar-2-s-",
+      "id": "3c75aa32-816b-5a4d-908b-d4546ced63b2",
       "name": "Esperar 2 s ",
       "webhookId": "e2b7a4c1-5d69-4a03-b8f7-1c94e6d0a5b3"
     },
@@ -435,7 +435,7 @@
         540,
         700
       ],
-      "id": "reclamar-al-grupo",
+      "id": "37f4aeb3-9cbc-520b-b0d4-431a729fc959",
       "name": "Reclamar al grupo",
       "disabled": true,
       "notes": "Apagado a propósito hasta terminar las pruebas de la migración. Para prenderlo: sacar el Disabled de este nodo y activar el workflow."
@@ -623,5 +623,6 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "tags": []
+  "tags": [],
+  "versionId": "eb44c462-ca9c-556a-a3ef-405f0991f6b3"
 }

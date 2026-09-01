@@ -18,7 +18,7 @@
         -1040,
         260
       ],
-      "id": "06:00",
+      "id": "34a23745-d4cb-5c28-af12-88c0780ddf9b",
       "name": "06:00"
     },
     {
@@ -38,7 +38,7 @@
         -1040,
         400
       ],
-      "id": "15:13",
+      "id": "2f691a9f-79aa-578c-a4d2-0f140ae47f85",
       "name": "15:13",
       "notes": "Antes se llamaba «13:15hs» pero el cron siempre disparó a las 15:13. Queda el horario real; si el que se quería era 13:15, el cron va «0 15 13 * * *»."
     },
@@ -59,7 +59,7 @@
         -1040,
         540
       ],
-      "id": "18:55",
+      "id": "6cbb46ef-cdde-5ad6-963f-042eb5248176",
       "name": "18:55"
     },
     {
@@ -75,7 +75,7 @@
         -1040,
         700
       ],
-      "id": "botón-actualizar-del-tablero",
+      "id": "cfeb01e3-d614-5243-976d-84a24febd4e7",
       "name": "Botón Actualizar del tablero",
       "webhookId": "a7c1e0d2-4b55-4f1a-9d3e-6c8f2b1a4e07",
       "notes": "La Production URL de este nodo es la que va en N8N_WEBHOOKS del tablero. Response Mode = Last Node a propósito: el tablero espera a que el flujo termine antes de invalidar su caché. Con la respuesta inmediata leería los datos viejos."
@@ -92,7 +92,7 @@
         -780,
         320
       ],
-      "id": "ids-de-mensual",
+      "id": "0d4bc23a-02f3-57e5-8787-169b07adec90",
       "name": "Ids de Mensual",
       "credentials": {
         "postgres": {
@@ -112,7 +112,7 @@
         -560,
         320
       ],
-      "id": "estados-actuales-·-mensual",
+      "id": "ffb829eb-c1bc-5a24-9466-2d75c00855bf",
       "name": "Estados actuales · Mensual",
       "credentials": {
         "microsoftSql": {
@@ -131,7 +131,7 @@
         -340,
         320
       ],
-      "id": "a-columnas-·-mensual",
+      "id": "0bdc3d73-939a-5797-88d7-60439b15b7cc",
       "name": "A columnas · Mensual"
     },
     {
@@ -174,7 +174,7 @@
         -120,
         320
       ],
-      "id": "actualizar-mensual",
+      "id": "a8a43b18-9ab6-52d8-b023-ace73dbfc763",
       "name": "Actualizar Mensual",
       "credentials": {
         "postgres": {
@@ -196,7 +196,7 @@
         -780,
         620
       ],
-      "id": "ids-de-ayer",
+      "id": "6a64bd54-9d6d-5239-b05d-b719d398df60",
       "name": "Ids de Ayer",
       "credentials": {
         "postgres": {
@@ -216,7 +216,7 @@
         -560,
         620
       ],
-      "id": "estados-actuales-·-ayer",
+      "id": "39bb238b-40df-56a9-bdd9-3931f63b98f0",
       "name": "Estados actuales · Ayer",
       "credentials": {
         "microsoftSql": {
@@ -235,7 +235,7 @@
         -340,
         620
       ],
-      "id": "a-columnas-·-ayer",
+      "id": "05b39b95-b3bb-54eb-92fe-c73bbe9ff9f7",
       "name": "A columnas · Ayer"
     },
     {
@@ -277,7 +277,7 @@
         -120,
         620
       ],
-      "id": "actualizar-ayer",
+      "id": "303c03f0-d203-537e-91db-bf44efe8e6d9",
       "name": "Actualizar Ayer",
       "credentials": {
         "postgres": {
@@ -424,5 +424,6 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "tags": []
+  "tags": [],
+  "versionId": "13e8dec5-8c12-57c8-917e-97c7144bbb2b"
 }

@@ -18,7 +18,7 @@
         -1040,
         400
       ],
-      "id": "todos-los-días-8:00",
+      "id": "0a28c007-6de1-5473-8d37-96d09bed42a8",
       "name": "Todos los días 8:00"
     },
     {
@@ -31,7 +31,7 @@
         -820,
         400
       ],
-      "id": "qué-día-consultar",
+      "id": "2b974cd7-8daa-5216-8d28-173c9d42f354",
       "name": "Qué día consultar"
     },
     {
@@ -63,7 +63,7 @@
         -600,
         400
       ],
-      "id": "¿hubo-jornada?",
+      "id": "9215f43e-f9d6-543f-8f45-00d9f83d0250",
       "name": "¿Hubo jornada?"
     },
     {
@@ -78,7 +78,7 @@
         -380,
         240
       ],
-      "id": "vaciar-ayer",
+      "id": "4bf58a8b-b0f6-599c-ae1f-9bd62c2885f6",
       "name": "Vaciar Ayer",
       "credentials": {
         "postgres": {
@@ -98,7 +98,7 @@
         -160,
         240
       ],
-      "id": "casos-fallidos-del-día",
+      "id": "62e4e96e-4fb9-5178-8f1b-cdce174d03c8",
       "name": "Casos fallidos del día",
       "credentials": {
         "microsoftSql": {
@@ -117,7 +117,7 @@
         60,
         240
       ],
-      "id": "a-columnas-de-la-base",
+      "id": "9e2ac80b-8520-5b94-af12-1ab83e18f70d",
       "name": "A columnas de la base"
     },
     {
@@ -159,7 +159,7 @@
         280,
         140
       ],
-      "id": "guardar-en-ayer",
+      "id": "983eb882-908d-55c7-b06b-6b4d986d6657",
       "name": "Guardar en Ayer",
       "credentials": {
         "postgres": {
@@ -207,7 +207,7 @@
         280,
         340
       ],
-      "id": "guardar-en-mensual",
+      "id": "4acc9159-f311-5490-9fb6-f10c84aeb1cb",
       "name": "Guardar en Mensual",
       "credentials": {
         "postgres": {
@@ -229,7 +229,7 @@
         500,
         340
       ],
-      "id": "reabrir-avisos-del-día",
+      "id": "7a1b7994-2601-5f5b-b69e-14e7af0c4c50",
       "name": "Reabrir avisos del día",
       "credentials": {
         "postgres": {
@@ -249,7 +249,7 @@
         -160,
         560
       ],
-      "id": "cancelados-del-día",
+      "id": "dca0b970-1846-59d2-9b61-1fd1cbf3775f",
       "name": "Cancelados del día",
       "credentials": {
         "microsoftSql": {
@@ -268,7 +268,7 @@
         60,
         560
       ],
-      "id": "cancelados-a-columnas",
+      "id": "f9fbd010-8107-5ee2-afd3-93df67d0bd71",
       "name": "Cancelados a columnas"
     },
     {
@@ -309,7 +309,7 @@
         280,
         560
       ],
-      "id": "guardar-cancelados",
+      "id": "a288455d-a0f7-5c6d-be43-cfcfc41a70aa",
       "name": "Guardar cancelados",
       "credentials": {
         "postgres": {
@@ -435,5 +435,6 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "tags": []
+  "tags": [],
+  "versionId": "1734b5a6-7f61-528e-8df1-4f42f4507d35"
 }
