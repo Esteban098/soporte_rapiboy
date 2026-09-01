@@ -1,14 +1,16 @@
 -- ---------------------------------------------------------------------------
 -- Base del tablero de soporte
 --
--- Dos tablas, una por vista, tal como venían del libro:
---   mensual  el acumulado del mes en curso, con el trabajo de soporte encima
---   ayer     lo que quedó sin cerrar en la jornada anterior
+-- Tres tablas, una por vista:
+--   mensual     el acumulado del mes en curso, con el trabajo de soporte encima
+--   ayer        lo que quedó sin cerrar en la jornada anterior
+--   cancelados  viajes cancelados el mismo día que se colectaron
 --
 -- No comparten esquema a propósito: `ayer` sale del sistema sin pasar por
--- soporte, así que no tiene reclamo, aviso ni caso. El tablero arma las
--- columnas de cada tabla con los campos que realmente trae, así que agregar una
--- columna acá alcanza para que aparezca en la web.
+-- soporte, así que no tiene reclamo, aviso ni caso, y `cancelados` no es un
+-- pedido con incidencia sino un viaje que se cortó, con sus propios estados. El
+-- tablero arma las columnas de cada tabla con los campos que realmente trae,
+-- así que agregar una columna acá alcanza para que aparezca en la web.
 --
 -- Correr una vez en el SQL Editor de Supabase.
 -- ---------------------------------------------------------------------------
@@ -74,6 +76,44 @@ create table if not exists public.ayer (
 create index if not exists ayer_estado_idx on public.ayer (estado);
 
 -- ---------------------------------------------------------------------------
+-- Cancelados
+--
+-- Viajes que se cancelaron el mismo día en que se colectaron, dentro de las 7
+-- horas. Eso NO son todas las cancelaciones: el filtro vive en la consulta de
+-- n8n, así que esta tabla es "cancelaciones tempranas" y no hay que leerla como
+-- el total. Si alguna vez se afloja el filtro, cambia el significado de todo lo
+-- que se calcule encima.
+--
+-- Trae dos estados y dos identificadores porque el viaje vive en dos sistemas a
+-- la vez, el propio y el de Meli, y no siempre coinciden: justamente ver dónde
+-- se despegan es para lo que sirve.
+-- ---------------------------------------------------------------------------
+create table if not exists public.cancelados (
+  -- Viaje.Id del sistema propio. Clave del upsert diario.
+  id                bigint primary key,
+  -- Viaje.IdFlex: el id del envío en Meli. Va como texto porque no es un
+  -- número nuestro y no queremos perder ceros a la izquierda ni prefijos.
+  id_meli           text,
+  tienda            text,
+  -- Estado en cada sistema, sin unificar a propósito.
+  estado_rbp        text,
+  estado_meli       text,
+
+  -- Momento en que se colectó y en que se canceló.
+  --
+  -- Van SIN zona horaria a propósito: la consulta ya les restó 3 horas, así que
+  -- lo que llega es hora local de México. Guardarlas como `timestamptz` haría
+  -- que Postgres las tomara por UTC y volviera a correrlas al mostrarlas, y los
+  -- horarios quedarían mal por segunda vez.
+  fecha_colectado   timestamp,
+  fecha_cancelado   timestamp
+);
+
+-- Casi toda lectura de esta tabla arranca acotando por día.
+create index if not exists cancelados_fecha_colectado_idx on public.cancelados (fecha_colectado desc);
+create index if not exists cancelados_tienda_idx          on public.cancelados (tienda);
+
+-- ---------------------------------------------------------------------------
 -- Acceso
 --
 -- El tablero lee con la service key y solo desde el servidor, así que ninguna
@@ -81,5 +121,6 @@ create index if not exists ayer_estado_idx on public.ayer (estado);
 -- datos. RLS queda activo igual: sin políticas, la clave anónima no lee nada,
 -- y así una fuga de la anon key no expone teléfonos ni domicilios.
 -- ---------------------------------------------------------------------------
-alter table public.mensual enable row level security;
-alter table public.ayer    enable row level security;
+alter table public.mensual    enable row level security;
+alter table public.ayer       enable row level security;
+alter table public.cancelados enable row level security;
