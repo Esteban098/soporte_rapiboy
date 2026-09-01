@@ -111,8 +111,12 @@ create table if not exists public.mensual (
     end
   ) stored,
 
-  -- Auxiliares que el equipo usa para operar.
-  ids               text,
+  /*
+   * El id con una coma atrás, para pegar listas en otras herramientas. Era la
+   * columna IDS/IDcoma del libro, hecha con CONCAT. Generada: no hay nada que
+   * escribir ni que se pueda desincronizar.
+   */
+  ids               text generated always as (id::text || ',') stored,
   foto              text,
 
   -- Rastro de quién editó desde el tablero.
@@ -137,7 +141,7 @@ create table if not exists public.ayer (
   tienda            text,
   destino           text,
   poligono          text,
-  ids               text
+  ids               text generated always as (id::text || ',') stored
 );
 
 create index if not exists ayer_estado_idx on public.ayer (estado);

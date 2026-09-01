@@ -1,0 +1,428 @@
+{
+  "name": "Tablero · refresco de estados",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 6 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1040,
+        260
+      ],
+      "id": "06:00",
+      "name": "06:00"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 13 15 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1040,
+        400
+      ],
+      "id": "15:13",
+      "name": "15:13",
+      "notes": "Antes se llamaba «13:15hs» pero el cron siempre disparó a las 15:13. Queda el horario real; si el que se quería era 13:15, el cron va «0 15 13 * * *»."
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 55 18 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1040,
+        540
+      ],
+      "id": "18:55",
+      "name": "18:55"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "actualizar-tablero",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        700
+      ],
+      "id": "botón-actualizar-del-tablero",
+      "name": "Botón Actualizar del tablero",
+      "webhookId": "a7c1e0d2-4b55-4f1a-9d3e-6c8f2b1a4e07",
+      "notes": "La Production URL de este nodo es la que va en N8N_WEBHOOKS del tablero. Response Mode = Last Node a propósito: el tablero espera a que el flujo termine antes de invalidar su caché. Con la respuesta inmediata leería los datos viejos."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Los ids en una sola cadena, para el IN de SQL Server. Lo arma Postgres\n-- con string_agg en vez de un nodo Code recorriendo miles de items.\n--\n-- El coalesce a '0' importa: con la tabla vacía string_agg devuelve nulo y\n-- la consulta de SQL Server quedaría como IN (), que es un error de\n-- sintaxis. Con un 0 no matchea ningún viaje y el flujo termina en blanco.\nselect coalesce(string_agg(id::text, ',' order by id), '0') as ids_concat\n  from public.mensual;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -780,
+        320
+      ],
+      "id": "ids-de-mensual",
+      "name": "Ids de Mensual",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Estado actual de los casos que ya están en la base.\nSELECT\n        V.Id,\n        (SELECT MIN(CAST(H.Fecha AS DATE)) FROM HistorialViaje H WITH (NOLOCK)\n          WHERE H.IdViaje = V.Id) AS FechaCreacion,\n        CAST(V.FechaProgramado AS DATE) AS FechaProgramado,\n        E.NombreCompleto AS Estado,\n        (SELECT TOP 1 H.Repartidor FROM HistorialViaje H WITH (NOLOCK)\n          WHERE H.IdViaje = V.Id AND H.Repartidor IS NOT NULL\n          ORDER BY H.Fecha DESC) AS Repartidor,\n        U.Alias AS Tienda,\n        V.Direccion AS Destino,\n        P.Nombre AS Poligono,\n        V.Visitas\n    FROM Viaje V WITH (NOLOCK)\n    JOIN Usuario U          WITH (NOLOCK) ON V.IdUsuario  = U.Id\n    LEFT JOIN EstadoViaje E WITH (NOLOCK) ON V.IdEstado   = E.Id\n    LEFT JOIN Poligono P    WITH (NOLOCK) ON V.IdPoligono = P.Id\n    WHERE V.Id IN ({{ $json.ids_concat }})\n    ORDER BY V.Id ASC"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        -560,
+        320
+      ],
+      "id": "estados-actuales-·-mensual",
+      "name": "Estados actuales · Mensual",
+      "credentials": {
+        "microsoftSql": {
+          "id": "F5EJUfXcquXz7Rf3",
+          "name": "Microsoft SQL credencial Esteban RPBY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Pasa la salida de SQL Server a los nombres de columna de Postgres.\n *\n * Las fechas se formatean SIEMPRE con getters UTC. El flujo viejo mezclaba\n * `toISOString()` para la fecha con `toLocaleTimeString()` para la hora, que usa\n * la zona del servidor: cerca de medianoche las dos mitades se contradecían.\n */\nconst fecha = (v) => (v ? new Date(v).toISOString().slice(0, 10) : null);\nconst texto = (v) => {\n  const t = String(v ?? '').trim();\n  return t === '' || t.toLowerCase() === 'null' ? null : t;\n};\n\nreturn $input.all().map(({ json: r }) => ({\n  json: {\n    id: Number(r.Id),\n    fecha_creacion: fecha(r.FechaCreacion),\n    fecha_programado: fecha(r.FechaProgramado),\n    estado: texto(r.Estado),\n    repartidor: texto(r.Repartidor),\n    tienda: texto(r.Tienda),\n    destino: texto(r.Destino),\n    poligono: texto(r.Poligono),\n    visitas: Number.isFinite(Number(r.Visitas)) ? Number(r.Visitas) : null,\n  },\n})).filter((i) => Number.isFinite(i.json.id) && i.json.id > 0);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        320
+      ],
+      "id": "a-columnas-·-mensual",
+      "name": "A columnas · Mensual"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "mensual"
+        },
+        "operation": "upsert",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "fecha_creacion": "={{ $json.fecha_creacion }}",
+            "fecha_programado": "={{ $json.fecha_programado }}",
+            "estado": "={{ $json.estado }}",
+            "repartidor": "={{ $json.repartidor }}",
+            "tienda": "={{ $json.tienda }}",
+            "destino": "={{ $json.destino }}",
+            "poligono": "={{ $json.poligono }}",
+            "visitas": "={{ $json.visitas }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -120,
+        320
+      ],
+      "id": "actualizar-mensual",
+      "name": "Actualizar Mensual",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "notes": "Mapea SOLO las columnas del sistema. reclamo_tienda, ubicacion, telefono, aviso y avisado_en no figuran, así que el UPDATE no las nombra y el trabajo de soporte sobrevive a la corrida. caso, informacion_enviar e ids son generadas: las recalcula Postgres."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Los ids en una sola cadena, para el IN de SQL Server. Lo arma Postgres\n-- con string_agg en vez de un nodo Code recorriendo miles de items.\n--\n-- El coalesce a '0' importa: con la tabla vacía string_agg devuelve nulo y\n-- la consulta de SQL Server quedaría como IN (), que es un error de\n-- sintaxis. Con un 0 no matchea ningún viaje y el flujo termina en blanco.\nselect coalesce(string_agg(id::text, ',' order by id), '0') as ids_concat\n  from public.ayer;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -780,
+        620
+      ],
+      "id": "ids-de-ayer",
+      "name": "Ids de Ayer",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Estado actual de los casos que ya están en la base.\nSELECT\n        V.Id,\n        (SELECT MIN(CAST(H.Fecha AS DATE)) FROM HistorialViaje H WITH (NOLOCK)\n          WHERE H.IdViaje = V.Id) AS FechaCreacion,\n        CAST(V.FechaProgramado AS DATE) AS FechaProgramado,\n        E.NombreCompleto AS Estado,\n        (SELECT TOP 1 H.Repartidor FROM HistorialViaje H WITH (NOLOCK)\n          WHERE H.IdViaje = V.Id AND H.Repartidor IS NOT NULL\n          ORDER BY H.Fecha DESC) AS Repartidor,\n        U.Alias AS Tienda,\n        V.Direccion AS Destino,\n        P.Nombre AS Poligono,\n        V.Visitas\n    FROM Viaje V WITH (NOLOCK)\n    JOIN Usuario U          WITH (NOLOCK) ON V.IdUsuario  = U.Id\n    LEFT JOIN EstadoViaje E WITH (NOLOCK) ON V.IdEstado   = E.Id\n    LEFT JOIN Poligono P    WITH (NOLOCK) ON V.IdPoligono = P.Id\n    WHERE V.Id IN ({{ $json.ids_concat }})\n    ORDER BY V.Id ASC"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        -560,
+        620
+      ],
+      "id": "estados-actuales-·-ayer",
+      "name": "Estados actuales · Ayer",
+      "credentials": {
+        "microsoftSql": {
+          "id": "F5EJUfXcquXz7Rf3",
+          "name": "Microsoft SQL credencial Esteban RPBY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Pasa la salida de SQL Server a los nombres de columna de Postgres.\n *\n * Las fechas se formatean SIEMPRE con getters UTC. El flujo viejo mezclaba\n * `toISOString()` para la fecha con `toLocaleTimeString()` para la hora, que usa\n * la zona del servidor: cerca de medianoche las dos mitades se contradecían.\n */\nconst fecha = (v) => (v ? new Date(v).toISOString().slice(0, 10) : null);\nconst texto = (v) => {\n  const t = String(v ?? '').trim();\n  return t === '' || t.toLowerCase() === 'null' ? null : t;\n};\n\nreturn $input.all().map(({ json: r }) => ({\n  json: {\n    id: Number(r.Id),\n    fecha_creacion: fecha(r.FechaCreacion),\n    fecha_programado: fecha(r.FechaProgramado),\n    estado: texto(r.Estado),\n    repartidor: texto(r.Repartidor),\n    tienda: texto(r.Tienda),\n    destino: texto(r.Destino),\n    poligono: texto(r.Poligono),\n    visitas: Number.isFinite(Number(r.Visitas)) ? Number(r.Visitas) : null,\n  },\n})).filter((i) => Number.isFinite(i.json.id) && i.json.id > 0);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        620
+      ],
+      "id": "a-columnas-·-ayer",
+      "name": "A columnas · Ayer"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "ayer"
+        },
+        "operation": "upsert",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "fecha_creacion": "={{ $json.fecha_creacion }}",
+            "fecha_programado": "={{ $json.fecha_programado }}",
+            "estado": "={{ $json.estado }}",
+            "repartidor": "={{ $json.repartidor }}",
+            "tienda": "={{ $json.tienda }}",
+            "destino": "={{ $json.destino }}",
+            "poligono": "={{ $json.poligono }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -120,
+        620
+      ],
+      "id": "actualizar-ayer",
+      "name": "Actualizar Ayer",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "06:00": {
+      "main": [
+        [
+          {
+            "node": "Ids de Mensual",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ids de Ayer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "15:13": {
+      "main": [
+        [
+          {
+            "node": "Ids de Mensual",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ids de Ayer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "18:55": {
+      "main": [
+        [
+          {
+            "node": "Ids de Mensual",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ids de Ayer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Botón Actualizar del tablero": {
+      "main": [
+        [
+          {
+            "node": "Ids de Mensual",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ids de Ayer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ids de Mensual": {
+      "main": [
+        [
+          {
+            "node": "Estados actuales · Mensual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estados actuales · Mensual": {
+      "main": [
+        [
+          {
+            "node": "A columnas · Mensual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A columnas · Mensual": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Mensual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ids de Ayer": {
+      "main": [
+        [
+          {
+            "node": "Estados actuales · Ayer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estados actuales · Ayer": {
+      "main": [
+        [
+          {
+            "node": "A columnas · Ayer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A columnas · Ayer": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Ayer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

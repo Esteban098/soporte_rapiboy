@@ -90,12 +90,29 @@ cada pestaña por gid del endpoint `/export`.
 ## Desplegar en Vercel
 
 1. Importá el repo en Vercel y elegí `web` como **Root Directory**.
-2. Cargá las variables de entorno de `.env.example`. Como mínimo: `SHEET_ID`,
-   `AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` y una de
-   `ALLOWED_EMAIL_DOMAIN` / `ALLOWED_EMAILS`.
+2. Cargá las variables de entorno. Las mínimas para que ande:
+
+   | Variable | De dónde sale |
+   |---|---|
+   | `SUPABASE_URL` | Supabase ▸ Project Settings ▸ API |
+   | `SUPABASE_SERVICE_KEY` | ídem, la **service_role**, no la anon |
+   | `AUTH_SECRET` | `openssl rand -base64 32` |
+   | `GOOGLE_CLIENT_ID` | Google Cloud ▸ Credenciales |
+   | `GOOGLE_CLIENT_SECRET` | ídem |
+   | `ALLOWED_EMAIL_DOMAIN` o `ALLOWED_EMAILS` | quién puede entrar |
+   | `N8N_WEBHOOKS` | la Production URL del webhook `actualizar-tablero` |
+
+   `SHEET_ID` ya no hace falta. Si se carga igual, queda como respaldo: con
+   `ORIGEN_DATOS=sheet` el tablero vuelve al libro sin tocar código.
+
 3. En Google Cloud → Credenciales, creá un cliente OAuth de tipo *Aplicación
    web* y agregá como URI de redirección autorizada:
    `https://TU-DOMINIO/api/auth/callback/google`.
+
+La `service_role` key saltea RLS: lee y escribe las tres tablas enteras. Solo se
+usa desde el servidor y nunca llega al navegador, pero por eso mismo va cargada
+como variable de entorno de Vercel y no en el repo. Si se filtra, se rota desde
+el panel de Supabase.
 
 Sin `GOOGLE_CLIENT_ID` cargado, en producción no entra nadie: el ingreso falla
 en vez de quedar abierto.

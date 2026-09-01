@@ -1,0 +1,627 @@
+{
+  "name": "Tablero · WhatsApp (APAGADO)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 19 * * 1-6"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1040,
+        240
+      ],
+      "id": "19:00-lun-a-sáb",
+      "name": "19:00 lun a sáb"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- A quién hay que avisarle hoy.\n--\n-- Reemplaza la lectura de la hoja Mensual y el filtro por AVISO = 'NO AVISADO'.\n-- `informacion_enviar` es columna generada: ya viene armado el mensaje.\nselect id, repartidor, informacion_enviar\n  from public.mensual\n where estado = 'Retirado en camino a destino'\n   and aviso = 'NO AVISADO'\n   and informacion_enviar is not null\n order by id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -800,
+        240
+      ],
+      "id": "casos-por-avisar",
+      "name": "Casos por avisar",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1xV3HJrI_dN-yLKicenYjnHdJpvWNctgU-wS19o0_1XE"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": 672620116
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -800,
+        60
+      ],
+      "id": "chats-de-los-repartidores",
+      "name": "Chats de los repartidores",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "wAlqaWIDo2IjQj5J",
+          "name": "Google Sheet credencial Esteban RPBY"
+        }
+      },
+      "notes": "Este sheet NO es el que estamos cortando: es la libreta de contactos, vive en otro documento y se sigue leyendo igual."
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "nombre ",
+              "field2": "repartidor"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -560,
+        160
+      ],
+      "id": "cruzar-con-el-chat",
+      "name": "Cruzar con el chat"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b1",
+              "leftValue": "={{ $json.waha }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -340,
+        160
+      ],
+      "id": "¿tiene-chat-cargado?",
+      "name": "¿Tiene chat cargado?"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -120,
+        160
+      ],
+      "id": "esperar-2-s",
+      "name": "Esperar 2 s",
+      "webhookId": "c41d0f92-88ab-47e6-9a5d-3f0b7c25d811"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://waha:3000/api/sendText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $env.WAHA_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "options": {},
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chatId",
+              "value": "={{ $json.waha }}"
+            },
+            {
+              "name": "text",
+              "value": "=Te comparto informacion importante para ruta,\n{{ $json.informacion_enviar }}"
+            },
+            {
+              "name": "session",
+              "value": "Esteban_Larcher"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        100,
+        160
+      ],
+      "id": "avisar-al-repartidor",
+      "name": "Avisar al repartidor",
+      "disabled": true,
+      "notes": "Apagado a propósito hasta terminar las pruebas de la migración. Para prenderlo: sacar el Disabled de este nodo y activar el workflow."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Marca el caso como avisado. Es el único lugar, junto al reset de la mañana,\n-- que escribe esta columna.\nupdate public.mensual\n   set aviso = 'AVISADO', avisado_en = now()\n where id = {{ $json.id }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        320,
+        160
+      ],
+      "id": "marcar-como-avisado",
+      "name": "Marcar como avisado",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "disabled": true,
+      "notes": "Apagado junto con el envío: marcar AVISADO sin haber mandado el mensaje dejaría el caso fuera de la cola sin que nadie se haya enterado."
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 30 11 * * 1-6"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1040,
+        700
+      ],
+      "id": "11:30-lun-a-sáb",
+      "name": "11:30 lun a sáb"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5.4-mini"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=Generá una variante del siguiente mensaje para un grupo operativo de WhatsApp.\n\nReglas: misma intención, redacción distinta cada vez, tono humano, pedir el motivo por el que no se pudo entregar, no inventar motivos, no agregar información nueva, no tocar IDs ni fechas, sin comillas, máximo 2 párrafos. Devolvé solo el mensaje.\n\nMensaje base:\nBuenos días, los siguientes paquetes continúan sin entregarse y presentan demoras. ¿Por qué no se han concluido las entregas?"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        -800,
+        700
+      ],
+      "id": "redactar-el-mensaje",
+      "name": "Redactar el mensaje",
+      "credentials": {
+        "openAiApi": {
+          "id": "3RaxJwETGG9fo4kb",
+          "name": "OpenAi credencial Esteban RPBY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Demorados sin entregar, directo de la base.\n--\n-- Reemplaza a la hoja DemoradoNoEntregado y a la rama de las 9am que la\n-- rearmaba: el corte es el mismo que usa el tablero, más de dos días sin\n-- moverse y todavía abierto, así que las dos listas no pueden discrepar.\nselect id, repartidor, destino, fecha_programado\n  from public.mensual\n where caso = 'Abierto'\n   and estado = 'Pedido no entregado'\n   and fecha_programado < current_date - interval '2 days'\n order by repartidor, fecha_programado;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -560,
+        780
+      ],
+      "id": "demorados-sin-entregar",
+      "name": "Demorados sin entregar",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1qwOKAAmj5Pnw2hI-X0H-JvyFc9trDDPCVr_fjt_JFaM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": 31504311
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -560,
+        620
+      ],
+      "id": "chats-de-los-grupos",
+      "name": "Chats de los grupos",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "wAlqaWIDo2IjQj5J",
+          "name": "Google Sheet credencial Esteban RPBY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "Repartidor",
+              "field2": "repartidor"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -340,
+        700
+      ],
+      "id": "cruzar-con-el-grupo",
+      "name": "Cruzar con el grupo"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Un mensaje por repartidor, con todas sus direcciones juntas.\nconst grupos = {};\nfor (const { json: r } of $input.all()) {\n  const clave = r.Repartidor ?? r.repartidor;\n  if (!clave) continue;\n  grupos[clave] ??= { Repartidor: clave, Id_Grupo: r['Id Grupo'] ?? r.Id_Grupo,\n                      FechaProgramado: r.fecha_programado, Direcciones: [], Ids: [] };\n  if (r.destino) grupos[clave].Direcciones.push(r.destino);\n  if (r.id) grupos[clave].Ids.push(r.id);\n}\nreturn Object.values(grupos).map((g) => ({\n  json: { ...g, Direcciones: g.Direcciones.join('\\n'), Ids: g.Ids.join(', ') },\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        700
+      ],
+      "id": "un-mensaje-por-repartidor",
+      "name": "Un mensaje por repartidor"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b2",
+              "leftValue": "={{ $json.Id_Grupo }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        100,
+        700
+      ],
+      "id": "¿tiene-grupo-cargado?",
+      "name": "¿Tiene grupo cargado?"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        320,
+        700
+      ],
+      "id": "esperar-2-s-",
+      "name": "Esperar 2 s ",
+      "webhookId": "e2b7a4c1-5d69-4a03-b8f7-1c94e6d0a5b3"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://waha:3000/api/sendText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $env.WAHA_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "options": {},
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chatId",
+              "value": "={{ $json.Id_Grupo }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $('Redactar el mensaje').first().json.mensaje_final }}\nPaquetes:\n{{ $json.Direcciones }}\nFecha pendiente: *{{ $json.FechaProgramado }}*"
+            },
+            {
+              "name": "session",
+              "value": "Esteban_Larcher"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        540,
+        700
+      ],
+      "id": "reclamar-al-grupo",
+      "name": "Reclamar al grupo",
+      "disabled": true,
+      "notes": "Apagado a propósito hasta terminar las pruebas de la migración. Para prenderlo: sacar el Disabled de este nodo y activar el workflow."
+    }
+  ],
+  "connections": {
+    "19:00 lun a sáb": {
+      "main": [
+        [
+          {
+            "node": "Casos por avisar",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Chats de los repartidores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chats de los repartidores": {
+      "main": [
+        [
+          {
+            "node": "Cruzar con el chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Casos por avisar": {
+      "main": [
+        [
+          {
+            "node": "Cruzar con el chat",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Cruzar con el chat": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene chat cargado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene chat cargado?": {
+      "main": [
+        [
+          {
+            "node": "Esperar 2 s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar 2 s": {
+      "main": [
+        [
+          {
+            "node": "Avisar al repartidor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar al repartidor": {
+      "main": [
+        [
+          {
+            "node": "Marcar como avisado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11:30 lun a sáb": {
+      "main": [
+        [
+          {
+            "node": "Redactar el mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar el mensaje": {
+      "main": [
+        [
+          {
+            "node": "Chats de los grupos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Demorados sin entregar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chats de los grupos": {
+      "main": [
+        [
+          {
+            "node": "Cruzar con el grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demorados sin entregar": {
+      "main": [
+        [
+          {
+            "node": "Cruzar con el grupo",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Cruzar con el grupo": {
+      "main": [
+        [
+          {
+            "node": "Un mensaje por repartidor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Un mensaje por repartidor": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene grupo cargado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene grupo cargado?": {
+      "main": [
+        [
+          {
+            "node": "Esperar 2 s ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar 2 s ": {
+      "main": [
+        [
+          {
+            "node": "Reclamar al grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
