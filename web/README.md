@@ -1,22 +1,22 @@
 # Tablero de Operación · México
 
-Web con los tableros de entregas fallidas, demoras y cancelaciones. La base de
-datos es el Google Sheet que el equipo ya actualiza todos los días: la app lo
-lee, calcula las métricas y las muestra. No hay que cargar nada dos veces.
+Web con los tableros de entregas fallidas, demoras y cancelaciones. Los casos
+salen de dos tablas de Supabase que n8n rearma todos los días: la app las lee,
+calcula las métricas y las muestra. No hay que cargar nada dos veces.
 
 ## Cómo está armado
 
 ```
-Google Sheet  ──►  servidor Next.js  ──►  navegador
-(pestañas CSV)     lee, normaliza,        solo agregados,
-                   agrega y cachea        sin datos de clientes
+n8n  ──►  Supabase   ──►  servidor Next.js  ──►  navegador
+          mensual         lee, normaliza,        solo agregados,
+          ayer            agrega y cachea        sin datos de clientes
 ```
 
 Tres decisiones que vale la pena tener presentes:
 
-- **El sheet se lee solo desde el servidor.** La URL del documento vive en una
+- **La base se lee solo desde el servidor.** La `service_role` key vive en una
   variable de entorno y nunca llega al navegador. Por eso el login protege de
-  verdad: no hay forma de saltearlo pidiendo el CSV por afuera.
+  verdad: no hay forma de saltearlo pidiendo las filas por afuera.
 - **La sección de reclamos muestra los datos que aporta la tienda.** El teléfono
   alterno y el link de ubicación se ven tal cual, porque son justamente lo que el
   equipo necesita para trabajar el caso. Es información del cliente, así que el
@@ -63,8 +63,9 @@ Los fixtures se generan desde el libro real pero **sin teléfonos, domicilios ni
 nombres de repartidor**: conservan los volúmenes y las fechas para que los
 tableros se vean como en producción. No se versionan.
 
-Para probar contra el sheet de verdad, copiá `.env.example` a `.env.local` y
-completá `SHEET_ID`.
+Para probar contra la base, copiá `.env.example` a `.env.local` y completá
+`SUPABASE_URL` y `SUPABASE_SERVICE_KEY`. Para probar contra el sheet, completá
+`SHEET_ID` y poné `ORIGEN_DATOS=sheet`.
 
 Comandos útiles:
 
@@ -74,11 +75,11 @@ npm run verificar    # imprime todas las métricas por consola, contra fixtures
 npm run build        # build de producción
 ```
 
-## Publicar el sheet
+## Publicar el sheet (solo si se usa como respaldo)
 
 El documento tiene que ser legible por la app. La opción más simple es
-**Compartir → Cualquiera con el enlace → Lector**. Con eso alcanza: la app pide
-cada pestaña por nombre al endpoint `gviz` de Google.
+**Compartir → Cualquiera con el enlace → Lector**. Con eso alcanza: la app baja
+cada pestaña por gid del endpoint `/export`.
 
 > Cuidado: mientras el documento esté compartido por enlace, cualquiera que
 > tenga la URL puede abrirlo con todo su contenido, teléfonos incluidos. El
@@ -105,19 +106,65 @@ en vez de quedar abierto.
 - `ALLOWED_EMAILS=ana@gmail.com,juan@gmail.com` habilita cuentas sueltas.
 - Se pueden usar las dos a la vez. Si no se configura ninguna, no entra nadie.
 
-## Qué pestañas lee
+## De dónde salen los datos
 
-Dos:
+La app tiene tres orígenes y elige solo, según lo que esté configurado: manda
+Supabase si están sus credenciales, si no el sheet, y si no hay nada los
+fixtures. `ORIGEN_DATOS` fuerza uno puntual, que es la forma de volver al sheet
+en el acto si la base falla, sin borrar credenciales.
 
-| Pestaña | Para qué |
-|---|---|
-| `Mensual` | Los casos del mes en curso. Alimenta Mes en curso, Demorados, Reclamos y Comercios. |
-| `Ayer` | Lo que quedó abierto del día anterior. Alimenta la sección Ayer. |
+Los tres entregan las filas con la misma forma —encabezado primero, todo como
+texto— así que el resto de la app no sabe de dónde salieron. Eso es lo que
+permite cambiar de origen con variables de entorno y comparar los dos en
+paralelo: con los mismos datos, los tres dan exactamente los mismos números.
 
-Las pestañas de meses anteriores quedaron como archivo y varias fueron vaciadas
-o reutilizadas, así que no se leen: no son una fuente confiable de historial. Si
-alguna vez cambia el nombre de la pestaña viva, se ajusta con `SHEET_TAB_MENSUAL`
-sin tocar el código.
+Dos vistas, se lean de donde se lean:
+
+| Vista | Tabla | Pestaña | Para qué |
+|---|---|---|---|
+| `mensual` | `mensual` | `Mensual` | Los casos del mes en curso. Alimenta Mes en curso, Demorados, Reclamos y Comercios. |
+| `ayer` | `ayer` | `Ayer` | Lo que quedó abierto del día anterior. Alimenta la sección Ayer. |
+
+No comparten esquema a propósito: `ayer` sale del sistema sin pasar por soporte,
+así que no tiene reclamo, aviso ni caso. Cada tabla del tablero arma sus columnas
+con los campos que su vista realmente trae, así que **agregar una columna en
+Supabase alcanza para que aparezca en la web**, sin tocar código.
+
+### Montar la base
+
+1. Correr `supabase/schema.sql` en el SQL Editor de Supabase. Crea `mensual` y
+   `ayer` con sus índices y deja RLS activo.
+2. Copiar `SUPABASE_URL` y la **`service_role`** key desde Project Settings ▸ API
+   a `.env.local` (o a las variables de Vercel).
+
+### Lo que n8n tiene que hacer
+
+Usar el nodo de **Postgres** contra el connection string de Supabase, no el nodo
+de Supabase: el de Postgres tiene `Insert or Update` (upsert) y escritura en
+lote, que es lo que hace falta.
+
+La corrida diaria es un upsert por `id` que **lista solo las columnas del
+sistema**:
+
+```sql
+insert into mensual (id, fecha_creacion, fecha_programado, estado,
+                     repartidor, tienda, destino, poligono, visitas)
+values (...)
+on conflict (id) do update set
+  fecha_creacion = excluded.fecha_creacion,
+  fecha_programado = excluded.fecha_programado,
+  estado = excluded.estado,
+  repartidor = excluded.repartidor,
+  tienda = excluded.tienda,
+  destino = excluded.destino,
+  poligono = excluded.poligono,
+  visitas = excluded.visitas;
+```
+
+Las columnas de soporte —`reclamo_tienda`, `ubicacion`, `telefono`, `aviso`,
+`caso`— no van en el `do update set`, así que la corrida diaria no las pisa. Ese
+es el motivo de fondo para haber dejado el sheet: ahí el flujo rearmaba la hoja
+entera y se llevaba puesto el trabajo del equipo.
 
 `Demorados` y `DemoradoNoEntregado` tampoco se leen más. La cola de escalamiento
 se calcula sobre `Mensual` (`demorados()` en `src/lib/metricas.ts`): un caso

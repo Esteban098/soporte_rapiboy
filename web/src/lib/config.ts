@@ -53,11 +53,51 @@ export function gidDeTab(tab: string): string {
 }
 
 
-export type ModoDatos = "sheet" | "fixture";
+export type ModoDatos = "supabase" | "sheet" | "fixture";
 
+/**
+ * De dónde salen los casos.
+ *
+ * Se elige solo según lo que haya configurado, sin variable de por medio en el
+ * caso normal: si están las credenciales de Supabase manda la base, si no está
+ * el sheet, y si no hay nada quedan los fixtures. `ORIGEN_DATOS` fuerza uno
+ * puntual, que es lo que permite volver al sheet en el acto si la base falla
+ * sin tener que borrar credenciales.
+ */
 export function modoDatos(): ModoDatos {
-  return process.env.SHEET_MODE === "fixture" || !process.env.SHEET_ID ? "fixture" : "sheet";
+  const forzado = process.env.ORIGEN_DATOS?.trim();
+  if (forzado === "supabase" || forzado === "sheet" || forzado === "fixture") return forzado;
+
+  // Compatibilidad con la variable vieja, que solo sabía de fixtures.
+  if (process.env.SHEET_MODE === "fixture") return "fixture";
+
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) return "supabase";
+  return process.env.SHEET_ID ? "sheet" : "fixture";
 }
+
+/**
+ * Credenciales de la base. La service key saltea RLS, así que este módulo es
+ * `server-only` y la clave nunca llega al navegador: el login del sitio es lo
+ * que protege los teléfonos y domicilios que trae la tabla.
+ */
+export function supabaseConfig(): { url: string; clave: string } {
+  const url = process.env.SUPABASE_URL?.trim().replace(/\/$/, "");
+  const clave = process.env.SUPABASE_SERVICE_KEY?.trim();
+
+  if (!url || !clave) {
+    throw new Error(
+      "Faltan SUPABASE_URL o SUPABASE_SERVICE_KEY. Están en Supabase, " +
+        "en Project Settings > API. Ver web/README.md",
+    );
+  }
+  return { url, clave };
+}
+
+/** Tabla de la base con el acumulado del mes en curso. */
+export const TABLA_MENSUAL = process.env.SUPABASE_TABLA_MENSUAL?.trim() || "mensual";
+
+/** Tabla de la base con lo que quedó sin cerrar en la jornada anterior. */
+export const TABLA_AYER = process.env.SUPABASE_TABLA_AYER?.trim() || "ayer";
 
 export function sheetId(): string {
   const id = process.env.SHEET_ID;

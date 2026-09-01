@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
-import { leerFilas } from "./csv";
-import { TAB_MENSUAL, TAB_AYER, modoDatos } from "./config";
+import { leerFilas, type Vista } from "./csv";
+import { modoDatos, type ModoDatos } from "./config";
 import {
   camposPresentes,
   consolidarPedidos,
@@ -23,9 +23,9 @@ export type Casos = {
   campos: CampoPedido[];
 };
 
-/** Lee una pestaña y devuelve sus casos junto con los campos que trae. */
-async function leerCasos(tab: string): Promise<Casos> {
-  const [encabezado, ...filas] = await leerFilas(tab);
+/** Lee una vista y devuelve sus casos junto con los campos que trae. */
+async function leerCasos(vista: Vista): Promise<Casos> {
+  const [encabezado, ...filas] = await leerFilas(vista);
   const mapa = mapearColumnas(encabezado ?? []);
 
   return {
@@ -37,7 +37,7 @@ async function leerCasos(tab: string): Promise<Casos> {
 }
 
 export type EstadoFuente = {
-  modo: "sheet" | "fixture";
+  modo: ModoDatos;
   actualizado: string;
   pestanas: number;
 };
@@ -48,12 +48,12 @@ export type EstadoFuente = {
  * estos datos, no leyendo las pestañas de meses anteriores.
  */
 export const cargarPedidos = cache(async (): Promise<Casos> => {
-  const { pedidos, campos } = await leerCasos(TAB_MENSUAL);
+  const { pedidos, campos } = await leerCasos("mensual");
   return { pedidos: consolidarPedidos([pedidos]), campos };
 });
 
 /** Los casos que quedaron sin cerrar en la jornada anterior. */
-export const cargarAyer = cache(() => leerCasos(TAB_AYER));
+export const cargarAyer = cache(() => leerCasos("ayer"));
 
 export function estadoFuente(pestanas: number): EstadoFuente {
   return {

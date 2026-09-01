@@ -3,6 +3,7 @@ import { NavLink } from "./NavLink";
 import { SignOutButton } from "./SignOutButton";
 import { BotonActualizar } from "./BotonActualizar";
 import { BotonRefrescar } from "./BotonRefrescar";
+import type { ModoDatos } from "@/lib/config";
 import estilos from "./ui.module.css";
 
 /**
@@ -31,7 +32,7 @@ export function Shell({
   hayFlujos,
 }: {
   children: React.ReactNode;
-  modo: "sheet" | "fixture";
+  modo: ModoDatos;
   usuario?: string | null;
   /** Si hay webhooks de n8n cargados. Define qué promete el botón Actualizar. */
   hayFlujos: boolean;
@@ -83,7 +84,7 @@ export function Shell({
               className={`${estilos.fuenteDot} ${modo === "fixture" ? estilos.fuenteDotFixture : ""}`}
               aria-hidden="true"
             />
-            {modo === "fixture" ? "Datos de prueba" : "Sheet en vivo"}
+            {ETIQUETA_FUENTE[modo]}
           </span>
           <BotonRefrescar />
           <BotonActualizar hayFlujos={hayFlujos} />
@@ -95,10 +96,26 @@ export function Shell({
   );
 }
 
-function fuenteTitulo(modo: "sheet" | "fixture"): string {
-  return modo === "fixture"
-    ? "La app está leyendo los fixtures locales, no el Google Sheet"
-    : "Los datos vienen del Google Sheet, con una hora de caché";
+/**
+ * De dónde salen los casos, a la vista en la barra. No es un detalle técnico:
+ * durante la migración conviven la base y el libro, y mirar un número sin saber
+ * cuál de los dos lo produjo es la forma más fácil de sacar una conclusión
+ * equivocada.
+ */
+const ETIQUETA_FUENTE: Record<ModoDatos, string> = {
+  supabase: "Base en vivo",
+  sheet: "Sheet en vivo",
+  fixture: "Datos de prueba",
+};
+
+const TITULO_FUENTE: Record<ModoDatos, string> = {
+  supabase: "Los casos salen de las tablas de Supabase, que n8n actualiza todos los días",
+  sheet: "Los casos salen del Google Sheet",
+  fixture: "La app está leyendo los fixtures locales, no la base ni el sheet",
+};
+
+function fuenteTitulo(modo: ModoDatos): string {
+  return TITULO_FUENTE[modo];
 }
 
 export function PageHead({

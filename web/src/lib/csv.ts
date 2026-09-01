@@ -2,7 +2,24 @@ import "server-only";
 import Papa from "papaparse";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { REVALIDAR_SEGUNDOS, gidDeTab, modoDatos, sheetId } from "./config";
+import {
+  REVALIDAR_SEGUNDOS,
+  TABLA_AYER,
+  TABLA_MENSUAL,
+  TAB_AYER,
+  TAB_MENSUAL,
+  gidDeTab,
+  modoDatos,
+  sheetId,
+} from "./config";
+import { leerTabla } from "./supabase";
+
+/**
+ * Las dos vistas del tablero. Se nombran así, y no por pestaña ni por tabla,
+ * porque cada origen las llama distinto: en el libro son las pestañas `Mensual`
+ * y `Ayer`, y en la base las tablas `mensual` y `ayer`.
+ */
+export type Vista = "mensual" | "ayer";
 
 /**
  * Lee una pestaña del Google Sheet como CSV.
@@ -30,7 +47,7 @@ async function leerCrudo(tab: string): Promise<string> {
   }
 
   const respuesta = await fetch(urlDeTab(tab), {
-    next: { revalidate: REVALIDAR_SEGUNDOS, tags: ["sheet"] },
+    next: { revalidate: REVALIDAR_SEGUNDOS, tags: ["datos"] },
   });
 
   if (!respuesta.ok) {
@@ -42,17 +59,22 @@ async function leerCrudo(tab: string): Promise<string> {
   return respuesta.text();
 }
 
+/** Cómo se llama cada vista en el libro y en la base. */
+const TAB: Record<Vista, string> = { mensual: TAB_MENSUAL, ayer: TAB_AYER };
+const TABLA: Record<Vista, string> = { mensual: TABLA_MENSUAL, ayer: TABLA_AYER };
+
 /**
- * Devuelve las filas de una pestaña como arreglos de celdas, sin interpretar la
- * primera fila como encabezado.
+ * Devuelve las filas de una vista como arreglos de celdas, con el encabezado
+ * primero, venga de la base o del libro.
  *
- * Es a propósito: los encabezados de este libro no son confiables. `Junio` no
- * tiene fila de encabezado, el de `Sep` es un bloque de HTML pegado desde
- * WhatsApp, y varios traen saltos de línea en el medio. Las nueve primeras
- * columnas, en cambio, están siempre en el mismo orden, así que se lee por
- * posición y se descarta la fila de encabezado cuando aparece.
+ * Los dos orígenes entregan la misma forma para que el resto de la app no sepa
+ * de dónde salieron los datos: se migra cambiando variables de entorno, y se
+ * puede volver atrás igual de rápido si la base falla.
  */
-export async function leerFilas(tab: string): Promise<string[][]> {
+export async function leerFilas(vista: Vista): Promise<string[][]> {
+  if (modoDatos() === "supabase") return leerTabla(TABLA[vista]);
+
+  const tab = TAB[vista];
   const texto = await leerCrudo(tab);
   const { data, errors } = Papa.parse<string[]>(texto, {
     header: false,

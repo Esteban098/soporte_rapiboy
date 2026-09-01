@@ -12,7 +12,7 @@ export type ResultadoActualizacion = {
 };
 
 /**
- * Vuelve a leer el sheet, sin tocar n8n.
+ * Vuelve a leer los datos, sin tocar n8n.
  *
  * Es la mitad barata de `actualizarDatos`: descarta la copia guardada y listo.
  * Sirve para cuando alguien editó la planilla a mano y quiere verlo en el
@@ -26,11 +26,11 @@ export type ResultadoActualizacion = {
  * próximo pedido a esperar el dato fresco.
  */
 export async function refrescarDatos(): Promise<void> {
-  updateTag("sheet");
+  updateTag("datos");
 }
 
 /**
- * Rearma el libro y descarta la copia cacheada del sheet.
+ * Rearma la fuente y descarta la copia cacheada.
  *
  * El orden importa: primero corren los flujos de n8n que rehacen las pestañas,
  * y recién cuando terminan se invalida el caché. Al revés, el tablero volvería
@@ -47,7 +47,7 @@ export async function actualizarDatos(): Promise<ResultadoActualizacion> {
   // `updateTag` y no `revalidateTag` porque acá el usuario está esperando el
   // dato nuevo: hace que el próximo pedido espere la lectura fresca en lugar de
   // servir la copia vieja mientras revalida por detrás.
-  updateTag("sheet");
+  updateTag("datos");
 
   return { flujos: flujos.length, exitosos: flujos.length - fallas.length, fallas };
 }

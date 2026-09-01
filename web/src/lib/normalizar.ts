@@ -132,17 +132,30 @@ export type CampoPedido =
   | "foto";
 
 /**
- * Nombres con los que cada campo aparece en el libro.
+ * Nombres con los que cada campo aparece en el origen de datos.
  *
- * Se lee por nombre y no por posición porque las pestañas no comparten el mismo
+ * Se lee por nombre y no por posición porque las vistas no comparten el mismo
  * orden: en `Ayer`, la columna 8 es `IDcoma`, mientras que en `Mensual` esa
  * posición es `Visitas`. Leer por posición metía una lista de IDs donde iban
  * las visitas.
+ *
+ * La lista cubre el libro y la base a la vez: los encabezados del sheet vienen
+ * en una sola palabra o con espacios (`FechaCreacion`, `RECLAMO TIENDA`) y las
+ * columnas de Postgres en snake_case (`fecha_creacion`, `reclamo_tienda`). Con
+ * los dos juegos acá, el mismo normalizador sirve para los dos orígenes y no
+ * hace falta renombrar columnas en la base para que el tablero las encuentre.
  */
 const ALIAS: Record<CampoPedido, string[]> = {
   id: ["id"],
-  creacion: ["fechacreacion", "fecha creacion", "fecha creación"],
-  ultimoMovimiento: ["fechaprogramado", "fecha programado", "fecha progra", "fecha programada"],
+  creacion: ["fechacreacion", "fecha creacion", "fecha creación", "fecha_creacion"],
+  ultimoMovimiento: [
+    "fechaprogramado",
+    "fecha programado",
+    "fecha progra",
+    "fecha programada",
+    "fecha_programado",
+    "ultimo_movimiento",
+  ],
   estado: ["estado"],
   repartidor: ["repartidor", "driver"],
   tienda: ["tienda", "empresa", "seller"],
@@ -150,15 +163,15 @@ const ALIAS: Record<CampoPedido, string[]> = {
   poligono: ["poligono", "polígono"],
   visitas: ["visitas"],
   enlace: ["enlace"],
-  reclamo: ["reclamo tienda", "reclamotienda"],
+  reclamo: ["reclamo tienda", "reclamotienda", "reclamo_tienda"],
   ubicacion: ["ubicacion", "ubicación"],
   telefono: ["telefono", "teléfono"],
   aviso: ["aviso"],
   caso: ["caso"],
-  ids: ["ids", "idcoma", "ids sql"],
+  ids: ["ids", "idcoma", "ids sql", "ids_sql"],
   copiar: ["copiar"],
   demora: ["demora"],
-  foto: ["foto", "foto entrega", "firma", "url foto", "evidencia"],
+  foto: ["foto", "foto entrega", "firma", "url foto", "evidencia", "foto_entrega"],
 };
 
 export type MapaColumnas = Partial<Record<CampoPedido, number>>;
