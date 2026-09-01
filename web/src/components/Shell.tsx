@@ -2,7 +2,7 @@ import Link from "next/link";
 import { NavLink } from "./NavLink";
 import { SignOutButton } from "./SignOutButton";
 import { BotonActualizar } from "./BotonActualizar";
-import { BotonRefrescar } from "./BotonRefrescar";
+import { SeguimientoWidget } from "./SeguimientoWidget";
 import type { ModoDatos } from "@/lib/config";
 import estilos from "./ui.module.css";
 
@@ -20,9 +20,18 @@ const GRUPOS = [
       { href: "/operacion", etiqueta: "Ayer", icono: Reloj },
       { href: "/demorados", etiqueta: "Demorados", icono: Alerta },
       { href: "/reclamos", etiqueta: "Informacion de tiendas", icono: Barras },
+      { href: "/cancelados", etiqueta: "Cancelados", icono: Cruz },
+      { href: "/seguimiento", etiqueta: "Seguimiento", icono: Nota },
       { href: "/comercios", etiqueta: "Comercios y zonas", icono: Pin },
     ],
-  }
+  },
+  {
+    titulo: "Cuenta",
+    /* La entrada está para todos —cualquiera necesita poder cambiar su propia
+       contraseña— y cambia de nombre según el rol. Quien no administra ve solo
+       su perfil: la lista de los demás no sale del servidor. */
+    secciones: [{ href: "/perfiles", etiqueta: null, icono: Persona }],
+  },
 ];
 
 export function Shell({
@@ -30,12 +39,15 @@ export function Shell({
   modo,
   usuario,
   hayFlujos,
+  esAdmin = false,
 }: {
   children: React.ReactNode;
   modo: ModoDatos;
   usuario?: string | null;
   /** Si hay webhooks de n8n cargados. Define qué promete el botón Actualizar. */
   hayFlujos: boolean;
+  /** Muestra el grupo de administración. No reemplaza el control de la página. */
+  esAdmin?: boolean;
 }) {
   return (
     <div className={estilos.app}>
@@ -60,7 +72,7 @@ export function Shell({
                     <li key={seccion.href}>
                       <NavLink href={seccion.href}>
                         <seccion.icono />
-                        {seccion.etiqueta}
+                        {seccion.etiqueta ?? (esAdmin ? "Perfiles" : "Mi perfil")}
                       </NavLink>
                     </li>
                   ))}
@@ -86,11 +98,15 @@ export function Shell({
             />
             {ETIQUETA_FUENTE[modo]}
           </span>
-          <BotonRefrescar />
           <BotonActualizar hayFlujos={hayFlujos} />
         </header>
 
         <main className={estilos.main}>{children}</main>
+
+        {/* Se carga en todas las pantallas del tablero: reportar algo casi
+            nunca pasa estando parado en la pantalla de reportes. Solo con la
+            base activa, porque es lo único que sabe guardar un reporte. */}
+        {modo === "supabase" ? <SeguimientoWidget /> : null}
       </div>
     </div>
   );
@@ -169,6 +185,33 @@ function Barras() {
   return (
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <path d="M2.5 13.5V9M6.5 13.5V4M10.5 13.5V6.5M14 13.5V2.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function Cruz() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <circle cx="8" cy="8" r="5.75" />
+      <path d="M5.9 5.9l4.2 4.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function Nota() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <path d="M13.5 9.5a1.5 1.5 0 0 1-1.5 1.5H6l-3 2.5V4A1.5 1.5 0 0 1 4.5 2.5H12A1.5 1.5 0 0 1 13.5 4Z" strokeLinejoin="round" />
+      <path d="M6 6h4M6 8h2.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function Persona() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <circle cx="8" cy="5.5" r="2.75" />
+      <path d="M3 13.5c0-2.2 2.2-3.75 5-3.75s5 1.55 5 3.75" strokeLinecap="round" />
     </svg>
   );
 }

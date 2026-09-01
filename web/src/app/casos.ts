@@ -1,8 +1,8 @@
 "use server";
 
 import { updateTag } from "next/cache";
-import { auth, authDeshabilitada, puedeEntrar } from "@/auth";
 import { TABLA_MENSUAL } from "@/lib/config";
+import { usuarioActual } from "@/lib/sesion";
 import { actualizarFila, borrarFila, insertarFila } from "@/lib/supabase";
 
 /**
@@ -30,19 +30,6 @@ export type DatosCaso = {
 export type Resultado = { ok: true } | { ok: false; error: string };
 
 const AVISOS_VALIDOS = new Set(["", "NO AVISADO", "AVISADO"]);
-
-/**
- * Quién está editando, o `null` si no tiene permiso.
- *
- * Se comprueba acá y no solo en el proxy porque una Server Action se puede
- * invocar por HTTP directamente, sin pasar por la página que la usa.
- */
-async function editor(): Promise<string | null> {
-  if (authDeshabilitada()) return "local";
-  const sesion = await auth();
-  const email = sesion?.user?.email ?? null;
-  return puedeEntrar(email) ? email : null;
-}
 
 /** Deja el texto listo para la base: sin espacios de más, y vacío como nulo. */
 function texto(valor: string): string | null {
@@ -80,7 +67,7 @@ function aColumnas(datos: DatosCaso, quien: string) {
 }
 
 export async function agregarCaso(id: number, datos: DatosCaso): Promise<Resultado> {
-  const quien = await editor();
+  const quien = await usuarioActual();
   if (!quien) return { ok: false, error: "No tenés permiso para editar." };
 
   const invalido = validar(id, datos);
@@ -94,7 +81,7 @@ export async function agregarCaso(id: number, datos: DatosCaso): Promise<Resulta
 }
 
 export async function editarCaso(id: number, datos: DatosCaso): Promise<Resultado> {
-  const quien = await editor();
+  const quien = await usuarioActual();
   if (!quien) return { ok: false, error: "No tenés permiso para editar." };
 
   const invalido = validar(id, datos);
@@ -115,7 +102,7 @@ export async function editarCaso(id: number, datos: DatosCaso): Promise<Resultad
  * Borrar sirve para sacar algo que no correspondía, no para archivarlo.
  */
 export async function borrarCaso(id: number): Promise<Resultado> {
-  const quien = await editor();
+  const quien = await usuarioActual();
   if (!quien) return { ok: false, error: "No tenés permiso para editar." };
   if (!Number.isInteger(id) || id <= 0) return { ok: false, error: "Id inválido." };
 

@@ -152,3 +152,12 @@
   color: var(--ink-2);
   line-height: 1.5;
 }
+
+/* Para los comentarios de seguimiento, que son el único campo largo que se
+   edita en un diálogo. */
+.area {
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.55;
+  font-family: var(--sans);
+}

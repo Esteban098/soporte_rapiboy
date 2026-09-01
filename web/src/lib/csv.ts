@@ -5,8 +5,10 @@ import path from "node:path";
 import {
   REVALIDAR_SEGUNDOS,
   TABLA_AYER,
+  TABLA_CANCELADOS,
   TABLA_MENSUAL,
   TAB_AYER,
+  TAB_CANCELADOS,
   TAB_MENSUAL,
   gidDeTab,
   modoDatos,
@@ -15,11 +17,11 @@ import {
 import { leerTabla } from "./supabase";
 
 /**
- * Las dos vistas del tablero. Se nombran así, y no por pestaña ni por tabla,
- * porque cada origen las llama distinto: en el libro son las pestañas `Mensual`
- * y `Ayer`, y en la base las tablas `mensual` y `ayer`.
+ * Las vistas del tablero. Se nombran así, y no por pestaña ni por tabla, porque
+ * cada origen las llama distinto: en el libro son las pestañas `Mensual`, `Ayer`
+ * y `Cancelados`, y en la base las tablas en minúscula.
  */
-export type Vista = "mensual" | "ayer";
+export type Vista = "mensual" | "ayer" | "cancelados";
 
 /**
  * Lee una pestaña del Google Sheet como CSV.
@@ -60,8 +62,16 @@ async function leerCrudo(tab: string): Promise<string> {
 }
 
 /** Cómo se llama cada vista en el libro y en la base. */
-const TAB: Record<Vista, string> = { mensual: TAB_MENSUAL, ayer: TAB_AYER };
-const TABLA: Record<Vista, string> = { mensual: TABLA_MENSUAL, ayer: TABLA_AYER };
+const TAB: Record<Vista, string> = {
+  mensual: TAB_MENSUAL,
+  ayer: TAB_AYER,
+  cancelados: TAB_CANCELADOS,
+};
+const TABLA: Record<Vista, string> = {
+  mensual: TABLA_MENSUAL,
+  ayer: TABLA_AYER,
+  cancelados: TABLA_CANCELADOS,
+};
 
 /**
  * Devuelve las filas de una vista como arreglos de celdas, con el encabezado

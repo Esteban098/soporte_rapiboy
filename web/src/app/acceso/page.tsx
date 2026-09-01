@@ -1,8 +1,22 @@
 import { redirect } from "next/navigation";
-import { auth, puedeEntrar, signIn } from "@/auth";
+import { AuthError } from "next-auth";
+import { auth, signIn, tieneAcceso } from "@/auth";
 import estilos from "./acceso.module.css";
 
 export const metadata = { title: "Acceso" };
+
+/**
+ * Un mensaje por cada forma de no entrar.
+ *
+ * `CredentialsSignin` no distingue entre correo inexistente, perfil
+ * desactivado y contraseña equivocada, y el texto tampoco: si cada caso dijera
+ * algo distinto, esta pantalla serviría para averiguar qué correos tienen
+ * cuenta.
+ */
+const MENSAJES: Record<string, string> = {
+  CredentialsSignin: "Correo o contraseña incorrectos.",
+  AccessDenied: "Esa cuenta no está habilitada. Pedile acceso a quien administra el tablero.",
+};
 
 export default async function Acceso({
   searchParams,
@@ -10,9 +24,10 @@ export default async function Acceso({
   searchParams: Promise<{ error?: string }>;
 }) {
   const sesion = await auth();
-  if (puedeEntrar(sesion?.user?.email)) redirect("/");
+  if (tieneAcceso(sesion?.user?.email, sesion?.user?.rol)) redirect("/");
 
   const { error } = await searchParams;
+  const conGoogle = Boolean(process.env.GOOGLE_CLIENT_ID);
 
   return (
     <div className={estilos.pantalla}>
@@ -26,22 +41,71 @@ export default async function Acceso({
 
         {error ? (
           <p className={estilos.error}>
-            {error === "AccessDenied"
-              ? "Esa cuenta no está habilitada. Pedile acceso a quien administra el tablero."
-              : "No se pudo completar el ingreso. Probá de nuevo."}
+            {MENSAJES[error] ?? "No se pudo completar el ingreso. Probá de nuevo."}
           </p>
         ) : null}
 
         <form
-          action={async () => {
+          className={estilos.formulario}
+          action={async (datos: FormData) => {
             "use server";
-            await signIn("google", { redirectTo: "/" });
+            try {
+              await signIn("credentials", {
+                email: String(datos.get("email") ?? ""),
+                password: String(datos.get("password") ?? ""),
+                redirectTo: "/",
+              });
+            } catch (falla) {
+              // `signIn` señala el redirect con una excepción, así que solo se
+              // atrapa el error de autenticación; cualquier otra cosa tiene que
+              // seguir subiendo o el ingreso exitoso nunca navegaría.
+              if (falla instanceof AuthError) redirect("/acceso?error=CredentialsSignin");
+              throw falla;
+            }
           }}
         >
+          <label className={estilos.campo}>
+            <span className={estilos.etiqueta}>Correo</span>
+            <input
+              className={estilos.entrada}
+              name="email"
+              type="email"
+              autoComplete="username"
+              required
+            />
+          </label>
+
+          <label className={estilos.campo}>
+            <span className={estilos.etiqueta}>Contraseña</span>
+            <input
+              className={estilos.entrada}
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+            />
+          </label>
+
           <button type="submit" className={estilos.boton}>
-            Entrar con Google
+            Entrar
           </button>
         </form>
+
+        {conGoogle ? (
+          <>
+            <p className={estilos.separador}>o</p>
+            <form
+              action={async () => {
+                "use server";
+                await signIn("google", { redirectTo: "/" });
+              }}
+            >
+              <button type="submit" className={estilos.botonSecundario}>
+                Entrar con Google
+              </button>
+            </form>
+          </>
+        ) : null}
       </div>
     </div>
   );

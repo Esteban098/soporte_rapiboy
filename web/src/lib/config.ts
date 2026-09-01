@@ -21,6 +21,9 @@ export const TAB_MENSUAL = process.env.SHEET_TAB_MENSUAL?.trim() || "Mensual";
  */
 export const TAB_AYER = "Ayer";
 
+/** Viajes cancelados el mismo día en que se colectaron. */
+export const TAB_CANCELADOS = "Cancelados";
+
 /**
  * Identificador interno de cada pestaña dentro del libro.
  *
@@ -32,6 +35,7 @@ export const TAB_AYER = "Ayer";
 const GIDS_POR_DEFECTO: Record<string, string> = {
   [TAB_MENSUAL]: "1701594461",
   [TAB_AYER]: "0",
+  [TAB_CANCELADOS]: "399453788",
 };
 
 export function gidDeTab(tab: string): string {
@@ -98,6 +102,40 @@ export const TABLA_MENSUAL = process.env.SUPABASE_TABLA_MENSUAL?.trim() || "mens
 
 /** Tabla de la base con lo que quedó sin cerrar en la jornada anterior. */
 export const TABLA_AYER = process.env.SUPABASE_TABLA_AYER?.trim() || "ayer";
+
+/** Tabla de la base con los viajes cancelados el mismo día. */
+export const TABLA_CANCELADOS = process.env.SUPABASE_TABLA_CANCELADOS?.trim() || "cancelados";
+
+/** Tabla de la base con quién puede entrar al tablero y con qué permiso. */
+export const TABLA_PERFILES = process.env.SUPABASE_TABLA_PERFILES?.trim() || "perfiles";
+
+/** Tabla de la base con los reportes que carga el equipo desde el tablero. */
+export const TABLA_SEGUIMIENTO = process.env.SUPABASE_TABLA_SEGUIMIENTO?.trim() || "seguimiento";
+
+/** Bucket de Storage donde van los adjuntos de esos reportes. Privado. */
+export const BUCKET_SEGUIMIENTO = process.env.SUPABASE_BUCKET_SEGUIMIENTO?.trim() || "seguimiento";
+
+/**
+ * Cuánto vive una URL firmada de adjunto, en segundos.
+ *
+ * Corta a propósito: la firma se pide al pintar la página, así que una hora
+ * alcanza de sobra para mirar la foto, y un link que se copie a otro lado deja
+ * de servir enseguida. El bucket es privado; esto es lo único que da acceso.
+ */
+export const FIRMA_SEGUNDOS = Number(process.env.SUPABASE_FIRMA_SEGUNDOS ?? 3600);
+
+/**
+ * Modelo que resume los comentarios, o `null` si no está configurado.
+ *
+ * Devuelve `null` en lugar de tirar error porque el resumen es opcional: sin
+ * `OPENAI_API_KEY` el tablero sigue tomando reportes y los guarda sin resumir.
+ * Es la diferencia entre una función de más y una función que falta.
+ */
+export function openaiConfig(): { clave: string; modelo: string } | null {
+  const clave = process.env.OPENAI_API_KEY?.trim();
+  if (!clave) return null;
+  return { clave, modelo: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini" };
+}
 
 export function sheetId(): string {
   const id = process.env.SHEET_ID;

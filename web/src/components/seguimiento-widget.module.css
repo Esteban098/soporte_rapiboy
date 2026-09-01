@@ -1,0 +1,253 @@
+/* ---------------------------------------------------------------------------
+   Pestaña de seguimiento. Vive fija abajo a la derecha, sobre cualquier
+   pantalla del tablero.
+   --------------------------------------------------------------------------- */
+
+/* Amarillo lleno y no un botón más del tablero: es la única acción que está en
+   todas las pantallas y tiene que encontrarse sin buscarla. El amarillo es el
+   token --warning, que ya se usa para "esto pide atención" en los KPIs y en los
+   avisos, así que no entra un color nuevo al sistema. */
+.pestana {
+  position: fixed;
+  right: 24px;
+  bottom: 0;
+  z-index: 110;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+
+  background: var(--warning);
+  /* Tinta oscura fija: el amarillo es claro en los dos temas, así que el texto
+     no puede seguir al tema o se pierde en el modo oscuro. */
+  color: #21180a;
+  border: 1px solid var(--warning);
+  border-bottom: none;
+  border-radius: 11px 11px 0 0;
+  box-shadow: 0 -2px 16px -6px rgba(176, 122, 30, 0.55), var(--shadow);
+
+  padding: 11px 20px;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.pestana:hover {
+  filter: brightness(1.06);
+}
+
+.panel {
+  position: fixed;
+  right: 20px;
+  bottom: 0;
+  z-index: 110;
+
+  width: min(440px, calc(100vw - 32px));
+  /* Nunca más alto que la ventana: en un portátil chico el botón Enviar tiene
+     que seguir estando a la vista. */
+  max-height: min(680px, calc(100vh - 24px));
+  overflow-y: auto;
+
+  background: var(--surface);
+  border: 1px solid var(--warning);
+  border-bottom: none;
+  border-radius: 13px 13px 0 0;
+  box-shadow: 0 -3px 28px -10px rgba(176, 122, 30, 0.45), var(--shadow);
+}
+
+/* La franja amarilla continúa la pestaña cerrada: al abrirse, el panel se lee
+   como la misma cosa que creció, no como otro cuadro que apareció. */
+.cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 13px 18px 12px;
+  background: var(--warning);
+  color: #21180a;
+  /* Se queda arriba si el panel scrollea. */
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.titulo {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 15px;
+  color: inherit;
+}
+
+.cerrar {
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.75;
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px 7px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.cerrar:hover {
+  opacity: 1;
+  background: rgba(33, 24, 10, 0.12);
+}
+
+.formulario {
+  padding: 16px 18px 20px;
+}
+
+.campo {
+  display: block;
+  margin-bottom: 11px;
+}
+
+.etiqueta {
+  display: block;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.entrada {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.entrada:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.entrada:disabled {
+  color: var(--muted);
+  cursor: progress;
+}
+
+.area {
+  resize: vertical;
+  min-height: 104px;
+  line-height: 1.5;
+}
+
+.archivos {
+  width: 100%;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.archivos::file-selector-button {
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 5px 10px;
+  margin-right: 9px;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.ayuda {
+  display: block;
+  margin-top: 5px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.error,
+.exito {
+  margin: 0 0 11px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.error {
+  border-left: 3px solid var(--critical);
+  background: var(--critical-soft);
+}
+
+.exito {
+  border-left: 3px solid var(--good);
+  background: var(--good-soft);
+}
+
+/* Aviso de que el caso ya tiene reportes. No bloquea: informa y deja seguir. */
+.previo {
+  margin: -2px 0 12px;
+  padding: 9px 11px;
+  border-radius: 7px;
+  border-left: 3px solid var(--warning);
+  background: var(--warning-soft);
+}
+
+.previoTitulo {
+  display: block;
+  font-size: 12.5px;
+  color: var(--ink);
+  margin-bottom: 3px;
+}
+
+.previoTexto {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.previoTexto + .previoTexto {
+  margin-top: 5px;
+}
+
+.enviar {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  color: #fff;
+  padding: 9px 20px;
+  font-family: var(--sans);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.enviar:disabled {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+.girando {
+  animation: girar 0.9s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Quien no quiere movimiento en pantalla tampoco quiere este. */
+@media (prefers-reduced-motion: reduce) {
+  .girando {
+    animation: none;
+  }
+}

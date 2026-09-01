@@ -1,7 +1,18 @@
 import "server-only";
 import { cache } from "react";
 import { leerFilas, type Vista } from "./csv";
-import { modoDatos, type ModoDatos } from "./config";
+import { TABLA_SEGUIMIENTO, modoDatos, type ModoDatos } from "./config";
+import {
+  mapearColumnasCancelados,
+  parsearCancelado,
+  type Cancelado,
+} from "./cancelados";
+import {
+  parsearSeguimiento,
+  type FilaSeguimiento,
+  type Seguimiento,
+} from "./seguimiento";
+import { consultar, TablaFaltante } from "./supabase";
 import {
   camposPresentes,
   consolidarPedidos,
@@ -54,6 +65,56 @@ export const cargarPedidos = cache(async (): Promise<Casos> => {
 
 /** Los casos que quedaron sin cerrar en la jornada anterior. */
 export const cargarAyer = cache(() => leerCasos("ayer"));
+
+/**
+ * Los viajes cancelados el mismo día en que se colectaron.
+ *
+ * Tiene su propio lector porque no comparte esquema con los pedidos: no hay
+ * estado que cerrar ni reclamo que trabajar, y sí dos identificadores y dos
+ * estados que conviene mirar por separado.
+ */
+export const cargarCancelados = cache(async (): Promise<Cancelado[]> => {
+  const [encabezado, ...filas] = await leerFilas("cancelados");
+  const mapa = mapearColumnasCancelados(encabezado ?? []);
+  return filas
+    .map((fila) => parsearCancelado(fila, mapa))
+    .filter((c): c is Cancelado => c !== null);
+});
+
+/**
+ * Los reportes que cargó el equipo, del más nuevo al más viejo.
+ *
+ * Con tope: la pantalla es una cola de trabajo, no un archivo histórico, y
+ * traer todo haría más lenta cada visita a medida que la tabla crece. Si algún
+ * día hace falta mirar más atrás, eso pide una búsqueda por viaje o por fecha,
+ * no una lista más larga.
+ */
+export type ColaSeguimiento = {
+  reportes: Seguimiento[];
+  /** La tabla todavía no está creada. La pantalla lo explica en vez de fallar. */
+  sinTabla: boolean;
+};
+
+export const cargarSeguimientos = cache(async (): Promise<ColaSeguimiento> => {
+  // Esta sección solo existe contra la base. Con el sheet o los fixtures no hay
+  // dónde guardar un reporte, así que devuelve vacío en lugar de reventar por
+  // credenciales que en ese modo no tienen por qué estar.
+  if (modoDatos() !== "supabase") return { reportes: [], sinTabla: false };
+
+  try {
+    const filas = await consultar<FilaSeguimiento>(
+      TABLA_SEGUIMIENTO,
+      { order: "created_at.desc", limit: "500" },
+      "seguimiento",
+    );
+    return { reportes: filas.map(parsearSeguimiento), sinTabla: false };
+  } catch (error) {
+    // Solo este caso se traga: cualquier otra falla de la base sigue siendo un
+    // error, porque ahí sí hay algo roto que conviene ver.
+    if (error instanceof TablaFaltante) return { reportes: [], sinTabla: true };
+    throw error;
+  }
+});
 
 export function estadoFuente(pestanas: number): EstadoFuente {
   return {

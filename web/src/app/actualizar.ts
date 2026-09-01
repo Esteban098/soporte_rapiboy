@@ -12,32 +12,21 @@ export type ResultadoActualizacion = {
 };
 
 /**
- * Vuelve a leer los datos, sin tocar n8n.
+ * Corre los flujos de n8n que rehacen la base y descarta la copia cacheada.
  *
- * Es la mitad barata de `actualizarDatos`: descarta la copia guardada y listo.
- * Sirve para cuando alguien editó la planilla a mano y quiere verlo en el
- * tablero ya, sin esperar el minuto que tardan los flujos en rearmar las hojas.
+ * Es la única forma de traer datos nuevos desde el tablero. Antes había también
+ * un botón Refrescar que solo vencía el caché sin tocar n8n; se sacó porque
+ * partía la acción en dos y ninguna de las dos mitades era lo que la gente
+ * quería: apretar Refrescar releía los mismos datos viejos, porque lo que
+ * estaba desactualizado era la base, no la copia.
  *
- * `updateTag` es lo que hace que sirva de verdad. La lectura del sheet se
- * guarda por `SHEET_REVALIDATE` segundos y, cuando ese plazo vence, Next
- * entrega igual la copia vieja mientras busca la nueva por detrás: por eso
- * refrescar el navegador a veces muestra lo de antes y recién al segundo
- * intento aparece el cambio. `updateTag` vence la copia en el acto y obliga al
- * próximo pedido a esperar el dato fresco.
- */
-export async function refrescarDatos(): Promise<void> {
-  updateTag("datos");
-}
-
-/**
- * Rearma la fuente y descarta la copia cacheada.
+ * El orden importa: primero corren los flujos, y recién cuando terminan se
+ * invalida el caché. Al revés, el tablero volvería a leer la base vieja y los
+ * datos nuevos aparecerían recién en la visita siguiente.
  *
- * El orden importa: primero corren los flujos de n8n que rehacen las pestañas,
- * y recién cuando terminan se invalida el caché. Al revés, el tablero volvería
- * a leer el sheet viejo y los datos nuevos llegarían después de refrescar.
- *
- * Que un flujo falle no cancela la actualización: se invalida igual, porque el
- * sheet pudo haber cambiado por otro lado, y la falla se informa aparte.
+ * Que un flujo falle no cancela la invalidación: la base pudo haber cambiado
+ * por otro lado —la ingesta de la mañana, alguien editando— y la falla se
+ * informa aparte.
  */
 export async function actualizarDatos(): Promise<ResultadoActualizacion> {
   const flujos = flujosActualizacion();
@@ -48,6 +37,7 @@ export async function actualizarDatos(): Promise<ResultadoActualizacion> {
   // dato nuevo: hace que el próximo pedido espere la lectura fresca en lugar de
   // servir la copia vieja mientras revalida por detrás.
   updateTag("datos");
+  updateTag("seguimiento");
 
   return { flujos: flujos.length, exitosos: flujos.length - fallas.length, fallas };
 }

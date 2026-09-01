@@ -26,11 +26,12 @@ referencian por el id que tienen hoy, así que esas se enganchan solas.
 ## El botón Actualizar del tablero
 
 En `02-refresco-estados.json` hay un nodo **Webhook** con el path
-`actualizar-tablero`. Su *Production URL* es la que va en la variable
-`N8N_WEBHOOKS` del tablero:
+`actualizar-tablero`, y el de ingesta uno llamado `ingestar-tablero` que entra
+por el mismo punto que el disparador de las 8. Sus *Production URL* son las que
+van en `N8N_WEBHOOKS` del tablero, en el orden en que deben correr:
 
 ```
-N8N_WEBHOOKS=https://TU-N8N/webhook/actualizar-tablero
+N8N_WEBHOOKS=https://TU-N8N/webhook/ingestar-tablero,https://TU-N8N/webhook/actualizar-tablero
 ```
 
 Dos cosas que hacen fallar esto y son difíciles de ver:

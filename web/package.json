@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "fixtures": "python3 ../analisis/generar_fixtures.py \"$XLSX\" -o fixtures",
     "verificar": "tsx --conditions react-server scripts/verificar.mts",
     "typecheck": "tsc --noEmit"
   },
