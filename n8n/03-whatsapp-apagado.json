@@ -189,7 +189,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Marca el caso como avisado. Es el único lugar, junto al reset de la mañana,\n-- que escribe esta columna.\nupdate public.mensual\n   set aviso = 'AVISADO', avisado_en = now()\n where id = {{ $json.id }};",
+        "query": "-- Marca el caso como avisado. Es el único lugar, junto al reset de la mañana,\n-- que escribe esta columna.\nupdate public.mensual\n   set aviso = 'AVISADO', avisado_en = now()\n where id = {{ $(\"Cruzar con el chat\").item.json.id }};",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",

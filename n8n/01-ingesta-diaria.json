@@ -85,7 +85,8 @@
           "id": "REEMPLAZAR",
           "name": "Supabase - tablero soporte"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -215,7 +216,8 @@
           "name": "Supabase - tablero soporte"
         }
       },
-      "notes": "Insert con Skip on Conflict: los casos que ya están no se tocan. Refrescarlos es tarea del otro flujo, que sí respeta las columnas de soporte."
+      "notes": "Insert con Skip on Conflict: los casos que ya están no se tocan. Refrescarlos es tarea del otro flujo, que sí respeta las columnas de soporte.",
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -236,7 +238,8 @@
           "id": "REEMPLAZAR",
           "name": "Supabase - tablero soporte"
         }
-      }
+      },
+      "executeOnce": true
     },
     {
       "parameters": {
