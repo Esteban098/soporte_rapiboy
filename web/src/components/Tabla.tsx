@@ -92,6 +92,8 @@ export function Tabla({
   const [edicion, setEdicion] = useState<Edicion | null>(null);
   const [imprimiendo, setImprimiendo] = useState(false);
   const [expandida, setExpandida] = useState(false);
+  /** Cuándo se mandó a imprimir. Vacío hasta que alguien lo hace. */
+  const [momento, setMomento] = useState("");
 
   const ocultasCrudas = useSyncExternalStore(
     suscribirPreferencias,
@@ -143,6 +145,15 @@ export function Tabla({
    */
   function imprimir() {
     setImprimiendo(true);
+
+    // La fecha se sella acá y no al pintar la tabla. Al pintar tenía dos
+    // problemas: decía cuándo se abrió la página en vez de cuándo se imprimió
+    // —una pestaña abierta desde la mañana salía con la hora del desayuno— y,
+    // sobre todo, `es-MX` no se formatea igual en Node que en el navegador
+    // ("2 de septiembre de 2026, 1:46 p.m." contra "…de 2026 a las 1:46 p.m."),
+    // así que el servidor y el cliente renderizaban textos distintos y React
+    // tiraba un error de hidratación en cada pantalla del tablero.
+    setMomento(new Date().toLocaleString("es-MX", { dateStyle: "long", timeStyle: "short" }));
 
     // El papel no tiene "ver más filas": se despliegan todas antes de imprimir.
     const limitadaAntes = limite != null && !expandida;
@@ -283,8 +294,8 @@ export function Tabla({
         <p>
           {numero(ordenadas.length)}
           {ordenadas.length === filas.length ? " filas" : ` de ${numero(filas.length)} filas`}
-          {" · "}
-          {new Date().toLocaleString("es-MX", { dateStyle: "long", timeStyle: "short" })}
+          {momento ? " · " : null}
+          {momento}
         </p>
         {filtrosActivos.length > 0 || busqueda ? (
           <p>

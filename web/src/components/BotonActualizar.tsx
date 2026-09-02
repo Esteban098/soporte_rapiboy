@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { actualizarDatos } from "@/app/actualizar";
+import type { ClaveFlujo } from "@/lib/config";
 import estilos from "./boton-actualizar.module.css";
 
 /**
@@ -12,22 +13,88 @@ import estilos from "./boton-actualizar.module.css";
  * `sinFlujos` no es una falla: los datos se releyeron igual. Se avisa porque sin
  * webhooks cargados el botón solo refresca la lectura, y eso es indistinguible
  * de una actualización completa si nadie lo dice. Alguien podría estar tocando
- * Actualizar todo el día esperando que se rearmen las hojas.
+ * Actualizar todo el día esperando que se rehagan los datos.
  */
 type Aviso = { tipo: "fallas"; fallas: string[] } | { tipo: "sinFlujos" };
 
+type Textos = {
+  boton: string;
+  cargando: string;
+  conFlujos: string;
+  sinFlujos: string;
+  esperaTitulo: string;
+  esperaTexto: string;
+};
+
 /**
- * Rearma el libro y vuelve a leerlo.
+ * Qué promete cada botón.
  *
- * Dispara los flujos de n8n que rehacen las pestañas y, cuando terminan,
- * refresca el tablero. Si alguno falla, los datos se recargan igual y el motivo
- * queda a la vista: es peor dejar al equipo sin saber que la actualización salió
- * a medias.
+ * Los tres hacen lo mismo —disparan flujos y descartan la caché— pero tardan y
+ * significan cosas distintas, y el texto tiene que decirlo: quien aprieta el de
+ * histórico está pidiendo revisar meses cerrados y conviene que sepa de entrada
+ * que no es cuestión de segundos.
  */
-export function BotonActualizar({ hayFlujos }: { hayFlujos: boolean }) {
+const TEXTOS: Record<ClaveFlujo, Textos> = {
+  global: {
+    boton: "Actualizar",
+    cargando: "Actualizando…",
+    conFlujos:
+      "Corre los flujos de n8n que rehacen los datos del mes en curso y después vuelve a leerlos. Puede tardar un minuto.",
+    sinFlujos:
+      "Vuelve a leer los datos. No hay flujos de n8n configurados, así que no se consulta el sistema.",
+    esperaTitulo: "Actualizando el tablero",
+    esperaTexto: "Se están rehaciendo los datos del mes en curso. Puede tardar un minuto.",
+  },
+  historico: {
+    boton: "Actualizar histórico",
+    cargando: "Actualizando el histórico…",
+    conFlujos:
+      "Vuelve a preguntarle al sistema en qué estado quedaron los casos de meses ya cerrados. Son muchos más que los del mes en curso, así que puede tardar varios minutos.",
+    sinFlujos:
+      "Vuelve a leer los datos guardados. No hay flujos de histórico configurados, así que no se consulta el sistema.",
+    esperaTitulo: "Actualizando el histórico",
+    esperaTexto:
+      "Se está consultando el estado actual de los casos de meses cerrados. Puede tardar varios minutos.",
+  },
+  canceladosHistorico: {
+    boton: "Actualizar histórico",
+    cargando: "Actualizando el histórico…",
+    conFlujos:
+      "Vuelve a preguntarle al sistema y a Meli en qué estado quedaron las cancelaciones de meses ya cerrados. Puede tardar varios minutos.",
+    sinFlujos:
+      "Vuelve a leer los datos guardados. No hay flujos de histórico configurados, así que no se consulta el sistema.",
+    esperaTitulo: "Actualizando los cancelados",
+    esperaTexto:
+      "Se está consultando el estado actual de las cancelaciones de meses cerrados. Puede tardar varios minutos.",
+  },
+};
+
+/**
+ * Corre los flujos de n8n de una pantalla y vuelve a leer los datos.
+ *
+ * Si alguno falla, los datos se recargan igual y el motivo queda a la vista: es
+ * peor dejar al equipo sin saber que la actualización salió a medias.
+ */
+export function BotonActualizar({
+  clave = "global",
+  hayFlujos,
+  variable,
+  periodo,
+}: {
+  /** Qué juego de flujos dispara. Define también qué dice el botón. */
+  clave?: ClaveFlujo;
+  /** Si hay webhooks cargados para esa clave. Define qué promete el botón. */
+  hayFlujos: boolean;
+  /** Nombre de la variable de entorno, para poder nombrarla si falta. Lo pasa
+   *  el servidor: `config.ts` es `server-only` y acá solo entra su tipo. */
+  variable: string;
+  /** Qué meses se están mirando, para que el flujo pueda acotar la consulta. */
+  periodo?: { desde: string; hasta: string };
+}) {
   const [cargando, iniciar] = useTransition();
   const [aviso, setAviso] = useState<Aviso | null>(null);
   const router = useRouter();
+  const textos = TEXTOS[clave];
 
   return (
     <div className={estilos.contenedor}>
@@ -35,15 +102,11 @@ export function BotonActualizar({ hayFlujos }: { hayFlujos: boolean }) {
         type="button"
         className={estilos.boton}
         disabled={cargando}
-        title={
-          hayFlujos
-            ? "Corre los flujos de n8n que rearman las hojas del libro y después vuelve a leerlas. Puede tardar un minuto."
-            : "Vuelve a leer el sheet. No hay flujos de n8n configurados, así que no rearma las hojas."
-        }
+        title={hayFlujos ? textos.conFlujos : textos.sinFlujos}
         onClick={() =>
           iniciar(async () => {
             setAviso(null);
-            const resultado = await actualizarDatos();
+            const resultado = await actualizarDatos(clave, periodo);
 
             // El servidor manda: `hayFlujos` se calculó al pintar la página, y
             // la configuración pudo cambiar desde entonces.
@@ -61,7 +124,7 @@ export function BotonActualizar({ hayFlujos }: { hayFlujos: boolean }) {
         <span className={`${estilos.icono} ${cargando ? estilos.girando : ""}`} aria-hidden="true">
           ⟳
         </span>
-        {cargando ? "Actualizando…" : "Actualizar"}
+        {cargando ? textos.cargando : textos.boton}
       </button>
 
       {/*
@@ -78,12 +141,12 @@ export function BotonActualizar({ hayFlujos }: { hayFlujos: boolean }) {
               <div className={estilos.overlayCaja}>
                 <span className={estilos.overlayRueda} aria-hidden="true" />
                 <p className={estilos.overlayTitulo}>
-                  {hayFlujos ? "Actualizando el tablero" : "Releyendo el sheet"}
+                  {hayFlujos ? textos.esperaTitulo : "Releyendo los datos"}
                 </p>
                 <p className={estilos.overlayTexto}>
                   {hayFlujos
-                    ? "Se están rearmando las hojas del libro. Puede tardar un minuto."
-                    : "Se está descartando la copia guardada para leer la planilla de nuevo."}
+                    ? textos.esperaTexto
+                    : "Se está descartando la copia guardada para leer la base de nuevo."}
                 </p>
               </div>
             </div>,
@@ -116,11 +179,11 @@ export function BotonActualizar({ hayFlujos }: { hayFlujos: boolean }) {
             <>
               <p className={estilos.avisoTitulo}>Se recargaron los datos</p>
               <p className={estilos.avisoTexto}>
-                No hay ningún flujo de n8n configurado, así que las hojas del libro quedaron
-                como estaban. Esto solo volvió a leer el sheet.
+                No hay ningún flujo de n8n configurado para este botón, así que no se le preguntó
+                nada al sistema: los casos quedaron con el estado que ya tenían guardado.
               </p>
               <p className={estilos.avisoPie}>
-                Se cargan en <code className={estilos.clave}>N8N_WEBHOOKS</code>, con la URL de
+                Se cargan en <code className={estilos.clave}>{variable}</code>, con la URL de
                 producción de cada webhook.
               </p>
             </>

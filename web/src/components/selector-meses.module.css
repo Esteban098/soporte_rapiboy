@@ -1,0 +1,82 @@
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+/* Mientras el servidor arma el rango nuevo, los controles siguen visibles pero
+   se nota que están esperando: vaciar la tarjeta sería peor. */
+.barra[data-navegando="si"] {
+  opacity: 0.6;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.etiqueta {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.select {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  padding: 5px 9px;
+  font-family: var(--sans);
+  font-size: 13px;
+  min-width: 165px;
+  cursor: pointer;
+}
+
+.select:hover:not(:disabled) {
+  border-color: var(--axis);
+}
+
+.select:disabled {
+  cursor: progress;
+}
+
+.atajos {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.atajo {
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.atajo:hover:not(:disabled) {
+  border-color: var(--axis);
+  color: var(--ink);
+}
+
+.atajo:disabled {
+  cursor: progress;
+}
+
+/* El atajo activo se marca con relleno y no solo con color de texto: sobre el
+   papel del modo claro la diferencia de color sola casi no se ve. */
+.atajoActivo {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}

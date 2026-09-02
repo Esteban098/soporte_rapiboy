@@ -1,0 +1,182 @@
+{
+  "name": "Tablero · refresco de histórico",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "actualizar-historico",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        320
+      ],
+      "id": "9d8dafc9-e380-459b-8cfe-ae8eed6fbade",
+      "name": "Botón del tablero",
+      "webhookId": "b735a9c5-1456-44b8-8225-f00ed94b3919",
+      "notes": "La Production URL de este nodo va en N8N_WEBHOOKS_HISTORICO del tablero. Response Mode = Last Node a propósito: el tablero espera a que termine antes de invalidar su caché. Recibe {origen, momento, alcance, desde, hasta}; desde y hasta son los meses del selector, como 2026-08."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Los ids del período pedido, en una sola cadena para el IN de SQL Server.\n--\n-- El rango lo manda el tablero en el cuerpo del webhook, como `2026-08`, y\n-- llega acá con el día pegado (`2026-08-01`) porque Postgres necesita una fecha\n-- completa. El `hasta` se compara contra el primer día del mes siguiente, así\n-- el mes entra entero sin depender de cuántos días tenga ni de la hora.\n--\n-- Si el tablero no manda rango los dos parámetros llegan vacíos y no se filtra\n-- nada: la corrida cubre toda la tabla.\n--\n-- Se agrupa por `coalesce(fecha_creacion, fecha_programado)` porque es\n-- exactamente lo que hace el tablero al ubicar un caso en un mes. Filtrando\n-- solo por fecha_creacion, un caso sin esa fecha aparecería en pantalla dentro\n-- del período y jamás se actualizaría.\n--\n-- El coalesce a '0' importa: sin filas, string_agg devuelve nulo y la consulta\n-- de SQL Server quedaría como IN (), que es un error de sintaxis.\nwith limites as (\n  select nullif($1, '')::date as desde,\n         nullif($2, '')::date as hasta\n)\nselect coalesce(string_agg(m.id::text, ',' order by m.id), '0') as ids_concat\n  from public.mensual m, limites l\n where (l.desde is null\n        or coalesce(m.fecha_creacion, m.fecha_programado) >= l.desde)\n   and (l.hasta is null\n        or coalesce(m.fecha_creacion, m.fecha_programado) < (l.hasta + interval '1 month'));",
+        "options": {
+          "queryReplacement": "={{ $json.body.desde ? $json.body.desde + '-01' : '' }},{{ $json.body.hasta ? $json.body.hasta + '-01' : '' }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -780,
+        320
+      ],
+      "id": "0e033f1d-93b2-417b-b1d6-68c8a5288b05",
+      "name": "Ids del período",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "notes": "Los dos parámetros salen del cuerpo del webhook. Vacíos, no filtran nada."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Estado actual de los casos del período. Misma consulta que usa el refresco\n-- diario: acá no se decide quién entra a la tabla, solo se relee lo que hay.\nSELECT\n        V.Id,\n        CAST(V.FechaProgramado AS DATE) AS FechaProgramado,\n        E.NombreCompleto AS Estado,\n        (SELECT TOP 1 H.Repartidor FROM HistorialViaje H WITH (NOLOCK)\n          WHERE H.IdViaje = V.Id AND H.Repartidor IS NOT NULL\n          ORDER BY H.Fecha DESC) AS Repartidor,\n        U.Alias AS Tienda,\n        V.Direccion AS Destino,\n        P.Nombre AS Poligono,\n        V.Visitas\n    FROM Viaje V WITH (NOLOCK)\n    JOIN Usuario U          WITH (NOLOCK) ON V.IdUsuario  = U.Id\n    LEFT JOIN EstadoViaje E WITH (NOLOCK) ON V.IdEstado   = E.Id\n    LEFT JOIN Poligono P    WITH (NOLOCK) ON V.IdPoligono = P.Id\n    WHERE V.Id IN ({{ $json.ids_concat }})\n    ORDER BY V.Id ASC"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        -560,
+        320
+      ],
+      "id": "9281322f-ab31-4b84-bc49-e0c2405deb25",
+      "name": "Estados actuales",
+      "credentials": {
+        "microsoftSql": {
+          "id": "F5EJUfXcquXz7Rf3",
+          "name": "Microsoft SQL credencial Esteban RPBY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Pasa la salida de SQL Server a los nombres de columna de Postgres.\n *\n * NO incluye `fecha_creacion`, y es lo más importante de este flujo. El tablero\n * decide a qué mes pertenece un caso mirando esa fecha, así que reescribirla\n * puede sacar el caso del mes que se está mirando: alguien abre agosto, aprieta\n * Actualizar, y agosto queda con menos casos que antes de actualizarlo. La\n * fecha de alta no cambia nunca, así que no hay nada que ganar reescribiéndola\n * y sí algo que perder.\n *\n * Las fechas se formatean con getters UTC, igual que en el refresco diario:\n * mezclar `toISOString()` con la hora local del servidor hace que cerca de\n * medianoche las dos mitades se contradigan.\n */\nconst fecha = (v) => (v ? new Date(v).toISOString().slice(0, 10) : null);\nconst texto = (v) => {\n  const t = String(v ?? '').trim();\n  return t === '' || t.toLowerCase() === 'null' ? null : t;\n};\n\nreturn $input.all().map(({ json: r }) => ({\n  json: {\n    id: Number(r.Id),\n    fecha_programado: fecha(r.FechaProgramado),\n    estado: texto(r.Estado),\n    repartidor: texto(r.Repartidor),\n    tienda: texto(r.Tienda),\n    destino: texto(r.Destino),\n    poligono: texto(r.Poligono),\n    visitas: Number.isFinite(Number(r.Visitas)) ? Number(r.Visitas) : null,\n  },\n})).filter((i) => Number.isFinite(i.json.id) && i.json.id > 0);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        320
+      ],
+      "id": "1f0e7e0f-fa1c-4a8e-8f05-650ec86ed5fc",
+      "name": "A columnas"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "mensual"
+        },
+        "operation": "upsert",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "fecha_programado": "={{ $json.fecha_programado }}",
+            "estado": "={{ $json.estado }}",
+            "repartidor": "={{ $json.repartidor }}",
+            "tienda": "={{ $json.tienda }}",
+            "destino": "={{ $json.destino }}",
+            "poligono": "={{ $json.poligono }}",
+            "visitas": "={{ $json.visitas }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -120,
+        320
+      ],
+      "id": "d5b97802-a4ad-42e6-9ba1-8f7720b52741",
+      "name": "Guardar",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "notes": "NO mapea fecha_creacion: es la columna con la que el tablero ubica el caso en un mes, y reescribirla lo sacaría del período que alguien está mirando. Tampoco mapea reclamo_tienda, ubicacion, telefono, aviso ni avisado_en, así que el trabajo de soporte sobrevive a la corrida. caso, informacion_enviar e ids son generadas."
+    }
+  ],
+  "connections": {
+    "Botón del tablero": {
+      "main": [
+        [
+          {
+            "node": "Ids del período",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ids del período": {
+      "main": [
+        [
+          {
+            "node": "Estados actuales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estados actuales": {
+      "main": [
+        [
+          {
+            "node": "A columnas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A columnas": {
+      "main": [
+        [
+          {
+            "node": "Guardar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "e8e52133-c694-4f56-b5da-0b3297338c0a"
+}

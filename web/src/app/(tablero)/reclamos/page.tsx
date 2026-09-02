@@ -31,6 +31,7 @@ export default async function Reclamos() {
       <PageHead
         eyebrow="Datos que aporta el comercio"
         titulo="Reclamos de tienda"
+        flujo="global"
         dek="Casos donde la tienda nos compartió algo con qué trabajar: un teléfono, una ubicación o una indicación del domicilio. No importa en qué columna quedó cargado; lo que importa es si esa información terminó sirviendo."
       />
 

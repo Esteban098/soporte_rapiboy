@@ -3,14 +3,16 @@ import { NavLink } from "./NavLink";
 import { SignOutButton } from "./SignOutButton";
 import { BotonActualizar } from "./BotonActualizar";
 import { SeguimientoWidget } from "./SeguimientoWidget";
-import type { ModoDatos } from "@/lib/config";
+import { flujosDe, variableDeFlujo, type ClaveFlujo, type ModoDatos } from "@/lib/config";
 import estilos from "./ui.module.css";
 
 /**
- * Las secciones van agrupadas por para qué se usan, no en una lista corrida:
- * las tres primeras son la cola de trabajo del turno y las dos últimas se miran
- * cuando hay tiempo de analizar. El grupo es la única jerarquía; adentro la
- * navegación es directa, sin submenús.
+ * Las secciones van agrupadas por para qué se usan, no en una lista corrida.
+ *
+ * «Cola de trabajo» es lo del turno: todo ahí mira el mes en curso o el día.
+ * «Historial» son los meses cerrados, que se consultan cuando hay tiempo de
+ * analizar y no en medio de la operación. El grupo es la única jerarquía;
+ * adentro la navegación es directa, sin submenús.
  */
 const GRUPOS = [
   {
@@ -26,6 +28,13 @@ const GRUPOS = [
     ],
   },
   {
+    titulo: "Historial",
+    secciones: [
+      { href: "/historico", etiqueta: "Histórico", icono: Archivo },
+      { href: "/cancelados-historico", etiqueta: "Cancelados históricos", icono: Archivo },
+    ],
+  },
+  {
     titulo: "Cuenta",
     /* La entrada está para todos —cualquiera necesita poder cambiar su propia
        contraseña— y cambia de nombre según el rol. Quien no administra ve solo
@@ -38,14 +47,11 @@ export function Shell({
   children,
   modo,
   usuario,
-  hayFlujos,
   esAdmin = false,
 }: {
   children: React.ReactNode;
   modo: ModoDatos;
   usuario?: string | null;
-  /** Si hay webhooks de n8n cargados. Define qué promete el botón Actualizar. */
-  hayFlujos: boolean;
   /** Muestra el grupo de administración. No reemplaza el control de la página. */
   esAdmin?: boolean;
 }) {
@@ -98,7 +104,6 @@ export function Shell({
             />
             {ETIQUETA_FUENTE[modo]}
           </span>
-          <BotonActualizar hayFlujos={hayFlujos} />
         </header>
 
         <main className={estilos.main}>{children}</main>
@@ -138,15 +143,41 @@ export function PageHead({
   eyebrow,
   titulo,
   dek,
+  flujo,
+  periodo,
 }: {
   eyebrow: string;
   titulo: string;
   dek?: string;
+  /**
+   * Qué juego de flujos actualiza esta pantalla.
+   *
+   * El botón vive acá y no en la barra superior porque no todas las pantallas
+   * se actualizan igual: la cola del día y el histórico corren flujos
+   * distintos, y uno solo arriba obligaba a que dijera lo mismo en las dos.
+   * Las pantallas que no dependen de n8n —perfiles, seguimiento— no lo pasan y
+   * no lo muestran.
+   */
+  flujo?: ClaveFlujo;
+  /** Meses que se están mirando, para que el flujo pueda acotar la consulta. */
+  periodo?: { desde: string; hasta: string };
 }) {
   return (
     <div className={estilos.pageHead}>
-      <p className={estilos.eyebrow}>{eyebrow}</p>
-      <h1 className={estilos.pageTitle}>{titulo}</h1>
+      <div className={estilos.pageHeadFila}>
+        <div className={estilos.pageHeadTexto}>
+          <p className={estilos.eyebrow}>{eyebrow}</p>
+          <h1 className={estilos.pageTitle}>{titulo}</h1>
+        </div>
+        {flujo ? (
+          <BotonActualizar
+            clave={flujo}
+            hayFlujos={flujosDe(flujo).length > 0}
+            variable={variableDeFlujo(flujo)}
+            periodo={periodo}
+          />
+        ) : null}
+      </div>
       {dek ? <p className={estilos.pageDek}>{dek}</p> : null}
     </div>
   );
@@ -221,6 +252,17 @@ function Pin() {
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <path d="M8 14s5-4.2 5-8a5 5 0 1 0-10 0c0 3.8 5 8 5 8Z" strokeLinejoin="round" />
       <circle cx="8" cy="6" r="1.8" />
+    </svg>
+  );
+}
+
+/** Cajas apiladas: lo guardado, por oposición a lo que está sobre la mesa. */
+function Archivo() {
+  return (
+    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false">
+      <rect x="2" y="2.5" width="12" height="3.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M3.2 6v6.4a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V6" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <line x1="6.4" y1="9" x2="9.6" y2="9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }

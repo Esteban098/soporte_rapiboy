@@ -52,6 +52,7 @@
   position: relative;
 }
 
+
 /* Aviso de flujos fallidos: cuelga del botón sin empujar la barra superior. */
 .aviso {
   position: absolute;

@@ -27,6 +27,7 @@ export default async function Demorados() {
       <PageHead
         eyebrow="Cola de escalamiento"
         titulo="Demorados"
+        flujo="global"
         dek={`Los casos del mes que llevan más de ${DIAS_PARA_DEMORA} días sin ningún cambio de estado y todavía no cerraron. Se calculan sobre la pestaña Mensual, así que la lista está siempre al día.`}
       />
 

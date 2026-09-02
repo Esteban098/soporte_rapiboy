@@ -382,3 +382,118 @@ export function noEntregadosPor(
     }))
     .sort((a, b) => b.casos - a.casos);
 }
+
+/* ------------------------------------------------------------------------- */
+/* Histórico                                                                  */
+/* ------------------------------------------------------------------------- */
+
+export type FilaMes = {
+  mes: string;
+  casos: number;
+  cerrados: number;
+  entregados: number;
+  devueltos: number;
+  abiertos: number;
+  conDatos: number;
+  tasaCierre: number;
+  tasaEntrega: number;
+  /** Entregados sobre el total de cada grupo. Es la comparación que importa. */
+  tasaEntregaConDatos: number;
+  tasaEntregaSinDatos: number;
+};
+
+/**
+ * Un renglón por mes, para ver la serie completa en vez de una foto.
+ *
+ * Los meses sin casos entran igual, en cero: un hueco en la serie puede ser un
+ * mes tranquilo o una ingesta que no corrió, y una línea que salta de julio a
+ * septiembre como si fueran consecutivos esconde la diferencia. La lista de
+ * meses la decide quien llama, que es el único que sabe qué rango se pidió.
+ */
+export function porMes(pedidos: Pedido[], meses: string[]): FilaMes[] {
+  const grupos = new Map<string, Pedido[]>();
+  for (const pedido of pedidos) {
+    const lista = grupos.get(pedido.mes);
+    if (lista) lista.push(pedido);
+    else grupos.set(pedido.mes, [pedido]);
+  }
+
+  return meses.map((mes) => {
+    const lista = grupos.get(mes) ?? [];
+    const con = lista.filter((p) => p.tieneDatosTienda);
+    const sin = lista.filter((p) => !p.tieneDatosTienda);
+    const cerrados = lista.filter((p) => p.cerrado).length;
+    const entregados = lista.filter((p) => p.entregado).length;
+
+    return {
+      mes,
+      casos: lista.length,
+      cerrados,
+      entregados,
+      devueltos: lista.filter((p) => p.devuelto).length,
+      abiertos: lista.length - cerrados,
+      conDatos: con.length,
+      tasaCierre: pct(cerrados, lista.length),
+      tasaEntrega: pct(entregados, lista.length),
+      tasaEntregaConDatos: pct(con.filter((p) => p.entregado).length, con.length),
+      tasaEntregaSinDatos: pct(sin.filter((p) => p.entregado).length, sin.length),
+    };
+  });
+}
+
+export type FilaDesenlace = {
+  estado: string;
+  cerrado: boolean;
+  conDatos: number;
+  sinDatos: number;
+  total: number;
+  /** Qué parte de los casos de ese estado tenía datos de la tienda. */
+  porcentajeConDatos: number;
+};
+
+export type Desenlaces = {
+  conDatos: number;
+  sinDatos: number;
+  filas: FilaDesenlace[];
+};
+
+/**
+ * En qué terminó cada caso, separando los que tenían datos de la tienda.
+ *
+ * Es la lectura que justifica pedirle datos a la tienda: si «Entregado» tiene
+ * mucho más peso entre los que aportaron algo que entre los que no, el pedido
+ * sirve. Puestos uno al lado del otro se ve sin tener que calcular nada.
+ *
+ * Se muestran los conteos y no solo los porcentajes porque los grupos casi
+ * nunca tienen el mismo tamaño: un 100% sobre tres casos y otro sobre
+ * trescientos se leen igual de bien en una tabla y no significan lo mismo.
+ */
+export function desenlaces(pedidos: Pedido[]): Desenlaces {
+  const grupos = new Map<string, Pedido[]>();
+  for (const pedido of pedidos) {
+    const estado = pedido.estado || "Sin estado";
+    const lista = grupos.get(estado);
+    if (lista) lista.push(pedido);
+    else grupos.set(estado, [pedido]);
+  }
+
+  const filas = [...grupos.entries()]
+    .map(([estado, lista]) => {
+      const conDatos = lista.filter((p) => p.tieneDatosTienda).length;
+      return {
+        estado,
+        cerrado: lista[0].cerrado,
+        conDatos,
+        sinDatos: lista.length - conDatos,
+        total: lista.length,
+        porcentajeConDatos: pct(conDatos, lista.length),
+      };
+    })
+    .sort((a, b) => b.total - a.total);
+
+  return {
+    conDatos: pedidos.filter((p) => p.tieneDatosTienda).length,
+    sinDatos: pedidos.filter((p) => !p.tieneDatosTienda).length,
+    filas,
+  };
+}

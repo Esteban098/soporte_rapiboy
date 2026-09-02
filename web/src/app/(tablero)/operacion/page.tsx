@@ -27,6 +27,7 @@ export default async function Ayer() {
       <PageHead
         eyebrow="Cola del día"
         titulo="Ayer"
+        flujo="global"
         dek="Los casos de la pestaña Ayer: lo que quedó sin cerrar en la jornada anterior. El acumulado del mes está en Mes en curso."
       />
 

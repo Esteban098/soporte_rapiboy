@@ -25,6 +25,7 @@ export default async function Comercios() {
       <PageHead
         eyebrow="Origen y destino"
         titulo="Comercios y zonas"
+        flujo="global"
         dek="De dónde salen los casos y a dónde van. Sirve para separar los problemas de dirección en el alta del pedido de los problemas de reparto en la calle."
       />
 

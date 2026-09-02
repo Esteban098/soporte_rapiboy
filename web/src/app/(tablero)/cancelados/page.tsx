@@ -1,6 +1,7 @@
 import { cargarCancelados } from "@/lib/datos";
 import { resumirCancelados } from "@/lib/cancelados";
-import { numero } from "@/lib/formato";
+import { mesEnCurso } from "@/lib/periodos";
+import { duracion, fechaHora, mesLargo, numero } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { Tabla } from "@/components/Tabla";
@@ -8,26 +9,14 @@ import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Cancelados" };
 
-/** Minutos como «2 h 30 m», que se lee mejor que 150 en una tabla. */
-function duracion(minutos: number | null): string {
-  if (minutos == null) return "—";
-  const horas = Math.floor(minutos / 60);
-  const resto = minutos % 60;
-  return horas > 0 ? `${horas} h ${String(resto).padStart(2, "0")} m` : `${resto} m`;
-}
-
-/** La hora tal como quedó guardada, sin reinterpretar la zona. */
-function hora(fecha: Date | null): string {
-  if (!fecha) return "—";
-  const dd = String(fecha.getUTCDate()).padStart(2, "0");
-  const mm = String(fecha.getUTCMonth() + 1).padStart(2, "0");
-  const hh = String(fecha.getUTCHours()).padStart(2, "0");
-  const mi = String(fecha.getUTCMinutes()).padStart(2, "0");
-  return `${dd}/${mm} ${hh}:${mi}`;
-}
-
 export default async function Cancelados() {
-  const cancelados = await cargarCancelados();
+  const todos = await cargarCancelados();
+
+  // Solo el mes en curso, igual que Mensual. Los meses anteriores siguen en la
+  // misma tabla y se miran desde Cancelados históricos.
+  const enCurso = mesEnCurso();
+  const cancelados = todos.filter((c) => c.mes === enCurso);
+  const anteriores = todos.length - cancelados.length;
   const datos = resumirCancelados(cancelados);
 
   const filas = [...cancelados]
@@ -38,8 +27,8 @@ export default async function Cancelados() {
       tienda: c.tienda,
       estadoRbp: c.estadoRbp,
       estadoMeli: c.estadoMeli,
-      colectado: hora(c.colectado),
-      cancelado: hora(c.cancelado),
+      colectado: fechaHora(c.colectado),
+      cancelado: fechaHora(c.cancelado),
       demoro: duracion(c.minutos),
       minutos: c.minutos,
       dia: c.dia,
@@ -48,9 +37,10 @@ export default async function Cancelados() {
   return (
     <>
       <PageHead
-        eyebrow="Cancelaciones tempranas"
+        eyebrow={`Cancelaciones tempranas · ${mesLargo(enCurso)}`}
         titulo="Cancelados"
-        dek="Viajes que el cliente canceló el mismo día en que se colectaron, dentro de las 7 horas. No son entregas fallidas: el paquete nunca llegó a intentarse, así que no cuentan como incidencia de la operación."
+        flujo="global"
+        dek="Viajes que el cliente canceló el mismo día en que se colectaron, dentro de las 7 horas, durante el mes en curso. No son entregas fallidas: el paquete nunca llegó a intentarse, así que no cuentan como incidencia de la operación. Los meses anteriores están en Cancelados históricos."
       />
 
       <div className={estilos.kpis}>
@@ -78,6 +68,14 @@ export default async function Cancelados() {
       </div>
 
       <div className={estilos.stack}>
+        {cancelados.length === 0 ? (
+          <Callout tono="neutral" titulo={`Sin cancelaciones en ${mesLargo(enCurso)}`}>
+            {anteriores > 0
+              ? `Todavía no hubo ninguna este mes. Las ${numero(anteriores)} de meses anteriores se ven desde Cancelados históricos.`
+              : "Todavía no hay ninguna cancelación cargada en la base."}
+          </Callout>
+        ) : null}
+
         {datos.desincronizados > 0 ? (
           <Callout tono="warning" titulo="Los dos sistemas no dicen lo mismo">
             {numero(datos.desincronizados)} de {numero(datos.total)} figuran cancelados de nuestro

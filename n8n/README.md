@@ -1,13 +1,17 @@
 # Flujos de n8n
 
-Tres workflows que reemplazan al único que escribía en el Google Sheet. Se
-importan desde n8n con **Workflows ▸ Import from File**.
+Cinco workflows. Los tres primeros reemplazan al único que escribía en el
+Google Sheet; los dos últimos están detrás de los botones Actualizar de las
+pantallas de histórico. Se importan desde n8n con **Workflows ▸ Import from
+File**.
 
 | Archivo | Qué hace | Cuándo corre |
 |---|---|---|
 | `01-ingesta-diaria.json` | Trae los casos fallidos del día y los cancelados, y reabre la cola de avisos | 8:00, todos los días menos domingo |
 | `02-refresco-estados.json` | Vuelve a preguntarle a SQL Server en qué estado están los casos que ya tenemos | 6:00, 15:13, 18:55 y cada vez que alguien toca **Actualizar** en el tablero |
 | `03-whatsapp-apagado.json` | Avisa al repartidor y reclama a los grupos | **Apagado.** Ver más abajo |
+| `04-refresco-historico.json` | Relee el estado de los casos de un rango de meses | Solo a pedido, desde **Histórico** |
+| `05-refresco-cancelados-historico.json` | Ídem para las cancelaciones | Solo a pedido, desde **Cancelados históricos** |
 
 ## Antes de importar
 
@@ -17,13 +21,65 @@ En Supabase, **Project Settings ▸ Database ▸ Connection string ▸ Session
 pooler**. De ahí salen host, puerto, base, usuario y contraseña. En n8n se crea
 como credencial de tipo *Postgres*, con SSL activado.
 
-Los tres archivos la referencian con el id `REEMPLAZAR`: al abrir cada nodo
-morado hay que elegir la credencial de la lista. Es una sola vez por nodo.
+Los archivos la referencian con el id `REEMPLAZAR`: al abrir cada nodo morado
+hay que elegir la credencial de la lista. Es una sola vez por nodo.
 
 Las credenciales de SQL Server, Google Sheets y OpenAI ya existen y se
 referencian por el id que tienen hoy, así que esas se enganchan solas.
 
-## El botón Actualizar del tablero
+## Los botones Actualizar del tablero
+
+El tablero tiene tres botones distintos y cada uno dispara sus propios flujos.
+Están separados porque tardan cosas distintas: el global refresca lo que la
+operación mira todo el día, y los de histórico revisan meses cerrados, que son
+muchos más casos y no tiene sentido consultar cada vez que alguien abre la cola
+de hoy.
+
+| Variable del tablero | Flujo | Path del webhook |
+|---|---|---|
+| `N8N_WEBHOOKS` | `02-refresco-estados` | `actualizar-tablero` |
+| `N8N_WEBHOOKS_HISTORICO` | `04-refresco-historico` | `actualizar-historico` |
+| `N8N_WEBHOOKS_CANCELADOS_HISTORICO` | `05-refresco-cancelados-historico` | `actualizar-cancelados-historico` |
+
+Las de histórico pueden quedar vacías: el botón avisa que no hay flujos y la
+pantalla sigue mostrando lo que ya está guardado.
+
+### Qué recibe cada webhook
+
+El tablero manda siempre este cuerpo:
+
+```json
+{
+  "origen": "tablero",
+  "momento": "2026-09-02T17:33:26.302Z",
+  "alcance": "historico",
+  "desde": "2026-08",
+  "hasta": "2026-09"
+}
+```
+
+`desde` y `hasta` son los meses del selector, y los usan los flujos 04 y 05
+para acotar la consulta en vez de releer la tabla entera. Vienen en `null`
+cuando el botón es el global, y ahí el filtro no se aplica.
+
+Eso resuelve el límite que está anotado al final de este archivo: el `IN (...)`
+deja de crecer con la tabla y pasa a depender del rango que se pidió.
+
+### La columna que ningún refresco de histórico toca
+
+Los flujos 04 y 05 **no escriben la columna que define a qué mes pertenece el
+caso**: `fecha_creacion` en `mensual`, `fecha_colectado` en `cancelados`.
+
+No es una omisión. El tablero agrupa el histórico por esas fechas, así que
+reescribirlas podría mover un caso a otro mes justo cuando alguien lo está
+mirando: abrís agosto, apretás Actualizar y agosto vuelve con menos casos de
+los que tenía. Ninguna de las dos cambia nunca —son el alta y la colecta—, así
+que no hay nada que ganar reescribiéndolas.
+
+El refresco diario (`02`) sí escribe `fecha_programado`, y está bien: esa fecha
+se pisa en cada movimiento y es la que alimenta «hace cuánto que no se mueve».
+
+## El botón Actualizar global
 
 En `02-refresco-estados.json` hay un nodo **Webhook** con el path
 `actualizar-tablero`. Su *Production URL* es la única que va en `N8N_WEBHOOKS`

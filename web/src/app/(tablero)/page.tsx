@@ -9,6 +9,7 @@ import {
   reclamos,
   resumen,
 } from "@/lib/metricas";
+import { mesEnCurso } from "@/lib/periodos";
 import { mesLargo, numero, porcentaje } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
@@ -22,8 +23,22 @@ import estilos from "@/components/ui.module.css";
 export const metadata = { title: "Mes en curso" };
 
 export default async function Resumen() {
-  const mes = await cargarPedidos();
-  const pedidos = mes.pedidos;
+  const todos = await cargarPedidos();
+
+  /*
+   * Solo el mes en curso. El resto sigue en la misma tabla y se mira desde
+   * Histórico: no hay copia mensual ni limpieza, así que no existe un momento
+   * del mes en que los datos puedan perderse en el traspaso.
+   *
+   * El corte es por fecha de creación, así que un caso entra a esta pantalla
+   * el día que se creó y sale el 1° del mes siguiente aunque siga abierto. Los
+   * que quedaron colgando del mes pasado se trabajan desde Demorados, que no
+   * mira el mes.
+   */
+  const enCurso = mesEnCurso();
+  const pedidos = todos.pedidos.filter((p) => p.mes === enCurso);
+  const mes = { pedidos, campos: todos.campos };
+  const deMesesAnteriores = todos.pedidos.length - pedidos.length;
   const atrasados = demorados(pedidos);
   const total = resumen(pedidos);
   const resolucion = cierre(pedidos);
@@ -39,9 +54,10 @@ export default async function Resumen() {
   return (
     <>
       <PageHead
-        eyebrow={`Mes en curso · ${mesLargo(total.hasta)}`}
+        eyebrow={`Mes en curso · ${mesLargo(enCurso)}`}
         titulo="Entregas fallidas mensual"
-        dek={`${numero(total.casos)} casos acumulados en ${mesLargo(total.hasta)}. Para ver solo lo que quedó pendiente del día anterior, entrá a Ayer. Se refiere a entregas que no se realizaron en el dia, que por algun inconveniente no cumplieron la promesa de entrega. `}
+        flujo="global"
+        dek={`${numero(total.casos)} casos acumulados en ${mesLargo(enCurso)}. Para ver solo lo que quedó pendiente del día anterior, entrá a Ayer. Se refiere a entregas que no se realizaron en el dia, que por algun inconveniente no cumplieron la promesa de entrega. `}
       />
 
       <div className={estilos.kpis}>
@@ -76,6 +92,15 @@ export default async function Resumen() {
       </div>
 
       <div className={estilos.stack}>
+        {pedidos.length === 0 ? (
+          <Callout tono="warning" titulo={`Todavía no hay casos de ${mesLargo(enCurso)}`}>
+            El mes recién empieza o la ingesta de hoy no corrió.{" "}
+            {deMesesAnteriores > 0
+              ? `Los ${numero(deMesesAnteriores)} casos de meses anteriores siguen guardados y se ven desde Histórico.`
+              : "Todavía no hay ningún caso cargado en la base."}
+          </Callout>
+        ) : null}
+
         <Callout
           tono={resolucion.tasaApertura > 20 ? "critical" : "neutral"}
           titulo="Abiertos contra cerrados"

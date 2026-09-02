@@ -48,3 +48,32 @@ export function fechaCorta(fecha: Date | null): string {
   if (!fecha) return "—";
   return new Intl.DateTimeFormat("es-MX", { day: "2-digit", month: "short", timeZone: "UTC" }).format(fecha);
 }
+
+/**
+ * Minutos como «2 h 30 m», que se lee mejor que 150 en una tabla.
+ *
+ * Vive acá y no en la pantalla de cancelados porque la comparten esa y el
+ * histórico: dos copias se separan en cuanto alguien retoca una.
+ */
+export function duracion(minutos: number | null): string {
+  if (minutos == null) return "—";
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+  return horas > 0 ? `${horas} h ${String(resto).padStart(2, "0")} m` : `${resto} m`;
+}
+
+/**
+ * Fecha y hora tal como quedaron guardadas, sin reinterpretar la zona.
+ *
+ * Se leen los componentes UTC a propósito: la consulta ya dejó estas marcas en
+ * hora de México, así que formatearlas con la zona del servidor las correría
+ * por segunda vez.
+ */
+export function fechaHora(fecha: Date | null): string {
+  if (!fecha) return "—";
+  const dd = String(fecha.getUTCDate()).padStart(2, "0");
+  const mm = String(fecha.getUTCMonth() + 1).padStart(2, "0");
+  const hh = String(fecha.getUTCHours()).padStart(2, "0");
+  const mi = String(fecha.getUTCMinutes()).padStart(2, "0");
+  return `${dd}/${mm} ${hh}:${mi}`;
+}

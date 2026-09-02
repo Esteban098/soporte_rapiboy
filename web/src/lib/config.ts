@@ -144,7 +144,36 @@ export function sheetId(): string {
 }
 
 /**
- * Flujos de n8n que rearman el libro, en el orden en que deben correr.
+ * Qué botón Actualizar dispara qué flujos.
+ *
+ * Hay uno global en la barra y uno propio en cada pantalla de histórico. Están
+ * separados porque hacen cosas distintas y tardan distinto: el global refresca
+ * el mes en curso, que es lo que la operación mira todo el día, mientras que
+ * los de histórico vuelven a preguntar por meses cerrados —muchos más casos, y
+ * una consulta que no tiene sentido correr cada vez que alguien quiere ver la
+ * cola de hoy.
+ */
+export type ClaveFlujo = "global" | "historico" | "canceladosHistorico";
+
+const VARIABLE_DE_FLUJO: Record<ClaveFlujo, string> = {
+  global: "N8N_WEBHOOKS",
+  historico: "N8N_WEBHOOKS_HISTORICO",
+  canceladosHistorico: "N8N_WEBHOOKS_CANCELADOS_HISTORICO",
+};
+
+export const CLAVES_FLUJO = Object.keys(VARIABLE_DE_FLUJO) as ClaveFlujo[];
+
+export function esClaveFlujo(valor: unknown): valor is ClaveFlujo {
+  return typeof valor === "string" && valor in VARIABLE_DE_FLUJO;
+}
+
+/** Cómo se llama la variable de entorno, para poder decirlo en pantalla. */
+export function variableDeFlujo(clave: ClaveFlujo): string {
+  return VARIABLE_DE_FLUJO[clave];
+}
+
+/**
+ * Los webhooks de un botón, en el orden en que deben correr.
  *
  * Son las *Production URL* del nodo Webhook de cada flujo
  * (`https://…/webhook/…`), separadas por coma. La URL del editor
@@ -154,8 +183,8 @@ export function sheetId(): string {
  * Viven en el servidor: el navegador nunca ve estas URLs, así nadie puede
  * disparar los flujos desde afuera del tablero.
  */
-export function flujosActualizacion(): string[] {
-  return (process.env.N8N_WEBHOOKS ?? "")
+export function flujosDe(clave: ClaveFlujo): string[] {
+  return (process.env[VARIABLE_DE_FLUJO[clave]] ?? "")
     .split(",")
     .map((url) => url.trim())
     .filter(Boolean);

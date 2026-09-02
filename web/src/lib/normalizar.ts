@@ -7,6 +7,8 @@
  * de la app trabaje con un solo tipo de dato.
  */
 
+import { mesDe } from "./periodos";
+
 export type Pedido = {
   id: number;
   creacion: Date | null;
@@ -25,7 +27,23 @@ export type Pedido = {
   destino: string;
   poligono: string;
   visitas: number | null;
-  /** Mes del último movimiento, como `2026-08`. */
+  /**
+   * Mes al que pertenece el caso, como `2026-08`.
+   *
+   * Sale de la fecha de creación, no del último movimiento, y esa diferencia
+   * es la que hace posible el histórico: un paquete creado el 30 de agosto que
+   * se movió el 3 de septiembre pertenece a agosto y se queda ahí para
+   * siempre.
+   *
+   * Con el último movimiento el mes se desarmaba solo: esa columna la reescribe
+   * el refresco de estados en cada corrida, así que revisar agosto movía sus
+   * casos a septiembre y el mes que se estaba mirando quedaba vacío. El total
+   * de un mes cerrado tiene que poder mirarse dos veces y dar lo mismo.
+   *
+   * Cuando no hay fecha de creación se usa el último movimiento, que es lo
+   * único que queda: es preferible ubicar el caso en un mes aproximado a
+   * dejarlo fuera de todos.
+   */
   mes: string;
   devuelto: boolean;
   entregado: boolean;
@@ -113,12 +131,6 @@ const ESTADOS_ABIERTOS = new Set([
   "en centro de dropoff",
   "en deposito con direccion incorrecta",
 ]);
-
-/**
- * Meses que aparecen como coletazo de otras pestañas (menos de 300 casos) y no
- * corresponden a un mes realmente cargado en el libro.
- */
-const MESES_RESIDUALES = new Set(["2026-01", "2026-06"]);
 
 /**
  * Campos que puede traer una pestaña. No están todos en todas: `Ayer` no tiene
@@ -244,10 +256,6 @@ export function parsearFecha(valor: string): Date | null {
   return null;
 }
 
-function mesDe(fecha: Date): string {
-  return `${fecha.getUTCFullYear()}-${String(fecha.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -307,7 +315,7 @@ export function parsearPedido(fila: string[], mapa: MapaColumnas): Pedido | null
     destino: celda(fila, mapa.destino),
     poligono: celda(fila, mapa.poligono),
     visitas: visitasCrudo !== "" && Number.isFinite(visitas) ? visitas : null,
-    mes: mesDe(ultimoMovimiento),
+    mes: mesDe(creacion ?? ultimoMovimiento),
     devuelto: ESTADOS_DEVOLUCION.has(normalizado),
     entregado: normalizado === "entregado",
     abierto: ESTADOS_ABIERTOS.has(normalizado),
@@ -349,7 +357,6 @@ export function consolidarPedidos(grupos: Pedido[][]): Pedido[] {
 
   for (const grupo of grupos) {
     for (const pedido of grupo) {
-      if (MESES_RESIDUALES.has(pedido.mes)) continue;
       const previo = porId.get(pedido.id);
       if (!previo || pedido.ultimoMovimiento! > previo.ultimoMovimiento!) {
         porId.set(pedido.id, pedido);

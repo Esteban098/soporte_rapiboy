@@ -1,0 +1,180 @@
+{
+  "name": "Tablero · refresco de cancelados históricos",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "actualizar-cancelados-historico",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        320
+      ],
+      "id": "ba881b6c-0f07-42a9-a55d-c2c0af60fbde",
+      "name": "Botón del tablero",
+      "webhookId": "94f24af9-6ae3-457c-aed5-03954133ef6e",
+      "notes": "La Production URL de este nodo va en N8N_WEBHOOKS_CANCELADOS_HISTORICO del tablero. Recibe {origen, momento, alcance, desde, hasta}."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Los ids del período pedido, en una sola cadena para el IN de SQL Server.\n--\n-- El rango lo manda el tablero en el cuerpo del webhook, como `2026-08`, y\n-- llega acá con el día pegado (`2026-08-01`) porque Postgres necesita una fecha\n-- completa. El `hasta` se compara contra el primer día del mes siguiente, así\n-- el mes entra entero sin depender de cuántos días tenga ni de la hora.\n--\n-- Si el tablero no manda rango los dos parámetros llegan vacíos y no se filtra\n-- nada: la corrida cubre toda la tabla.\n--\n-- Se filtra por `fecha_colectado`, que es lo que el tablero usa para ubicar una\n-- cancelación en un mes.\n--\n-- El coalesce a '0' importa: sin filas, string_agg devuelve nulo y la consulta\n-- de SQL Server quedaría como IN (), que es un error de sintaxis.\nwith limites as (\n  select nullif($1, '')::date as desde,\n         nullif($2, '')::date as hasta\n)\nselect coalesce(string_agg(c.id::text, ',' order by c.id), '0') as ids_concat\n  from public.cancelados c, limites l\n where (l.desde is null\n        or c.fecha_colectado >= l.desde)\n   and (l.hasta is null\n        or c.fecha_colectado < (l.hasta + interval '1 month'));",
+        "options": {
+          "queryReplacement": "={{ $json.body.desde ? $json.body.desde + '-01' : '' }},{{ $json.body.hasta ? $json.body.hasta + '-01' : '' }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -780,
+        320
+      ],
+      "id": "6e43ca12-8fe8-4ad5-9fa8-fd59e029d8dc",
+      "name": "Ids del período",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "notes": "Los dos parámetros salen del cuerpo del webhook. Vacíos, no filtran nada."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Datos actuales de las cancelaciones del período.\n--\n-- Acotado por id y no por fecha: acá no se decide quién entra a la tabla —eso\n-- ya pasó— sino que se refresca lo que hay. Por eso no van los filtros de\n-- «mismo día» ni «menos de 7 horas»: son criterios de selección, y volver a\n-- aplicarlos dejaría sin actualizar justo a los que cambiaron.\nSELECT\n    V.Id AS Id,\n    V.IdFlex AS Id_MELI,\n    U.Alias AS Tienda,\n    E.NombreCompleto AS Estado_RBP,\n    D.EstadoMeli AS Estado_MELI,\n    HV22.Fecha AS Fecha_Cancelado\nFROM Viaje V WITH (NOLOCK)\nINNER JOIN Usuario U      WITH (NOLOCK) ON V.IdUsuario = U.Id\nINNER JOIN DetalleViaje D WITH (NOLOCK) ON V.IdDetalle = D.Id\nINNER JOIN EstadoViaje E  WITH (NOLOCK) ON V.IdEstado  = E.Id\nLEFT JOIN (\n    SELECT IdViaje, MIN(DATEADD(HOUR, -3, Fecha)) AS Fecha\n    FROM HistorialViaje WITH (NOLOCK) WHERE IdEstado = 22 GROUP BY IdViaje\n) HV22 ON HV22.IdViaje = V.Id\nWHERE V.Id IN ({{ $json.ids_concat }})\nORDER BY V.Id ASC;"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        -560,
+        320
+      ],
+      "id": "07508d72-bdda-4483-b1e3-1d21a580870e",
+      "name": "Estados actuales",
+      "credentials": {
+        "microsoftSql": {
+          "id": "F5EJUfXcquXz7Rf3",
+          "name": "Microsoft SQL credencial Esteban RPBY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Cancelados a columnas de la base.\n *\n * NO incluye `fecha_colectado`, por el mismo motivo que el flujo de pedidos no\n * toca `fecha_creacion`: es la columna con la que el tablero decide a qué mes\n * pertenece la cancelación. Si la corrida la reescribiera, el caso podría irse\n * del mes que alguien está mirando justo cuando aprieta Actualizar. La hora de\n * colecta además no cambia: es el primer registro del historial.\n *\n * La fecha de cancelación ya viene con las 3 horas restadas por la consulta, o\n * sea en hora de México, y se formatea con getters UTC para conservar ese reloj\n * de pared: la columna en Postgres es `timestamp` sin zona, y una segunda\n * conversión la correría de nuevo.\n */\nconst marca = (v) => (v ? new Date(v).toISOString().slice(0, 19).replace('T', ' ') : null);\nconst texto = (v) => {\n  const t = String(v ?? '').trim();\n  return t === '' || t.toLowerCase() === 'null' ? null : t;\n};\n\nreturn $input.all().map(({ json: r }) => ({\n  json: {\n    id: Number(r.Id),\n    id_meli: texto(r.Id_MELI),\n    tienda: texto(r.Tienda),\n    estado_rbp: texto(r.Estado_RBP),\n    estado_meli: texto(r.Estado_MELI),\n    fecha_cancelado: marca(r.Fecha_Cancelado),\n  },\n})).filter((i) => Number.isFinite(i.json.id) && i.json.id > 0);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        320
+      ],
+      "id": "711134bc-0b1c-40a1-b956-430e2d40eb63",
+      "name": "A columnas"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "cancelados"
+        },
+        "operation": "upsert",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "id_meli": "={{ $json.id_meli }}",
+            "tienda": "={{ $json.tienda }}",
+            "estado_rbp": "={{ $json.estado_rbp }}",
+            "estado_meli": "={{ $json.estado_meli }}",
+            "fecha_cancelado": "={{ $json.fecha_cancelado }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -120,
+        320
+      ],
+      "id": "b4cd0eb6-52fc-43a6-9eee-cadc028e625d",
+      "name": "Guardar",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "notes": "NO mapea fecha_colectado: define a qué mes pertenece la cancelación en el tablero, y la hora de colecta no cambia nunca. Reescribirla solo podría sacar el caso del período que se está mirando."
+    }
+  ],
+  "connections": {
+    "Botón del tablero": {
+      "main": [
+        [
+          {
+            "node": "Ids del período",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ids del período": {
+      "main": [
+        [
+          {
+            "node": "Estados actuales",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estados actuales": {
+      "main": [
+        [
+          {
+            "node": "A columnas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A columnas": {
+      "main": [
+        [
+          {
+            "node": "Guardar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "0512a124-4089-43b8-8ea2-41ef862a878e"
+}

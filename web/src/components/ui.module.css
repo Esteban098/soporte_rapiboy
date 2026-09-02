@@ -172,6 +172,19 @@
   margin-bottom: 26px;
 }
 
+/* El título y el botón comparten renglón; el dek va abajo, a todo el ancho,
+   porque es un párrafo y no debe angostarse para dejarle lugar al botón. */
+.pageHeadFila {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pageHeadTexto {
+  min-width: 0;
+}
+
 .eyebrow {
   font-family: var(--mono);
   font-size: 10.5px;

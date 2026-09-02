@@ -10,6 +10,8 @@
  * presente antes de calcular una tasa sobre estos números.
  */
 
+import { mesDe } from "./periodos";
+
 export type Cancelado = {
   id: number;
   /** Id del envío en Meli. Es texto: no es un número nuestro. */
@@ -24,6 +26,12 @@ export type Cancelado = {
   minutos: number | null;
   /** Día de la colecta, como `2026-08-31`. */
   dia: string;
+  /**
+   * Mes al que pertenece, como `2026-08`. Sale de la colecta y no de la
+   * cancelación: las dos ocurren el mismo día por definición de esta tabla,
+   * pero la colecta es la que ordena el resto del tablero.
+   */
+  mes: string;
   /**
    * Meli todavía no registró la cancelación.
    *
@@ -98,6 +106,7 @@ export function parsearCancelado(fila: string[], mapa: MapaCancelados): Cancelad
         ? Math.round((cancelado.getTime() - colectado.getTime()) / MINUTO_MS)
         : null,
     dia: colectado ? colectado.toISOString().slice(0, 10) : "",
+    mes: colectado ? mesDe(colectado) : "",
     desincronizado: estadoMeli !== "" && estadoMeli.toLowerCase() !== "cancelado",
   };
 }
@@ -151,4 +160,45 @@ export function resumirCancelados(cancelados: Cancelado[]): ResumenCancelados {
     desincronizados: cancelados.filter((c) => c.desincronizado).length,
     porComercio,
   };
+}
+
+export type FilaMesCancelados = {
+  mes: string;
+  casos: number;
+  comercios: number;
+  minutosMediana: number | null;
+  desincronizados: number;
+};
+
+/**
+ * Un renglón por mes, para ver si las cancelaciones tempranas suben o bajan.
+ *
+ * Los meses sin casos entran en cero, igual que en el histórico de pedidos: un
+ * hueco puede ser un mes tranquilo o una ingesta que no corrió, y una serie que
+ * salta de julio a septiembre como si fueran seguidos esconde la diferencia.
+ *
+ * `comercios` cuenta distintos por mes y por eso no se puede sumar entre meses:
+ * un comercio que canceló en agosto y en septiembre es uno solo, no dos.
+ */
+export function canceladosPorMes(
+  cancelados: Cancelado[],
+  meses: string[],
+): FilaMesCancelados[] {
+  const grupos = new Map<string, Cancelado[]>();
+  for (const c of cancelados) {
+    const lista = grupos.get(c.mes);
+    if (lista) lista.push(c);
+    else grupos.set(c.mes, [c]);
+  }
+
+  return meses.map((mes) => {
+    const lista = grupos.get(mes) ?? [];
+    return {
+      mes,
+      casos: lista.length,
+      comercios: new Set(lista.map((c) => c.tienda || "Sin comercio")).size,
+      minutosMediana: mediana(lista.filter((c) => c.minutos != null).map((c) => c.minutos!)),
+      desincronizados: lista.filter((c) => c.desincronizado).length,
+    };
+  });
 }
