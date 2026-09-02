@@ -285,6 +285,109 @@
           "name": "Supabase - tablero soporte"
         }
       }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Los ids de cancelados en una sola cadena, para el IN de SQL Server.\n--\n-- El coalesce a '0' importa: con la tabla vacía string_agg devuelve nulo\n-- y la consulta quedaría como IN (), que es un error de sintaxis. Con un\n-- 0 no matchea ningún viaje y la rama termina en blanco.\nselect coalesce(string_agg(id::text, ',' order by id), '0') as ids_concat\n  from public.cancelados;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -780,
+        920
+      ],
+      "id": "d02e5e9f-61d1-51fa-8e22-ccbac9b1cced",
+      "name": "Ids de Cancelados",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Datos actuales de los cancelados que ya están en la base.\n--\n-- Mismo origen que la carga diaria, pero acotado por id en vez de por\n-- fecha: acá no se decide quién entra a la tabla —eso ya pasó— sino que\n-- se refresca lo que hay. Por eso no van los filtros de «mismo día» ni\n-- «menos de 7 horas»: son criterios de selección, y volver a aplicarlos\n-- dejaría sin actualizar justo a los que cambiaron.\nSELECT\n    V.Id AS Id,\n    V.IdFlex AS Id_MELI,\n    U.Alias AS Tienda,\n    E.NombreCompleto AS Estado_RBP,\n    D.EstadoMeli AS Estado_MELI,\n    HV24.Fecha AS Fecha_Colectado,\n    HV22.Fecha AS Fecha_Cancelado\nFROM Viaje V WITH (NOLOCK)\nINNER JOIN Usuario U      WITH (NOLOCK) ON V.IdUsuario = U.Id\nINNER JOIN DetalleViaje D WITH (NOLOCK) ON V.IdDetalle = D.Id\nINNER JOIN EstadoViaje E  WITH (NOLOCK) ON V.IdEstado  = E.Id\nINNER JOIN (\n    SELECT IdViaje, MIN(DATEADD(HOUR, -3, Fecha)) AS Fecha\n    FROM HistorialViaje WITH (NOLOCK) WHERE IdEstado = 24 GROUP BY IdViaje\n) HV24 ON HV24.IdViaje = V.Id\nINNER JOIN (\n    SELECT IdViaje, MIN(DATEADD(HOUR, -3, Fecha)) AS Fecha\n    FROM HistorialViaje WITH (NOLOCK) WHERE IdEstado = 22 GROUP BY IdViaje\n) HV22 ON HV22.IdViaje = V.Id\nWHERE V.Id IN ({{ $json.ids_concat }})\nORDER BY V.Id ASC;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        -560,
+        920
+      ],
+      "id": "ab97539a-8565-54d7-b8c2-7ae3e68d3dff",
+      "name": "Estados actuales · Cancelados",
+      "credentials": {
+        "microsoftSql": {
+          "id": "F5EJUfXcquXz7Rf3",
+          "name": "Microsoft SQL credencial Esteban RPBY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Cancelados a columnas de la base.\n *\n * Las dos fechas ya vienen con las 3 horas restadas por la consulta, así que son\n * hora local de México. Se formatean con getters UTC para conservar exactamente\n * ese reloj de pared: la columna en Postgres es `timestamp` sin zona, y aplicar\n * una segunda conversión las correría de nuevo.\n */\nconst marca = (v) => (v ? new Date(v).toISOString().slice(0, 19).replace('T', ' ') : null);\nconst texto = (v) => {\n  const t = String(v ?? '').trim();\n  return t === '' || t.toLowerCase() === 'null' ? null : t;\n};\n\nreturn $input.all().map(({ json: r }) => ({\n  json: {\n    id: Number(r.Id),\n    id_meli: texto(r.Id_MELI),\n    tienda: texto(r.Tienda),\n    estado_rbp: texto(r.Estado_RBP),\n    estado_meli: texto(r.Estado_MELI),\n    fecha_colectado: marca(r.Fecha_Colectado),\n    fecha_cancelado: marca(r.Fecha_Cancelado),\n  },\n})).filter((i) => Number.isFinite(i.json.id) && i.json.id > 0);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        920
+      ],
+      "id": "4cf6ee2a-aa85-5e7a-87e8-6c0e06710918",
+      "name": "Cancelados a columnas"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "cancelados"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "id_meli": "={{ $json.id_meli }}",
+            "tienda": "={{ $json.tienda }}",
+            "estado_rbp": "={{ $json.estado_rbp }}",
+            "estado_meli": "={{ $json.estado_meli }}",
+            "fecha_colectado": "={{ $json.fecha_colectado }}",
+            "fecha_cancelado": "={{ $json.fecha_cancelado }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -120,
+        920
+      ],
+      "id": "2154a932-41b9-5b10-92ad-87748cc579cb",
+      "name": "Actualizar Cancelados",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "notes": "Upsert por id, pero los ids salen de la propia tabla: no puede aparecer uno nuevo, así que en la práctica solo actualiza. Cancelados no tiene columnas de soporte, así que no hay nada que preservar."
     }
   ],
   "connections": {
@@ -298,6 +401,11 @@
           },
           {
             "node": "Ids de Ayer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ids de Cancelados",
             "type": "main",
             "index": 0
           }
@@ -316,6 +424,11 @@
             "node": "Ids de Ayer",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Ids de Cancelados",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -332,6 +445,11 @@
             "node": "Ids de Ayer",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Ids de Cancelados",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -346,6 +464,11 @@
           },
           {
             "node": "Ids de Ayer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ids de Cancelados",
             "type": "main",
             "index": 0
           }
@@ -412,6 +535,39 @@
         [
           {
             "node": "Actualizar Ayer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ids de Cancelados": {
+      "main": [
+        [
+          {
+            "node": "Estados actuales · Cancelados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estados actuales · Cancelados": {
+      "main": [
+        [
+          {
+            "node": "Cancelados a columnas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancelados a columnas": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Cancelados",
             "type": "main",
             "index": 0
           }

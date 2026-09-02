@@ -283,29 +283,39 @@ render, que no cruzan el límite entre servidor y cliente.
 
 ## El botón Actualizar
 
-Es la única forma de traer datos nuevos desde el tablero. Dispara los webhooks
-que estén en `N8N_WEBHOOKS`, en orden, y recién cuando terminan invalida el
-caché: al revés, la web volvería a leer la base vieja y lo nuevo aparecería en
-la visita siguiente.
+Refresca lo que ya está en la base. **No trae casos nuevos**, y esa es la
+distinción que importa: la ingesta de las 8 decide *quiénes* entran a las
+tablas, y el botón actualiza *lo que hay*. Son dos preguntas distintas y por eso
+son dos flujos.
 
-Hay dos flujos con webhook y se elige cuál —o los dos, separados por coma—
-según qué se quiera rehacer:
+Dispara un solo webhook, el de `02-refresco-estados`:
 
-| Webhook | Flujo | Qué hace | Cuánto tarda |
-|---|---|---|---|
-| `ingestar-tablero` | `01-ingesta-diaria` | Rehace `ayer`, suma a `mensual` lo que falte y recarga `cancelados`. Es la corrida de las 8, a pedido. | más |
-| `actualizar-tablero` | `02-refresco-estados` | Vuelve a consultar el estado de los casos abiertos y los actualiza. | menos |
-
-```bash
-N8N_WEBHOOKS=https://TU-N8N/webhook/ingestar-tablero,https://TU-N8N/webhook/actualizar-tablero
+```
+N8N_WEBHOOKS=https://TU-N8N/webhook/actualizar-tablero
 ```
 
-La *Production URL* (`/webhook/...`) sale del nodo Webhook de cada flujo. La del
-editor (`/workflow/...`) no sirve: devuelve la interfaz de n8n y no ejecuta
-nada. Correr la ingesta dos veces el mismo día no duplica nada.
+Ese flujo toma **todos** los ids de `mensual`, de `ayer` y de `cancelados`, le
+pregunta a SQL Server por cada uno y pisa lo que devuelve. Tres ramas
+independientes que corren en paralelo, con los mismos tres horarios diarios
+(06:00, 15:13, 18:55) más el botón.
 
-**Sin `N8N_WEBHOOKS` cargada el botón no tiene qué disparar**, y lo dice en vez
-de simular que hizo algo.
+No puede agregar filas aunque el nodo diga *upsert*: los ids que consulta salen
+de la propia tabla, así que no hay ninguno nuevo que insertar.
+
+Y no pisa el trabajo de soporte. Cada nodo mapea **solo las columnas del
+sistema** —estado, repartidor, comercio, zona, visitas, fechas—. `aviso`,
+`avisado_en`, `reclamo_tienda`, `ubicacion` y `telefono` no figuran en el
+mapeo, así que el UPDATE no las nombra y el ciclo de AVISADO / NO AVISADO
+sobrevive intacto a cada corrida. Ese ciclo lo mueven solo dos cosas: el envío
+por WhatsApp y el nodo de reapertura de la ingesta diaria.
+
+El orden importa dentro del tablero: primero corre el flujo, y recién cuando
+termina se invalida el caché. Al revés, la web volvería a leer la base vieja.
+
+**La ingesta no tiene webhook a propósito.** Lo tuvo un día y fue un error: el
+botón terminó cargando casos nuevos a mitad de la jornada, que es justo lo que
+no se le pide. Corre por horario, y si hace falta correrla a mano se ejecuta
+desde n8n.
 
 Antes había también un botón **Refrescar** que solo vencía el caché sin tocar
 n8n. Se sacó: partía la acción en dos y ninguna mitad era lo que la gente
