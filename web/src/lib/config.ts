@@ -112,6 +112,13 @@ export const TABLA_PERFILES = process.env.SUPABASE_TABLA_PERFILES?.trim() || "pe
 /** Tabla de la base con los reportes que carga el equipo desde el tablero. */
 export const TABLA_SEGUIMIENTO = process.env.SUPABASE_TABLA_SEGUIMIENTO?.trim() || "seguimiento";
 
+/** Tabla con quién colecta habitualmente cada comercio. */
+export const TABLA_COLECTAS_ASIGNACION =
+  process.env.SUPABASE_TABLA_COLECTAS_ASIGNACION?.trim() || "colectas_asignacion";
+
+/** Tabla con las colectas realizadas, una fila por día, chofer y comercio. */
+export const TABLA_COLECTAS = process.env.SUPABASE_TABLA_COLECTAS?.trim() || "colectas";
+
 /** Bucket de Storage donde van los adjuntos de esos reportes. Privado. */
 export const BUCKET_SEGUIMIENTO = process.env.SUPABASE_BUCKET_SEGUIMIENTO?.trim() || "seguimiento";
 
@@ -153,12 +160,13 @@ export function sheetId(): string {
  * una consulta que no tiene sentido correr cada vez que alguien quiere ver la
  * cola de hoy.
  */
-export type ClaveFlujo = "global" | "historico" | "canceladosHistorico";
+export type ClaveFlujo = "global" | "historico" | "canceladosHistorico" | "colectas";
 
 const VARIABLE_DE_FLUJO: Record<ClaveFlujo, string> = {
   global: "N8N_WEBHOOKS",
   historico: "N8N_WEBHOOKS_HISTORICO",
   canceladosHistorico: "N8N_WEBHOOKS_CANCELADOS_HISTORICO",
+  colectas: "N8N_WEBHOOKS_COLECTAS",
 };
 
 export const CLAVES_FLUJO = Object.keys(VARIABLE_DE_FLUJO) as ClaveFlujo[];

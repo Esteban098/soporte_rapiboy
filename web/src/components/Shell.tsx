@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NavLink } from "./NavLink";
+import { NavGrupo } from "./NavGrupo";
 import { SignOutButton } from "./SignOutButton";
 import { BotonActualizar } from "./BotonActualizar";
 import { SeguimientoWidget } from "./SeguimientoWidget";
@@ -17,6 +18,7 @@ import estilos from "./ui.module.css";
 const GRUPOS = [
   {
     titulo: "Cola de trabajo",
+    icono: Reloj,
     secciones: [
       { href: "/", etiqueta: "Mes en curso", icono: Calendario },
       { href: "/operacion", etiqueta: "Ayer", icono: Reloj },
@@ -28,7 +30,18 @@ const GRUPOS = [
     ],
   },
   {
+    titulo: "Colectas",
+    icono: Camion,
+    secciones: [
+      /* `exacto` porque /colectas es prefijo de /colectas/historial: sin eso las dos
+         entradas se encienden a la vez estando en la de abajo. */
+      { href: "/colectas", etiqueta: "Asignación", icono: Persona, exacto: true },
+      { href: "/colectas/historial", etiqueta: "Historial", icono: Calendario },
+    ],
+  },
+  {
     titulo: "Historial",
+    icono: Archivo,
     secciones: [
       { href: "/historico", etiqueta: "Histórico", icono: Archivo },
       { href: "/cancelados-historico", etiqueta: "Cancelados históricos", icono: Archivo },
@@ -36,6 +49,7 @@ const GRUPOS = [
   },
   {
     titulo: "Cuenta",
+    icono: Persona,
     /* La entrada está para todos —cualquiera necesita poder cambiar su propia
        contraseña— y cambia de nombre según el rol. Quien no administra ve solo
        su perfil: la lista de los demás no sale del servidor. */
@@ -71,19 +85,21 @@ export function Shell({
 
           <div className={estilos.railCuerpo}>
             {GRUPOS.map((grupo) => (
-              <div key={grupo.titulo} className={estilos.railGrupo}>
-                <p className={estilos.railGrupoTitulo}>{grupo.titulo}</p>
-                <ul className={estilos.railLista}>
-                  {grupo.secciones.map((seccion) => (
-                    <li key={seccion.href}>
-                      <NavLink href={seccion.href}>
-                        <seccion.icono />
-                        {seccion.etiqueta ?? (esAdmin ? "Perfiles" : "Mi perfil")}
-                      </NavLink>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <NavGrupo
+                key={grupo.titulo}
+                titulo={grupo.titulo}
+                rutas={grupo.secciones.map((s) => s.href)}
+                icono={<grupo.icono />}
+              >
+                {grupo.secciones.map((seccion) => (
+                  <li key={seccion.href}>
+                    <NavLink href={seccion.href} exacto={"exacto" in seccion && seccion.exacto}>
+                      <seccion.icono />
+                      {seccion.etiqueta ?? (esAdmin ? "Perfiles" : "Mi perfil")}
+                    </NavLink>
+                  </li>
+                ))}
+              </NavGrupo>
             ))}
           </div>
 
@@ -263,6 +279,18 @@ function Archivo() {
       <rect x="2" y="2.5" width="12" height="3.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.4" />
       <path d="M3.2 6v6.4a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V6" fill="none" stroke="currentColor" strokeWidth="1.4" />
       <line x1="6.4" y1="9" x2="9.6" y2="9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Camioneta de reparto: lo que pasa a buscar la mercadería al comercio. */
+function Camion() {
+  return (
+    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false">
+      <path d="M1.5 4.5h7.2v6.2H1.5z" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M8.7 6.9h2.9l2.9 2.4v1.4H8.7z" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="4.6" cy="12.2" r="1.4" fill="none" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="11.6" cy="12.2" r="1.4" fill="none" stroke="currentColor" strokeWidth="1.4" />
     </svg>
   );
 }

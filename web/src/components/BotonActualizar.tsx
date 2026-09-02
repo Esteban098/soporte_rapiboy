@@ -67,6 +67,17 @@ const TEXTOS: Record<ClaveFlujo, Textos> = {
     esperaTexto:
       "Se está consultando el estado actual de las cancelaciones de meses cerrados. Puede tardar varios minutos.",
   },
+  colectas: {
+    boton: "Actualizar colectas",
+    cargando: "Actualizando colectas…",
+    conFlujos:
+      "Vuelve a calcular quién colecta cada comercio y trae las colectas de los últimos 30 días.",
+    sinFlujos:
+      "Vuelve a leer lo guardado. No hay flujo de colectas configurado, así que no se consulta el sistema.",
+    esperaTitulo: "Actualizando las colectas",
+    esperaTexto:
+      "Se está rehaciendo la asignación y releyendo los últimos 30 días. Puede tardar un minuto.",
+  },
 };
 
 /**

@@ -13,8 +13,8 @@ import { REVALIDAR_SEGUNDOS, supabaseConfig } from "./config";
  * mismos cierres, los mismos bordes. Si en cambio armáramos el `Pedido` directo
  * desde el JSON, tendríamos dos caminos que se van separando con cada arreglo.
  */
-export async function leerTabla(tabla: string): Promise<string[][]> {
-  const filas = await traerTodo(tabla);
+export async function leerTabla(tabla: string, orden = "id.asc"): Promise<string[][]> {
+  const filas = await traerTodo(tabla, orden);
   if (filas.length === 0) return [];
 
   // El encabezado sale de la tabla y no de una lista fija: así, agregar una
@@ -310,17 +310,24 @@ function rutaCodificada(ruta: string): string {
 /** PostgREST corta en 1000 filas por pedido, así que se pagina hasta el final. */
 const PAGINA = 1000;
 
-async function traerTodo(tabla: string): Promise<Record<string, unknown>[]> {
+/**
+ * `orden` tiene que nombrar columnas que existan y que juntas identifiquen la
+ * fila. No todas las tablas tienen `id`: `colectas_asignacion` usa
+ * `id_usuario` y `colectas` una clave compuesta, y pedir `id.asc` ahí devuelve
+ * un 400 de Postgres («column ... does not exist»), no una tabla vacía.
+ */
+async function traerTodo(tabla: string, orden: string): Promise<Record<string, unknown>[]> {
   const todo: Record<string, unknown>[] = [];
 
   for (let desde = 0; ; desde += PAGINA) {
     // Sin un orden explícito, Postgres puede devolver la misma fila en dos
-    // páginas y saltearse otra. Con la clave primaria el recorrido es estable.
+    // páginas y saltearse otra. El orden tiene que ser total —la clave
+    // primaria entera— o el problema vuelve en las filas que empatan.
     const consulta = new URLSearchParams({
       select: "*",
       limit: String(PAGINA),
       offset: String(desde),
-      order: "id.asc",
+      order: orden,
     });
 
     const respuesta = await pedir(`${encodeURIComponent(tabla)}?${consulta}`, {
@@ -329,6 +336,15 @@ async function traerTodo(tabla: string): Promise<Record<string, unknown>[]> {
 
     if (!respuesta.ok) {
       const detalle = await respuesta.text().catch(() => "");
+
+      // Igual que en `consultar`: «la tabla no existe» es el estado normal de
+      // una sección recién agregada, antes de correr su script, y no una falla
+      // de la base. Se distingue para que la pantalla pueda explicar qué falta
+      // en vez de mostrar un 500 con un error de Postgres adentro.
+      if (respuesta.status === 404 && detalle.includes("PGRST205")) {
+        throw new TablaFaltante(tabla);
+      }
+
       throw new Error(
         `No se pudo leer la tabla "${tabla}" de Supabase (HTTP ${respuesta.status}). ` +
           `Revisá SUPABASE_URL, SUPABASE_SERVICE_KEY y que la tabla exista. ${detalle}`.trim(),

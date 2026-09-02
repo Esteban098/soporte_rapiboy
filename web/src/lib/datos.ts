@@ -1,7 +1,13 @@
 import "server-only";
 import { cache } from "react";
 import { leerFilas, type Vista } from "./csv";
-import { TABLA_SEGUIMIENTO, modoDatos, type ModoDatos } from "./config";
+import {
+  TABLA_COLECTAS,
+  TABLA_COLECTAS_ASIGNACION,
+  TABLA_SEGUIMIENTO,
+  modoDatos,
+  type ModoDatos,
+} from "./config";
 import {
   mapearColumnasCancelados,
   parsearCancelado,
@@ -12,7 +18,13 @@ import {
   type FilaSeguimiento,
   type Seguimiento,
 } from "./seguimiento";
-import { consultar, TablaFaltante } from "./supabase";
+import { consultar, leerTabla, TablaFaltante } from "./supabase";
+import {
+  parsearAsignaciones,
+  parsearColectas,
+  type Asignacion,
+  type Colecta,
+} from "./colectas";
 import {
   camposPresentes,
   consolidarPedidos,
@@ -123,3 +135,43 @@ export function estadoFuente(pestanas: number): EstadoFuente {
     pestanas,
   };
 }
+
+/**
+ * Las colectas: quién tiene asignado cada comercio y qué pasó cada día.
+ *
+ * Solo existen contra la base. Con el sheet o los fixtures devuelven vacío en
+ * lugar de reventar por credenciales que en ese modo no tienen por qué estar,
+ * igual que hace `cargarSeguimientos`.
+ *
+ * `sinTabla` distingue «todavía no corriste colectas.sql» de «la tabla existe y
+ * está vacía». Son dos situaciones con arreglos distintos y la pantalla las
+ * cuenta distinto.
+ */
+export type DatosColectas<T> = { filas: T[]; sinTabla: boolean };
+
+async function leerColectas<T>(
+  tabla: string,
+  orden: string,
+  parsear: (filas: string[][]) => T[],
+): Promise<DatosColectas<T>> {
+  if (modoDatos() !== "supabase") return { filas: [], sinTabla: false };
+
+  try {
+    return { filas: parsear(await leerTabla(tabla, orden)), sinTabla: false };
+  } catch (error) {
+    if (error instanceof TablaFaltante) return { filas: [], sinTabla: true };
+    throw error;
+  }
+}
+
+export const cargarAsignaciones = cache(
+  (): Promise<DatosColectas<Asignacion>> =>
+    leerColectas(TABLA_COLECTAS_ASIGNACION, "id_usuario.asc", parsearAsignaciones),
+);
+
+// Se pagina por `id`, que es la clave: ordenar por `fecha` dejaría empates —hay
+// decenas de colectas por día— y entre páginas se repetirían unas y se
+// saltearían otras.
+export const cargarColectas = cache(
+  (): Promise<DatosColectas<Colecta>> => leerColectas(TABLA_COLECTAS, "id.asc", parsearColectas),
+);

@@ -1,6 +1,6 @@
 # Flujos de n8n
 
-Cinco workflows. Los tres primeros reemplazan al único que escribía en el
+Seis workflows. Los tres primeros reemplazan al único que escribía en el
 Google Sheet; los dos últimos están detrás de los botones Actualizar de las
 pantallas de histórico. Se importan desde n8n con **Workflows ▸ Import from
 File**.
@@ -12,6 +12,7 @@ File**.
 | `03-whatsapp-apagado.json` | Avisa al repartidor y reclama a los grupos | **Apagado.** Ver más abajo |
 | `04-refresco-historico.json` | Relee el estado de los casos de un rango de meses | Solo a pedido, desde **Histórico** |
 | `05-refresco-cancelados-historico.json` | Ídem para las cancelaciones | Solo a pedido, desde **Cancelados históricos** |
+| `06-colectas.json` | Calcula quién colecta cada comercio y trae las colectas de 30 días | 12:00 de lunes a viernes, y desde **Colectas** |
 
 ## Antes de importar
 
@@ -40,6 +41,7 @@ de hoy.
 | `N8N_WEBHOOKS` | `02-refresco-estados` | `actualizar-tablero` |
 | `N8N_WEBHOOKS_HISTORICO` | `04-refresco-historico` | `actualizar-historico` |
 | `N8N_WEBHOOKS_CANCELADOS_HISTORICO` | `05-refresco-cancelados-historico` | `actualizar-cancelados-historico` |
+| `N8N_WEBHOOKS_COLECTAS` | `06-colectas` | `actualizar-colectas` |
 
 Las de histórico pueden quedar vacías: el botón avisa que no hay flujos y la
 pantalla sigue mostrando lo que ya está guardado.
@@ -103,6 +105,27 @@ leería los datos viejos y los nuevos aparecerían recién al refrescar de nuevo
 La ingesta **no** tiene webhook, y es a propósito: el botón actualiza lo que ya
 está en las tablas, no trae casos nuevos. Si hace falta correrla a mano, se
 ejecuta desde n8n.
+
+## Colectas
+
+`06-colectas.json` sale del flujo `[MX - SD] - DB_Colecta`, que escribía en un
+Google Sheet. Dos diferencias:
+
+- **Escribe en Supabase, no en el sheet.** El original vaciaba la pestaña y la
+  reescribía entera; acá es un upsert, así que una corrida a medias no deja la
+  tabla en blanco.
+- **Tiene dos ramas.** La de asignación es la consulta original con la ventana
+  llevada de 15 a 30 días. La de colectas realizadas es nueva: devuelve una fila
+  por día, chofer y comercio, que es lo que alimenta la vista por día.
+
+Las dos ramas cuelgan del mismo trigger y del mismo webhook, y corren en
+paralelo. Antes de la primera corrida hay que crear las tablas con
+`web/supabase/colectas.sql`.
+
+Un detalle del grano: la rama de colectas agrupa por `(fecha, chofer, comercio)`
+en vez de traer cada registro suelto. Es lo que se mira —«quién fue el martes a
+este comercio»— y además hace que el upsert sea idempotente sin depender de que
+`dbo.Colecta` tenga un id estable, que es algo que no pudimos verificar.
 
 ## Lo que está apagado
 

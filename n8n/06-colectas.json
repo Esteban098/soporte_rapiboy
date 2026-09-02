@@ -1,0 +1,312 @@
+{
+  "name": "Tablero · colectas",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 12 * * 1-5"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1020,
+        120
+      ],
+      "id": "34d33cf7-d388-4c84-8f43-c511e061c012",
+      "name": "Todos los días 12:00",
+      "notes": "Mismo horario que el flujo original del Google Sheet."
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "actualizar-colectas",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1020,
+        300
+      ],
+      "id": "38f6c28b-63da-4e0b-9fda-74390f4abebc",
+      "name": "Botón del tablero",
+      "webhookId": "0ce0fcfc-8d4c-4f87-9dd2-ae1144405bee",
+      "notes": "La Production URL de este nodo va en N8N_WEBHOOKS_COLECTAS del tablero. Response Mode = Last Node: el tablero espera a que termine antes de invalidar su caché."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Quién colecta habitualmente en cada comercio.\n--\n-- Sale del flujo \"[MX - SD] - DB_Colecta\". Dos cambios respecto de aquel:\n-- la ventana pasa de 15 a 30 días, para que sea la misma que la de la vista\n-- por día, e IdUsuario entra en la salida porque es la clave del upsert.\nSET DATEFIRST 1;\n\nDECLARE @Hoy DATE = CAST(GETDATE() AS DATE);\nDECLARE @Desde DATE = DATEADD(DAY, -30, @Hoy);\nDECLARE @Hasta DATE = DATEADD(DAY, 1, @Hoy);\n\nWITH TiendasBase AS (\n    SELECT U.Id AS IdUsuario, U.Alias AS Seller, U.IdModalidad\n    FROM dbo.Usuario U WITH (NOLOCK)\n    WHERE U.IdLocalidad = 9\n      AND U.IdModalidad IN (5, 7)\n      AND U.FechaOffline IS NULL\n),\nColectasHistoricas AS (\n    SELECT\n        C.IdMotoboy,\n        CONCAT(M.Nombre, ' ', M.Apellido) AS Chofer,\n        U.Id AS IdUsuario,\n        U.Alias AS Seller,\n        C.Fecha,\n        CASE\n            WHEN U.Alias COLLATE Latin1_General_CI_AI LIKE '%teresita%'    THEN 'dropOFF Teresita'\n            WHEN U.Alias COLLATE Latin1_General_CI_AI LIKE '%powerbatt%'   THEN 'dropOFF PowerBatt'\n            WHEN U.Alias COLLATE Latin1_General_CI_AI LIKE '%mimoto%'\n              OR U.Alias COLLATE Latin1_General_CI_AI LIKE '%mi moto%'     THEN 'dropOFF MiMoto'\n            WHEN U.Alias COLLATE Latin1_General_CI_AI LIKE '%mayor bag%'\n              OR U.Alias COLLATE Latin1_General_CI_AI LIKE '%mayorbag%'    THEN 'dropOFF MayorBag'\n            WHEN U.Alias COLLATE Latin1_General_CI_AI LIKE '%valsan%'      THEN 'dropOFF Valsan'\n            WHEN U.Alias COLLATE Latin1_General_CI_AI LIKE '%boogie%'      THEN 'dropOFF BoogiePets'\n            WHEN U.Alias COLLATE Latin1_General_CI_AI LIKE '%bache critico%'\n              OR U.Alias COLLATE Latin1_General_CI_AI LIKE '%bachecritico%' THEN 'dropOFF BacheCritico'\n            WHEN U.Alias COLLATE Latin1_General_CI_AI LIKE '%ecatepec%'    THEN 'dropOFF Ecatepec'\n            WHEN U.Alias COLLATE Latin1_General_CI_AI LIKE '%karzov%'      THEN 'dropOFF Karzov'\n            WHEN U.Alias COLLATE Latin1_General_CI_AI LIKE '%navamatic%'   THEN 'dropOFF Navamatic'\n            WHEN U.Alias COLLATE Latin1_General_CI_AI LIKE '%militar%'\n              OR U.Alias COLLATE Latin1_General_CI_AI LIKE '%distmil%'     THEN 'dropOFF Militar'\n            ELSE NULL\n        END AS DropOFF\n    FROM dbo.Colecta C WITH (NOLOCK)\n    INNER JOIN dbo.ReservaxMotoboy R WITH (NOLOCK) ON R.Id = C.IdReserva\n    INNER JOIN dbo.Motoboy M WITH (NOLOCK) ON M.Id = C.IdMotoboy\n    INNER JOIN dbo.Usuario U WITH (NOLOCK) ON U.Id = C.IdUsuario\n    WHERE R.IdUsuario = 4211\n      AND U.IdLocalidad = 9\n      AND U.IdModalidad IN (5, 7)\n      AND C.Fecha >= @Desde\n      AND C.Fecha < @Hasta\n),\nMapaDropOFFRaw AS (\n    SELECT\n        CASE H.Responsable\n            WHEN 'ejorfe@gmail.com'                  THEN 'dropOFF PowerBatt'\n            WHEN 'vicbike2.0@gmail.com'              THEN 'dropOFF Teresita'\n            WHEN 'envios@mimoto.mx'                  THEN 'dropOFF MiMoto'\n            WHEN 'disenomayorbag@gmail.com'          THEN 'dropOFF MayorBag'\n            WHEN 'mensajeriarapiboy@gmail.com'       THEN 'dropOFF Valsan'\n            WHEN 'themismtzb@gmail.com'              THEN 'dropOFF BoogiePets'\n            WHEN 'carlos.guerrero@bachecritico.com'  THEN 'dropOFF BacheCritico'\n            WHEN 'victoria275491@gmail.com'          THEN 'dropOFF Ecatepec'\n            WHEN 'gerencia@karzov.com.mx'            THEN 'dropOFF Karzov'\n            WHEN 'eder.navarrete@hotmail.com'        THEN 'dropOFF Navamatic'\n            WHEN 'distmil@hotmail.com'               THEN 'dropOFF Militar'\n        END AS DropOFF,\n        U.Id AS IdUsuario,\n        U.Alias AS Seller,\n        COUNT(DISTINCT V.Id) AS CantidadHistorica\n    FROM dbo.HistorialViaje H WITH (NOLOCK)\n    INNER JOIN dbo.Viaje V WITH (NOLOCK) ON V.Id = H.IdViaje\n    INNER JOIN dbo.Usuario U WITH (NOLOCK) ON U.Id = V.IdUsuario\n    WHERE U.IdModalidad = 5\n      AND U.IdLocalidad = 9\n      AND U.FechaOffline IS NULL\n      AND H.Fecha >= @Desde\n      AND H.Fecha < @Hasta\n      AND H.IdEstado = 35\n      AND H.ValorNuevo IS NULL\n      AND H.Responsable IN (\n          'ejorfe@gmail.com','vicbike2.0@gmail.com','envios@mimoto.mx',\n          'disenomayorbag@gmail.com','mensajeriarapiboy@gmail.com','themismtzb@gmail.com',\n          'carlos.guerrero@bachecritico.com','victoria275491@gmail.com',\n          'gerencia@karzov.com.mx','eder.navarrete@hotmail.com','distmil@hotmail.com')\n    GROUP BY H.Responsable, U.Id, U.Alias\n),\nRankingMapaDropOFF AS (\n    SELECT D.*, ROW_NUMBER() OVER (\n        PARTITION BY D.IdUsuario ORDER BY D.CantidadHistorica DESC, D.DropOFF) AS rn\n    FROM MapaDropOFFRaw D\n),\nTiendaDropOFF AS (\n    SELECT IdUsuario, Seller, DropOFF, CantidadHistorica\n    FROM RankingMapaDropOFF WHERE rn = 1\n),\nRankingDirecto AS (\n    SELECT H.IdUsuario, H.IdMotoboy, H.Chofer, COUNT(*) AS Veces,\n           MAX(H.Fecha) AS UltimaColecta,\n           ROW_NUMBER() OVER (PARTITION BY H.IdUsuario\n             ORDER BY COUNT(*) DESC, MAX(H.Fecha) DESC, H.IdMotoboy) AS rn\n    FROM ColectasHistoricas H WHERE H.DropOFF IS NULL\n    GROUP BY H.IdUsuario, H.IdMotoboy, H.Chofer\n),\nRankingDropOFF AS (\n    SELECT H.DropOFF, H.IdMotoboy, H.Chofer, COUNT(*) AS Veces,\n           MAX(H.Fecha) AS UltimaColecta,\n           ROW_NUMBER() OVER (PARTITION BY H.DropOFF\n             ORDER BY COUNT(*) DESC, MAX(H.Fecha) DESC, H.IdMotoboy) AS rn\n    FROM ColectasHistoricas H WHERE H.DropOFF IS NOT NULL\n    GROUP BY H.DropOFF, H.IdMotoboy, H.Chofer\n)\nSELECT\n    B.IdUsuario,\n    COALESCE(CAST(CASE WHEN T.IdUsuario IS NOT NULL THEN RD.IdMotoboy\n                       ELSE RT.IdMotoboy END AS VARCHAR(30)), '') AS IdMotoboy,\n    COALESCE(CASE WHEN T.IdUsuario IS NOT NULL THEN RD.Chofer\n                  ELSE RT.Chofer END, 'SIN ASIGNACION') AS Chofer,\n    CASE WHEN T.IdUsuario IS NOT NULL THEN T.DropOFF ELSE B.Seller END AS LugarColecta,\n    B.Seller,\n    ISNULL(T.CantidadHistorica, 0) AS CantidadHistorica,\n    ISNULL(CASE WHEN T.IdUsuario IS NOT NULL THEN RD.Veces ELSE RT.Veces END, 0) AS CantidadColectas\nFROM TiendasBase B\nLEFT JOIN TiendaDropOFF T ON T.IdUsuario = B.IdUsuario\nLEFT JOIN RankingDirecto RT ON RT.IdUsuario = B.IdUsuario AND RT.rn = 1\nLEFT JOIN RankingDropOFF RD ON RD.DropOFF = T.DropOFF AND RD.rn = 1\nORDER BY B.Seller, LugarColecta;"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        -540,
+        40
+      ],
+      "id": "0e98371c-20b8-47be-b733-b58de1a897fb",
+      "name": "Consulta · asignación",
+      "credentials": {
+        "microsoftSql": {
+          "id": "F5EJUfXcquXz7Rf3",
+          "name": "Microsoft SQL credencial Esteban RPBY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Asignación a columnas de Postgres.\n *\n * `chofer` puede llegar como 'SIN ASIGNACION': lo escribe la propia consulta\n * cuando el comercio no tuvo ninguna colecta en la ventana. Se guarda tal cual\n * en vez de pasarlo a nulo, porque es un estado que la operación mira —son los\n * comercios que hay que repartir— y no un dato faltante.\n */\nconst texto = (v) => {\n  const t = String(v ?? '').trim();\n  return t === '' || t.toLowerCase() === 'null' ? null : t;\n};\nconst entero = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);\n\nreturn $input.all().map(({ json: r }) => ({\n  json: {\n    id_usuario: Number(r.IdUsuario),\n    seller: texto(r.Seller),\n    lugar_colecta: texto(r.LugarColecta),\n    id_motoboy: texto(r.IdMotoboy),\n    chofer: texto(r.Chofer),\n    cantidad_colectas: entero(r.CantidadColectas),\n    cantidad_historica: entero(r.CantidadHistorica),\n    actualizado_en: new Date().toISOString(),\n  },\n})).filter((i) => Number.isFinite(i.json.id_usuario) && i.json.id_usuario > 0);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -300,
+        40
+      ],
+      "id": "8b45e82b-f303-4c2f-ad1f-146fe6bb9001",
+      "name": "A columnas · asignación"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "colectas_asignacion"
+        },
+        "operation": "upsert",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_usuario": "={{ $json.id_usuario }}",
+            "seller": "={{ $json.seller }}",
+            "lugar_colecta": "={{ $json.lugar_colecta }}",
+            "id_motoboy": "={{ $json.id_motoboy }}",
+            "chofer": "={{ $json.chofer }}",
+            "cantidad_colectas": "={{ $json.cantidad_colectas }}",
+            "cantidad_historica": "={{ $json.cantidad_historica }}",
+            "actualizado_en": "={{ $json.actualizado_en }}"
+          },
+          "matchingColumns": [
+            "id_usuario"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -60,
+        40
+      ],
+      "id": "16dd1a39-7d84-4e97-bf13-5d6040b24bf0",
+      "name": "Guardar · asignación",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "notes": "Upsert por id_usuario: la asignación es una foto que se rehace entera en cada corrida, no un histórico."
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Las colectas de los últimos 15 días, con su ciclo de vida completo.\n--\n-- Una fila por colecta —no por día ni por comercio—: el registro nace cuando\n-- alguien la pide y va cambiando de estado, así que `Colecta.Id` es la clave y\n-- el upsert la pisa en cada corrida.\n--\n-- Dos diferencias con la consulta de asignación, y conviene tenerlas presentes\n-- si alguna vez los números de las dos pantallas no cierran:\n--\n--   * no filtra por la reserva 4211, así que el universo es más amplio;\n--   * los JOIN a Motoboy y a la reserva son LEFT, así que entran también las\n--     colectas pedidas que todavía no tienen repartidor asignado;\n--   * la ventana es de 15 días y la de asignación de 30.\n--\n-- `ReservaxMotoboy` no tiene columna `IdRuta`: se probó y SQL Server la rechaza.\n--\n-- Las dos cosas son a propósito: una colecta sin repartidor es justamente algo\n-- que hay que poder ver.\nDECLARE @Desde DATE = DATEADD(DAY, -15, CAST(GETDATE() AS DATE));\nDECLARE @Hasta DATE = DATEADD(DAY,   1, CAST(GETDATE() AS DATE));\n\nSELECT\n    C.Id AS IdColecta,\n    C.Fecha AS FechaCreacion,\n    C.FechaSolicitud,\n    C.FechaColecta,\n    C.FechaLlegoDeposito,\n    C.FechaCancelada,\n\n    C.IdEstado AS IdEstadoColecta,\n    C.CantidadPaquetes AS PaquetesSolicitados,\n    C.CantidadPaquetesColectados AS PaquetesColectados,\n    C.CantidadBultos,\n    C.DepositosVisitados,\n    C.Comentario,\n\n    U.Id AS IdSeller,\n    U.Alias AS Seller,\n    U.Direccion AS DireccionSeller,\n    U.Telefono AS TelefonoSeller,\n    U.Email AS EmailSeller,\n\n    CONCAT(M.Nombre, ' ', M.Apellido) AS Repartidor,\n    M.Telefono AS TelefonoRepartidor,\n\n    C.IdReserva,\n    R.Fecha AS FechaReserva,\n    R.Cancelada AS ReservaCancelada,\n    C.Precio,\n    C.Incentivo,\n    C.Comision,\n    C.PrecioCobrarDeuda,\n    C.IdPedidos\n\nFROM Colecta C WITH (NOLOCK)\nINNER JOIN Usuario U WITH (NOLOCK)\n    ON U.Id = C.IdUsuario\nLEFT JOIN Motoboy M WITH (NOLOCK)\n    ON M.Id = C.IdMotoboy\nLEFT JOIN ReservaxMotoboy R WITH (NOLOCK)\n    ON R.Id = C.IdReserva\n\nWHERE U.IdLocalidad = 9\n  AND U.IdModalidad IN (5, 7)\n  AND C.Fecha >= @Desde\n  AND C.Fecha < @Hasta\n\nORDER BY C.Fecha DESC, C.Id DESC;"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        -540,
+        340
+      ],
+      "id": "9e08f7af-42b0-4eac-b6f4-6f8a171737c1",
+      "name": "Consulta · realizadas",
+      "credentials": {
+        "microsoftSql": {
+          "id": "F5EJUfXcquXz7Rf3",
+          "name": "Microsoft SQL credencial Esteban RPBY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Colectas a columnas de Postgres.\n *\n * Las fechas del ciclo van como `timestamp` sin zona, igual que en cancelados:\n * se formatean con getters UTC para conservar el reloj de pared que devuelve\n * SQL Server. Aplicar una conversión de zona acá las correría, y el día es el\n * filtro de la pantalla.\n *\n * `CONCAT` en SQL Server devuelve ' ' —no NULL— cuando el LEFT JOIN a Motoboy\n * no encontró nada, así que un repartidor «vacío» llega como un espacio. Por\n * eso `texto()` recorta antes de decidir si hay dato: sin eso, una colecta sin\n * asignar figuraría con un nombre en blanco en vez de sin repartidor.\n */\nconst fecha = (v) => (v ? new Date(v).toISOString().slice(0, 10) : null);\nconst marca = (v) => (v ? new Date(v).toISOString().slice(0, 19).replace('T', ' ') : null);\nconst texto = (v) => {\n  const t = String(v ?? '').trim();\n  return t === '' || t.toLowerCase() === 'null' ? null : t;\n};\nconst entero = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Math.trunc(Number(v)));\nconst decimal = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));\n\nreturn $input.all().map(({ json: r }) => ({\n  json: {\n    id: Number(r.IdColecta),\n    fecha: fecha(r.FechaCreacion),\n    fecha_solicitud: marca(r.FechaSolicitud),\n    fecha_colecta: marca(r.FechaColecta),\n    fecha_llego_deposito: marca(r.FechaLlegoDeposito),\n    fecha_cancelada: marca(r.FechaCancelada),\n    id_estado: entero(r.IdEstadoColecta),\n    paquetes_solicitados: entero(r.PaquetesSolicitados),\n    paquetes_colectados: entero(r.PaquetesColectados),\n    cantidad_bultos: entero(r.CantidadBultos),\n    depositos_visitados: entero(r.DepositosVisitados),\n    comentario: texto(r.Comentario),\n    id_seller: entero(r.IdSeller),\n    seller: texto(r.Seller),\n    direccion_seller: texto(r.DireccionSeller),\n    telefono_seller: texto(r.TelefonoSeller),\n    email_seller: texto(r.EmailSeller),\n    repartidor: texto(r.Repartidor),\n    telefono_repartidor: texto(r.TelefonoRepartidor),\n    id_reserva: entero(r.IdReserva),\n    fecha_reserva: marca(r.FechaReserva),\n    reserva_cancelada: r.ReservaCancelada === null || r.ReservaCancelada === undefined ? null : Boolean(r.ReservaCancelada),\n    precio: decimal(r.Precio),\n    incentivo: decimal(r.Incentivo),\n    comision: decimal(r.Comision),\n    precio_cobrar_deuda: decimal(r.PrecioCobrarDeuda),\n    id_pedidos: texto(r.IdPedidos),\n  },\n})).filter((i) => Number.isFinite(i.json.id) && i.json.id > 0);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -300,
+        340
+      ],
+      "id": "8db96470-ddcc-4277-abf2-13bed7e79546",
+      "name": "A columnas · realizadas"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "colectas"
+        },
+        "operation": "upsert",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "fecha": "={{ $json.fecha }}",
+            "fecha_solicitud": "={{ $json.fecha_solicitud }}",
+            "fecha_colecta": "={{ $json.fecha_colecta }}",
+            "fecha_llego_deposito": "={{ $json.fecha_llego_deposito }}",
+            "fecha_cancelada": "={{ $json.fecha_cancelada }}",
+            "id_estado": "={{ $json.id_estado }}",
+            "paquetes_solicitados": "={{ $json.paquetes_solicitados }}",
+            "paquetes_colectados": "={{ $json.paquetes_colectados }}",
+            "cantidad_bultos": "={{ $json.cantidad_bultos }}",
+            "depositos_visitados": "={{ $json.depositos_visitados }}",
+            "comentario": "={{ $json.comentario }}",
+            "id_seller": "={{ $json.id_seller }}",
+            "seller": "={{ $json.seller }}",
+            "direccion_seller": "={{ $json.direccion_seller }}",
+            "telefono_seller": "={{ $json.telefono_seller }}",
+            "email_seller": "={{ $json.email_seller }}",
+            "repartidor": "={{ $json.repartidor }}",
+            "telefono_repartidor": "={{ $json.telefono_repartidor }}",
+            "id_reserva": "={{ $json.id_reserva }}",
+            "fecha_reserva": "={{ $json.fecha_reserva }}",
+            "reserva_cancelada": "={{ $json.reserva_cancelada }}",
+            "precio": "={{ $json.precio }}",
+            "incentivo": "={{ $json.incentivo }}",
+            "comision": "={{ $json.comision }}",
+            "precio_cobrar_deuda": "={{ $json.precio_cobrar_deuda }}",
+            "id_pedidos": "={{ $json.id_pedidos }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -60,
+        340
+      ],
+      "id": "dea1a9bc-1d55-41a1-af87-ddd85d11c7fa",
+      "name": "Guardar · realizadas",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "notes": "Upsert por Colecta.Id. La colecta cambia de estado a lo largo del día —se pide, se retira, llega al depósito o se cancela— así que la fila se pisa en cada corrida."
+    }
+  ],
+  "connections": {
+    "Todos los días 12:00": {
+      "main": [
+        [
+          {
+            "node": "Consulta · asignación",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Consulta · realizadas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Botón del tablero": {
+      "main": [
+        [
+          {
+            "node": "Consulta · asignación",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Consulta · realizadas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta · asignación": {
+      "main": [
+        [
+          {
+            "node": "A columnas · asignación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A columnas · asignación": {
+      "main": [
+        [
+          {
+            "node": "Guardar · asignación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta · realizadas": {
+      "main": [
+        [
+          {
+            "node": "A columnas · realizadas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A columnas · realizadas": {
+      "main": [
+        [
+          {
+            "node": "Guardar · realizadas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "versionId": "4d58a212-781c-41f3-b27f-a6fbbb08a8f8"
+}
