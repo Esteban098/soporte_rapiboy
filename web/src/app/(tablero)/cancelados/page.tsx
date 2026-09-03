@@ -1,6 +1,6 @@
 import { cargarCancelados } from "@/lib/datos";
 import { resumirCancelados } from "@/lib/cancelados";
-import { mesEnCurso } from "@/lib/periodos";
+import { mesesOperativos } from "@/lib/periodos";
 import { duracion, fechaHora, mesLargo, numero } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
@@ -12,11 +12,11 @@ export const metadata = { title: "Cancelados" };
 export default async function Cancelados() {
   const todos = await cargarCancelados();
 
-  // Solo el mes en curso, igual que Mensual. Los meses anteriores siguen en la
-  // misma tabla y se miran desde Cancelados históricos.
-  const enCurso = mesEnCurso();
-  const cancelados = todos.filter((c) => c.mes === enCurso);
-  const anteriores = todos.length - cancelados.length;
+  const periodos = mesesOperativos();
+  const cancelados = todos.filter((c) => periodos.includes(c.mes));
+  const fueraDeOperacion = todos.length - cancelados.length;
+  const periodo = periodos.map(mesLargo).join(" y ");
+  const hayMesAnterior = periodos.length === 2;
   const datos = resumirCancelados(cancelados);
 
   const filas = [...cancelados]
@@ -37,10 +37,10 @@ export default async function Cancelados() {
   return (
     <>
       <PageHead
-        eyebrow={`Cancelaciones tempranas · ${mesLargo(enCurso)}`}
+        eyebrow={`Cancelaciones tempranas · ${periodo}`}
         titulo="Cancelados"
         flujo="global"
-        dek="Viajes que el cliente canceló el mismo día en que se colectaron, dentro de las 7 horas, durante el mes en curso. No son entregas fallidas: el paquete nunca llegó a intentarse, así que no cuentan como incidencia de la operación. Los meses anteriores están en Cancelados históricos."
+        dek={`Viajes que el cliente canceló el mismo día en que se colectaron, dentro de las 7 horas. ${hayMesAnterior ? "Hasta el día 9 se muestran juntos el mes anterior y el actual; el día 10 el anterior pasa a Cancelados históricos." : "Los períodos anteriores ya están en Cancelados históricos."}`}
       />
 
       <div className={estilos.kpis}>
@@ -69,9 +69,9 @@ export default async function Cancelados() {
 
       <div className={estilos.stack}>
         {cancelados.length === 0 ? (
-          <Callout tono="neutral" titulo={`Sin cancelaciones en ${mesLargo(enCurso)}`}>
-            {anteriores > 0
-              ? `Todavía no hubo ninguna este mes. Las ${numero(anteriores)} de meses anteriores se ven desde Cancelados históricos.`
+          <Callout tono="neutral" titulo={`Sin cancelaciones en ${periodo}`}>
+            {fueraDeOperacion > 0
+              ? `Hay ${numero(fueraDeOperacion)} cancelaciones fuera de la ventana operativa; revisá que la rotación a histórico esté activa.`
               : "Todavía no hay ninguna cancelación cargada en la base."}
           </Callout>
         ) : null}

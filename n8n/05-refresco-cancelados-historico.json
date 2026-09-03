@@ -22,7 +22,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Los ids del período pedido, en una sola cadena para el IN de SQL Server.\n--\n-- El rango lo manda el tablero en el cuerpo del webhook, como `2026-08`, y\n-- llega acá con el día pegado (`2026-08-01`) porque Postgres necesita una fecha\n-- completa. El `hasta` se compara contra el primer día del mes siguiente, así\n-- el mes entra entero sin depender de cuántos días tenga ni de la hora.\n--\n-- Si el tablero no manda rango los dos parámetros llegan vacíos y no se filtra\n-- nada: la corrida cubre toda la tabla.\n--\n-- Se filtra por `fecha_colectado`, que es lo que el tablero usa para ubicar una\n-- cancelación en un mes.\n--\n-- El coalesce a '0' importa: sin filas, string_agg devuelve nulo y la consulta\n-- de SQL Server quedaría como IN (), que es un error de sintaxis.\nwith limites as (\n  select nullif($1, '')::date as desde,\n         nullif($2, '')::date as hasta\n)\nselect coalesce(string_agg(c.id::text, ',' order by c.id), '0') as ids_concat\n  from public.cancelados c, limites l\n where (l.desde is null\n        or c.fecha_colectado >= l.desde)\n   and (l.hasta is null\n        or c.fecha_colectado < (l.hasta + interval '1 month'));",
+        "query": "-- Los ids del período histórico pedido, en una sola cadena para el IN de SQL Server.\n--\n-- El rango lo manda el tablero en el cuerpo del webhook, como `2026-08`, y\n-- llega acá con el día pegado (`2026-08-01`) porque Postgres necesita una fecha\n-- completa. El `hasta` se compara contra el primer día del mes siguiente, así\n-- el mes entra entero sin depender de cuántos días tenga ni de la hora.\n--\n-- Si el tablero no manda rango los dos parámetros llegan vacíos y no se filtra\n-- nada: la corrida cubre toda la tabla histórica.\n--\n-- Se filtra por `fecha_colectado`, que es lo que el tablero usa para ubicar una\n-- cancelación en un mes.\n--\n-- El coalesce a '0' importa: sin filas, string_agg devuelve nulo y la consulta\n-- de SQL Server quedaría como IN (), que es un error de sintaxis.\nwith limites as (\n  select nullif($1, '')::date as desde,\n         nullif($2, '')::date as hasta\n)\nselect coalesce(string_agg(c.id::text, ',' order by c.id), '0') as ids_concat\n  from public.cancelados_historico c, limites l\n where (l.desde is null\n        or c.fecha_colectado >= l.desde)\n   and (l.hasta is null\n        or c.fecha_colectado < (l.hasta + interval '1 month'));",
         "options": {
           "queryReplacement": "={{ $json.body.desde ? $json.body.desde + '-01' : '' }},{{ $json.body.hasta ? $json.body.hasta + '-01' : '' }}"
         }
@@ -86,7 +86,7 @@
         "table": {
           "__rl": true,
           "mode": "list",
-          "value": "cancelados"
+          "value": "cancelados_historico"
         },
         "operation": "upsert",
         "columns": {

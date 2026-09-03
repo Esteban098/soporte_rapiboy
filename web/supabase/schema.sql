@@ -1,8 +1,8 @@
 -- ---------------------------------------------------------------------------
 -- Base del tablero de soporte
 --
--- Tres tablas, una por vista:
---   mensual     el acumulado del mes en curso, con el trabajo de soporte encima
+-- Tres tablas operativas, una por vista:
+--   mensual     el período operativo, con el trabajo de soporte encima
 --   ayer        lo que quedó sin cerrar en la jornada anterior
 --   cancelados  viajes cancelados el mismo día que se colectaron
 --
@@ -12,7 +12,8 @@
 -- tablero arma las columnas de cada tabla con los campos que realmente trae,
 -- así que agregar una columna acá alcanza para que aparezca en la web.
 --
--- Correr una vez en el SQL Editor de Supabase.
+-- Correr una vez en el SQL Editor de Supabase y, a continuación,
+-- `historico.sql`, que crea el archivo físico y la rotación del día 10.
 -- ---------------------------------------------------------------------------
 
 -- ---------------------------------------------------------------------------

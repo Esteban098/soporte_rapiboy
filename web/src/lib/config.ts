@@ -97,14 +97,22 @@ export function supabaseConfig(): { url: string; clave: string } {
   return { url, clave };
 }
 
-/** Tabla de la base con el acumulado del mes en curso. */
+/** Tabla operativa: mes anterior y actual hasta el día 9; actual desde el 10. */
 export const TABLA_MENSUAL = process.env.SUPABASE_TABLA_MENSUAL?.trim() || "mensual";
+
+/** Archivo físico de los meses que ya salieron de la operación. */
+export const TABLA_MENSUAL_HISTORICO =
+  process.env.SUPABASE_TABLA_MENSUAL_HISTORICO?.trim() || "mensual_historico";
 
 /** Tabla de la base con lo que quedó sin cerrar en la jornada anterior. */
 export const TABLA_AYER = process.env.SUPABASE_TABLA_AYER?.trim() || "ayer";
 
 /** Tabla de la base con los viajes cancelados el mismo día. */
 export const TABLA_CANCELADOS = process.env.SUPABASE_TABLA_CANCELADOS?.trim() || "cancelados";
+
+/** Archivo físico de cancelaciones de períodos ya cerrados. */
+export const TABLA_CANCELADOS_HISTORICO =
+  process.env.SUPABASE_TABLA_CANCELADOS_HISTORICO?.trim() || "cancelados_historico";
 
 /** Tabla de la base con quién puede entrar al tablero y con qué permiso. */
 export const TABLA_PERFILES = process.env.SUPABASE_TABLA_PERFILES?.trim() || "perfiles";

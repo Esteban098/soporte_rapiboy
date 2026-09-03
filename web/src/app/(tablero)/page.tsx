@@ -9,7 +9,7 @@ import {
   reclamos,
   resumen,
 } from "@/lib/metricas";
-import { mesEnCurso } from "@/lib/periodos";
+import { mesesOperativos } from "@/lib/periodos";
 import { mesLargo, numero, porcentaje } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
@@ -20,25 +20,19 @@ import { BarrasVisitas } from "@/components/charts/BarrasVisitas";
 import { BarrasDevueltos } from "@/components/charts/BarrasDevueltos";
 import estilos from "@/components/ui.module.css";
 
-export const metadata = { title: "Mes en curso" };
+export const metadata = { title: "Mensual" };
 
 export default async function Resumen() {
   const todos = await cargarPedidos();
 
-  /*
-   * Solo el mes en curso. El resto sigue en la misma tabla y se mira desde
-   * Histórico: no hay copia mensual ni limpieza, así que no existe un momento
-   * del mes en que los datos puedan perderse en el traspaso.
-   *
-   * El corte es por fecha de creación, así que un caso entra a esta pantalla
-   * el día que se creó y sale el 1° del mes siguiente aunque siga abierto. Los
-   * que quedaron colgando del mes pasado se trabajan desde Demorados, que no
-   * mira el mes.
-   */
-  const enCurso = mesEnCurso();
-  const pedidos = todos.pedidos.filter((p) => p.mes === enCurso);
+  // Del 1 al 9 conviven el mes anterior y el actual. Desde el día 10, la
+  // rotación ya llevó el anterior a `mensual_historico` y queda solo el actual.
+  const periodos = mesesOperativos();
+  const pedidos = todos.pedidos.filter((p) => periodos.includes(p.mes));
   const mes = { pedidos, campos: todos.campos };
-  const deMesesAnteriores = todos.pedidos.length - pedidos.length;
+  const fueraDeOperacion = todos.pedidos.length - pedidos.length;
+  const periodo = periodos.map(mesLargo).join(" y ");
+  const hayMesAnterior = periodos.length === 2;
   const atrasados = demorados(pedidos);
   const total = resumen(pedidos);
   const resolucion = cierre(pedidos);
@@ -54,10 +48,10 @@ export default async function Resumen() {
   return (
     <>
       <PageHead
-        eyebrow={`Mes en curso · ${mesLargo(enCurso)}`}
+        eyebrow={`Mensual · ${periodo}`}
         titulo="Entregas fallidas mensual"
         flujo="global"
-        dek={`${numero(total.casos)} casos acumulados en ${mesLargo(enCurso)}. Para ver solo lo que quedó pendiente del día anterior, entrá a Ayer. Se refiere a entregas que no se realizaron en el dia, que por algun inconveniente no cumplieron la promesa de entrega. `}
+        dek={`${numero(total.casos)} casos acumulados en ${periodo}. ${hayMesAnterior ? "Hasta el día 9 se muestran juntos el mes anterior y el actual; el día 10 el anterior pasa a Histórico. " : "Los períodos anteriores ya están en Histórico. "}Para ver solo lo pendiente de la jornada anterior, entrá a Ayer.`}
       />
 
       <div className={estilos.kpis}>
@@ -65,7 +59,7 @@ export default async function Resumen() {
           etiqueta="Casos abiertos"
           valor={numero(resolucion.abiertos)}
           tono="bad"
-          nota={`${porcentaje(resolucion.tasaApertura)} del mes sigue sin resolverse`}
+          nota={`${porcentaje(resolucion.tasaApertura)} del período sigue sin resolverse`}
         />
         <Kpi
           etiqueta="Casos cerrados"
@@ -74,7 +68,7 @@ export default async function Resumen() {
           nota={`${numero(resolucion.cerrados)} casos resueltos`}
         />
         <Kpi
-          etiqueta="Casos del mes"
+          etiqueta="Casos del período"
           valor={numero(resolucion.total)}
           nota="pedidos con incidencia registrados"
         />
@@ -93,10 +87,10 @@ export default async function Resumen() {
 
       <div className={estilos.stack}>
         {pedidos.length === 0 ? (
-          <Callout tono="warning" titulo={`Todavía no hay casos de ${mesLargo(enCurso)}`}>
-            El mes recién empieza o la ingesta de hoy no corrió.{" "}
-            {deMesesAnteriores > 0
-              ? `Los ${numero(deMesesAnteriores)} casos de meses anteriores siguen guardados y se ven desde Histórico.`
+          <Callout tono="warning" titulo={`Todavía no hay casos de ${periodo}`}>
+            El período recién empieza o la ingesta de hoy no corrió.{" "}
+            {fueraDeOperacion > 0
+              ? `Hay ${numero(fueraDeOperacion)} casos fuera de la ventana operativa; revisá que la rotación a Histórico esté activa.`
               : "Todavía no hay ningún caso cargado en la base."}
           </Callout>
         ) : null}
@@ -105,7 +99,7 @@ export default async function Resumen() {
           tono={resolucion.tasaApertura > 20 ? "critical" : "neutral"}
           titulo="Abiertos contra cerrados"
         >
-          De los {numero(resolucion.total)} casos del mes, {numero(resolucion.cerrados)} están
+          De los {numero(resolucion.total)} casos del período, {numero(resolucion.cerrados)} están
           resueltos y {numero(resolucion.abiertos)} siguen en la cola. Un caso cierra cuando queda
           en Entregado, Devuelto o Siniestrado.
         </Callout>
@@ -114,14 +108,14 @@ export default async function Resumen() {
           titulo="Todos los estados"
           nota="Cada estado en el que puede quedar un caso, con cuántos hay y si cuenta como resuelto."
         >
-          <EstadosTable id="mes-estados" titulo="Mes en curso · todos los estados" filas={estados} />
+          <EstadosTable id="mes-estados" titulo="Mensual · todos los estados" filas={estados} />
         </Card>
 
         <PanelCasos
           editable
           id="mes-casos"
-          titulo="Casos del mes"
-          nota="Todos los casos de la pestaña Mensual. Se busca por cualquier columna, se filtra por estado y caso, y se ordena por cualquier encabezado."
+          titulo="Casos del período operativo"
+          nota="Todos los casos de Mensual. Del 1 al 9 incluye el mes anterior; desde el 10 queda solo el actual."
           casos={mes}
           vacio="Todavía no hay casos cargados este mes."
         />
@@ -152,7 +146,7 @@ export default async function Resumen() {
         {noEntregados ? (
           <Callout tono="warning" titulo="Los que no se pudieron entregar">
             {numero(noEntregados.casos)} casos quedaron en «Pedido no entregado», el{" "}
-            {porcentaje(noEntregados.porcentaje)} del mes. Son entregas fallidas todavía sin
+            {porcentaje(noEntregados.porcentaje)} del período. Son entregas fallidas todavía sin
             resolver: no volvieron al vendedor, pero tampoco llegaron.
           </Callout>
         ) : null}

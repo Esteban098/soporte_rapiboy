@@ -1,4 +1,4 @@
-import { cargarPedidos } from "@/lib/datos";
+import { cargarPedidosHistoricos } from "@/lib/datos";
 import { cierre, desenlaces, porMes, reclamos } from "@/lib/metricas";
 import {
   enRango,
@@ -20,20 +20,18 @@ import estilos from "@/components/ui.module.css";
 export const metadata = { title: "Histórico" };
 
 /**
- * Los meses ya cerrados, y el actual si se lo pide.
+ * Los meses ya cerrados.
  *
- * Lee la misma tabla que el mes en curso, filtrando por el mes de creación del
- * caso. No hay una copia mensual ni una tabla aparte: el caso se queda en el
- * mes en que entró, así que el agosto que se ve hoy es el mismo que se va a ver
- * en marzo. Lo único que cambia con el tiempo es en qué estado terminó cada
- * caso, y para eso está el botón de esta pantalla.
+ * Lee `mensual_historico`, separada físicamente de la tabla operativa. Lo único
+ * que cambia con el tiempo es en qué estado terminó cada caso, y para eso está
+ * el botón de esta pantalla, que actualiza solo el período seleccionado.
  */
 export default async function Historico({
   searchParams,
 }: {
   searchParams: Promise<{ desde?: string; hasta?: string }>;
 }) {
-  const { pedidos, campos } = await cargarPedidos();
+  const { pedidos, campos } = await cargarPedidosHistoricos();
   const disponibles = mesesDisponibles(pedidos.map((p) => p.mes));
   const rango = resolverRango(await searchParams, disponibles);
 
@@ -46,9 +44,9 @@ export default async function Historico({
           dek="Los casos de cada mes, con el estado en el que quedaron."
         />
         <Callout tono="warning" titulo="Todavía no hay meses cargados">
-          El histórico se arma con los casos que ya están en la base, agrupados por el mes en que
-          se creó cada uno. En cuanto la ingesta diaria cargue el primero, esta pantalla se llena
-          sola: no hay ningún proceso mensual que haya que correr aparte.
+          El histórico se llena cuando la rotación mueve un período cerrado desde Mensual. Hasta
+          el día 9, el mes anterior sigue visible en la tabla operativa; desde el día 10 aparece
+          acá.
         </Callout>
       </>
     );

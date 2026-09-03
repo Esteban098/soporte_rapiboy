@@ -9,7 +9,8 @@ calcula las métricas y las muestra. No hay que cargar nada dos veces.
 ```
 n8n  ──►  Supabase   ──►  servidor Next.js  ──►  navegador
           mensual         lee, normaliza,        solo agregados,
-          ayer            agrega y cachea        sin datos de clientes
+          *_historico     agrega y cachea        sin datos de clientes
+          ayer
 ```
 
 Tres decisiones que vale la pena tener presentes:
@@ -109,7 +110,7 @@ cada pestaña por gid del endpoint `/export`.
    web* y agregá como URI de redirección autorizada:
    `https://TU-DOMINIO/api/auth/callback/google`.
 
-La `service_role` key saltea RLS: lee y escribe las tres tablas enteras. Solo se
+La `service_role` key saltea RLS: lee las tablas completas. Solo se
 usa desde el servidor y nunca llega al navegador, pero por eso mismo va cargada
 como variable de entorno de Vercel y no en el repo. Si se filtra, se rota desde
 el panel de Supabase.
@@ -184,12 +185,14 @@ texto— así que el resto de la app no sabe de dónde salieron. Eso es lo que
 permite cambiar de origen con variables de entorno y comparar los dos en
 paralelo: con los mismos datos, los tres dan exactamente los mismos números.
 
-Dos vistas, se lean de donde se lean:
+Las vistas principales, se lean de donde se lean:
 
 | Vista | Tabla | Pestaña | Para qué |
 |---|---|---|---|
-| `mensual` | `mensual` | `Mensual` | Los casos del mes en curso. Alimenta Mes en curso, Demorados, Reclamos y Comercios. |
+| `mensual` | `mensual` | `Mensual` | El período operativo: mes anterior y actual del 1 al 9; solo el actual desde el día 10. |
+| histórico | `mensual_historico` | — | Períodos cerrados. Alimenta Histórico y se puede refrescar por el rango seleccionado. |
 | `ayer` | `ayer` | `Ayer` | Lo que quedó abierto del día anterior. Alimenta la sección Ayer. |
+| cancelados | `cancelados` / `cancelados_historico` | `Cancelados` | La misma separación física para cancelaciones tempranas. |
 
 No comparten esquema a propósito: `ayer` sale del sistema sin pasar por soporte,
 así que no tiene reclamo, aviso ni caso. Cada tabla del tablero arma sus columnas
@@ -198,10 +201,18 @@ Supabase alcanza para que aparezca en la web**, sin tocar código.
 
 ### Montar la base
 
-1. Correr `supabase/schema.sql` en el SQL Editor de Supabase. Crea `mensual` y
-   `ayer` con sus índices y deja RLS activo.
-2. Copiar `SUPABASE_URL` y la **`service_role`** key desde Project Settings ▸ API
+1. Correr `supabase/schema.sql` en el SQL Editor de Supabase. Crea las tablas
+   operativas con sus índices y deja RLS activo.
+2. Correr `supabase/historico.sql`. Crea `mensual_historico` y
+   `cancelados_historico`, instala la rotación y ordena los datos existentes
+   sin perder filas.
+3. Copiar `SUPABASE_URL` y la **`service_role`** key desde Project Settings ▸ API
    a `.env.local` (o a las variables de Vercel).
+
+La rotación es transaccional. Del 1 al 9 conserva dos meses en las tablas
+operativas; desde el día 10 copia todo lo anterior al mes actual al histórico y
+solo entonces lo quita de la operación. Si una parte falla, PostgreSQL revierte
+todo. Repetir la función es seguro.
 
 ### Lo que n8n tiene que hacer
 
@@ -383,15 +394,6 @@ cambia (`src/components/useVista.ts`).
   unos 6 puntos de ruido, así que los rankings sirven para ver los extremos, no
   para ordenar a los del medio.
 
-- **No hay historial entre meses.** El sheet muestra el estado actual, así que
-  el tablero muestra el mes en curso día a día. Para tener tendencia mensual hay
-  que guardar una foto diaria (una GitHub Action que commitee un JSON, o una
-  base de datos); todavía no está hecho.
-- **La columna `AVISO` no sirve para medir avisos.** Se calcula con
-  `=IF(RECLAMO TIENDA <> ""; "NO AVISADO"; "")`, así que marca como pendiente
-  todo caso con datos cargados y nada la vuelve a poner en blanco cuando el
-  aviso se manda. El tablero lo muestra, pero el número es igual al de casos con
-  reclamo. Para que mida algo hace falta una casilla que soporte marque al avisar.
 - `Mensual` tiene que incluir los casos cerrados. Si queda filtrada solo con los
   abiertos, la tasa de recuperación se muestra en 0% porque no hay ningún
   `Entregado` con qué compararla.

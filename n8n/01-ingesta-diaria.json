@@ -36,6 +36,29 @@
     },
     {
       "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Mantiene físicamente separadas las tablas operativas y las históricas.\n-- Antes del día 10 no mueve nada; desde el 10 archiva todo lo anterior al\n-- mes actual. La función es transaccional e idempotente: primero copia y solo\n-- después elimina de la tabla operativa.\nselect *\nfrom public.rotar_historicos((now() at time zone 'America/Mexico_City')::date);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -600,
+        400
+      ],
+      "id": "f821c1f2-b33f-4a3d-a676-a07a79294e84",
+      "name": "Rotar históricos",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "alwaysOutputData": true,
+      "notes": "Corre también los domingos para que el corte del día 10 no dependa de que haya jornada. Si el día 10 falla, los días siguientes vuelven a intentarlo sin duplicar datos."
+    },
+    {
+      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
@@ -45,7 +68,7 @@
           "conditions": [
             {
               "id": "a1",
-              "leftValue": "={{ $json.ejecutar }}",
+              "leftValue": "={{ $(\"Qué día consultar\").first().json.ejecutar }}",
               "rightValue": true,
               "operator": {
                 "type": "boolean",
@@ -60,7 +83,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -600,
+        -380,
         400
       ],
       "id": "9215f43e-f9d6-543f-8f45-00d9f83d0250",
@@ -335,6 +358,17 @@
       ]
     },
     "Qué día consultar": {
+      "main": [
+        [
+          {
+            "node": "Rotar históricos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rotar históricos": {
       "main": [
         [
           {

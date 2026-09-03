@@ -33,6 +33,33 @@ export function mesEnCurso(hoy = new Date()): string {
   return enMexico.slice(0, 7);
 }
 
+/** El mes inmediatamente anterior a uno escrito como `AAAA-MM`. */
+export function mesAnterior(mes: string): string {
+  const [anio, numeroMes] = mes.split("-").map(Number);
+  return numeroMes === 1
+    ? `${anio - 1}-12`
+    : `${anio}-${String(numeroMes - 1).padStart(2, "0")}`;
+}
+
+/**
+ * Períodos que siguen activos en las tablas operativas.
+ *
+ * Del 1 al 9 se mantienen el mes anterior y el actual. El día 10 el anterior
+ * pasa al histórico y desde entonces queda solamente el mes actual. Se usa la
+ * misma zona de la operación que `mesEnCurso`, no la hora del servidor.
+ */
+export function mesesOperativos(hoy = new Date()): string[] {
+  const actual = mesEnCurso(hoy);
+  const dia = Number(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Mexico_City",
+      day: "2-digit",
+    }).format(hoy),
+  );
+
+  return dia < 10 ? [mesAnterior(actual), actual] : [actual];
+}
+
 /**
  * Formato `2026-08`, que es lo único que se acepta desde la URL.
  *

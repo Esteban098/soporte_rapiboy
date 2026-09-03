@@ -1,4 +1,4 @@
-import { cargarCancelados } from "@/lib/datos";
+import { cargarCanceladosHistoricos } from "@/lib/datos";
 import { canceladosPorMes, resumirCancelados } from "@/lib/cancelados";
 import {
   enRango,
@@ -20,8 +20,8 @@ export const metadata = { title: "Cancelados históricos" };
 /**
  * Las cancelaciones tempranas de meses ya pasados.
  *
- * Misma idea que el histórico de pedidos: una sola tabla, filtrada por el mes
- * de la colecta. El botón de esta pantalla vuelve a preguntar por el estado de
+ * Misma idea que el histórico de pedidos: una tabla física para los períodos
+ * cerrados, filtrada por el mes de la colecta. El botón vuelve a preguntar por el estado de
  * esos viajes en los dos sistemas, que es lo que puede cambiar después de que
  * el mes cerró —sobre todo del lado de Meli, que a veces tarda en reflejar la
  * cancelación.
@@ -31,7 +31,7 @@ export default async function CanceladosHistoricos({
 }: {
   searchParams: Promise<{ desde?: string; hasta?: string }>;
 }) {
-  const cancelados = await cargarCancelados();
+  const cancelados = await cargarCanceladosHistoricos();
   const disponibles = mesesDisponibles(cancelados.map((c) => c.mes));
   const rango = resolverRango(await searchParams, disponibles);
 
@@ -44,8 +44,8 @@ export default async function CanceladosHistoricos({
           dek="Las cancelaciones tempranas de cada mes."
         />
         <Callout tono="warning" titulo="Todavía no hay meses cargados">
-          Esta pantalla se arma con las cancelaciones que ya están en la base, agrupadas por el mes
-          de la colecta. En cuanto la ingesta diaria cargue la primera, se llena sola.
+          Esta pantalla se llena cuando la rotación mueve un período cerrado desde Cancelados.
+          Hasta el día 9, el mes anterior sigue en la tabla operativa; desde el día 10 aparece acá.
         </Callout>
       </>
     );

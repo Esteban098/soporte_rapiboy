@@ -7,7 +7,7 @@ File**.
 
 | Archivo | Qué hace | Cuándo corre |
 |---|---|---|
-| `01-ingesta-diaria.json` | Trae los casos fallidos del día y los cancelados, y reabre la cola de avisos | 8:00, todos los días menos domingo |
+| `01-ingesta-diaria.json` | Rota períodos, trae los casos fallidos del día y los cancelados, y reabre la cola de avisos | 8:00 todos los días; la ingesta se saltea el domingo, la rotación no |
 | `02-refresco-estados.json` | Vuelve a preguntarle a SQL Server en qué estado están los casos que ya tenemos | 6:00, 15:13, 18:55 y cada vez que alguien toca **Actualizar** en el tablero |
 | `03-whatsapp-apagado.json` | Avisa al repartidor y reclama a los grupos | **Apagado.** Ver más abajo |
 | `04-refresco-historico.json` | Relee el estado de los casos de un rango de meses | Solo a pedido, desde **Histórico** |
@@ -69,8 +69,9 @@ deja de crecer con la tabla y pasa a depender del rango que se pidió.
 
 ### La columna que ningún refresco de histórico toca
 
-Los flujos 04 y 05 **no escriben la columna que define a qué mes pertenece el
-caso**: `fecha_creacion` en `mensual`, `fecha_colectado` en `cancelados`.
+Los flujos 04 y 05 leen y escriben exclusivamente `mensual_historico` y
+`cancelados_historico`. **No escriben la columna que define a qué mes pertenece
+el caso**: `fecha_creacion` y `fecha_colectado`, respectivamente.
 
 No es una omisión. El tablero agrupa el histórico por esas fechas, así que
 reescribirlas podría mover un caso a otro mes justo cuando alguien lo está
@@ -80,6 +81,23 @@ que no hay nada que ganar reescribiéndolas.
 
 El refresco diario (`02`) sí escribe `fecha_programado`, y está bien: esa fecha
 se pisa en cada movimiento y es la que alimenta «hace cuánto que no se mueve».
+
+## Rotación del día 10
+
+Antes de importar los workflows actualizados hay que correr
+`web/supabase/historico.sql`. El nodo **Rotar históricos** del flujo 01 llama la
+función instalada por ese script antes de evaluar si hubo jornada:
+
+- del día 1 al 9 no mueve nada;
+- desde el día 10 archiva todo lo anterior al mes actual;
+- corre también los domingos y, si una ejecución falla, vuelve a intentarlo al
+  día siguiente;
+- la copia y el borrado son una sola transacción, por lo que una falla no puede
+  dejar filas perdidas ni a medio mover.
+
+Los flujos 01 y 02 siguen trabajando sobre `mensual` y `cancelados`. Solo los
+flujos 04 y 05 trabajan sobre las tablas históricas y mantienen el filtro
+`desde` / `hasta` que manda el selector del tablero.
 
 ## El botón Actualizar global
 
@@ -176,6 +194,6 @@ garantizar, y el motivo de toda la migración.
 
 ## Límites conocidos
 
-El refresco arma un `IN (...)` con todos los ids de la tabla. Con los volúmenes
-de hoy funciona, pero es la parte que primero va a molestar cuando `mensual`
-crezca: conviene partirlo en tandas antes de llegar a los ~10.000 casos.
+Cada refresco arma un `IN (...)` con los ids de su tabla. Los históricos ya lo
+acotan al período seleccionado; el refresco global queda limitado por el corte
+mensual de la tabla operativa.
