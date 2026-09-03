@@ -1,8 +1,8 @@
 # Flujos de n8n
 
-Seis workflows. Los tres primeros reemplazan al único que escribía en el
-Google Sheet; los dos últimos están detrás de los botones Actualizar de las
-pantallas de histórico. Se importan desde n8n con **Workflows ▸ Import from
+Siete workflows. Los tres primeros reemplazan al único que escribía en el
+Google Sheet; los siguientes cubren los botones Actualizar y la carga de datos
+de tienda desde Firefox. Se importan desde n8n con **Workflows ▸ Import from
 File**.
 
 | Archivo | Qué hace | Cuándo corre |
@@ -13,6 +13,7 @@ File**.
 | `04-refresco-historico.json` | Relee el estado de los casos de un rango de meses | Solo a pedido, desde **Histórico** |
 | `05-refresco-cancelados-historico.json` | Ídem para las cancelaciones | Solo a pedido, desde **Cancelados históricos** |
 | `06-colectas.json` | Calcula quién colecta cada comercio y trae las colectas de 30 días | 12:00 de lunes a viernes, y desde **Colectas** |
+| `07-firefox-gestiones.json` | Interpreta el ID y los datos aportados por la tienda, y actualiza solo las columnas de soporte de `mensual` | Al enviar una selección desde la extensión de Firefox |
 
 ## Antes de importar
 
@@ -26,7 +27,28 @@ Los archivos la referencian con el id `REEMPLAZAR`: al abrir cada nodo morado
 hay que elegir la credencial de la lista. Es una sola vez por nodo.
 
 Las credenciales de SQL Server, Google Sheets y OpenAI ya existen y se
-referencian por el id que tienen hoy, así que esas se enganchan solas.
+referencian por el id que tienen hoy, así que esas se enganchan solas. El flujo
+07 también necesita una credencial **Header Auth**: nombre
+`X-Rapiboy-Token` y un valor largo aleatorio. El mismo valor se carga en las
+opciones de la extensión; así el webhook que escribe datos no queda público.
+
+## Carga desde Firefox
+
+1. Importar `07-firefox-gestiones.json`.
+2. En **Firefox**, elegir la credencial Header Auth y, en **Guardar en
+   Mensual**, la misma credencial Postgres de los demás flujos.
+3. Confirmar la credencial de OpenAI y activar el workflow.
+4. Instalar y configurar lo que está en `../firefox-extension/README.md`.
+
+El flujo acepta solamente IDs internos de 7 a 9 dígitos. Si la interpretación
+no supera la validación, no escribe nada y la extensión pide revisión manual.
+Cuando sí escribe, un campo vacío conserva lo que ya tenía el caso: cargar una
+ubicación no borra el teléfono anterior. El caso queda en `NO AVISADO` y con
+`editado_por` / `editado_en` actualizados.
+
+La lectura del tablero tiene caché. Para ver la carga inmediatamente se puede
+usar el botón **Actualizar**; sin hacerlo aparece sola al vencer
+`SHEET_REVALIDATE`.
 
 ## Los botones Actualizar del tablero
 

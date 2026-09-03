@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rapiboy · Configuración</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <img src="icons/rapiboy.png" alt="" />
+      <div>
+        <h1>Datos de tienda</h1>
+        <p>Estos valores quedan guardados solamente en este perfil de Firefox.</p>
+      </div>
+
+      <form id="form">
+        <label>
+          Operador
+          <input id="operador" name="operador" autocomplete="name" placeholder="Nombre o correo" />
+        </label>
+
+        <label>
+          URL del webhook de producción
+          <input id="webhookUrl" name="webhookUrl" type="url" required />
+        </label>
+
+        <label>
+          Token de n8n
+          <input id="token" name="token" type="password" required autocomplete="off" />
+        </label>
+
+        <div class="acciones">
+          <button type="submit">Guardar</button>
+          <span id="estado" role="status" aria-live="polite"></span>
+        </div>
+      </form>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>
