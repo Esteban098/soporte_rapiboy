@@ -10,9 +10,11 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { abrirDetalle, type Detalle } from "@/lib/detalle";
 import { numero } from "@/lib/formato";
 import type { ConteoPersona } from "@/lib/seguimiento";
-import { CajaTooltip, Leyenda } from "./Tooltip";
+import { CajaTooltip, Leyenda, Pista } from "./Tooltip";
+import { datoTocado } from "./tocar";
 import estilos from "./chart.module.css";
 
 /**
@@ -26,7 +28,26 @@ import estilos from "./chart.module.css";
  * Es un gráfico fijo y no uno de los configurables (`GraficoDinamico`): esos
  * agrupan una serie por vez y acá el punto es ver las dos juntas.
  */
-export function BarrasSeguimiento({ datos }: { datos: ConteoPersona[] }) {
+export function BarrasSeguimiento({
+  datos,
+  detalle,
+}: {
+  datos: ConteoPersona[];
+  detalle?: Detalle;
+}) {
+  function abrir(punto: ConteoPersona, estado: "tomado" | "cerrado") {
+    if (!detalle) return;
+    abrirDetalle({
+      titulo: detalle.titulo,
+      contexto: `${punto.persona} · ${estado === "tomado" ? "tomados" : "cerrados"}`,
+      columnas: detalle.columnas,
+      filas: detalle.filas.filter(
+        (fila) => fila.atendidoPor === punto.correo && fila.estadoClave === estado,
+      ),
+      totalUniverso: detalle.filas.length,
+    });
+  }
+
   if (datos.length === 0) {
     return (
       <p className={estilos.vacio}>
@@ -36,7 +57,8 @@ export function BarrasSeguimiento({ datos }: { datos: ConteoPersona[] }) {
   }
 
   return (
-    <div className={estilos.wrap}>
+    <div className={`${estilos.wrap} ${detalle ? estilos.tocable : ""}`}>
+      {detalle ? <Pista /> : null}
       <Leyenda
         series={[
           { nombre: "Tomados", color: "var(--warning)" },
@@ -53,7 +75,7 @@ export function BarrasSeguimiento({ datos }: { datos: ConteoPersona[] }) {
           <CartesianGrid stroke="var(--grid)" horizontal={false} />
           <XAxis
             type="number"
-            tick={{ fill: "var(--muted)", fontSize: 11, fontFamily: "var(--mono)" }}
+            tick={{ fill: "var(--muted)", fontSize: 11, fontFamily: "var(--sans)" }}
             axisLine={{ stroke: "var(--axis)" }}
             tickLine={false}
             allowDecimals={false}
@@ -91,22 +113,38 @@ export function BarrasSeguimiento({ datos }: { datos: ConteoPersona[] }) {
               );
             }}
           />
-          <Bar dataKey="tomados" fill="var(--warning)" radius={[0, 4, 4, 0]}>
+          <Bar
+            dataKey="tomados"
+            fill="var(--warning)"
+            radius={[0, 4, 4, 0]}
+            onClick={(entrada: unknown) => {
+              const punto = datoTocado<ConteoPersona>(entrada);
+              if (punto) abrir(punto, "tomado");
+            }}
+          >
             <LabelList
               dataKey="tomados"
               position="right"
               offset={6}
               formatter={(v) => (Number(v) > 0 ? numero(Number(v)) : "")}
-              style={{ fill: "var(--ink-2)", fontSize: 10.5, fontFamily: "var(--mono)" }}
+              style={{ fill: "var(--ink-2)", fontSize: 10.5, fontFamily: "var(--sans)" }}
             />
           </Bar>
-          <Bar dataKey="cerrados" fill="var(--accent)" radius={[0, 4, 4, 0]}>
+          <Bar
+            dataKey="cerrados"
+            fill="var(--accent)"
+            radius={[0, 4, 4, 0]}
+            onClick={(entrada: unknown) => {
+              const punto = datoTocado<ConteoPersona>(entrada);
+              if (punto) abrir(punto, "cerrado");
+            }}
+          >
             <LabelList
               dataKey="cerrados"
               position="right"
               offset={6}
               formatter={(v) => (Number(v) > 0 ? numero(Number(v)) : "")}
-              style={{ fill: "var(--ink-2)", fontSize: 10.5, fontFamily: "var(--mono)" }}
+              style={{ fill: "var(--ink-2)", fontSize: 10.5, fontFamily: "var(--sans)" }}
             />
           </Bar>
         </BarChart>

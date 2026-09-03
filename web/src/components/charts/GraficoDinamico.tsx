@@ -13,10 +13,12 @@ import {
   YAxis,
 } from "recharts";
 import { colorEstado } from "@/lib/estados";
+import { abrirDetalle } from "@/lib/detalle";
 import { numero, porcentaje } from "@/lib/formato";
 import type { Columna, Fila, Filtro } from "../Tabla";
 import { useVista } from "../useVista";
-import { CajaTooltip } from "./Tooltip";
+import { CajaTooltip, Pista } from "./Tooltip";
+import { datoTocado } from "./tocar";
 import estilos from "./chart.module.css";
 import tabla from "../tabla.module.css";
 
@@ -41,6 +43,11 @@ export type Medida = {
  * filtradas: al tocar un filtro o escribir en el buscador, el gráfico se
  * recalcula solo. Encima, quien mira elige por qué dimensión agrupar y qué
  * medir, sin que haya que anticipar cada cruce con un gráfico fijo.
+ *
+ * Tocar una barra abre en otra pestaña las filas que la componen. Salen de las
+ * mismas `filtradas` que la dibujaron, así que el detalle respeta los filtros y
+ * la búsqueda que estaban puestos: es el recorte que se estaba mirando y no una
+ * consulta nueva que podría no coincidir.
  */
 export function GraficoDinamico({
   id,
@@ -49,6 +56,7 @@ export function GraficoDinamico({
   filtros,
   dimensiones,
   medidas,
+  titulo = "Casos",
   tope = 12,
 }: {
   id: string;
@@ -57,6 +65,8 @@ export function GraficoDinamico({
   filtros: Filtro[];
   dimensiones: Dimension[];
   medidas: Medida[];
+  /** Cómo se llama este universo en la pestaña de detalle. */
+  titulo?: string;
   /** Cuántas barras mostrar como máximo, de mayor a menor. */
   tope?: number;
 }) {
@@ -89,6 +99,21 @@ export function GraficoDinamico({
       .slice(0, tope);
   }, [filtradas, dimensionActiva, medidaActiva, tope]);
 
+  /** El mismo criterio con el que se agrupó, para rehacer el grupo al tocarlo. */
+  const grupoDe = (fila: Fila) =>
+    String(fila[dimensionActiva?.clave ?? ""] ?? "").trim() || "Sin dato";
+
+  function abrir(nombre: string) {
+    if (!dimensionActiva) return;
+    abrirDetalle({
+      titulo,
+      contexto: `${dimensionActiva.etiqueta}: ${nombre}`,
+      columnas,
+      filas: filtradas.filter((fila) => grupoDe(fila) === nombre),
+      totalUniverso: filtradas.length,
+    });
+  }
+
   const esEstado = dimensionActiva?.clave === "estado";
   const formatear = (v: number) =>
     medidaActiva?.modo === "porcentaje"
@@ -98,7 +123,7 @@ export function GraficoDinamico({
         : numero(v);
 
   return (
-    <div className={estilos.wrap}>
+    <div className={`${estilos.wrap} ${estilos.tocable}`}>
       <div className={tabla.filtros} data-noimprimir>
         <label className={tabla.filtro}>
           <span className={tabla.filtroEtiqueta}>Agrupar por</span>
@@ -138,6 +163,8 @@ export function GraficoDinamico({
       {datos.length === 0 ? (
         <p className={estilos.vacio}>No hay datos para graficar con estos filtros.</p>
       ) : (
+        <>
+        <Pista />
         <ResponsiveContainer width="100%" height={Math.max(220, datos.length * 30 + 40)}>
           <BarChart
             data={datos}
@@ -148,7 +175,7 @@ export function GraficoDinamico({
             <CartesianGrid stroke="var(--grid)" horizontal={false} />
             <XAxis
               type="number"
-              tick={{ fill: "var(--muted)", fontSize: 11, fontFamily: "var(--mono)" }}
+              tick={{ fill: "var(--muted)", fontSize: 11, fontFamily: "var(--sans)" }}
               axisLine={false}
               tickLine={false}
               tickFormatter={formatear}
@@ -177,7 +204,14 @@ export function GraficoDinamico({
                 );
               }}
             />
-            <Bar dataKey="valor" radius={[0, 4, 4, 0]}>
+            <Bar
+              dataKey="valor"
+              radius={[0, 4, 4, 0]}
+              onClick={(entrada: unknown) => {
+                const punto = datoTocado<{ nombre: string }>(entrada);
+                if (punto?.nombre) abrir(punto.nombre);
+              }}
+            >
               {datos.map((punto) => (
                 <Cell
                   key={punto.nombre}
@@ -189,11 +223,12 @@ export function GraficoDinamico({
                 position="right"
                 offset={8}
                 formatter={(v) => formatear(Number(v))}
-                style={{ fill: "var(--ink-2)", fontSize: 11, fontFamily: "var(--mono)" }}
+                style={{ fill: "var(--ink-2)", fontSize: 11, fontFamily: "var(--sans)" }}
               />
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+        </>
       )}
     </div>
   );

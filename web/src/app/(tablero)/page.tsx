@@ -10,6 +10,7 @@ import {
   resumen,
 } from "@/lib/metricas";
 import { mesesOperativos } from "@/lib/periodos";
+import { columnasPara, filasDePedidos } from "@/lib/filas";
 import { mesLargo, numero, porcentaje } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
@@ -41,6 +42,22 @@ export default async function Resumen() {
   const devueltosSemana = devueltosPorDiaSemana(pedidos);
   const visitas = visitasPorResultado(pedidos);
   const antiguedad = antiguedadAbiertos(pedidos);
+
+  /*
+   * Un solo juego de filas para la tabla y para los dos gráficos fijos.
+   *
+   * Los gráficos de arriba agregan casos que la tabla de abajo también lista,
+   * así que al tocar una barra el detalle sale de exactamente las mismas filas.
+   * Compartir la referencia además evita que los casos se serialicen dos veces
+   * hacia el cliente.
+   */
+  const columnasCasos = columnasPara(todos.campos);
+  const filasCasos = filasDePedidos(pedidos);
+  const detalleCasos = {
+    titulo: `Casos de ${periodo}`,
+    columnas: columnasCasos,
+    filas: filasCasos,
+  };
 
   const sinVisita = visitas.find((v) => v.visitas === "0");
   const noEntregados = estados.find((e) => e.estado.toLowerCase() === "pedido no entregado");
@@ -117,6 +134,7 @@ export default async function Resumen() {
           titulo="Casos del período operativo"
           nota="Todos los casos de Mensual. Del 1 al 9 incluye el mes anterior; desde el 10 queda solo el actual."
           casos={mes}
+          filas={filasCasos}
           vacio="Todavía no hay casos cargados este mes."
         />
 
@@ -124,7 +142,7 @@ export default async function Resumen() {
           titulo="Paquetes devueltos por día de la semana"
           nota="Cuántos paquetes volvieron al vendedor en cada día. Se cuenta el día en que se procesó la devolución."
         >
-          <BarrasDevueltos datos={devueltosSemana} />
+          <BarrasDevueltos datos={devueltosSemana} detalle={detalleCasos} />
         </Card>
 
         <div className={estilos.grid2}>
@@ -132,7 +150,7 @@ export default async function Resumen() {
             titulo="Visitas antes de entregar o devolver"
             nota="Cuántas veces se pasó por el domicilio antes de cerrar el caso, separando los que terminaron entregados de los devueltos."
           >
-            <BarrasVisitas datos={visitas} />
+            <BarrasVisitas datos={visitas} detalle={detalleCasos} />
           </Card>
 
           <Card

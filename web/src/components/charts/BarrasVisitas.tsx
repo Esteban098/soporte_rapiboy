@@ -11,17 +11,41 @@ import {
   YAxis,
 } from "recharts";
 import type { FilaVisitas } from "@/lib/metricas";
+import { abrirDetalle, type Detalle } from "@/lib/detalle";
 import { numero } from "@/lib/formato";
-import { CajaTooltip, Leyenda } from "./Tooltip";
+import { CajaTooltip, Leyenda, Pista } from "./Tooltip";
+import { datoTocado } from "./tocar";
 import estilos from "./chart.module.css";
 
 /**
  * Cuántas visitas al domicilio hubo antes de cerrar el caso, separando los que
  * terminaron entregados de los que terminaron devueltos.
+ *
+ * El tramo «5 o más» junta todo lo que pasa de cinco, así que al recortar hay
+ * que repetir ese tope: comparar contra el número tal cual dejaría afuera
+ * justamente los casos que más visitas tuvieron.
  */
-export function BarrasVisitas({ datos }: { datos: FilaVisitas[] }) {
+export function BarrasVisitas({ datos, detalle }: { datos: FilaVisitas[]; detalle?: Detalle }) {
+  function abrir(punto: FilaVisitas, resultado: "Entregado" | "Devuelto") {
+    if (!detalle) return;
+    const tramo = punto.visitas === "5 o más" ? 5 : Number(punto.visitas);
+    abrirDetalle({
+      titulo: detalle.titulo,
+      contexto: `${punto.visitas} ${punto.visitas === "1" ? "visita" : "visitas"} · ${resultado}s`,
+      columnas: detalle.columnas,
+      filas: detalle.filas.filter(
+        (fila) =>
+          fila.resultado === resultado &&
+          fila.visitas != null &&
+          Math.min(Number(fila.visitas), 5) === tramo,
+      ),
+      totalUniverso: detalle.filas.length,
+    });
+  }
+
   return (
-    <div className={estilos.wrap}>
+    <div className={`${estilos.wrap} ${detalle ? estilos.tocable : ""}`}>
+      {detalle ? <Pista /> : null}
       <Leyenda
         series={[
           { nombre: "Entregados", color: "var(--accent)" },
@@ -33,7 +57,7 @@ export function BarrasVisitas({ datos }: { datos: FilaVisitas[] }) {
           <CartesianGrid stroke="var(--grid)" vertical={false} />
           <XAxis
             dataKey="visitas"
-            tick={{ fill: "var(--muted)", fontSize: 11, fontFamily: "var(--mono)" }}
+            tick={{ fill: "var(--muted)", fontSize: 11, fontFamily: "var(--sans)" }}
             axisLine={{ stroke: "var(--axis)" }}
             tickLine={false}
             label={{
@@ -42,11 +66,11 @@ export function BarrasVisitas({ datos }: { datos: FilaVisitas[] }) {
               offset: -2,
               fill: "var(--muted)",
               fontSize: 10.5,
-              fontFamily: "var(--mono)",
+              fontFamily: "var(--sans)",
             }}
           />
           <YAxis
-            tick={{ fill: "var(--muted)", fontSize: 11, fontFamily: "var(--mono)" }}
+            tick={{ fill: "var(--muted)", fontSize: 11, fontFamily: "var(--sans)" }}
             axisLine={false}
             tickLine={false}
             width={48}
@@ -73,22 +97,38 @@ export function BarrasVisitas({ datos }: { datos: FilaVisitas[] }) {
               );
             }}
           />
-          <Bar dataKey="entregados" fill="var(--accent)" radius={[4, 4, 0, 0]}>
+          <Bar
+            dataKey="entregados"
+            fill="var(--accent)"
+            radius={[4, 4, 0, 0]}
+            onClick={(entrada: unknown) => {
+              const punto = datoTocado<FilaVisitas>(entrada);
+              if (punto) abrir(punto, "Entregado");
+            }}
+          >
             <LabelList
               dataKey="entregados"
               position="top"
               offset={6}
               formatter={(v) => numero(Number(v))}
-              style={{ fill: "var(--ink-2)", fontSize: 10.5, fontFamily: "var(--mono)" }}
+              style={{ fill: "var(--ink-2)", fontSize: 10.5, fontFamily: "var(--sans)" }}
             />
           </Bar>
-          <Bar dataKey="devueltos" fill="var(--serie-2)" radius={[4, 4, 0, 0]}>
+          <Bar
+            dataKey="devueltos"
+            fill="var(--serie-2)"
+            radius={[4, 4, 0, 0]}
+            onClick={(entrada: unknown) => {
+              const punto = datoTocado<FilaVisitas>(entrada);
+              if (punto) abrir(punto, "Devuelto");
+            }}
+          >
             <LabelList
               dataKey="devueltos"
               position="top"
               offset={6}
               formatter={(v) => numero(Number(v))}
-              style={{ fill: "var(--ink-2)", fontSize: 10.5, fontFamily: "var(--mono)" }}
+              style={{ fill: "var(--ink-2)", fontSize: 10.5, fontFamily: "var(--sans)" }}
             />
           </Bar>
         </BarChart>

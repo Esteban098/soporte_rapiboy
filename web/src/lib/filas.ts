@@ -3,7 +3,7 @@ import type { CampoPedido } from "./normalizar";
 import type { Columna, Fila, Filtro } from "@/components/Tabla";
 import { enlaceFotoEntrega } from "./enlaces";
 import { fechaCorta } from "./formato";
-import { diasSinMovimiento } from "./metricas";
+import { diasSinMovimiento, DIAS_SEMANA } from "./metricas";
 
 /**
  * Todas las columnas que trae el libro, en el mismo orden.
@@ -69,6 +69,13 @@ export const FILTROS_PEDIDO: Filtro[] = [
  * `foto` no es una columna: viaja con la fila para que el estado pueda abrir la
  * foto de la entrega. Queda en `null` mientras el libro no traiga esa URL, y
  * entonces el estado se muestra como texto.
+ *
+ * `resultado`, `diaSemana`, `mesClave` y `datosTienda` tampoco son columnas:
+ * son los recortes que hacen los gráficos —entregado contra devuelto, el día en
+ * que volvió el paquete, el mes, si la tienda aportó algo— resueltos acá una
+ * vez. Sin ellos, cada gráfico tendría que reconstruir del lado del cliente lo
+ * que la métrica ya calculó, y al primer desajuste el detalle mostraría un
+ * recorte que no es el de la barra que se tocó.
  */
 export function filasDePedidos(pedidos: Pedido[], hoy = Date.now()): Fila[] {
   return pedidos.map((pedido) => ({
@@ -92,5 +99,11 @@ export function filasDePedidos(pedidos: Pedido[], hoy = Date.now()): Fila[] {
     informacionEnviar: pedido.informacionEnviar,
     ids: pedido.ids,
     foto: enlaceFotoEntrega(pedido.foto),
+    resultado: pedido.entregado ? "Entregado" : pedido.devuelto ? "Devuelto" : "",
+    diaSemana: pedido.ultimoMovimiento
+      ? DIAS_SEMANA[pedido.ultimoMovimiento.getUTCDay()]
+      : "",
+    mesClave: pedido.mes,
+    datosTienda: pedido.tieneDatosTienda ? "Con datos" : "Sin datos",
   }));
 }

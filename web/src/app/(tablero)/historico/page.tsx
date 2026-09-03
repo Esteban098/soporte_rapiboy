@@ -7,6 +7,7 @@ import {
   mesEnCurso,
   resolverRango,
 } from "@/lib/periodos";
+import { columnasPara, filasDePedidos } from "@/lib/filas";
 import { mesCorto, mesLargo, numero, porcentaje, puntos } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
@@ -74,6 +75,14 @@ export default async function Historico({
   const diferencia = tienda.tasaEntregaConReclamo - tienda.tasaEntregaSinReclamo;
   const entregados = delRango.filter((p) => p.entregado).length;
   const incluyeMesEnCurso = enRango(mesEnCurso(), rango);
+
+  /* Un solo juego de filas para los dos gráficos del rango y la tabla de casos. */
+  const filasCasos = filasDePedidos(delRango);
+  const detalleCasos = {
+    titulo: `Casos de ${periodo}`,
+    columnas: columnasPara(campos),
+    filas: filasCasos,
+  };
 
 
   return (
@@ -167,14 +176,14 @@ export default async function Historico({
             titulo="Volumen por mes"
             nota="Cuántos casos hubo cada mes y qué parte de ellos tenía datos de la tienda. La altura total es el volumen; el corte, la cobertura."
           >
-            <BarrasMeses datos={serie} />
+            <BarrasMeses datos={serie} detalle={detalleCasos} />
           </Card>
 
           <Card
             titulo="Sirve pedirle datos a la tienda"
             nota="Qué parte terminó entregada, mes a mes, según si la tienda aportó algo o no. Lo que convence no es un mes, es que la distancia se sostenga."
           >
-            <LineasEntrega datos={serie} />
+            <LineasEntrega datos={serie} detalle={detalleCasos} />
           </Card>
         </div>
 
@@ -242,6 +251,7 @@ export default async function Historico({
           titulo={`Casos de ${periodo}`}
           nota="Todos los casos del período, con datos de tienda y sin ellos. Se busca por cualquier columna y se ordena por cualquier encabezado."
           casos={{ pedidos: delRango, campos }}
+          filas={filasCasos}
           vacio="No hay casos en este período."
         />
       </div>

@@ -2,7 +2,7 @@ import { BUCKET_SEGUIMIENTO, FIRMA_SEGUNDOS, modoDatos } from "@/lib/config";
 import { cargarSeguimientos } from "@/lib/datos";
 import { contarPorPersona, resumirSeguimientos } from "@/lib/seguimiento";
 import { firmarArchivos } from "@/lib/supabase";
-import { numero } from "@/lib/formato";
+import { fechaHora, numero } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { TablaSeguimiento } from "@/components/TablaSeguimiento";
@@ -20,6 +20,26 @@ export default async function Seguimiento() {
   // el bucket es privado y cada URL vale una hora.
   const rutas = reportes.flatMap((reporte) => reporte.archivos);
   const firmadas = await firmarArchivos(BUCKET_SEGUIMIENTO, rutas, FIRMA_SEGUNDOS);
+
+  /*
+   * Los reportes en filas planas, para el detalle del gráfico.
+   *
+   * La cola de arriba tiene su propia tabla —con adjuntos firmados y el estado
+   * editable— que no sirve para un recorte: acá alcanza con quién, cuándo y qué
+   * se reportó. `atendidoPor` y `estadoClave` no son columnas; son el recorte
+   * que hace el gráfico al tocar una barra.
+   */
+  const filasReportes = reportes.map((r) => ({
+    id: r.id,
+    creado: fechaHora(r.creado),
+    caso: r.casoId,
+    resumen: r.resumen ?? r.comentario,
+    estado: r.estado === "cerrado" ? "Cerrado" : r.estado === "tomado" ? "Tomado" : "Abierto",
+    reporto: r.creadoPor,
+    atiende: r.atendidoPor ?? "",
+    atendidoPor: r.atendidoPor ?? "",
+    estadoClave: r.estado,
+  }));
 
   return (
     <>
@@ -91,7 +111,21 @@ export default async function Seguimiento() {
           titulo="Quién atiende qué"
           nota="Casos tomados y cerrados por persona. Muchos tomados y pocos cerrados es trabajo empezado que no termina de cerrarse, que suele ser una señal más útil que el total."
         >
-          <BarrasSeguimiento datos={porPersona} />
+          <BarrasSeguimiento
+            datos={porPersona}
+            detalle={{
+              titulo: "Reportes del equipo",
+              columnas: [
+                { clave: "caso", titulo: "Viaje", tipo: "viaje" },
+                { clave: "creado", titulo: "Reportado", tipo: "texto" },
+                { clave: "resumen", titulo: "Qué pasó", tipo: "texto" },
+                { clave: "estado", titulo: "Estado", tipo: "texto" },
+                { clave: "reporto", titulo: "Reportó", tipo: "texto" },
+                { clave: "atiende", titulo: "Atiende", tipo: "texto" },
+              ],
+              filas: filasReportes,
+            }}
+          />
         </Card>
       </div>
     </>

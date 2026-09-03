@@ -1,55 +1,68 @@
 /* Piezas compartidas por todos los tableros. */
 
 /* ---------------------------------------------------------------------------
-   Armazón: barra lateral oscura fija + lienzo de contenido.
+   Armazón: barra lateral clara y fija + lienzo de contenido.
+
+   La barra dejó de ser un bloque oscuro. Ahora es del mismo papel que el resto
+   y se despega solo por el desenfoque y un filete de 1px, que es como el
+   sistema separa una columna de navegación de su contenido.
    --------------------------------------------------------------------------- */
 
 .app {
   display: grid;
-  grid-template-columns: 216px minmax(0, 1fr);
+  grid-template-columns: 244px minmax(0, 1fr);
   min-height: 100vh;
 }
 
 .rail {
-  background: var(--rail);
-  color: var(--rail-ink);
+  border-right: 1px solid var(--rule);
 }
 
-/* El fondo oscuro lo pinta la celda de la grilla, que se estira con la página;
-   este bloque es el que queda fijo al hacer scroll. */
+/* El fondo lo pinta la celda de la grilla, que se estira con la página; este
+   bloque es el que queda fijo al hacer scroll. */
 .railFijo {
   position: sticky;
   top: 0;
   height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 18px 0 14px;
+  padding: 18px 0 16px;
   overflow-y: auto;
+  background: var(--rail);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
 }
 
 .marca {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   padding: 0 16px 16px;
   margin-bottom: 4px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid var(--rule-soft);
   text-decoration: none;
 }
 
 .marcaSigla {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   flex: none;
-  border-radius: 6px;
-  background: var(--accent);
+  /* Esquina continua, no un radio circular: es la forma del ícono de app. */
+  border-radius: 10px;
+  background: linear-gradient(180deg, #3d9bff, var(--accent));
+  box-shadow: 0 2px 6px -1px rgba(0, 113, 227, 0.45);
   display: grid;
   place-items: center;
-  color: var(--rail-ink-alta);
+  color: #fff;
   font-family: var(--display);
   font-weight: 700;
-  font-size: 12.5px;
-  letter-spacing: 0.02em;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  transition: transform var(--dur) var(--ease);
+}
+
+.marca:hover .marcaSigla {
+  transform: scale(1.06);
 }
 
 .marcaTexto {
@@ -62,45 +75,46 @@
   font-family: var(--display);
   font-weight: 600;
   font-size: 13.5px;
+  letter-spacing: -0.015em;
   color: var(--rail-ink-alta);
   line-height: 1.25;
 }
 
 .marcaSub {
-  font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  font-size: 11.5px;
   color: var(--rail-ink-dim);
+  letter-spacing: -0.005em;
 }
 
 .railCuerpo {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 
 /*
- * Cabecera de grupo. Es un botón y no un título porque se puede plegar, pero
- * se ve igual que antes: la jerarquía la sigue dando el tamaño y el color, no
- * un borde ni un fondo. La flecha es la única señal nueva.
+ * Cabecera de grupo. Es un botón y no un título porque se puede plegar, pero se
+ * ve como el encabezado de una lista agrupada del sistema: versalita chica y
+ * gris, sin caja ni borde. La flecha es la única señal de que además se abre.
  */
 .railGrupoBoton {
   display: flex;
   align-items: center;
   gap: 9px;
   width: 100%;
-  padding: 12px 16px 5px;
+  padding: 14px 16px 6px;
   margin: 0;
   background: none;
   border: 0;
   text-align: left;
   cursor: pointer;
-  font-family: var(--mono);
-  font-size: 8.5px;
-  letter-spacing: 0.17em;
+  font-family: var(--sans);
+  font-weight: 590;
+  font-size: 11px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--rail-ink-dim);
+  transition: color var(--dur-corta) var(--ease);
 }
 
 .railGrupoBoton:hover:not(:disabled) {
@@ -114,7 +128,7 @@
 
 .railGrupoIcono {
   display: inline-flex;
-  opacity: 0.75;
+  opacity: 0.8;
 }
 
 .railGrupoTexto {
@@ -124,64 +138,88 @@
 
 .railGrupoFlecha {
   font-size: 9px;
-  opacity: 0.6;
+  opacity: 0.65;
+  transition: transform var(--dur) var(--ease);
 }
 
 /* Las secciones quedan indentadas bajo su grupo, para que se lea la
    dependencia sin necesidad de líneas ni cajas. */
 .railGrupo .railLista {
-  padding-left: 18px;
+  padding-left: 16px;
 }
 
 .railLista {
   list-style: none;
   margin: 0;
-  padding: 0 8px;
+  padding: 0 10px;
   display: flex;
   flex-direction: column;
   gap: 1px;
+  animation: desplegar var(--dur) var(--ease-salida) both;
 }
 
-/* La franja de acento a la izquierda marca la sección abierta sin depender del
-   color de fondo, que en la barra oscura tiene poco recorrido. */
+@keyframes desplegar {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -5px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * La sección abierta se marca con una pastilla azul tenue, como la lista lateral
+ * de las apps del sistema. Reemplaza a la franja de acento: sobre papel claro la
+ * pastilla se ve de una y no depende de un detalle de 2px.
+ */
 .railItem {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 7px 10px;
-  border-radius: 5px;
-  border-left: 2px solid transparent;
+  gap: 10px;
+  padding: 7px 11px;
+  border-radius: 9px;
   color: var(--rail-ink);
   text-decoration: none;
-  font-size: 13px;
+  font-size: 14px;
+  letter-spacing: -0.012em;
   line-height: 1.35;
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    color var(--dur-corta) var(--ease),
+    transform var(--dur-corta) var(--ease);
 }
 
 .railItem:hover {
   background: var(--rail-2);
+  color: var(--rail-ink-alta);
+}
+
+.railItem:active {
+  transform: scale(0.98);
 }
 
 .railItem svg {
   flex: none;
-  opacity: 0.75;
+  opacity: 0.7;
+  transition: opacity var(--dur-corta) var(--ease);
 }
 
 .railItemActivo {
-  background: var(--rail-2);
-  color: var(--rail-ink-alta);
-  border-left-color: var(--accent);
-  font-weight: 500;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 590;
 }
 
 .railItemActivo svg {
   opacity: 1;
-  color: var(--accent);
 }
 
 .railPie {
   margin-top: auto;
-  padding: 14px 12px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 14px 14px 0;
+  border-top: 1px solid var(--rule-soft);
 }
 
 /* --- lienzo --- */
@@ -192,14 +230,18 @@
   flex-direction: column;
 }
 
+/* Barra superior translúcida: el contenido pasa por debajo desenfocado en vez
+   de cortarse contra un bloque opaco. */
 .barra {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
-  padding: 10px 22px;
-  border-bottom: 1px solid var(--rule);
-  background: var(--plane);
+  padding: 11px 26px;
+  border-bottom: 1px solid var(--rule-soft);
+  background: var(--rail);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
   position: sticky;
   top: 0;
   z-index: 20;
@@ -207,12 +249,24 @@
 
 .main {
   flex: 1;
-  padding: 22px 22px 64px;
+  padding: 30px 26px 80px;
   min-width: 0;
 }
 
 .pageHead {
-  margin-bottom: 26px;
+  margin-bottom: 30px;
+  animation: entrar var(--dur-larga) var(--ease-salida) both;
+}
+
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* El título y el botón comparten renglón; el dek va abajo, a todo el ancho,
@@ -228,37 +282,55 @@
   min-width: 0;
 }
 
+/* Antes era una versalita mono. Ahora es la línea de contexto azul que va
+   arriba del título en las páginas del sistema: se lee de corrido. */
 .eyebrow {
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin: 0 0 9px;
+  font-size: 13.5px;
+  font-weight: 590;
+  letter-spacing: -0.005em;
+  color: var(--accent);
+  margin: 0 0 6px;
 }
 
 .pageTitle {
-  font-size: 27px;
-  font-weight: 600;
-  margin-bottom: 8px;
+  font-family: var(--display);
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.032em;
+  line-height: 1.1;
+  margin-bottom: 10px;
 }
 
 .pageDek {
   color: var(--ink-2);
   max-width: 68ch;
   margin: 0;
-  font-size: 15px;
+  font-size: 15.5px;
+  line-height: 1.55;
 }
 
 /* --- tarjetas --- */
 
+/*
+ * Blanco sobre papel gris, esquina grande y sombra difusa. El borde es casi
+ * invisible y está solo para que la tarjeta no se disuelva en el modo oscuro,
+ * donde la sombra no alcanza a separarla del fondo.
+ */
 .card {
   min-width: 0;
   background: var(--surface);
-  border: 1px solid var(--rule);
+  border: 1px solid var(--rule-soft);
   border-radius: var(--radio);
   box-shadow: var(--shadow);
-  padding: 20px 20px 16px;
+  padding: 22px 22px 18px;
+  transition:
+    box-shadow var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-alta);
+  transform: translate3d(0, -2px, 0);
 }
 
 .cardHead {
@@ -271,49 +343,105 @@
 }
 
 .cardTitle {
-  font-size: 15.5px;
+  font-family: var(--display);
+  font-size: 17.5px;
   font-weight: 600;
+  letter-spacing: -0.022em;
 }
 
 .cardNote {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--muted);
-  margin: 3px 0 16px;
+  margin: 4px 0 18px;
   max-width: 72ch;
+  line-height: 1.5;
 }
 
 /* --- kpis --- */
 
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 12px;
-  margin-bottom: 26px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 30px;
+}
+
+/* El escalonado del revelado va acá y no en el JS: la grilla ya sabe el orden. */
+.kpis > *:nth-child(1) {
+  --retraso: 0s;
+}
+.kpis > *:nth-child(2) {
+  --retraso: 0.06s;
+}
+.kpis > *:nth-child(3) {
+  --retraso: 0.12s;
+}
+.kpis > *:nth-child(4) {
+  --retraso: 0.18s;
+}
+.kpis > *:nth-child(5) {
+  --retraso: 0.24s;
+}
+.kpis > *:nth-child(6) {
+  --retraso: 0.3s;
 }
 
 .kpi {
   background: var(--surface);
-  border: 1px solid var(--rule);
+  border: 1px solid var(--rule-soft);
   border-radius: var(--radio);
   box-shadow: var(--shadow);
-  padding: 17px 18px 15px;
+  padding: 18px 20px 17px;
+  transition:
+    box-shadow var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.kpi:hover {
+  box-shadow: var(--shadow-alta);
+  transform: translate3d(0, -2px, 0);
 }
 
 .kpiLabel {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+  font-size: 13.5px;
   color: var(--muted);
+  letter-spacing: -0.008em;
 }
 
+/* La cifra es lo único que crece de verdad. Display con tracking cerrado y
+   cifras tabulares para que la columna no baile al actualizarse. */
 .kpiValue {
   font-family: var(--display);
   font-weight: 600;
-  font-size: 31px;
-  line-height: 1.12;
-  letter-spacing: -0.022em;
-  margin: 7px 0 3px;
+  font-size: 38px;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+  margin: 8px 0 4px;
+}
+
+/*
+ * Las cifras entran desenfocadas y enfocan: el número se lee como si se
+ * estuviera resolviendo, no como si apareciera de golpe. El @keyframes vive en
+ * este módulo porque CSS Modules renombra el nombre junto con la referencia.
+ */
+@keyframes enfocar {
+  from {
+    opacity: 0;
+    filter: blur(7px);
+    transform: translate3d(0, 6px, 0);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+
+/* Enfoca un pelo después de que la tarjeta terminó de subir. */
+.kpi[data-revelar="visible"] .kpiValue {
+  animation: enfocar var(--dur-larga) var(--ease-salida) both;
+  animation-delay: calc(var(--retraso, 0s) + 0.12s);
 }
 
 .kpiValueGood {
@@ -325,7 +453,7 @@
 }
 
 .kpiNote {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink-2);
   line-height: 1.45;
 }
@@ -335,13 +463,13 @@
 .grid2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 14px;
+  gap: 16px;
 }
 
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -364,25 +492,35 @@
 .table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.45;
+  letter-spacing: -0.01em;
 }
 
 .table th,
 .table td {
-  padding: 5px 10px;
+  padding: 6px 9px;
   text-align: left;
   border-bottom: 1px solid var(--rule-soft);
   white-space: nowrap;
 }
 
+/* El encabezado dejó de ser versalita mono: la jerarquía la dan el gris y el
+   peso, que es como el sistema separa una cabecera de su columna. */
 .table th {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  font-size: 12.5px;
+  font-weight: 590;
+  letter-spacing: -0.005em;
   color: var(--muted);
-  font-weight: 500;
+  text-transform: none;
+}
+
+.table tbody tr {
+  transition: background-color var(--dur-corta) var(--ease);
+}
+
+.table tbody tr:hover {
+  background: var(--surface-2);
 }
 
 .table tbody tr:last-child td {
@@ -404,14 +542,14 @@
 .barCell {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   justify-content: flex-end;
 }
 
 .barTrack {
-  width: 74px;
+  width: 78px;
   height: 6px;
-  border-radius: 4px;
+  border-radius: var(--radio-3);
   background: var(--surface-3);
   overflow: hidden;
   flex: none;
@@ -420,8 +558,9 @@
 .barFill {
   display: block;
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--radio-3);
   background: var(--accent);
+  transition: width var(--dur-larga) var(--ease-salida);
 }
 
 .barFillBad {
@@ -436,18 +575,14 @@
 
 .chip {
   display: inline-block;
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  padding: 1px 7px;
-  border-radius: 999px;
-  border: 1px solid currentColor;
+  font-size: 11.5px;
+  font-weight: 590;
+  letter-spacing: -0.005em;
+  padding: 2px 9px;
+  border-radius: var(--radio-3);
+  border: 0;
   white-space: nowrap;
 }
-
-
-
 
 /* Color del texto por estado. Sin fondo ni borde: la única pill del proyecto
    es la de Caso, que es la métrica principal. */
@@ -483,6 +618,10 @@
   color: var(--estado-noentregado);
 }
 
+.estadoCancelado {
+  color: var(--estado-cancelado);
+}
+
 .estadoNeutral {
   color: var(--ink-2);
 }
@@ -511,23 +650,20 @@
   color: var(--critical);
 }
 
-
-
 /* --- varios --- */
 
 .details {
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 .summary {
   cursor: pointer;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--muted);
-  padding: 5px 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--accent);
+  padding: 6px 0;
   list-style: none;
+  transition: opacity var(--dur-corta) var(--ease);
 }
 
 .summary::-webkit-details-marker {
@@ -535,35 +671,39 @@
 }
 
 .summary::before {
-  content: "▸ ";
+  content: "›";
+  display: inline-block;
+  margin-right: 7px;
+  font-weight: 600;
+  transition: transform var(--dur) var(--ease);
 }
 
 details[open] > .summary::before {
-  content: "▾ ";
+  transform: rotate(90deg);
 }
 
 .summary:hover {
-  color: var(--ink-2);
+  opacity: 0.7;
 }
 
 .empty {
-  padding: 28px 4px;
+  padding: 32px 4px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 14.5px;
   text-align: center;
 }
 
+/* Pastilla de origen de datos: la misma forma que un badge del sistema. */
 .fuente {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  color: var(--muted);
+  font-size: 12.5px;
+  letter-spacing: -0.005em;
+  color: var(--ink-2);
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border: 1px solid var(--rule);
-  border-radius: 11px;
+  border-radius: var(--radio-3);
   background: var(--surface);
 }
 
@@ -573,40 +713,84 @@ details[open] > .summary::before {
   border-radius: 50%;
   background: var(--good);
   flex: none;
+  /* Latido lento: se nota que el dato está vivo sin robar la atención. */
+  animation: latir 2.6s var(--ease) infinite;
+}
+
+@keyframes latir {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--good-soft);
+  }
+  50% {
+    box-shadow: 0 0 0 4px transparent;
+  }
 }
 
 .fuenteDotFixture {
   background: var(--warning);
+  animation: none;
 }
 
+/*
+ * Los avisos pasaron de tarjeta con barra lateral a panel teñido, que es como
+ * el sistema marca una nota dentro de una lista: el color del fondo dice el
+ * tono y no hace falta ni borde ni sombra.
+ */
 .callout {
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  border-left: 3px solid var(--accent);
-  border-radius: 0 var(--radio) var(--radio) 0;
-  box-shadow: var(--shadow);
-  padding: 15px 17px;
+  background: var(--accent-soft);
+  border: 0;
+  border-radius: var(--radio);
+  padding: 17px 19px;
 }
 
 .calloutCritical {
-  border-left-color: var(--critical);
+  background: var(--critical-soft);
 }
 
 .calloutWarning {
-  border-left-color: var(--warning);
+  background: var(--warning-soft);
 }
 
 .calloutTitle {
-  font-size: 15px;
+  font-family: var(--display);
+  font-size: 16px;
   font-weight: 600;
-  margin-bottom: 4px;
+  letter-spacing: -0.022em;
+  margin-bottom: 5px;
+  color: var(--accent-ink);
+}
+
+.calloutCritical .calloutTitle {
+  color: var(--critical);
+}
+
+.calloutWarning .calloutTitle {
+  color: var(--warning);
 }
 
 .calloutBody {
-  font-size: 14px;
+  font-size: 14.5px;
   color: var(--ink-2);
   margin: 0;
   max-width: 70ch;
+  line-height: 1.5;
+}
+
+/* Tres cortes de la misma métrica, uno al lado del otro. */
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.subtitulo {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: -0.018em;
+  color: var(--ink-2);
+  margin: 0 0 8px;
 }
 
 @media (max-width: 900px) {
@@ -625,9 +809,14 @@ details[open] > .summary::before {
     overflow-y: visible;
   }
 
+  .rail {
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
   .marca {
     border-bottom: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid var(--rule-soft);
     padding: 0 12px 0 0;
     margin-bottom: 0;
   }
@@ -648,25 +837,14 @@ details[open] > .summary::before {
   }
 
   .main {
-    padding: 18px 16px 56px;
+    padding: 22px 16px 64px;
+  }
+
+  .pageTitle {
+    font-size: 28px;
   }
 
   .kpiValue {
-    font-size: 26px;
+    font-size: 32px;
   }
-}
-
-/* Tres cortes de la misma métrica, uno al lado del otro. */
-.grid3 {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-.subtitulo {
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--ink-2);
-  margin: 0 0 8px;
 }

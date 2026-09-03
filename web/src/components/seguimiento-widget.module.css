@@ -23,18 +23,27 @@
   color: #21180a;
   border: 1px solid var(--warning);
   border-bottom: none;
-  border-radius: 11px 11px 0 0;
+  border-radius: var(--radio) var(--radio) 0 0;
   box-shadow: 0 -2px 16px -6px rgba(176, 122, 30, 0.55), var(--shadow);
 
-  padding: 11px 20px;
+  padding: 12px 22px;
   font-family: var(--sans);
   font-weight: 600;
   font-size: 13.5px;
+  letter-spacing: -0.01em;
   cursor: pointer;
+  transition:
+    filter var(--dur-corta) var(--ease),
+    transform var(--dur) var(--ease);
 }
 
 .pestana:hover {
   filter: brightness(1.06);
+  transform: translate3d(0, -2px, 0);
+}
+
+.pestana:active {
+  transform: translate3d(0, 0, 0) scale(0.98);
 }
 
 .panel {
@@ -52,8 +61,21 @@
   background: var(--surface);
   border: 1px solid var(--warning);
   border-bottom: none;
-  border-radius: 13px 13px 0 0;
-  box-shadow: 0 -3px 28px -10px rgba(176, 122, 30, 0.45), var(--shadow);
+  border-radius: var(--radio) var(--radio) 0 0;
+  box-shadow: 0 -3px 28px -10px rgba(176, 122, 30, 0.45), var(--shadow-alta);
+  animation: subir var(--dur-larga) var(--ease-salida) both;
+}
+
+/* El panel sube desde el borde: es la misma pestaña que creció, no otro cuadro. */
+@keyframes subir {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* La franja amarilla continúa la pestaña cerrada: al abrirse, el panel se lee
@@ -76,7 +98,8 @@
   margin: 0;
   font-family: var(--display);
   font-weight: 600;
-  font-size: 15px;
+  letter-spacing: -0.022em;
+  font-size: 16px;
   color: inherit;
 }
 
@@ -88,7 +111,7 @@
   font-size: 14px;
   line-height: 1;
   padding: 4px 7px;
-  border-radius: 5px;
+  border-radius: var(--radio-2);
   cursor: pointer;
 }
 
@@ -108,27 +131,30 @@
 
 .etiqueta {
   display: block;
-  font-size: 11.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  margin-bottom: 4px;
+  font-size: 13px;
+  letter-spacing: -0.005em;
+  color: var(--ink-2);
+  margin-bottom: 5px;
 }
 
 .entrada {
   width: 100%;
   background: var(--surface-2);
   border: 1px solid var(--rule);
-  border-radius: 7px;
-  padding: 7px 10px;
+  border-radius: var(--radio-2);
+  padding: 8px 12px;
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--ink);
+  transition:
+    border-color var(--dur-corta) var(--ease),
+    box-shadow var(--dur-corta) var(--ease);
 }
 
 .entrada:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3.5px var(--accent-soft);
 }
 
 .entrada:disabled {
@@ -152,11 +178,12 @@
 .archivos::file-selector-button {
   background: var(--surface-2);
   border: 1px solid var(--rule);
-  border-radius: 6px;
-  padding: 5px 10px;
+  border-radius: var(--radio-3);
+  padding: 6px 13px;
   margin-right: 9px;
   font-family: var(--sans);
-  font-size: 12px;
+  font-weight: 500;
+  font-size: 12.5px;
   color: var(--ink-2);
   cursor: pointer;
 }
@@ -171,29 +198,26 @@
 .error,
 .exito {
   margin: 0 0 11px;
-  padding: 8px 10px;
-  border-radius: 7px;
-  font-size: 12.5px;
+  padding: 10px 13px;
+  border-radius: var(--radio-2);
+  font-size: 13px;
   line-height: 1.5;
   color: var(--ink);
 }
 
 .error {
-  border-left: 3px solid var(--critical);
   background: var(--critical-soft);
 }
 
 .exito {
-  border-left: 3px solid var(--good);
   background: var(--good-soft);
 }
 
 /* Aviso de que el caso ya tiene reportes. No bloquea: informa y deja seguir. */
 .previo {
   margin: -2px 0 12px;
-  padding: 9px 11px;
-  border-radius: 7px;
-  border-left: 3px solid var(--warning);
+  padding: 11px 13px;
+  border-radius: var(--radio-2);
   background: var(--warning-soft);
 }
 
@@ -221,13 +245,26 @@
   gap: 7px;
 
   background: var(--accent);
-  border: 1px solid var(--accent);
-  border-radius: 7px;
+  border: 0;
+  border-radius: var(--radio-3);
   color: #fff;
-  padding: 9px 20px;
+  padding: 10px 22px;
   font-family: var(--sans);
-  font-size: 13px;
+  font-weight: 500;
+  font-size: 13.5px;
+  letter-spacing: -0.01em;
   cursor: pointer;
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    transform var(--dur-corta) var(--ease);
+}
+
+.enviar:hover:not(:disabled) {
+  background: var(--accent-ink);
+}
+
+.enviar:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .enviar:disabled {

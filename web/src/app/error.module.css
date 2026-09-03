@@ -8,15 +8,16 @@
 .caja {
   max-width: 520px;
   background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: 14px;
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radio);
   box-shadow: var(--shadow);
   padding: 28px 28px 24px;
 }
 
 .titulo {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 600;
+  letter-spacing: -0.025em;
   margin-bottom: 10px;
 }
 
@@ -29,7 +30,7 @@
 .detalle {
   background: var(--surface-2);
   border: 1px solid var(--rule-soft);
-  border-radius: 8px;
+  border-radius: var(--radio-2);
   padding: 11px 13px;
   font-family: var(--mono);
   font-size: 12px;
@@ -40,17 +41,25 @@
 }
 
 .boton {
-  padding: 9px 18px;
-  border-radius: 8px;
-  border: 1px solid transparent;
+  padding: 10px 20px;
+  border-radius: var(--radio-3);
+  border: 0;
   background: var(--accent);
   color: #ffffff;
   font-family: var(--sans);
   font-size: 14px;
   font-weight: 500;
+  letter-spacing: -0.01em;
   cursor: pointer;
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    transform var(--dur-corta) var(--ease);
 }
 
 .boton:hover {
   background: var(--accent-ink);
+}
+
+.boton:active {
+  transform: scale(0.97);
 }

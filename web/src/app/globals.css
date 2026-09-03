@@ -2,201 +2,234 @@
    Sistema de diseño. Todo color pasa por un token para que el tema claro y el
    oscuro se resuelvan como conjunto y ningún componente quede con un literal
    que solo funciona en uno de los dos.
+
+   La paleta y las medidas son las del sistema de Apple: gris papel bajo
+   tarjetas blancas, esquinas grandes, sombras casi invisibles, azul de sistema
+   como único acento de acción y los colores semánticos —verde, ámbar, rojo— en
+   sus variantes accesibles, que son las que aguantan texto chico sobre blanco.
    --------------------------------------------------------------------------- */
 
 :root {
   color-scheme: light;
 
---plane: #e7e6df;
-  --surface: #faf9f6;
-  --surface-2: #f2f1ea;
-  --surface-3: #e9e8df;
+  --plane: #f5f5f7;
+  --surface: #ffffff;
+  --surface-2: #f2f2f7;
+  --surface-3: #e6e6eb;
 
-  /* La barra lateral es oscura en los dos temas: tiene su propia tinta. */
-  --rail: #16232a;
-  --rail-2: #1e2f38;
-  --rail-ink: #cdd6d5;
-  --rail-ink-alta: #eef3f1;
-  --rail-ink-dim: #7b8c8f;
+  /* La barra lateral es del mismo papel que el resto, apenas translúcida: la
+     jerarquía la da el filete y el desenfoque, no un bloque de color. */
+  --rail: rgba(255, 255, 255, 0.72);
+  --rail-2: rgba(0, 0, 0, 0.045);
+  --rail-ink: #43434a;
+  --rail-ink-alta: #1d1d1f;
+  --rail-ink-dim: #8a8a8f;
 
-  --ink: #1a2126;
-  --ink-2: #4e5a60;
-  --muted: #7b858b;
+  --ink: #1d1d1f;
+  --ink-2: #55555c;
+  --muted: #86868b;
 
-  --rule: rgba(26, 33, 38, 0.14);
-  --rule-soft: rgba(26, 33, 38, 0.07);
+  --rule: rgba(0, 0, 0, 0.09);
+  --rule-soft: rgba(0, 0, 0, 0.055);
 
-  --accent: #0d7f5f;
-  --accent-ink: #0a6a4f;
-  --accent-soft: rgba(13, 127, 95, 0.12);
-  --serie-2: #42549e;
+  --accent: #0071e3;
+  --accent-ink: #0062c4;
+  --accent-soft: rgba(0, 113, 227, 0.1);
+  --serie-2: #30bfa4;
 
-  --good: #4a7a3f;
-  --good-soft: rgba(74, 122, 63, 0.13);
-  --warning: #b07a1e;
-  --warning-soft: rgba(176, 122, 30, 0.14);
-  --critical: #a34438;
-  --critical-soft: rgba(163, 68, 56, 0.12);
+  --good: #248a3d;
+  --good-soft: rgba(52, 199, 89, 0.14);
+  --warning: #b45309;
+  --warning-soft: rgba(255, 159, 10, 0.16);
+  --critical: #d70015;
+  --critical-soft: rgba(255, 59, 48, 0.11);
 
-  --grid: #ddddd3;
-  --axis: #c4c4b8;
+  --grid: rgba(0, 0, 0, 0.07);
+  --axis: rgba(0, 0, 0, 0.22);
 
-  --shadow: 0 1px 1px rgba(26, 33, 38, 0.04), 0 6px 14px -10px rgba(26, 33, 38, 0.3);
-  --radio: 7px;
+  /* Dos capas: un filo de contacto de 1px y una difusa y muy abierta. Es lo que
+     hace que la tarjeta parezca apoyada sobre el papel y no dibujada encima. */
+  --segmento-activo: #ffffff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 30px -14px rgba(0, 0, 0, 0.18);
+  --shadow-alta: 0 2px 6px rgba(0, 0, 0, 0.05), 0 20px 46px -18px rgba(0, 0, 0, 0.26);
+  --radio: 18px;
+  --radio-2: 12px;
+  --radio-3: 999px;
+
+  /* ---- movimiento ----
+     Una sola curva para todo lo que entra y otra para lo que responde al
+     puntero. Son largas y sin rebote: el gesto se siente continuo en vez de
+     saltar, que es lo que separa una animación de un cambio de estado. */
+  --ease: cubic-bezier(0.28, 0.11, 0.32, 1);
+  --ease-salida: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-corta: 0.2s;
+  --dur: 0.4s;
+  --dur-larga: 0.75s;
 
   /* Un color por estado del paquete, pedido por la operación. */
-  --caso-cerrado: #4a7a3f;
-  --caso-cerrado-fondo: rgba(74, 122, 63, 0.13);
-  --caso-abierto: #a34438;
-  --caso-abierto-fondo: rgba(163, 68, 56, 0.12);
+  --caso-cerrado: #248a3d;
+  --caso-cerrado-fondo: rgba(52, 199, 89, 0.14);
+  --caso-abierto: #d70015;
+  --caso-abierto-fondo: rgba(255, 59, 48, 0.11);
 
-  --estado-entregado: #0d7f5f;
-  --estado-entregado-fondo: rgba(13, 127, 95, 0.13);
-  --estado-devuelto: #4a7a3f;
-  --estado-devuelto-fondo: rgba(74, 122, 63, 0.13);
-  --estado-devolucion: #b07a1e;
-  --estado-devolucion-fondo: rgba(176, 122, 30, 0.15);
-  --estado-deposito: #42549e;
-  --estado-deposito-fondo: rgba(66, 84, 158, 0.13);
-  --estado-retirado: #2f6f7a;
-  --estado-retirado-fondo: rgba(47, 111, 122, 0.14);
-  --estado-pararetirar: #5a6b8f;
-  --estado-pararetirar-fondo: rgba(90, 107, 143, 0.14);
-  --estado-siniestrado: #96603a;
-  --estado-siniestrado-fondo: rgba(150, 96, 58, 0.14);
-  --estado-noentregado: #a34438;
-  --estado-noentregado-fondo: rgba(163, 68, 56, 0.12);
+  --estado-entregado: #248a3d;
+  --estado-entregado-fondo: rgba(52, 199, 89, 0.14);
+  --estado-devuelto: #0a7d6d;
+  --estado-devuelto-fondo: rgba(48, 191, 164, 0.15);
+  --estado-devolucion: #b45309;
+  --estado-devolucion-fondo: rgba(255, 159, 10, 0.16);
+  --estado-deposito: #0071e3;
+  --estado-deposito-fondo: rgba(0, 113, 227, 0.11);
+  --estado-retirado: #0f7a91;
+  --estado-retirado-fondo: rgba(50, 173, 230, 0.15);
+  --estado-pararetirar: #7d51c7;
+  --estado-pararetirar-fondo: rgba(169, 108, 245, 0.14);
+  --estado-siniestrado: #a2571c;
+  --estado-siniestrado-fondo: rgba(196, 130, 63, 0.16);
+  --estado-noentregado: #d70015;
+  --estado-noentregado-fondo: rgba(255, 59, 48, 0.11);
+  --estado-cancelado: #6c6c70;
+  --estado-cancelado-fondo: rgba(108, 108, 112, 0.13);
 
-
-  --sans: var(--fuente-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --display: var(--fuente-display), var(--sans);
-  --mono: var(--fuente-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* SF Pro. Los fallbacks son el mismo diseño resuelto por el sistema: en un
+     Mac o un iPhone la cara nativa entra sin descargar nada. */
+  --sans: var(--fuente-sans), -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Helvetica Neue", system-ui, sans-serif;
+  --display: var(--fuente-display), -apple-system, BlinkMacSystemFont,
+    "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
---plane: #12181b;
-    --surface: #1d2529;
-    --surface-2: #242d32;
-    --surface-3: #2b353a;
+    --plane: #000000;
+    --surface: #1c1c1e;
+    --surface-2: #2c2c2e;
+    --surface-3: #3a3a3c;
 
-    --rail: #0d1417;
-    --rail-2: #18242a;
-    --rail-ink: #c3cfce;
-    --rail-ink-alta: #eef3f1;
-    --rail-ink-dim: #6f8084;
+    --rail: rgba(28, 28, 30, 0.72);
+    --rail-2: rgba(255, 255, 255, 0.07);
+    --rail-ink: #c7c7cc;
+    --rail-ink-alta: #f5f5f7;
+    --rail-ink-dim: #8e8e93;
 
-    --ink: #eceee9;
-    --ink-2: #a9b3b6;
-    --muted: #7d878b;
+    --ink: #f5f5f7;
+    --ink-2: #aeaeb2;
+    --muted: #8e8e93;
 
-    --rule: rgba(255, 255, 255, 0.13);
-    --rule-soft: rgba(255, 255, 255, 0.07);
+    --rule: rgba(255, 255, 255, 0.1);
+    --rule-soft: rgba(255, 255, 255, 0.06);
 
-    --accent: #37a081;
-    --accent-ink: #55b89a;
-    --accent-soft: rgba(55, 160, 129, 0.17);
-    --serie-2: #6d84cd;
+    --accent: #0a84ff;
+    --accent-ink: #4aa3ff;
+    --accent-soft: rgba(10, 132, 255, 0.18);
+    --serie-2: #40d6b8;
 
-    --good: #6a9f5c;
-    --good-soft: rgba(106, 159, 92, 0.16);
-    --warning: #cc9a35;
-    --warning-soft: rgba(204, 154, 53, 0.16);
-    --critical: #cf7266;
-    --critical-soft: rgba(207, 114, 102, 0.15);
+    --good: #30d158;
+    --good-soft: rgba(48, 209, 88, 0.18);
+    --warning: #ff9f0a;
+    --warning-soft: rgba(255, 159, 10, 0.18);
+    --critical: #ff453a;
+    --critical-soft: rgba(255, 69, 58, 0.16);
 
-    --grid: #2a343a;
-    --axis: #3a464c;
+    --grid: rgba(255, 255, 255, 0.08);
+    --axis: rgba(255, 255, 255, 0.28);
 
-    --shadow: 0 1px 1px rgba(0, 0, 0, 0.4), 0 6px 14px -10px rgba(0, 0, 0, 0.8);
-    --radio: 7px;
+    --segmento-activo: #5b5b60;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px -14px rgba(0, 0, 0, 0.9);
+    --shadow-alta: 0 2px 6px rgba(0, 0, 0, 0.55), 0 20px 46px -18px rgba(0, 0, 0, 1);
 
-    --caso-cerrado: #6a9f5c;
-    --caso-cerrado-fondo: rgba(106, 159, 92, 0.17);
-    --caso-abierto: #cf7266;
-    --caso-abierto-fondo: rgba(207, 114, 102, 0.16);
+    --caso-cerrado: #30d158;
+    --caso-cerrado-fondo: rgba(48, 209, 88, 0.18);
+    --caso-abierto: #ff453a;
+    --caso-abierto-fondo: rgba(255, 69, 58, 0.16);
 
-    --estado-entregado: #37a081;
-    --estado-entregado-fondo: rgba(55, 160, 129, 0.18);
-    --estado-devuelto: #6a9f5c;
-    --estado-devuelto-fondo: rgba(106, 159, 92, 0.17);
-    --estado-devolucion: #cc9a35;
-    --estado-devolucion-fondo: rgba(204, 154, 53, 0.17);
-    --estado-deposito: #6d84cd;
-    --estado-deposito-fondo: rgba(109, 132, 205, 0.18);
-    --estado-retirado: #57a3b0;
-    --estado-retirado-fondo: rgba(87, 163, 176, 0.18);
-    --estado-pararetirar: #8e9cc0;
-    --estado-pararetirar-fondo: rgba(142, 156, 192, 0.17);
-    --estado-siniestrado: #c4906a;
-    --estado-siniestrado-fondo: rgba(196, 144, 106, 0.17);
-    --estado-noentregado: #cf7266;
-    --estado-noentregado-fondo: rgba(207, 114, 102, 0.16);
+    --estado-entregado: #30d158;
+    --estado-entregado-fondo: rgba(48, 209, 88, 0.18);
+    --estado-devuelto: #40d6b8;
+    --estado-devuelto-fondo: rgba(64, 214, 184, 0.17);
+    --estado-devolucion: #ff9f0a;
+    --estado-devolucion-fondo: rgba(255, 159, 10, 0.18);
+    --estado-deposito: #0a84ff;
+    --estado-deposito-fondo: rgba(10, 132, 255, 0.18);
+    --estado-retirado: #64d2ff;
+    --estado-retirado-fondo: rgba(100, 210, 255, 0.17);
+    --estado-pararetirar: #bf5af2;
+    --estado-pararetirar-fondo: rgba(191, 90, 242, 0.18);
+    --estado-siniestrado: #d9a05b;
+    --estado-siniestrado-fondo: rgba(217, 160, 91, 0.17);
+    --estado-noentregado: #ff453a;
+    --estado-noentregado-fondo: rgba(255, 69, 58, 0.16);
+  --estado-cancelado: #aeaeb2;
+    --estado-cancelado-fondo: rgba(174, 174, 178, 0.17);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
 
---plane: #12181b;
-  --surface: #1d2529;
-  --surface-2: #242d32;
-  --surface-3: #2b353a;
+  --plane: #000000;
+  --surface: #1c1c1e;
+  --surface-2: #2c2c2e;
+  --surface-3: #3a3a3c;
 
-  --rail: #0d1417;
-  --rail-2: #18242a;
-  --rail-ink: #c3cfce;
-  --rail-ink-alta: #eef3f1;
-  --rail-ink-dim: #6f8084;
+  --rail: rgba(28, 28, 30, 0.72);
+  --rail-2: rgba(255, 255, 255, 0.07);
+  --rail-ink: #c7c7cc;
+  --rail-ink-alta: #f5f5f7;
+  --rail-ink-dim: #8e8e93;
 
-  --ink: #eceee9;
-  --ink-2: #a9b3b6;
-  --muted: #7d878b;
+  --ink: #f5f5f7;
+  --ink-2: #aeaeb2;
+  --muted: #8e8e93;
 
-  --rule: rgba(255, 255, 255, 0.13);
-  --rule-soft: rgba(255, 255, 255, 0.07);
+  --rule: rgba(255, 255, 255, 0.1);
+  --rule-soft: rgba(255, 255, 255, 0.06);
 
-  --accent: #37a081;
-  --accent-ink: #55b89a;
-  --accent-soft: rgba(55, 160, 129, 0.17);
-  --serie-2: #6d84cd;
+  --accent: #0a84ff;
+  --accent-ink: #4aa3ff;
+  --accent-soft: rgba(10, 132, 255, 0.18);
+  --serie-2: #40d6b8;
 
-  --good: #6a9f5c;
-  --good-soft: rgba(106, 159, 92, 0.16);
-  --warning: #cc9a35;
-  --warning-soft: rgba(204, 154, 53, 0.16);
-  --critical: #cf7266;
-  --critical-soft: rgba(207, 114, 102, 0.15);
+  --good: #30d158;
+  --good-soft: rgba(48, 209, 88, 0.18);
+  --warning: #ff9f0a;
+  --warning-soft: rgba(255, 159, 10, 0.18);
+  --critical: #ff453a;
+  --critical-soft: rgba(255, 69, 58, 0.16);
 
-  --grid: #2a343a;
-  --axis: #3a464c;
+  --grid: rgba(255, 255, 255, 0.08);
+  --axis: rgba(255, 255, 255, 0.28);
 
-  --shadow: 0 1px 1px rgba(0, 0, 0, 0.4), 0 6px 14px -10px rgba(0, 0, 0, 0.8);
-  --radio: 7px;
+  --segmento-activo: #5b5b60;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px -14px rgba(0, 0, 0, 0.9);
+  --shadow-alta: 0 2px 6px rgba(0, 0, 0, 0.55), 0 20px 46px -18px rgba(0, 0, 0, 1);
 
-  --caso-cerrado: #6a9f5c;
-  --caso-cerrado-fondo: rgba(106, 159, 92, 0.17);
-  --caso-abierto: #cf7266;
-  --caso-abierto-fondo: rgba(207, 114, 102, 0.16);
+  --caso-cerrado: #30d158;
+  --caso-cerrado-fondo: rgba(48, 209, 88, 0.18);
+  --caso-abierto: #ff453a;
+  --caso-abierto-fondo: rgba(255, 69, 58, 0.16);
 
-  --estado-entregado: #37a081;
-  --estado-entregado-fondo: rgba(55, 160, 129, 0.18);
-  --estado-devuelto: #6a9f5c;
-  --estado-devuelto-fondo: rgba(106, 159, 92, 0.17);
-  --estado-devolucion: #cc9a35;
-  --estado-devolucion-fondo: rgba(204, 154, 53, 0.17);
-  --estado-deposito: #6d84cd;
-  --estado-deposito-fondo: rgba(109, 132, 205, 0.18);
-  --estado-retirado: #57a3b0;
-  --estado-retirado-fondo: rgba(87, 163, 176, 0.18);
-  --estado-pararetirar: #8e9cc0;
-  --estado-pararetirar-fondo: rgba(142, 156, 192, 0.17);
-  --estado-siniestrado: #c4906a;
-  --estado-siniestrado-fondo: rgba(196, 144, 106, 0.17);
-  --estado-noentregado: #cf7266;
-  --estado-noentregado-fondo: rgba(207, 114, 102, 0.16);
+  --estado-entregado: #30d158;
+  --estado-entregado-fondo: rgba(48, 209, 88, 0.18);
+  --estado-devuelto: #40d6b8;
+  --estado-devuelto-fondo: rgba(64, 214, 184, 0.17);
+  --estado-devolucion: #ff9f0a;
+  --estado-devolucion-fondo: rgba(255, 159, 10, 0.18);
+  --estado-deposito: #0a84ff;
+  --estado-deposito-fondo: rgba(10, 132, 255, 0.18);
+  --estado-retirado: #64d2ff;
+  --estado-retirado-fondo: rgba(100, 210, 255, 0.17);
+  --estado-pararetirar: #bf5af2;
+  --estado-pararetirar-fondo: rgba(191, 90, 242, 0.18);
+  --estado-siniestrado: #d9a05b;
+  --estado-siniestrado-fondo: rgba(217, 160, 91, 0.17);
+  --estado-noentregado: #ff453a;
+  --estado-noentregado-fondo: rgba(255, 69, 58, 0.16);
+  --estado-cancelado: #aeaeb2;
+  --estado-cancelado-fondo: rgba(174, 174, 178, 0.17);
 }
 
 *,
@@ -207,6 +240,7 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -215,18 +249,30 @@ body {
   color: var(--ink);
   font-family: var(--sans);
   font-size: 15px;
-  line-height: 1.6;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/*
+ * SF Pro aprieta el espaciado a medida que crece el cuerpo. El `letter-spacing`
+ * negativo por tamaño reproduce ese ajuste óptico, que es lo que hace que un
+ * título grande se lea como un bloque y no como letras sueltas.
+ */
 h1,
 h2,
 h3,
 h4 {
   font-family: var(--display);
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: -0.022em;
   margin: 0;
   text-wrap: balance;
+}
+
+h1 {
+  letter-spacing: -0.03em;
 }
 
 a {
@@ -236,7 +282,50 @@ a {
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-  border-radius: 4px;
+  border-radius: 6px;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+/* Barra de scroll fina, como la del sistema: presente pero sin peso visual. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+
+/* ---------------------------------------------------------------------------
+   Movimiento.
+
+   Dos gestos, nada más: lo que aparece al entrar en pantalla sube unos píxeles
+   mientras se revela, y lo que responde al puntero se levanta apenas. Las dos
+   cosas usan la misma curva larga, que es lo que da la sensación de continuo.
+   --------------------------------------------------------------------------- */
+
+@keyframes revelar {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* El estado inicial vive acá adentro a propósito: si el sistema pide menos
+     movimiento, el contenido nunca llega a estar oculto y no depende de que
+     algún observador lo revele. */
+  [data-revelar] {
+    opacity: 0;
+  }
+
+  [data-revelar="visible"] {
+    animation: revelar var(--dur-larga) var(--ease-salida) both;
+    animation-delay: var(--retraso, 0s);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -245,6 +334,7 @@ a {
   *::after {
     transition: none !important;
     animation: none !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -277,6 +367,12 @@ a {
 
   body {
     background: #ffffff;
+  }
+
+  /* En el papel no hay revelado posible: lo que no se anima quedaría en blanco. */
+  [data-revelar] {
+    opacity: 1 !important;
+    animation: none !important;
   }
 
   body * {

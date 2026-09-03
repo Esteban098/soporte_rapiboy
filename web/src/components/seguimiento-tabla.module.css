@@ -5,51 +5,59 @@
 
 .segmentado {
   display: inline-flex;
-  border: 1px solid var(--rule);
-  border-radius: 7px;
-  overflow: hidden;
+  gap: 2px;
+  border: 0;
+  border-radius: var(--radio-2);
+  padding: 2px;
   background: var(--surface-2);
 }
 
 .segmento {
   background: none;
   border: none;
-  border-right: 1px solid var(--rule-soft);
-  padding: 6px 12px;
+  border-radius: calc(var(--radio-2) - 3px);
+  padding: 6px 14px;
   font-family: var(--sans);
+  font-weight: 500;
   font-size: 12.5px;
+  letter-spacing: -0.01em;
   color: var(--ink-2);
   cursor: pointer;
-}
-
-.segmento:last-child {
-  border-right: none;
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    color var(--dur-corta) var(--ease),
+    box-shadow var(--dur-corta) var(--ease),
+    transform var(--dur-corta) var(--ease);
 }
 
 .segmento:hover {
-  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.segmento:active {
+  transform: scale(0.97);
 }
 
 .segmentoActivo,
 .segmentoActivo:hover {
-  background: var(--accent);
-  color: #fff;
+  background: var(--segmento-activo);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .error {
   margin: 0 0 12px;
-  padding: 8px 10px;
-  border-radius: 7px;
-  border-left: 3px solid var(--critical);
+  padding: 10px 13px;
+  border-radius: var(--radio-2);
   background: var(--critical-soft);
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink);
 }
 
 .fecha {
   white-space: nowrap;
-  font-family: var(--mono);
-  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
   color: var(--ink-2);
 }
 
@@ -89,17 +97,21 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 2px 7px;
-  border: 1px solid var(--rule);
-  border-radius: 5px;
+  padding: 3px 9px;
+  border: 0;
+  background: var(--surface-2);
+  border-radius: var(--radio-3);
   font-size: 11.5px;
   color: var(--ink-2);
   text-decoration: none;
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    color var(--dur-corta) var(--ease);
 }
 
 .adjunto:hover {
-  border-color: var(--accent);
-  color: var(--accent-ink);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* Un adjunto que no se pudo firmar. Se muestra igual: que el archivo exista y
@@ -121,7 +133,7 @@
   background: var(--surface-2);
   border: 1px solid var(--rule);
   border-left-width: 3px;
-  border-radius: 6px;
+  border-radius: var(--radio-2);
   padding: 4px 8px;
   font-family: var(--sans);
   font-size: 12px;

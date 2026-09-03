@@ -1,4 +1,5 @@
 import type { Casos } from "@/lib/datos";
+import type { Fila } from "./Tabla";
 import { columnasPara, filasDePedidos, FILTROS_PEDIDO } from "@/lib/filas";
 import { Card } from "./Card";
 import { Tabla } from "./Tabla";
@@ -18,6 +19,7 @@ export function PanelCasos({
   tituloGrafico = "Cómo se reparten estos casos",
   notaGrafico = "Elegí por qué agrupar y qué medir. Responde a los filtros y a la búsqueda de la tabla de abajo.",
   casos,
+  filas: filasDadas,
   vacio = "No quedó ningún caso en esta vista.",
   limite = 30,
   editable = false,
@@ -28,18 +30,30 @@ export function PanelCasos({
   tituloGrafico?: string;
   notaGrafico?: string;
   casos: Casos;
+  /**
+   * Las filas ya convertidas. Solo hace falta cuando otro gráfico de la misma
+   * pantalla necesita el mismo arreglo: pasando la misma referencia, los casos
+   * viajan una sola vez al cliente en lugar de una por componente.
+   */
+  filas?: Fila[];
   vacio?: string;
   limite?: number;
   /** Solo para las vistas que leen `mensual`: ver la nota en `Tabla`. */
   editable?: boolean;
 }) {
   const columnas = columnasPara(casos.campos);
-  const filas = filasDePedidos(casos.pedidos);
+  const filas = filasDadas ?? filasDePedidos(casos.pedidos);
 
   return (
     <>
       <Card titulo={tituloGrafico} nota={notaGrafico}>
-        <GraficoCasos id={id} filas={filas} columnas={columnas} filtros={FILTROS_PEDIDO} />
+        <GraficoCasos
+          id={id}
+          filas={filas}
+          columnas={columnas}
+          filtros={FILTROS_PEDIDO}
+          titulo={titulo}
+        />
       </Card>
 
       <Card titulo={titulo} nota={nota}>

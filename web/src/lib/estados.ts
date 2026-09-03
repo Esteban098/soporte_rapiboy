@@ -14,6 +14,7 @@ export type ColorEstado =
   | "pararetirar"
   | "siniestrado"
   | "noentregado"
+  | "cancelado"
   | "neutral";
 
 const COLORES: Record<string, ColorEstado> = {
@@ -37,6 +38,23 @@ const COLORES: Record<string, ColorEstado> = {
   "retirado en camino a destino": "retirado",
   colectado: "retirado",
   "para retirar": "pararetirar",
+
+  /*
+   * Estados que solo aparecen en Cancelados, del lado de Meli.
+   *
+   * «Cancelado» es el caso en orden —los dos sistemas dicen lo mismo— y va en
+   * gris: no es ni bueno ni malo, es el trámite terminado. «Por colectar» es el
+   * mismo significado que «Para retirar» visto desde Meli, así que comparte su
+   * color. «Reprogramado por comprador» comparte el de devolución en curso:
+   * son los dos un envío que sigue moviéndose sin reflejar la cancelación.
+   *
+   * «Entregado» conserva su verde de siempre. En una fila cancelada eso es una
+   * contradicción, y se ve justamente por el contraste con el estado nuestro al
+   * lado: aplanarlo a gris escondería el único caso que hay que mirar.
+   */
+  cancelado: "cancelado",
+  "por colectar": "pararetirar",
+  "reprogramado por comprador": "devolucion",
 };
 
 export function colorEstado(estado: string): ColorEstado {

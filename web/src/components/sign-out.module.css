@@ -4,13 +4,22 @@
   gap: 9px;
   background: transparent;
   border: 1px solid var(--rule);
-  border-radius: 999px;
-  padding: 4px 5px 4px 11px;
+  border-radius: var(--radio-3);
+  padding: 5px 6px 5px 13px;
   cursor: pointer;
   color: var(--ink-2);
   font-family: var(--sans);
-  font-size: 12.5px;
+  font-size: 13px;
+  letter-spacing: -0.01em;
   line-height: 1.4;
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    color var(--dur-corta) var(--ease),
+    transform var(--dur-corta) var(--ease);
+}
+
+.boton:active {
+  transform: scale(0.98);
 }
 
 .boton:hover {
@@ -26,14 +35,14 @@
 }
 
 .salir {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
   background: var(--surface-3);
-  border-radius: 999px;
-  padding: 3px 9px;
+  border-radius: var(--radio-3);
+  padding: 3px 10px;
   color: var(--muted);
+  transition: color var(--dur-corta) var(--ease);
 }
 
 .boton:hover .salir {

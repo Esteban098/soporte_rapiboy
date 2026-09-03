@@ -11,8 +11,10 @@ import {
   YAxis,
 } from "recharts";
 import type { FilaDia } from "@/lib/colectas";
+import { abrirDetalle, type Detalle } from "@/lib/detalle";
 import { diaCorto, diaLargo, numero } from "@/lib/formato";
-import { CajaTooltip } from "./Tooltip";
+import { CajaTooltip, Pista } from "./Tooltip";
+import { datoTocado } from "./tocar";
 import estilos from "./chart.module.css";
 
 /**
@@ -25,27 +27,41 @@ import estilos from "./chart.module.css";
 export function BarrasColectas({
   datos,
   destacado,
+  detalle,
 }: {
   datos: FilaDia[];
   /** Día que está mostrando la pantalla, como `2026-09-02`. */
   destacado: string;
+  detalle?: Detalle;
 }) {
+  function abrir(punto: FilaDia) {
+    if (!detalle) return;
+    abrirDetalle({
+      titulo: detalle.titulo,
+      contexto: `Colectas del ${diaLargo(punto.dia)}`,
+      columnas: detalle.columnas,
+      filas: detalle.filas.filter((fila) => fila.fecha === punto.dia),
+      totalUniverso: detalle.filas.length,
+    });
+  }
+
   return (
-    <div className={estilos.wrap}>
+    <div className={`${estilos.wrap} ${detalle ? estilos.tocable : ""}`}>
+      {detalle ? <Pista /> : null}
       <ResponsiveContainer width="100%" height={240}>
         <BarChart data={datos} margin={{ top: 12, right: 8, bottom: 4, left: 4 }} barCategoryGap="18%">
           <CartesianGrid stroke="var(--grid)" vertical={false} />
           <XAxis
             dataKey="dia"
             tickFormatter={diaCorto}
-            tick={{ fill: "var(--muted)", fontSize: 10, fontFamily: "var(--mono)" }}
+            tick={{ fill: "var(--muted)", fontSize: 10, fontFamily: "var(--sans)" }}
             axisLine={{ stroke: "var(--axis)" }}
             tickLine={false}
             interval="preserveStartEnd"
             minTickGap={18}
           />
           <YAxis
-            tick={{ fill: "var(--muted)", fontSize: 11, fontFamily: "var(--mono)" }}
+            tick={{ fill: "var(--muted)", fontSize: 11, fontFamily: "var(--sans)" }}
             axisLine={false}
             tickLine={false}
             width={40}
@@ -69,7 +85,14 @@ export function BarrasColectas({
               );
             }}
           />
-          <Bar dataKey="colectas" radius={[3, 3, 0, 0]}>
+          <Bar
+            dataKey="colectas"
+            radius={[3, 3, 0, 0]}
+            onClick={(entrada: unknown) => {
+              const punto = datoTocado<FilaDia>(entrada);
+              if (punto) abrir(punto);
+            }}
+          >
             {datos.map((fila) => (
               <Cell
                 key={fila.dia}

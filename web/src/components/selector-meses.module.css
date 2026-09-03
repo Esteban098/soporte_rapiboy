@@ -19,23 +19,30 @@
 }
 
 .etiqueta {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: -0.005em;
+  color: var(--ink-2);
 }
 
 .select {
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--rule);
-  border-radius: 7px;
-  padding: 5px 9px;
+  border-radius: var(--radio-2);
+  padding: 7px 11px;
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: 13.5px;
   min-width: 165px;
   cursor: pointer;
+  transition:
+    border-color var(--dur-corta) var(--ease),
+    box-shadow var(--dur-corta) var(--ease);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3.5px var(--accent-soft);
 }
 
 .select:hover:not(:disabled) {
@@ -53,20 +60,30 @@
 }
 
 .atajo {
-  background: transparent;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  padding: 4px 11px;
+  background: var(--surface-2);
+  border: 0;
+  border-radius: var(--radio-3);
+  padding: 6px 14px;
   font-family: var(--sans);
-  font-size: 12px;
+  font-weight: 500;
+  font-size: 12.5px;
+  letter-spacing: -0.01em;
   color: var(--ink-2);
   cursor: pointer;
   white-space: nowrap;
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    color var(--dur-corta) var(--ease),
+    transform var(--dur-corta) var(--ease);
 }
 
 .atajo:hover:not(:disabled) {
-  border-color: var(--axis);
+  background: var(--surface-3);
   color: var(--ink);
+}
+
+.atajo:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .atajo:disabled {
@@ -75,8 +92,8 @@
 
 /* El atajo activo se marca con relleno y no solo con color de texto: sobre el
    papel del modo claro la diferencia de color sola casi no se ve. */
-.atajoActivo {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--accent-ink);
+.atajoActivo,
+.atajoActivo:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
 }

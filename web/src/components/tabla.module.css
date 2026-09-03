@@ -13,38 +13,48 @@
 }
 
 .filtroEtiqueta {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: -0.005em;
+  color: var(--ink-2);
 }
 
 .select {
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--rule);
-  border-radius: 7px;
-  padding: 5px 9px;
+  border-radius: var(--radio-2);
+  padding: 7px 11px;
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: 13.5px;
   min-width: 150px;
   cursor: pointer;
+  transition:
+    border-color var(--dur-corta) var(--ease),
+    box-shadow var(--dur-corta) var(--ease);
 }
 
 .select:hover {
   border-color: var(--axis);
 }
 
+.select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3.5px var(--accent-soft);
+}
+
 .buscador {
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--rule);
-  border-radius: 7px;
-  padding: 5px 10px;
+  border-radius: var(--radio-2);
+  padding: 7px 12px;
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: 13.5px;
   min-width: 250px;
+  transition:
+    border-color var(--dur-corta) var(--ease),
+    box-shadow var(--dur-corta) var(--ease);
 }
 
 .buscador::placeholder {
@@ -58,19 +68,28 @@
 .buscador:focus {
   border-color: var(--accent);
   outline: none;
+  box-shadow: 0 0 0 3.5px var(--accent-soft);
 }
 
 .imprimir {
   align-self: flex-end;
   background: none;
   border: 1px solid var(--rule);
-  border-radius: 7px;
-  padding: 6px 11px;
+  border-radius: var(--radio-2);
+  padding: 7px 13px;
   cursor: pointer;
   font-family: var(--sans);
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink-2);
   white-space: nowrap;
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    color var(--dur-corta) var(--ease),
+    transform var(--dur-corta) var(--ease);
+}
+
+.imprimir:active {
+  transform: scale(0.97);
 }
 
 .imprimir::before {
@@ -111,13 +130,21 @@
   align-self: flex-end;
   background: none;
   border: 1px solid var(--rule);
-  border-radius: 7px;
-  padding: 6px 11px;
+  border-radius: var(--radio-2);
+  padding: 7px 13px;
   cursor: pointer;
   font-family: var(--sans);
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--muted);
   white-space: nowrap;
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    color var(--dur-corta) var(--ease),
+    transform var(--dur-corta) var(--ease);
+}
+
+.limpiar:active {
+  transform: scale(0.97);
 }
 
 .limpiar:hover {
@@ -128,8 +155,7 @@
 
 .conteo {
   margin-left: auto;
-  font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--muted);
   padding-bottom: 6px;
   font-variant-numeric: tabular-nums;
@@ -169,22 +195,28 @@
 }
 
 .masFilas {
-  margin-top: 12px;
-  background: none;
-  border: 1px solid var(--rule);
-  border-radius: 7px;
-  padding: 6px 12px;
+  margin-top: 14px;
+  background: var(--surface-2);
+  border: 0;
+  border-radius: var(--radio-3);
+  padding: 8px 16px;
   cursor: pointer;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  color: var(--accent);
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    transform var(--dur-corta) var(--ease);
 }
 
 .masFilas:hover {
-  background: var(--surface-2);
-  color: var(--ink-2);
+  background: var(--accent-soft);
+}
+
+.masFilas:active {
+  transform: scale(0.97);
 }
 
 .enlaceViaje {
@@ -236,7 +268,7 @@
   list-style: none;
   background: var(--surface);
   border: 1px solid var(--rule);
-  border-radius: 7px;
+  border-radius: var(--radio-2);
   padding: 6px 11px;
   font-family: var(--sans);
   font-size: 13px;
@@ -260,11 +292,11 @@
 }
 
 .ocultasBadge {
-  font-family: var(--mono);
-  font-size: 10px;
+  font-weight: 600;
+  font-size: 11px;
   background: var(--accent-soft);
   color: var(--accent-ink);
-  border-radius: 999px;
+  border-radius: var(--radio-3);
   padding: 1px 6px;
 }
 
@@ -281,7 +313,7 @@
   gap: 2px;
   background: var(--surface);
   border: 1px solid var(--rule);
-  border-radius: 9px;
+  border-radius: var(--radio-2);
   box-shadow: 0 10px 28px -12px rgba(16, 24, 40, 0.35);
   padding: 8px;
 }
@@ -291,7 +323,7 @@
   align-items: center;
   gap: 8px;
   padding: 5px 7px;
-  border-radius: 6px;
+  border-radius: var(--radio-2);
   font-size: 13px;
   color: var(--ink-2);
   cursor: pointer;
@@ -312,14 +344,13 @@
   background: none;
   border: none;
   border-top: 1px solid var(--rule-soft);
-  padding: 8px 7px 3px;
+  padding: 9px 7px 3px;
   text-align: left;
   cursor: pointer;
-  font-family: var(--mono);
-  font-size: 10.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: -0.005em;
+  color: var(--accent);
 }
 
 .mostrarTodas:hover {
@@ -408,19 +439,28 @@
  */
 .agregar {
   background: var(--accent);
-  border: 1px solid var(--accent);
-  border-radius: 7px;
-  padding: 5px 12px;
+  border: 0;
+  border-radius: var(--radio-3);
+  padding: 8px 16px;
   font-family: var(--sans);
-  font-size: 12.5px;
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: -0.01em;
   color: #fff;
   cursor: pointer;
   white-space: nowrap;
   align-self: flex-end;
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    transform var(--dur-corta) var(--ease);
 }
 
 .agregar:hover {
-  filter: brightness(1.08);
+  background: var(--accent-ink);
+}
+
+.agregar:active {
+  transform: scale(0.97);
 }
 
 .celdaAccion {
@@ -433,12 +473,15 @@
 .editar {
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 6px;
-  padding: 2px 8px;
+  border-radius: var(--radio-3);
+  padding: 3px 10px;
   font-family: var(--sans);
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--muted);
   cursor: pointer;
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    color var(--dur-corta) var(--ease);
 }
 
 tr:hover .editar {

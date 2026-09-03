@@ -86,8 +86,34 @@ export default async function ColectasHistorial({
       ? (datos.paquetesColectados / datos.paquetesSolicitados) * 100
       : 0;
 
-  const filas = delDia.map((c) => ({
+  /*
+   * Las filas de todos los días de la ventana, no solo las del elegido.
+   *
+   * El gráfico muestra la serie entera, así que para poder abrir cualquier
+   * barra hace falta tener sus colectas. Las del día que se está mirando salen
+   * de filtrar este mismo arreglo: son las mismas referencias, así que no
+   * viajan dos veces al cliente.
+   */
+  const COLUMNAS_COLECTA = [
+    { clave: "fechaCorta", titulo: "Día", tipo: "texto" as const },
+    { clave: "seller", titulo: "Comercio", tipo: "texto" as const },
+    { clave: "estado", titulo: "Estado", tipo: "texto" as const },
+    { clave: "repartidor", titulo: "Repartidor", tipo: "texto" as const },
+    { clave: "solicitados", titulo: "Solicitados", tipo: "numero" as const },
+    { clave: "colectados", titulo: "Retirados", tipo: "numero" as const },
+    { clave: "bultos", titulo: "Bultos", tipo: "numero" as const },
+    { clave: "solicitud", titulo: "Pedida", tipo: "texto" as const },
+    { clave: "retiro", titulo: "Retirada", tipo: "texto" as const },
+    { clave: "deposito", titulo: "En depósito", tipo: "texto" as const },
+    { clave: "comentario", titulo: "Comentario", tipo: "texto" as const },
+    { clave: "direccion", titulo: "Dirección", tipo: "texto" as const },
+    { clave: "telefono", titulo: "Teléfono", tipo: "texto" as const },
+  ];
+
+  const todasLasFilas = colectas.map((c) => ({
     id: c.id,
+    fecha: c.fecha,
+    fechaCorta: diaCorto(c.fecha),
     seller: c.seller,
     estado: c.estado,
     repartidor: c.repartidor || "Sin asignar",
@@ -101,6 +127,8 @@ export default async function ColectasHistorial({
     direccion: c.direccionSeller,
     telefono: c.telefonoSeller,
   }));
+
+  const filas = todasLasFilas.filter((f) => f.fecha === dia);
 
   return (
     <>
@@ -159,7 +187,15 @@ export default async function ColectasHistorial({
           titulo="Colectas por día"
           nota="Los días que trae la consulta, para ubicar el elegido dentro de la serie. Los días sin colectas no aparecen."
         >
-          <BarrasColectas datos={serie} destacado={dia} />
+          <BarrasColectas
+            datos={serie}
+            destacado={dia}
+            detalle={{
+              titulo: "Colectas de la ventana",
+              columnas: COLUMNAS_COLECTA,
+              filas: todasLasFilas,
+            }}
+          />
         </Card>
 
         <Card
@@ -169,20 +205,7 @@ export default async function ColectasHistorial({
           <Tabla
             id="colectas-dia-detalle"
             titulo={`Colectas · ${diaLargo(dia)}`}
-            columnas={[
-              { clave: "seller", titulo: "Comercio", tipo: "texto" },
-              { clave: "estado", titulo: "Estado", tipo: "texto" },
-              { clave: "repartidor", titulo: "Repartidor", tipo: "texto" },
-              { clave: "solicitados", titulo: "Solicitados", tipo: "numero" },
-              { clave: "colectados", titulo: "Retirados", tipo: "numero" },
-              { clave: "bultos", titulo: "Bultos", tipo: "numero" },
-              { clave: "solicitud", titulo: "Pedida", tipo: "texto" },
-              { clave: "retiro", titulo: "Retirada", tipo: "texto" },
-              { clave: "deposito", titulo: "En depósito", tipo: "texto" },
-              { clave: "comentario", titulo: "Comentario", tipo: "texto" },
-              { clave: "direccion", titulo: "Dirección", tipo: "texto" },
-              { clave: "telefono", titulo: "Teléfono", tipo: "texto" },
-            ]}
+            columnas={COLUMNAS_COLECTA.filter((c) => c.clave !== "fechaCorta")}
             filas={filas}
             filtros={[
               { clave: "estado", etiqueta: "Estado", opciones: [...ESTADOS_COLECTA] },

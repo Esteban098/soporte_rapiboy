@@ -13,7 +13,7 @@ export function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className={estilos.card}>
+    <section className={estilos.card} data-revelar="">
       {titulo ? (
         <div className={estilos.cardHead}>
           <h2 className={estilos.cardTitle}>{titulo}</h2>
@@ -43,7 +43,7 @@ export function Callout({
         : "";
 
   return (
-    <div className={`${estilos.callout} ${clase}`}>
+    <div className={`${estilos.callout} ${clase}`} data-revelar="">
       <h3 className={estilos.calloutTitle}>{titulo}</h3>
       <p className={estilos.calloutBody}>{children}</p>
     </div>
@@ -65,7 +65,7 @@ export function Kpi({
     tono === "good" ? estilos.kpiValueGood : tono === "bad" ? estilos.kpiValueBad : "";
 
   return (
-    <div className={estilos.kpi}>
+    <div className={estilos.kpi} data-revelar="">
       <div className={estilos.kpiLabel}>{etiqueta}</div>
       <div className={`${estilos.kpiValue} ${clase}`}>{valor}</div>
       {nota ? <div className={estilos.kpiNote}>{nota}</div> : null}
@@ -84,6 +84,7 @@ export function TextoEstado({ estado, color }: { estado: string; color: ColorEst
     pararetirar: estilos.estadoPararetirar,
     siniestrado: estilos.estadoSiniestrado,
     noentregado: estilos.estadoNoentregado,
+    cancelado: estilos.estadoCancelado,
     neutral: estilos.estadoNeutral,
   }[color];
 

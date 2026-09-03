@@ -7,24 +7,49 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background: color-mix(in srgb, var(--plane) 78%, transparent);
-  backdrop-filter: blur(3px);
+  background: color-mix(in srgb, var(--plane) 72%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  backdrop-filter: saturate(180%) blur(14px);
   overflow-y: auto;
+  animation: aparecer var(--dur) var(--ease-salida) both;
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .panel {
   width: min(440px, 100%);
   background: var(--surface);
   border: 1px solid var(--rule);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
-  padding: 22px 24px 20px;
+  border-radius: var(--radio);
+  box-shadow: var(--shadow-alta);
+  padding: 24px 26px 22px;
+  animation: subir var(--dur-larga) var(--ease-salida) both;
+}
+
+/* El diálogo sube y termina de escalar: el gesto de una hoja modal del sistema. */
+@keyframes subir {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .titulo {
   font-family: var(--display);
   font-weight: 600;
-  font-size: 16.5px;
+  letter-spacing: -0.022em;
+  font-size: 18px;
   color: var(--ink);
   margin: 0 0 6px;
 }
@@ -43,27 +68,30 @@
 
 .etiqueta {
   display: block;
-  font-size: 11.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  margin-bottom: 4px;
+  font-size: 13px;
+  letter-spacing: -0.005em;
+  color: var(--ink-2);
+  margin-bottom: 5px;
 }
 
 .entrada {
   width: 100%;
   background: var(--surface-2);
   border: 1px solid var(--rule);
-  border-radius: 7px;
-  padding: 7px 10px;
+  border-radius: var(--radio-2);
+  padding: 8px 12px;
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--ink);
+  transition:
+    border-color var(--dur-corta) var(--ease),
+    box-shadow var(--dur-corta) var(--ease);
 }
 
 .entrada:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3.5px var(--accent-soft);
 }
 
 .entrada:disabled {
@@ -73,11 +101,10 @@
 
 .error {
   margin: 0 0 12px;
-  padding: 8px 10px;
-  border-radius: 7px;
-  border-left: 3px solid var(--critical);
+  padding: 10px 13px;
+  border-radius: var(--radio-2);
   background: var(--critical-soft);
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--ink);
   line-height: 1.5;
 }
@@ -93,18 +120,34 @@
 .secundario,
 .borrar,
 .peligro {
-  border-radius: 7px;
-  padding: 7px 14px;
+  border-radius: var(--radio-3);
+  padding: 8px 17px;
   font-family: var(--sans);
-  font-size: 12.5px;
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  border: 1px solid var(--rule);
+  border: 0;
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    color var(--dur-corta) var(--ease),
+    transform var(--dur-corta) var(--ease);
+}
+
+.principal:active:not(:disabled),
+.secundario:active:not(:disabled),
+.borrar:active:not(:disabled),
+.peligro:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .principal {
   background: var(--accent);
-  border-color: var(--accent);
   color: #fff;
+}
+
+.principal:hover:not(:disabled) {
+  background: var(--accent-ink);
 }
 
 .principal:disabled {
@@ -122,28 +165,25 @@
 .borrar {
   margin-left: auto;
   background: transparent;
-  border-color: transparent;
   color: var(--critical);
 }
 
 .borrar:hover:not(:disabled) {
   background: var(--critical-soft);
-  border-color: var(--critical);
 }
 
 .peligro {
   background: var(--critical);
-  border-color: var(--critical);
   color: #fff;
 }
 
 .confirmar {
   margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 9px;
-  border: 1px solid var(--rule);
-  border-left: 3px solid var(--critical);
-  background: var(--surface-2);
+  padding: 13px 15px;
+  border-radius: var(--radio-2);
+  border: 0;
+  background: var(--critical-soft);
+  animation: subir var(--dur) var(--ease-salida) both;
 }
 
 .confirmarTexto {

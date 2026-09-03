@@ -59,6 +59,6 @@ npm run typecheck
 npm run lint
 ```
 
-Además, validar los workflows con `jq empty ../n8n/*.json`. El build descarga
-Google Fonts y puede fallar en un entorno sin red aunque TypeScript y ESLint
-estén correctos.
+Además, validar los workflows con `jq empty ../n8n/*.json`. El build no sale a
+la red: la tipografía son archivos locales en `src/app/fonts/` cargados con
+`next/font/local`.

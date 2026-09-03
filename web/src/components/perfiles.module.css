@@ -16,38 +16,54 @@
 
 .etiqueta {
   display: block;
-  font-size: 11.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  margin-bottom: 4px;
+  font-size: 13px;
+  letter-spacing: -0.005em;
+  color: var(--ink-2);
+  margin-bottom: 5px;
 }
 
 .entrada {
   width: 100%;
   background: var(--surface-2);
   border: 1px solid var(--rule);
-  border-radius: 7px;
-  padding: 7px 10px;
+  border-radius: var(--radio-2);
+  padding: 8px 12px;
   font-family: var(--sans);
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--ink);
+  transition:
+    border-color var(--dur-corta) var(--ease),
+    box-shadow var(--dur-corta) var(--ease);
 }
 
 .entrada:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3.5px var(--accent-soft);
 }
 
 .principal {
   background: var(--accent);
-  border: 1px solid var(--accent);
-  border-radius: 7px;
+  border: 0;
+  border-radius: var(--radio-3);
   color: #fff;
-  padding: 8px 16px;
+  padding: 9px 20px;
   font-family: var(--sans);
-  font-size: 12.5px;
+  font-weight: 500;
+  font-size: 13.5px;
+  letter-spacing: -0.01em;
   cursor: pointer;
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    transform var(--dur-corta) var(--ease);
+}
+
+.principal:hover:not(:disabled) {
+  background: var(--accent-ink);
+}
+
+.principal:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .principal:disabled {
@@ -58,27 +74,25 @@
 .error,
 .aviso {
   margin: 0;
-  padding: 9px 12px;
-  border-radius: 7px;
-  font-size: 12.5px;
+  padding: 10px 14px;
+  border-radius: var(--radio-2);
+  font-size: 13px;
   line-height: 1.5;
   color: var(--ink);
 }
 
 .error {
-  border-left: 3px solid var(--critical);
   background: var(--critical-soft);
 }
 
 .aviso {
-  border-left: 3px solid var(--good);
   background: var(--good-soft);
 }
 
 .fecha {
   white-space: nowrap;
-  font-family: var(--mono);
-  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
   color: var(--ink-2);
 }
 

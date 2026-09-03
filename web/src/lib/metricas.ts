@@ -228,7 +228,8 @@ export function ranking(
   return filas.sort(comparar).slice(0, limite);
 }
 
-const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+/** Se exporta para que las filas puedan traer el mismo nombre de día que el eje. */
+export const DIAS_SEMANA = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
 export type FilaDiaSemana = { dia: string; devueltos: number };
 

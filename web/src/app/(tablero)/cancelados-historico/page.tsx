@@ -74,7 +74,24 @@ export default async function CanceladosHistoricos({
       cancelado: fechaHora(c.cancelado),
       demoro: duracion(c.minutos),
       mes: mesCorto(c.mes),
+      /* Los dos recortes del gráfico: el mes sin formatear y en qué lado del
+         apilado cae la fila. No son columnas de la tabla de abajo. */
+      mesClave: c.mes,
+      sincronia: c.desincronizado ? "Sin reflejar en Meli" : "Reflejado en los dos",
     }));
+
+  /* Mismo arreglo de filas que la tabla de detalle, con una columna más. */
+  const COLUMNAS_DETALLE = [
+    { clave: "id", titulo: "Viaje", tipo: "viaje" as const },
+    { clave: "idMeli", titulo: "Id Meli", tipo: "texto" as const },
+    { clave: "mes", titulo: "Mes", tipo: "texto" as const },
+    { clave: "tienda", titulo: "Comercio", tipo: "texto" as const },
+    { clave: "estadoRbp", titulo: "Estado nuestro", tipo: "estado" as const },
+    { clave: "estadoMeli", titulo: "Estado Meli", tipo: "estado" as const },
+    { clave: "colectado", titulo: "Colectado", tipo: "texto" as const },
+    { clave: "cancelado", titulo: "Cancelado", tipo: "texto" as const },
+    { clave: "demoro", titulo: "Tardó", tipo: "texto" as const },
+  ];
 
   return (
     <>
@@ -165,7 +182,17 @@ export default async function CanceladosHistoricos({
           titulo="Volumen por mes"
           nota="Cuántas cancelaciones tempranas hubo cada mes y cuántas de ellas siguen sin reflejarse en Meli."
         >
-          <BarrasCanceladosMes datos={serie} />
+          <BarrasCanceladosMes
+            datos={serie}
+            detalle={{
+              titulo: `Cancelados · ${periodo}`,
+              columnas: [
+                ...COLUMNAS_DETALLE,
+                { clave: "sincronia", titulo: "Sincronía", tipo: "texto" },
+              ],
+              filas,
+            }}
+          />
         </Card>
 
         <Card
@@ -200,17 +227,7 @@ export default async function CanceladosHistoricos({
           <Tabla
             id="cancelados-historico-detalle"
             titulo={`Detalle · ${periodo}`}
-            columnas={[
-              { clave: "id", titulo: "Viaje", tipo: "viaje" },
-              { clave: "idMeli", titulo: "Id Meli", tipo: "texto" },
-              { clave: "mes", titulo: "Mes", tipo: "texto" },
-              { clave: "tienda", titulo: "Comercio", tipo: "texto" },
-              { clave: "estadoRbp", titulo: "Estado nuestro", tipo: "texto" },
-              { clave: "estadoMeli", titulo: "Estado Meli", tipo: "texto" },
-              { clave: "colectado", titulo: "Colectado", tipo: "texto" },
-              { clave: "cancelado", titulo: "Cancelado", tipo: "texto" },
-              { clave: "demoro", titulo: "Tardó", tipo: "texto" },
-            ]}
+            columnas={COLUMNAS_DETALLE}
             filas={filas}
             filtros={[
               { clave: "mes", etiqueta: "Mes" },

@@ -54,11 +54,14 @@ export function GraficoCasos({
   filas,
   columnas,
   filtros,
+  titulo,
 }: {
   id: string;
   filas: Fila[];
   columnas: Columna[];
   filtros: Filtro[];
+  /** Cómo se llama este listado en la pestaña de detalle. */
+  titulo?: string;
 }) {
   const disponibles = new Set(columnas.map((c) => c.clave));
   const dimensiones = DIMENSIONES.filter((d) => disponibles.has(d.clave));
@@ -71,6 +74,7 @@ export function GraficoCasos({
       filtros={filtros}
       dimensiones={dimensiones}
       medidas={MEDIDAS}
+      titulo={titulo}
     />
   );
 }
