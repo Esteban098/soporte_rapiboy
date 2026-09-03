@@ -184,7 +184,7 @@ export function estadoFuente(pestanas: number): EstadoFuente {
 }
 
 /**
- * Las colectas: quién tiene asignado cada comercio y qué pasó cada día.
+ * Las colectas: quién tiene asignado cada seller y qué pasó cada día.
  *
  * Solo existen contra la base. Con el sheet o los fixtures devuelven vacío en
  * lugar de reventar por credenciales que en ese modo no tienen por qué estar,

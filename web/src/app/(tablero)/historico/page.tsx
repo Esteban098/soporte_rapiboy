@@ -108,7 +108,7 @@ export default async function Historico({
         <Kpi
           etiqueta="Entregados"
           valor={porcentaje((entregados / (resolucion.total || 1)) * 100)}
-          nota={`${numero(entregados)} llegaron a destino`}
+          nota={`${numero(entregados)} fueron entregados`}
         />
         <Kpi
           etiqueta="Con datos de la tienda"

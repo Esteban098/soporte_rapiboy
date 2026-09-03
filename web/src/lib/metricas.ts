@@ -173,7 +173,7 @@ export function reclamos(pedidos: Pedido[]): Reclamos {
 /**
  * Volumen mínimo para entrar en un ranking.
  *
- * Está calibrado para un mes de datos: el comercio con más casos ronda los 150,
+ * Está calibrado para un mes de datos: el seller con más casos ronda los 150,
  * así que un piso alto vaciaría todas las tablas. Con 30 casos una tasa de
  * devolución todavía arrastra unos 6 puntos de ruido, que es tolerable para
  * ordenar pero no para sacar conclusiones de diferencias chicas.
@@ -358,7 +358,7 @@ export type FilaConteo = { nombre: string; casos: number; porcentaje: number };
  * Los casos que quedaron sin entregar, agrupados por quien los tenía.
  *
  * Sirve para ver si un día malo se explica por un repartidor, una zona o un
- * comercio puntual, en vez de mirar solo el total. Los que no tienen el dato
+ * seller puntual, en vez de mirar solo el total. Los que no tienen el dato
  * cargado quedan afuera: sumarlos como "sin asignar" ensucia el ranking.
  */
 export function noEntregadosPor(

@@ -1,7 +1,7 @@
 import type { FilaRanking } from "@/lib/metricas";
 import { Tabla } from "./Tabla";
 
-/** Ranking por repartidor, comercio o zona. Ordenable por cualquier columna. */
+/** Ranking por repartidor, seller o zona. Ordenable por cualquier columna. */
 export function RankingTable({
   id,
   titulo,

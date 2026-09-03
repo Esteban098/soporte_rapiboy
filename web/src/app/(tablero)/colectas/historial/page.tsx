@@ -1,7 +1,7 @@
 import { cargarAsignaciones, cargarColectas } from "@/lib/datos";
 import {
   colectasPorDia,
-  comerciosCubiertos,
+  sellersCubiertos,
   diasDisponibles,
   porRepartidor,
   resumirDia,
@@ -20,7 +20,7 @@ export const metadata = { title: "Colectas · historial" };
 /**
  * Cada colecta de un día, con en qué quedó.
  *
- * Una fila es una colecta —no una visita ni un comercio— así que buscar por
+ * Una fila es una colecta —no una visita ni un seller— así que buscar por
  * nombre de tienda encuentra las suyas. La ventana la define la consulta de
  * n8n —hoy 15 días—, no esta pantalla.
  */
@@ -72,13 +72,13 @@ export default async function ColectasHistorial({
   const repartidores = porRepartidor(delDia);
 
   /*
-   * El renglón por comercio es derivado, no un registro.
+   * El renglón por seller es derivado, no un registro.
    *
    * El sistema no guarda una colecta por tienda: las que entregan en un dropOFF
    * se retiran en una sola visita al punto. Sin este cruce, buscar el nombre de
    * esas tiendas no devuelve nada aunque su mercadería haya salido.
    */
-  const cubiertos = comerciosCubiertos(asignaciones, delDia);
+  const cubiertos = sellersCubiertos(asignaciones, delDia);
   const conPuntoVisitado = cubiertos.filter((c) => c.colectado).length;
 
   const cumplimiento =
@@ -108,7 +108,7 @@ export default async function ColectasHistorial({
         eyebrow={`Colectas · ${diaLargo(dia)}`}
         titulo="Historial"
         flujo="colectas"
-        dek="Cada colecta pedida en el día y en qué quedó: si se retiró, si llegó al depósito o si se canceló. Se guardan los últimos 15 días. Una fila es una colecta, así que buscando el nombre de un comercio salen las suyas."
+        dek="Cada colecta pedida en el día y en qué quedó: si se retiró, si llegó al depósito o si se canceló. Se guardan los últimos 15 días. Una fila es una colecta, así que buscando el nombre de un seller salen las suyas."
       />
 
       <Card
@@ -121,7 +121,7 @@ export default async function ColectasHistorial({
       <div className={estilos.kpis}>
         <Kpi etiqueta="Colectas" valor={numero(datos.colectas)} nota={diaLargo(dia)} />
         <Kpi
-          etiqueta="Comercios cubiertos"
+          etiqueta="sellers cubiertos"
           valor={numero(conPuntoVisitado)}
           nota={`de ${numero(cubiertos.length)} con chofer · ${numero(datos.sellers)} puntos visitados`}
         />
@@ -149,7 +149,7 @@ export default async function ColectasHistorial({
         {datos.incompletas > 0 ? (
           <Callout tono="warning" titulo="Colectas que retiraron menos de lo pedido">
             {numero(datos.incompletas)} colectas figuran hechas pero levantaron menos paquetes de
-            los que el comercio había cargado. Contadas como colectas cumplidas se ven bien; lo que
+            los que el seller había cargado. Contadas como colectas cumplidas se ven bien; lo que
             queda es mercadería que no salió. Se filtran ordenando la tabla por «solicitados» y
             comparando con «retirados».
           </Callout>
@@ -164,13 +164,13 @@ export default async function ColectasHistorial({
 
         <Card
           titulo={`Colectas del ${diaCorto(dia)}`}
-          nota="Una fila por colecta. Se busca por comercio o repartidor, y se filtra por estado. Las columnas de dirección, teléfono y comentario están ocultas de entrada: se muestran desde el menú «Columnas»."
+          nota="Una fila por colecta. Se busca por seller o repartidor, y se filtra por estado. Las columnas de dirección, teléfono y comentario están ocultas de entrada: se muestran desde el menú «Columnas»."
         >
           <Tabla
             id="colectas-dia-detalle"
             titulo={`Colectas · ${diaLargo(dia)}`}
             columnas={[
-              { clave: "seller", titulo: "Comercio", tipo: "texto" },
+              { clave: "seller", titulo: "seller", tipo: "texto" },
               { clave: "estado", titulo: "Estado", tipo: "texto" },
               { clave: "repartidor", titulo: "Repartidor", tipo: "texto" },
               { clave: "solicitados", titulo: "Solicitados", tipo: "numero" },
@@ -195,19 +195,19 @@ export default async function ColectasHistorial({
         </Card>
 
         <Card
-          titulo={`Comercios el ${diaCorto(dia)}`}
-          nota="Un renglón por comercio con chofer habitual, para poder buscar por nombre. Ojo con lo que significa «colectado»: cuando el comercio entrega en un dropOFF, el sistema registra una sola colecta contra el punto, no una por tienda. Así que acá quiere decir «alguien pasó por su punto de retiro», y los paquetes son los del punto entre todos los que lo comparten, no los de esa tienda."
+          titulo={`sellers el ${diaCorto(dia)}`}
+          nota="Un renglón por seller con chofer habitual, para poder buscar por nombre. Ojo con lo que significa «colectado»: cuando el seller entrega en un dropOFF, el sistema registra una sola colecta contra el punto, no una por tienda. Así que acá quiere decir «alguien pasó por su punto de retiro», y los paquetes son los del punto entre todos los que lo comparten, no los de esa tienda."
         >
           <Tabla
-            id="colectas-dia-comercios"
-            titulo={`Comercios · ${diaLargo(dia)}`}
+            id="colectas-dia-sellers"
+            titulo={`sellers · ${diaLargo(dia)}`}
             columnas={[
-              { clave: "seller", titulo: "Comercio", tipo: "texto" },
+              { clave: "seller", titulo: "seller", tipo: "texto" },
               { clave: "estado", titulo: "Su punto", tipo: "texto" },
               { clave: "repartidor", titulo: "Pasó ese día", tipo: "texto" },
               { clave: "habitual", titulo: "Chofer habitual", tipo: "texto" },
               { clave: "lugar", titulo: "Punto de retiro", tipo: "texto" },
-              { clave: "comparten", titulo: "Comercios en el punto", tipo: "numero" },
+              { clave: "comparten", titulo: "sellers en el punto", tipo: "numero" },
               { clave: "paquetes", titulo: "Paquetes del punto", tipo: "numero" },
             ]}
             filas={cubiertos.map((c) => ({
@@ -241,7 +241,7 @@ export default async function ColectasHistorial({
             columnas={[
               { clave: "repartidor", titulo: "Repartidor", tipo: "texto" },
               { clave: "colectas", titulo: "Colectas", tipo: "numero" },
-              { clave: "sellers", titulo: "Comercios", tipo: "numero" },
+              { clave: "sellers", titulo: "sellers", tipo: "numero" },
               { clave: "paquetes", titulo: "Paquetes retirados", tipo: "numero" },
               { clave: "canceladas", titulo: "Canceladas", tipo: "numero" },
             ]}

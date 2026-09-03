@@ -113,15 +113,15 @@ export function parsearCancelado(fila: string[], mapa: MapaCancelados): Cancelad
 
 export type ResumenCancelados = {
   total: number;
-  comercios: number;
+  sellers: number;
   /** Mediana de minutos hasta la cancelación. Mediana y no promedio: con pocos
    *  casos, uno tardío corre el promedio y deja de describir al resto. */
   minutosMediana: number | null;
   desincronizados: number;
-  porComercio: FilaComercioCancelado[];
+  porseller: FilasellerCancelado[];
 };
 
-export type FilaComercioCancelado = {
+export type FilasellerCancelado = {
   tienda: string;
   casos: number;
   minutosMediana: number | null;
@@ -138,13 +138,13 @@ function mediana(valores: number[]): number | null {
 export function resumirCancelados(cancelados: Cancelado[]): ResumenCancelados {
   const grupos = new Map<string, Cancelado[]>();
   for (const c of cancelados) {
-    const nombre = c.tienda || "Sin comercio";
+    const nombre = c.tienda || "Sin seller";
     const lista = grupos.get(nombre);
     if (lista) lista.push(c);
     else grupos.set(nombre, [c]);
   }
 
-  const porComercio = [...grupos.entries()]
+  const porseller = [...grupos.entries()]
     .map(([tienda, lista]) => ({
       tienda,
       casos: lista.length,
@@ -155,17 +155,17 @@ export function resumirCancelados(cancelados: Cancelado[]): ResumenCancelados {
 
   return {
     total: cancelados.length,
-    comercios: grupos.size,
+    sellers: grupos.size,
     minutosMediana: mediana(cancelados.filter((c) => c.minutos != null).map((c) => c.minutos!)),
     desincronizados: cancelados.filter((c) => c.desincronizado).length,
-    porComercio,
+    porseller,
   };
 }
 
 export type FilaMesCancelados = {
   mes: string;
   casos: number;
-  comercios: number;
+  sellers: number;
   minutosMediana: number | null;
   desincronizados: number;
 };
@@ -177,8 +177,8 @@ export type FilaMesCancelados = {
  * hueco puede ser un mes tranquilo o una ingesta que no corrió, y una serie que
  * salta de julio a septiembre como si fueran seguidos esconde la diferencia.
  *
- * `comercios` cuenta distintos por mes y por eso no se puede sumar entre meses:
- * un comercio que canceló en agosto y en septiembre es uno solo, no dos.
+ * `sellers` cuenta distintos por mes y por eso no se puede sumar entre meses:
+ * un seller que canceló en agosto y en septiembre es uno solo, no dos.
  */
 export function canceladosPorMes(
   cancelados: Cancelado[],
@@ -196,7 +196,7 @@ export function canceladosPorMes(
     return {
       mes,
       casos: lista.length,
-      comercios: new Set(lista.map((c) => c.tienda || "Sin comercio")).size,
+      sellers: new Set(lista.map((c) => c.tienda || "Sin seller")).size,
       minutosMediana: mediana(lista.filter((c) => c.minutos != null).map((c) => c.minutos!)),
       desincronizados: lista.filter((c) => c.desincronizado).length,
     };

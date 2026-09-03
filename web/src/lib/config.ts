@@ -120,11 +120,11 @@ export const TABLA_PERFILES = process.env.SUPABASE_TABLA_PERFILES?.trim() || "pe
 /** Tabla de la base con los reportes que carga el equipo desde el tablero. */
 export const TABLA_SEGUIMIENTO = process.env.SUPABASE_TABLA_SEGUIMIENTO?.trim() || "seguimiento";
 
-/** Tabla con quién colecta habitualmente cada comercio. */
+/** Tabla con quién colecta habitualmente cada seller. */
 export const TABLA_COLECTAS_ASIGNACION =
   process.env.SUPABASE_TABLA_COLECTAS_ASIGNACION?.trim() || "colectas_asignacion";
 
-/** Tabla con las colectas realizadas, una fila por día, chofer y comercio. */
+/** Tabla con las colectas realizadas, una fila por día, chofer y seller. */
 export const TABLA_COLECTAS = process.env.SUPABASE_TABLA_COLECTAS?.trim() || "colectas";
 
 /** Bucket de Storage donde van los adjuntos de esos reportes. Privado. */

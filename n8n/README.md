@@ -12,7 +12,7 @@ File**.
 | `03-whatsapp-apagado.json` | Avisa al repartidor y reclama a los grupos | **Apagado.** Ver más abajo |
 | `04-refresco-historico.json` | Relee el estado de los casos de un rango de meses | Solo a pedido, desde **Histórico** |
 | `05-refresco-cancelados-historico.json` | Ídem para las cancelaciones | Solo a pedido, desde **Cancelados históricos** |
-| `06-colectas.json` | Calcula quién colecta cada comercio y trae las colectas de 30 días | 12:00 de lunes a viernes, y desde **Colectas** |
+| `06-colectas.json` | Calcula quién colecta cada seller y trae las colectas de 30 días | 12:00 de lunes a viernes, y desde **Colectas** |
 | `07-firefox-gestiones.json` | Interpreta el ID y los datos aportados por la tienda, y actualiza solo las columnas de soporte de `mensual` | Al enviar una selección desde la extensión de Firefox |
 
 ## Antes de importar
@@ -156,15 +156,15 @@ Google Sheet. Dos diferencias:
   tabla en blanco.
 - **Tiene dos ramas.** La de asignación es la consulta original con la ventana
   llevada de 15 a 30 días. La de colectas realizadas es nueva: devuelve una fila
-  por día, chofer y comercio, que es lo que alimenta la vista por día.
+  por día, chofer y seller, que es lo que alimenta la vista por día.
 
 Las dos ramas cuelgan del mismo trigger y del mismo webhook, y corren en
 paralelo. Antes de la primera corrida hay que crear las tablas con
 `web/supabase/colectas.sql`.
 
-Un detalle del grano: la rama de colectas agrupa por `(fecha, chofer, comercio)`
+Un detalle del grano: la rama de colectas agrupa por `(fecha, chofer, seller)`
 en vez de traer cada registro suelto. Es lo que se mira —«quién fue el martes a
-este comercio»— y además hace que el upsert sea idempotente sin depender de que
+este seller»— y además hace que el upsert sea idempotente sin depender de que
 `dbo.Colecta` tenga un id estable, que es algo que no pudimos verificar.
 
 ## Lo que está apagado

@@ -33,7 +33,7 @@ const TIPIFICACIONES = [
  * Alta y edición de un caso.
  *
  * Solo se editan las columnas que carga soporte. Las del sistema —estado,
- * repartidor, comercio, visitas— se muestran como lo que son: algo que llena el
+ * repartidor, seller, visitas— se muestran como lo que son: algo que llena el
  * refresco, no algo para escribir a mano. Si se pudieran editar, el cambio
  * duraría hasta la próxima corrida de n8n.
  */
@@ -88,7 +88,7 @@ export function EditorCaso({ edicion, alCerrar }: { edicion: Edicion; alCerrar: 
         <h2 className={estilos.titulo}>{nuevo ? "Agregar un caso" : `Caso ${edicion.id}`}</h2>
         <p className={estilos.nota}>
           {nuevo
-            ? "Alcanza con el id del viaje. El estado, el repartidor y el comercio los completa el refresco de estados cuando encuentre el pedido en el sistema."
+            ? "Alcanza con el id del viaje. El estado, el repartidor y el seller los completa el refresco de estados cuando encuentre el pedido en el sistema."
             : "Se editan solo los datos que aporta la tienda. El resto lo reescribe n8n en cada corrida."}
         </p>
 

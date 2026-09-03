@@ -23,7 +23,7 @@ Tres decisiones que vale la pena tener presentes:
   equipo necesita para trabajar el caso. Es información del cliente, así que el
   login no es opcional: cualquiera con acceso al tablero los ve. El resto de las
   secciones sigue trabajando solo con agregados. Las páginas que muestran pedidos individuales lo hacen
-  con id, estado, repartidor, comercio y zona: nada de datos del cliente.
+  con id, estado, repartidor, seller y zona: nada de datos del cliente.
 - **`FechaProgramado` es la fecha del último cambio de estado, no una entrega
   comprometida.** Se pisa cada vez que el paquete se mueve: si no se entregó el
   20 y volvió a la tienda el 24, queda en el 24. Sirve para saber hace cuánto
@@ -48,7 +48,7 @@ Tres decisiones que vale la pena tener presentes:
 | `/operacion` | **Ayer**: los casos de la pestaña `Ayer`, lo que quedó sin cerrar la jornada anterior. |
 | `/demorados` | **Demorados**: la cola de escalamiento, derivada de `Mensual`. Entra todo caso que lleve más de 2 días sin cambiar de estado y todavía no haya cerrado. |
 | `/reclamos` | Casos donde la tienda aportó datos, con el dato tal cual y la información del viaje. Se filtra por avisado / no avisado. |
-| `/comercios` | De dónde salen los casos y a qué zonas van. |
+| `/sellers` | De dónde salen los casos y a qué zonas van. |
 
 ## Correrlo local
 
@@ -314,7 +314,7 @@ No puede agregar filas aunque el nodo diga *upsert*: los ids que consulta salen
 de la propia tabla, así que no hay ninguno nuevo que insertar.
 
 Y no pisa el trabajo de soporte. Cada nodo mapea **solo las columnas del
-sistema** —estado, repartidor, comercio, zona, visitas, fechas—. `aviso`,
+sistema** —estado, repartidor, seller, zona, visitas, fechas—. `aviso`,
 `avisado_en`, `reclamo_tienda`, `ubicacion` y `telefono` no figuran en el
 mapeo, así que el UPDATE no las nombra y el ciclo de AVISADO / NO AVISADO
 sobrevive intacto a cada corrida. Ese ciclo lo mueven solo dos cosas: el envío
@@ -377,11 +377,11 @@ eso en la tabla común la llenaría de casos especiales de una sola pantalla.
 ## Gráficos atados a la tabla
 
 Las secciones con listado de casos abren con un gráfico configurable: se elige
-por qué dimensión agrupar —estado, comercio, zona, repartidor— y qué medir
+por qué dimensión agrupar —estado, seller, zona, repartidor— y qué medir
 —casos, abiertos, % sin resolver, visitas promedio—.
 
 El gráfico **comparte los filtros con su tabla**: filtrar por una zona o buscar
-un comercio lo recalcula al instante. No hay un contexto que los envuelva ni
+un seller lo recalcula al instante. No hay un contexto que los envuelva ni
 props entre medio: los dos llaman a `useVista` con el mismo `id`, y el estado
 vive en el store de preferencias, que avisa a sus suscriptores cuando algo
 cambia (`src/components/useVista.ts`).
@@ -399,6 +399,6 @@ cambia (`src/components/useVista.ts`).
   `Entregado` con qué compararla.
 - Los nombres de zona salen tal cual están cargados en el sheet, con sus
   variantes de acento y sufijo. Normalizarlos en la planilla mejora los
-  rankings de `/comercios`.
+  rankings de `/sellers`.
 - La caché es de una hora. Si el equipo actualiza el sheet y quiere verlo al
   instante, hay que bajar `SHEET_REVALIDATE`.

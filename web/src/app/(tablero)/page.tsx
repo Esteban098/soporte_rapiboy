@@ -70,7 +70,7 @@ export default async function Resumen() {
         <Kpi
           etiqueta="Casos del período"
           valor={numero(resolucion.total)}
-          nota="pedidos con incidencia registrados"
+          nota="entregas fallidas"
         />
         <Kpi
           etiqueta="Demorados"
@@ -81,7 +81,7 @@ export default async function Resumen() {
         <Kpi
           etiqueta="Con datos de la tienda"
           valor={numero(tienda.conReclamo)}
-          nota={`la tienda pasó algo con qué trabajar · ${numero(tienda.tipificadosSinDatos)} tipificados sin dato`}
+          nota={`el seller compartio informacion para la entrega· ${numero(tienda.tipificadosSinDatos)} Con datos vacios`}
         />
       </div>
 

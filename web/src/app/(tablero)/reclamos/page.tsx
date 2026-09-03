@@ -29,7 +29,7 @@ export default async function Reclamos() {
   return (
     <>
       <PageHead
-        eyebrow="Datos que aporta el comercio"
+        eyebrow="Datos que aporta el seller"
         titulo="Reclamos de tienda"
         flujo="global"
         dek="Casos donde la tienda nos compartió algo con qué trabajar: un teléfono, una ubicación o una indicación del domicilio. No importa en qué columna quedó cargado; lo que importa es si esa información terminó sirviendo."
@@ -45,7 +45,7 @@ export default async function Reclamos() {
           etiqueta="Entregados con datos"
           valor={porcentaje(datos.tasaEntregaConReclamo)}
           tono={diferencia >= 0 ? "good" : "bad"}
-          nota={`${numero(datos.entregadosConReclamo)} de ${numero(datos.conReclamo)} llegaron a destino`}
+          nota={`${numero(datos.entregadosConReclamo)} de ${numero(datos.conReclamo)} fueron entregados`}
         />
         <Kpi
           etiqueta="Entregados sin datos"
@@ -53,7 +53,7 @@ export default async function Reclamos() {
           nota="referencia: casos donde la tienda no aportó nada"
         />
         <Kpi
-          etiqueta="Tipificados sin dato"
+          etiqueta="Con datos vacios"
           valor={numero(datos.tipificadosSinDatos)}
           tono={datos.tipificadosSinDatos > 0 ? "bad" : "good"}
           nota="con reclamo cargado pero sin ningún dato atrás"
@@ -73,7 +73,7 @@ export default async function Reclamos() {
 
         <Card
           titulo="Casos con datos de la tienda"
-          nota="Todo lo que el comercio aportó para concretar la entrega, con la información del viaje. Se puede filtrar por aviso y estado, y ordenar por cualquier columna."
+          nota="Todo lo que el seller aportó para concretar la entrega, con la información del viaje. Se puede filtrar por aviso y estado, y ordenar por cualquier columna."
         >
           <Tabla
             id="reclamos-casos"
