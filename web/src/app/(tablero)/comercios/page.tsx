@@ -6,9 +6,9 @@ import { Callout, Card, Kpi } from "@/components/Card";
 import { RankingTable } from "@/components/RankingTable";
 import estilos from "@/components/ui.module.css";
 
-export const metadata = { title: "sellers y zonas" };
+export const metadata = { title: "Comercios y zonas" };
 
-export default async function sellers() {
+export default async function Comercios() {
   const mes = await cargarPedidos();
   const pedidos = mes.pedidos;
   const total = resumen(pedidos);
@@ -24,18 +24,18 @@ export default async function sellers() {
     <>
       <PageHead
         eyebrow="Origen y destino"
-        titulo="sellers y zonas"
+        titulo="Comercios y zonas"
         flujo="global"
         dek="De dónde salen los casos y a dónde van. Sirve para separar los problemas de dirección en el alta del pedido de los problemas de reparto en la calle."
       />
 
       <div className={estilos.kpis}>
-        <Kpi etiqueta="sellers activos" valor={numero(contarDistintos(pedidos.map((p) => p.tienda)))} nota="con al menos un caso en el período" />
+        <Kpi etiqueta="Comercios activos" valor={numero(contarDistintos(pedidos.map((p) => p.tienda)))} nota="con al menos un caso en el período" />
         <Kpi etiqueta="Zonas de reparto" valor={numero(contarDistintos(pedidos.map((p) => p.poligono)))} nota="polígonos con casos registrados" />
         <Kpi
           etiqueta="Concentración"
           valor={porcentaje(concentracion)}
-          nota="de las devoluciones sale del 20% de los sellers"
+          nota="de las devoluciones sale del 20% de los comercios"
         />
         <Kpi
           etiqueta="Tasa general"
@@ -45,25 +45,25 @@ export default async function sellers() {
       </div>
 
       <div className={estilos.stack}>
-        <Callout titulo="La zona pesa menos que el seller y el repartidor">
+        <Callout titulo="La zona pesa menos que el comercio y el repartidor">
           El rango entre la mejor y la peor zona es mucho más estrecho que el que hay entre
           repartidores. Cuando una zona aparece arriba en esta lista, casi siempre es porque un
-          seller o un repartidor concentran su volumen ahí.
+          comercio o un repartidor concentran su volumen ahí.
         </Callout>
 
         <div className={estilos.grid2}>
           <Card
-            titulo="sellers con mayor devolución"
-            nota={`Solo sellers con ${MINIMO_CASOS} casos o más. Un porcentaje alto suele indicar direcciones o teléfonos incompletos en el alta.`}
+            titulo="Comercios con mayor devolución"
+            nota={`Solo comercios con ${MINIMO_CASOS} casos o más. Un porcentaje alto suele indicar direcciones o teléfonos incompletos en el alta.`}
           >
-            <RankingTable id="sellers-peores" titulo="sellers con mayor devolución" filas={tiendasPeores} etiquetaDimension="seller" />
+            <RankingTable id="comercios-peores" titulo="Comercios con mayor devolución" filas={tiendasPeores} etiquetaDimension="Comercio" />
           </Card>
 
           <Card
-            titulo="sellers por volumen"
+            titulo="Comercios por volumen"
             nota="Los que más casos generan. Sirve para dimensionar el impacto: un punto de mejora acá vale más que en la lista de al lado."
           >
-            <RankingTable id="sellers-volumen" titulo="sellers por volumen" filas={tiendasVolumen} etiquetaDimension="seller" />
+            <RankingTable id="comercios-volumen" titulo="Comercios por volumen" filas={tiendasVolumen} etiquetaDimension="Comercio" />
           </Card>
         </div>
 
@@ -91,7 +91,7 @@ function contarDistintos(valores: string[]): number {
   return new Set(valores.filter(Boolean)).size;
 }
 
-/** Qué porcentaje de las devoluciones aporta el 20% de sellers más pesado. */
+/** Qué porcentaje de las devoluciones aporta el 20% de comercios más pesado. */
 function concentracionDevoluciones(tiendas: string[]): number {
   const conteo = new Map<string, number>();
   for (const tienda of tiendas) {

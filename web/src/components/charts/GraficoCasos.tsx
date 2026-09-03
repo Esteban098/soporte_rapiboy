@@ -8,7 +8,7 @@ const DIMENSIONES: Dimension[] = [
   { clave: "estado", etiqueta: "Estado" },
   { clave: "caso", etiqueta: "Caso" },
   { clave: "repartidor", etiqueta: "Repartidor" },
-  { clave: "tienda", etiqueta: "seller" },
+  { clave: "tienda", etiqueta: "Comercio" },
   { clave: "zona", etiqueta: "Zona" },
   { clave: "demora", etiqueta: "Demora" },
   { clave: "aviso", etiqueta: "Aviso" },

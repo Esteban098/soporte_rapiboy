@@ -26,7 +26,7 @@ const GRUPOS = [
       { href: "/reclamos", etiqueta: "Informacion de tiendas", icono: Barras },
       { href: "/cancelados", etiqueta: "Cancelados", icono: Cruz },
       { href: "/seguimiento", etiqueta: "Seguimiento", icono: Nota },
-      { href: "/sellers", etiqueta: "sellers y zonas", icono: Pin },
+      { href: "/comercios", etiqueta: "Comercios y zonas", icono: Pin },
     ],
   },
   {
@@ -283,7 +283,7 @@ function Archivo() {
   );
 }
 
-/** Camioneta de reparto: lo que pasa a buscar la mercadería al seller. */
+/** Camioneta de reparto: lo que pasa a buscar la mercadería al comercio. */
 function Camion() {
   return (
     <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false">

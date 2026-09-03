@@ -81,7 +81,7 @@ export default async function Resumen() {
         <Kpi
           etiqueta="Con datos de la tienda"
           valor={numero(tienda.conReclamo)}
-          nota={`el seller compartio informacion para la entrega· ${numero(tienda.tipificadosSinDatos)} Con datos vacios`}
+          nota={`la tienda compartio informacion para la entrega· ${numero(tienda.tipificadosSinDatos)} Con datos vacios`}
         />
       </div>
 

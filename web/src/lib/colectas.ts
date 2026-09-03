@@ -1,41 +1,41 @@
 /**
- * Colectas: quién retira la mercadería en cada seller.
+ * Colectas: quién retira la mercadería en cada comercio.
  *
  * Son dos cosas distintas y el módulo las trata como tales:
  *
- * - **La asignación** dice quién colecta habitualmente cada seller. Sale de
+ * - **La asignación** dice quién colecta habitualmente cada comercio. Sale de
  *   rankear los últimos 30 días, así que no es una orden sino una constatación:
  *   «al que más va es este». Se rehace entera en cada corrida.
  * - **Las colectas realizadas** son lo que efectivamente pasó cada día. Sirven
  *   para mirar un martes puntual, no para deducir una regla.
  *
- * La diferencia importa al leer: un seller puede tener asignado a un chofer y
+ * La diferencia importa al leer: un comercio puede tener asignado a un chofer y
  * que ayer haya ido otro. Eso no es un error de los datos, es la realidad que
  * el tablero está mostrando.
  */
 
-/** Un seller con el chofer que más veces lo colectó. */
+/** Un comercio con el chofer que más veces lo colectó. */
 export type Asignacion = {
   idUsuario: number;
   seller: string;
   /**
-   * Dónde se colecta de hecho: el seller mismo, o el dropOFF cuando varios
+   * Dónde se colecta de hecho: el comercio mismo, o el dropOFF cuando varios
    * comparten punto de retiro. El ranking se calcula por lugar y no por
-   * seller, porque el chofer va una vez y levanta todo lo que hay ahí.
+   * comercio, porque el chofer va una vez y levanta todo lo que hay ahí.
    */
   lugarColecta: string;
   idMotoboy: string;
   chofer: string;
   /** Veces que ese chofer fue a ese lugar en la ventana consultada. */
   cantidadColectas: number;
-  /** Viajes que respaldan el mapeo a dropOFF. Cero si el seller no es uno. */
+  /** Viajes que respaldan el mapeo a dropOFF. Cero si el comercio no es uno. */
   cantidadHistorica: number;
   actualizado: Date | null;
-  /** El punto de retiro es compartido, no el seller. */
+  /** El punto de retiro es compartido, no el comercio. */
   esDropOff: boolean;
   /**
    * Nadie lo colectó en la ventana. La consulta escribe «SIN ASIGNACION» en el
-   * chofer, y son justamente los sellers que hay que repartir.
+   * chofer, y son justamente los comercios que hay que repartir.
    */
   sinAsignar: boolean;
 };
@@ -143,7 +143,7 @@ export function parsearAsignaciones(filas: string[][]): Asignacion[] {
         cantidadColectas: entero(celda(fila, i.cantidad_colectas)),
         cantidadHistorica: entero(celda(fila, i.cantidad_historica)),
         actualizado: actualizado ? new Date(actualizado) : null,
-        // El lugar difiere del seller solo cuando hay dropOFF de por medio.
+        // El lugar difiere del comercio solo cuando hay dropOFF de por medio.
         esDropOff: lugarColecta !== "" && lugarColecta !== seller,
         sinAsignar: chofer.toLowerCase() === SIN_ASIGNACION || chofer === "",
       };
@@ -230,10 +230,10 @@ export function parsearColectas(filas: string[][]): Colecta[] {
 /* ------------------------------------------------------------------------- */
 
 export type ResumenAsignacion = {
-  sellers: number;
+  comercios: number;
   sinAsignar: number;
   choferes: number;
-  /** Puntos de retiro distintos: menos que sellers cuando hay dropOFF. */
+  /** Puntos de retiro distintos: menos que comercios cuando hay dropOFF. */
   lugares: number;
   enDropOff: number;
   actualizado: Date | null;
@@ -244,7 +244,7 @@ export function resumirAsignaciones(filas: Asignacion[]): ResumenAsignacion {
   const fechas = filas.map((a) => a.actualizado).filter((f): f is Date => f !== null);
 
   return {
-    sellers: filas.length,
+    comercios: filas.length,
     sinAsignar: filas.filter((a) => a.sinAsignar).length,
     choferes: new Set(conChofer.map((a) => a.chofer)).size,
     lugares: new Set(filas.map((a) => a.lugarColecta)).size,
@@ -257,18 +257,18 @@ export function resumirAsignaciones(filas: Asignacion[]): ResumenAsignacion {
 
 export type CargaChofer = {
   chofer: string;
-  sellers: number;
+  comercios: number;
   lugares: number;
   colectas: number;
 };
 
 /**
- * Cuántos sellers tiene cada chofer.
+ * Cuántos comercios tiene cada chofer.
  *
  * Se cuentan también los lugares, y casi nunca coinciden: un dropOFF junta
- * varios sellers en una sola parada, así que un chofer con doce sellers y
+ * varios comercios en una sola parada, así que un chofer con doce comercios y
  * tres lugares hace muchas menos paradas que uno con seis y seis. Mirar solo
- * los sellers haría parecer que el primero está más cargado.
+ * los comercios haría parecer que el primero está más cargado.
  */
 export function cargaPorChofer(filas: Asignacion[]): CargaChofer[] {
   const grupos = new Map<string, Asignacion[]>();
@@ -282,11 +282,11 @@ export function cargaPorChofer(filas: Asignacion[]): CargaChofer[] {
   return [...grupos.entries()]
     .map(([chofer, lista]) => ({
       chofer,
-      sellers: lista.length,
+      comercios: lista.length,
       lugares: new Set(lista.map((a) => a.lugarColecta)).size,
       colectas: lista.reduce((suma, a) => suma + a.cantidadColectas, 0),
     }))
-    .sort((a, b) => b.sellers - a.sellers || a.chofer.localeCompare(b.chofer));
+    .sort((a, b) => b.comercios - a.comercios || a.chofer.localeCompare(b.chofer));
 }
 
 /* ------------------------------------------------------------------------- */
@@ -346,7 +346,7 @@ export type ResumenDia = {
    * Colectas que pasaron pero levantaron menos de lo pedido.
    *
    * Es la lectura que el conteo de colectas no da: una visita que retiró tres
-   * de diez paquetes cuenta como colecta hecha y deja siete en el seller.
+   * de diez paquetes cuenta como colecta hecha y deja siete en el comercio.
    */
   incompletas: number;
 };
@@ -406,23 +406,23 @@ export function porRepartidor(colectas: Colecta[]): FilaRepartidor[] {
 /* ------------------------------------------------------------------------- */
 
 /**
- * Cada seller y si su punto de retiro se visitó ese día.
+ * Cada comercio y si su punto de retiro se visitó ese día.
  *
  * Existe porque el sistema no guarda una colecta por tienda. Cuando un
- * seller entrega en un dropOFF, la colecta se registra una sola vez contra
+ * comercio entrega en un dropOFF, la colecta se registra una sola vez contra
  * el dropOFF: buscar «Casa Baberos» en `colectas` no devuelve nada aunque se
  * haya retirado su mercadería, porque la fila dice «dropOFF TERESITA EXPRESS».
- * Está comprobado sobre los datos: de 197 sellers con chofer, 52 aparecen
+ * Está comprobado sobre los datos: de 197 comercios con chofer, 52 aparecen
  * por su nombre y los 145 restantes —144 de ellos con dropOFF— no aparecen
  * nunca.
  *
- * Así que el renglón por seller se deriva: se parte de la asignación, que sí
+ * Así que el renglón por comercio se deriva: se parte de la asignación, que sí
  * sabe que Casa Baberos entrega en Teresita, y se busca si ese punto tuvo
  * colecta. Es información derivada y no un registro, y la pantalla tiene que
  * decirlo: «colectado» acá significa «alguien pasó por su punto», no «se
  * retiró un paquete suyo».
  */
-export type sellerCubierto = {
+export type ComercioCubierto = {
   idUsuario: number;
   seller: string;
   lugarColecta: string;
@@ -432,18 +432,18 @@ export type sellerCubierto = {
   repartidorDelDia: string | null;
   colectado: boolean;
   /**
-   * Paquetes retirados en ese punto, entre todos los sellers que lo
+   * Paquetes retirados en ese punto, entre todos los comercios que lo
    * comparten. NO son los de esta tienda: el sistema no los separa.
    */
   paquetesDelPunto: number;
-  /** Cuántos sellers comparten el punto. 1 cuando colecta en su puerta. */
+  /** Cuántos comercios comparten el punto. 1 cuando colecta en su puerta. */
   compartenPunto: number;
 };
 
-export function sellersCubiertos(
+export function comerciosCubiertos(
   asignaciones: Asignacion[],
   delDia: Colecta[],
-): sellerCubierto[] {
+): ComercioCubierto[] {
   const asignados = asignaciones.filter((a) => !a.sinAsignar);
 
   const cuantosEnElPunto = new Map<string, number>();

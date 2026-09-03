@@ -71,7 +71,7 @@ const TEXTOS: Record<ClaveFlujo, Textos> = {
     boton: "Actualizar colectas",
     cargando: "Actualizando colectas…",
     conFlujos:
-      "Vuelve a calcular quién colecta cada seller y trae las colectas de los últimos 30 días.",
+      "Vuelve a calcular quién colecta cada comercio y trae las colectas de los últimos 30 días.",
     sinFlujos:
       "Vuelve a leer lo guardado. No hay flujo de colectas configurado, así que no se consulta el sistema.",
     esperaTitulo: "Actualizando las colectas",

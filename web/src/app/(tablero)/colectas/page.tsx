@@ -21,7 +21,7 @@ function cuando(fecha: Date | null): string {
 }
 
 /**
- * Quién colecta cada seller.
+ * Quién colecta cada comercio.
  *
  * No es una asignación declarada por nadie: sale de rankear los últimos 30 días
  * y quedarse con el chofer que más veces fue. Por eso la columna se llama «más
@@ -32,7 +32,7 @@ export default async function Colectas() {
   const { filas: todas, sinTabla } = await cargarAsignaciones();
 
   /*
-   * Solo los sellers que alguien está colectando.
+   * Solo los comercios que alguien está colectando.
    *
    * Los que no registran ninguna colecta en la ventana son la mayoría —altas
    * que nunca operaron, o que dejaron de hacerlo sin darse de baja— y llenaban
@@ -60,7 +60,7 @@ export default async function Colectas() {
     id: a.idUsuario,
     seller: a.seller,
     lugar: a.lugarColecta,
-    tipo: a.esDropOff ? "dropOFF" : "seller",
+    tipo: a.esDropOff ? "dropOFF" : "Comercio",
     chofer: a.chofer,
     veces: a.cantidadColectas,
     historicos: a.cantidadHistorica,
@@ -72,37 +72,37 @@ export default async function Colectas() {
         eyebrow={`Colectas · última corrida ${cuando(datos.actualizado)}`}
         titulo="Asignación"
         flujo="colectas"
-        dek="Qué chofer retira la mercadería en cada seller. Sale de mirar los últimos 30 días y quedarse con el que más veces fue, así que describe lo que viene pasando, no lo que alguien decidió. Cuando varios sellers comparten un punto de retiro, el ranking se calcula por ese punto: el chofer va una vez y levanta todo. Los sellers que nadie colectó en la ventana no se listan."
+        dek="Qué chofer retira la mercadería en cada comercio. Sale de mirar los últimos 30 días y quedarse con el que más veces fue, así que describe lo que viene pasando, no lo que alguien decidió. Cuando varios comercios comparten un punto de retiro, el ranking se calcula por ese punto: el chofer va una vez y levanta todo. Los comercios que nadie colectó en la ventana no se listan."
       />
 
       <div className={estilos.kpis}>
         <Kpi
-          etiqueta="sellers"
-          valor={numero(datos.sellers)}
+          etiqueta="Comercios"
+          valor={numero(datos.comercios)}
           nota="con chofer que los colecta"
         />
         <Kpi
           etiqueta="Choferes"
           valor={numero(datos.choferes)}
-          nota="distintos, con al menos un seller"
+          nota="distintos, con al menos un comercio"
         />
         <Kpi
           etiqueta="Puntos de retiro"
           valor={numero(datos.lugares)}
-          nota={`${numero(datos.enDropOff)} sellers entregan en un dropOFF`}
+          nota={`${numero(datos.enDropOff)} comercios entregan en un dropOFF`}
         />
       </div>
 
       <div className={estilos.stack}>
         <Card
-          titulo="sellers y su chofer"
-          nota="Un renglón por seller. «Veces» es cuántas colectas hizo ese chofer en ese punto durante la ventana: con una o dos, el orden todavía no dice mucho."
+          titulo="Comercios y su chofer"
+          nota="Un renglón por comercio. «Veces» es cuántas colectas hizo ese chofer en ese punto durante la ventana: con una o dos, el orden todavía no dice mucho."
         >
           <Tabla
             id="colectas-asignacion"
             titulo="Colectas · asignación"
             columnas={[
-              { clave: "seller", titulo: "seller", tipo: "texto" },
+              { clave: "seller", titulo: "Comercio", tipo: "texto" },
               { clave: "lugar", titulo: "Punto de retiro", tipo: "texto" },
               { clave: "tipo", titulo: "Tipo", tipo: "texto" },
               { clave: "chofer", titulo: "Chofer más frecuente", tipo: "texto" },
@@ -112,7 +112,7 @@ export default async function Colectas() {
             filas={filas}
             filtros={[
               { clave: "chofer", etiqueta: "Chofer" },
-              { clave: "tipo", etiqueta: "Tipo", opciones: ["seller", "dropOFF"] },
+              { clave: "tipo", etiqueta: "Tipo", opciones: ["Comercio", "dropOFF"] },
               { clave: "lugar", etiqueta: "Punto de retiro" },
             ]}
             ordenInicial={{ clave: "seller", asc: true }}
@@ -123,20 +123,20 @@ export default async function Colectas() {
 
         <Card
           titulo="Carga por chofer"
-          nota="Cuántos sellers tiene cada uno y en cuántas paradas se resuelven. Casi nunca coinciden: un dropOFF junta varios sellers en una sola parada, así que doce sellers en tres puntos es menos trabajo que seis en seis."
+          nota="Cuántos comercios tiene cada uno y en cuántas paradas se resuelven. Casi nunca coinciden: un dropOFF junta varios comercios en una sola parada, así que doce comercios en tres puntos es menos trabajo que seis en seis."
         >
           <Tabla
             id="colectas-carga"
             titulo="Carga por chofer"
             columnas={[
               { clave: "chofer", titulo: "Chofer", tipo: "texto" },
-              { clave: "sellers", titulo: "sellers", tipo: "numero" },
+              { clave: "comercios", titulo: "Comercios", tipo: "numero" },
               { clave: "lugares", titulo: "Paradas", tipo: "numero" },
               { clave: "colectas", titulo: "Colectas en la ventana", tipo: "numero" },
             ]}
             filas={carga.map((c) => ({ ...c, id: c.chofer }))}
-            ordenInicial={{ clave: "sellers", asc: false }}
-            vacio="Todavía no hay choferes con sellers asignados."
+            ordenInicial={{ clave: "comercios", asc: false }}
+            vacio="Todavía no hay choferes con comercios asignados."
           />
         </Card>
       </div>

@@ -100,8 +100,8 @@ export default async function CanceladosHistoricos({
           nota={unSoloMes ? "colectados y cancelados en el mes" : `en ${periodo}`}
         />
         <Kpi
-          etiqueta="sellers"
-          valor={numero(datos.sellers)}
+          etiqueta="Comercios"
+          valor={numero(datos.comercios)}
           nota="distintos en todo el período"
         />
         <Kpi
@@ -136,7 +136,7 @@ export default async function CanceladosHistoricos({
 
         <Card
           titulo="Mes a mes"
-          nota="Cancelaciones por mes, con la mediana de cuánto tardó el cliente en dar marcha atrás. La cantidad de sellers no se puede sumar entre meses: uno que canceló en dos meses es un solo seller."
+          nota="Cancelaciones por mes, con la mediana de cuánto tardó el cliente en dar marcha atrás. La cantidad de comercios no se puede sumar entre meses: uno que canceló en dos meses es un solo comercio."
         >
           <Tabla
             id="cancelados-historico-meses"
@@ -144,7 +144,7 @@ export default async function CanceladosHistoricos({
             columnas={[
               { clave: "etiqueta", titulo: "Mes", tipo: "texto" },
               { clave: "casos", titulo: "Cancelados", tipo: "numero" },
-              { clave: "sellers", titulo: "sellers", tipo: "numero" },
+              { clave: "comercios", titulo: "Comercios", tipo: "numero" },
               { clave: "demoro", titulo: "Tardó (mediana)", tipo: "texto" },
               { clave: "desincronizados", titulo: "Sin reflejar en Meli", tipo: "numero" },
             ]}
@@ -152,7 +152,7 @@ export default async function CanceladosHistoricos({
               id: f.mes,
               etiqueta: mesCorto(f.mes),
               casos: f.casos,
-              sellers: f.sellers,
+              comercios: f.comercios,
               demoro: duracion(f.minutosMediana),
               desincronizados: f.desincronizados,
             }))}
@@ -169,19 +169,19 @@ export default async function CanceladosHistoricos({
         </Card>
 
         <Card
-          titulo="Por seller"
-          nota="Dónde se concentran las cancelaciones en todo el período. Con pocos casos por seller el orden dice más que las diferencias entre uno y otro."
+          titulo="Por comercio"
+          nota="Dónde se concentran las cancelaciones en todo el período. Con pocos casos por comercio el orden dice más que las diferencias entre uno y otro."
         >
           <Tabla
-            id="cancelados-historico-sellers"
-            titulo={`Cancelados por seller · ${periodo}`}
+            id="cancelados-historico-comercios"
+            titulo={`Cancelados por comercio · ${periodo}`}
             columnas={[
-              { clave: "tienda", titulo: "seller", tipo: "texto" },
+              { clave: "tienda", titulo: "Comercio", tipo: "texto" },
               { clave: "casos", titulo: "Cancelados", tipo: "numero" },
               { clave: "demoro", titulo: "Tardó (mediana)", tipo: "texto" },
               { clave: "desincronizados", titulo: "Sin reflejar en Meli", tipo: "numero" },
             ]}
-            filas={datos.porseller.map((f) => ({
+            filas={datos.porComercio.map((f) => ({
               id: f.tienda,
               tienda: f.tienda,
               casos: f.casos,
@@ -204,7 +204,7 @@ export default async function CanceladosHistoricos({
               { clave: "id", titulo: "Viaje", tipo: "viaje" },
               { clave: "idMeli", titulo: "Id Meli", tipo: "texto" },
               { clave: "mes", titulo: "Mes", tipo: "texto" },
-              { clave: "tienda", titulo: "seller", tipo: "texto" },
+              { clave: "tienda", titulo: "Comercio", tipo: "texto" },
               { clave: "estadoRbp", titulo: "Estado nuestro", tipo: "texto" },
               { clave: "estadoMeli", titulo: "Estado Meli", tipo: "texto" },
               { clave: "colectado", titulo: "Colectado", tipo: "texto" },
@@ -214,7 +214,7 @@ export default async function CanceladosHistoricos({
             filas={filas}
             filtros={[
               { clave: "mes", etiqueta: "Mes" },
-              { clave: "tienda", etiqueta: "seller" },
+              { clave: "tienda", etiqueta: "Comercio" },
               { clave: "estadoMeli", etiqueta: "Estado Meli" },
             ]}
             ordenInicial={{ clave: "colectado", asc: false }}

@@ -52,7 +52,7 @@ export function BarrasCanceladosMes({ datos }: { datos: FilaMesCancelados[] }) {
                   lineas={[
                     { etiqueta: "Cancelados", valor: numero(punto.casos) },
                     { etiqueta: "Sin reflejar en Meli", valor: numero(punto.desincronizados) },
-                    { etiqueta: "sellers distintos", valor: numero(punto.sellers) },
+                    { etiqueta: "Comercios distintos", valor: numero(punto.comercios) },
                   ]}
                 />
               );

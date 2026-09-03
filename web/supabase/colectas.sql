@@ -3,10 +3,10 @@
 --
 -- Dos tablas, porque son dos cosas de distinto grano y conviene no mezclarlas:
 --
---   colectas_asignacion  una fila por seller: quién lo colecta habitualmente
+--   colectas_asignacion  una fila por comercio: quién lo colecta habitualmente
 --   colectas             una fila por colecta: qué se pidió y qué se retiró
 --
--- La primera responde «a quién le corresponde este seller» y la segunda
+-- La primera responde «a quién le corresponde este comercio» y la segunda
 -- «quién fue realmente el martes». Con una sola tabla habría que recalcular la
 -- asignación en cada lectura, y la asignación no sale solo de las colectas: el
 -- mapa de dropOFF viene del historial de viajes, que esta tabla no tiene.
@@ -22,18 +22,18 @@
 -- `actualizado_en`, que dice de cuándo es la foto.
 -- ---------------------------------------------------------------------------
 create table if not exists public.colectas_asignacion (
-  -- Usuario.Id del seller en el sistema. Es la clave del upsert.
+  -- Usuario.Id del comercio en el sistema. Es la clave del upsert.
   id_usuario         bigint primary key,
   seller             text not null,
 
   /*
    * Dónde se colecta de hecho.
    *
-   * Para la mayoría es el seller mismo, y ahí `lugar_colecta` repite a
+   * Para la mayoría es el comercio mismo, y ahí `lugar_colecta` repite a
    * `seller`. Para los que entregan en un punto compartido es el nombre del
    * dropOFF, y varios sellers comparten lugar: el chofer va una vez y levanta
    * todo. Esa diferencia es la que hace que el ranking se calcule por lugar y
-   * no por seller.
+   * no por comercio.
    */
   lugar_colecta      text,
 

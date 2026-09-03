@@ -9,7 +9,7 @@ import { actualizarFila, borrarFila, insertarFila } from "@/lib/supabase";
  * Alta, edición y baja de casos desde el tablero.
  *
  * Solo se tocan las columnas de soporte, nunca las del sistema. No es una
- * restricción de permisos sino de sentido: estado, repartidor, seller y
+ * restricción de permisos sino de sentido: estado, repartidor, comercio y
  * visitas los reescribe n8n en cada corrida, así que editarlos acá duraría
  * hasta el próximo refresco y sería una mentira mientras tanto.
  *

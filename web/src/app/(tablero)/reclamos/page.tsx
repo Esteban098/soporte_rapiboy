@@ -29,7 +29,7 @@ export default async function Reclamos() {
   return (
     <>
       <PageHead
-        eyebrow="Datos que aporta el seller"
+        eyebrow="Datos que aporta el comercio"
         titulo="Reclamos de tienda"
         flujo="global"
         dek="Casos donde la tienda nos compartió algo con qué trabajar: un teléfono, una ubicación o una indicación del domicilio. No importa en qué columna quedó cargado; lo que importa es si esa información terminó sirviendo."
@@ -73,7 +73,7 @@ export default async function Reclamos() {
 
         <Card
           titulo="Casos con datos de la tienda"
-          nota="Todo lo que el seller aportó para concretar la entrega, con la información del viaje. Se puede filtrar por aviso y estado, y ordenar por cualquier columna."
+          nota="Todo lo que el comercio aportó para concretar la entrega, con la información del viaje. Se puede filtrar por aviso y estado, y ordenar por cualquier columna."
         >
           <Tabla
             id="reclamos-casos"

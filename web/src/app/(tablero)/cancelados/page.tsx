@@ -50,8 +50,8 @@ export default async function Cancelados() {
           nota="cancelados el mismo día de la colecta"
         />
         <Kpi
-          etiqueta="sellers"
-          valor={numero(datos.sellers)}
+          etiqueta="Comercios"
+          valor={numero(datos.comercios)}
           nota="distintos, entre los casos cancelados"
         />
         <Kpi
@@ -87,7 +87,7 @@ export default async function Cancelados() {
 
         <Card
           titulo="Paquetes cancelados"
-          nota="El detalle de cada cancelación, con la hora de la colecta, la de la cancelación y cuánto pasó entre las dos. Se filtra por seller y por el estado en cada sistema."
+          nota="El detalle de cada cancelación, con la hora de la colecta, la de la cancelación y cuánto pasó entre las dos. Se filtra por comercio y por el estado en cada sistema."
         >
           <Tabla
             id="cancelados-detalle"
@@ -95,7 +95,7 @@ export default async function Cancelados() {
             columnas={[
               { clave: "id", titulo: "Viaje", tipo: "viaje" },
               { clave: "idMeli", titulo: "Id Meli", tipo: "texto" },
-              { clave: "tienda", titulo: "seller", tipo: "texto" },
+              { clave: "tienda", titulo: "Comercio", tipo: "texto" },
               { clave: "estadoRbp", titulo: "Estado nuestro", tipo: "texto" },
               { clave: "estadoMeli", titulo: "Estado Meli", tipo: "texto" },
               { clave: "colectado", titulo: "Colectado", tipo: "texto" },
@@ -104,7 +104,7 @@ export default async function Cancelados() {
             ]}
             filas={filas}
             filtros={[
-              { clave: "tienda", etiqueta: "seller" },
+              { clave: "tienda", etiqueta: "Comercio" },
               { clave: "estadoRbp", etiqueta: "Estado nuestro" },
               { clave: "estadoMeli", etiqueta: "Estado Meli" },
               { clave: "dia", etiqueta: "Día" },
@@ -116,19 +116,19 @@ export default async function Cancelados() {
         </Card>
 
         <Card
-          titulo="Por seller"
-          nota="Dónde se concentran las cancelaciones. Con pocos casos por seller el orden dice más que las diferencias entre uno y otro."
+          titulo="Por comercio"
+          nota="Dónde se concentran las cancelaciones. Con pocos casos por comercio el orden dice más que las diferencias entre uno y otro."
         >
           <Tabla
-            id="cancelados-sellers"
-            titulo="Cancelados por seller"
+            id="cancelados-comercios"
+            titulo="Cancelados por comercio"
             columnas={[
-              { clave: "tienda", titulo: "seller", tipo: "texto" },
+              { clave: "tienda", titulo: "Comercio", tipo: "texto" },
               { clave: "casos", titulo: "Cancelados", tipo: "numero" },
               { clave: "demoro", titulo: "Tardó (mediana)", tipo: "texto" },
               { clave: "desincronizados", titulo: "Sin reflejar en Meli", tipo: "numero" },
             ]}
-            filas={datos.porseller.map((f) => ({
+            filas={datos.porComercio.map((f) => ({
               id: f.tienda,
               tienda: f.tienda,
               casos: f.casos,

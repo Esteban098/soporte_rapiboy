@@ -84,7 +84,7 @@ export default async function Ayer() {
 
         <Card
           titulo="Dónde se concentran los no entregados"
-          nota="Los casos que quedaron en «Pedido no entregado», mirados por repartidor, zona y seller. Sirve para ver si un día malo se explica por uno solo de los tres."
+          nota="Los casos que quedaron en «Pedido no entregado», mirados por repartidor, zona y comercio. Sirve para ver si un día malo se explica por uno solo de los tres."
         >
           <div className={estilos.grid3}>
             <div>
@@ -96,8 +96,8 @@ export default async function Ayer() {
               <ConteoTable id="ayer-ne-poligono" titulo="No entregados por zona" filas={porPoligono} etiqueta="Zona" />
             </div>
             <div>
-              <h3 className={estilos.subtitulo}>Por seller</h3>
-              <ConteoTable id="ayer-ne-tienda" titulo="No entregados por seller" filas={porTienda} etiqueta="seller" />
+              <h3 className={estilos.subtitulo}>Por comercio</h3>
+              <ConteoTable id="ayer-ne-tienda" titulo="No entregados por comercio" filas={porTienda} etiqueta="Comercio" />
             </div>
           </div>
         </Card>
