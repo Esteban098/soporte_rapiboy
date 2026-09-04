@@ -74,6 +74,7 @@ export default async function Historico({
   const hayComparacion = tienda.conReclamo > 0 && tienda.sinReclamo > 0;
   const diferencia = tienda.tasaEntregaConReclamo - tienda.tasaEntregaSinReclamo;
   const entregados = delRango.filter((p) => p.entregado).length;
+  const devueltos = delRango.filter((p) => p.devuelto).length;
   const incluyeMesEnCurso = enRango(mesEnCurso(), rango);
 
   /* Un solo juego de filas para los dos gráficos del rango y la tabla de casos. */
@@ -117,6 +118,8 @@ export default async function Historico({
         <Kpi
           etiqueta="Entregados"
           valor={porcentaje((entregados / (resolucion.total || 1)) * 100)}
+          tono="good"
+          relleno
           nota={`${numero(entregados)} fueron entregados`}
         />
         <Kpi
@@ -125,16 +128,11 @@ export default async function Historico({
           nota={`${porcentaje(tienda.porcentaje)} del período aportó algo con qué trabajar`}
         />
         <Kpi
-          etiqueta="Lo que aportan los datos"
-          valor={hayComparacion ? puntos(diferencia) : "—"}
-          tono={hayComparacion ? (diferencia > 0 ? "good" : diferencia < 0 ? "bad" : "neutral") : "neutral"}
-          nota={
-            hayComparacion
-              ? "diferencia en tasa de entrega, con datos contra sin datos"
-              : tienda.conReclamo === 0
-                ? "ningún caso del período tiene datos de la tienda"
-                : "todos los casos del período tienen datos: no hay contra qué comparar"
-          }
+          etiqueta="Devueltos"
+          valor={porcentaje((devueltos / (resolucion.total || 1)) * 100)}
+          tono="good"
+          relleno
+          nota={`${numero(devueltos)} del período`}
         />
       </div>
 

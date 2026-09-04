@@ -55,19 +55,41 @@ export function Kpi({
   valor,
   nota,
   tono = "neutral",
+  relleno = false,
 }: {
   etiqueta: string;
   valor: string;
   nota?: string;
-  tono?: "neutral" | "good" | "bad";
+  tono?: "neutral" | "good" | "bad" | "warning";
+  /**
+   * Tiñe también el fondo de la tarjeta, no solo la cifra. Para las métricas
+   * que hay que reconocer de un vistazo, sin tener que leer el número.
+   */
+  relleno?: boolean;
 }) {
-  const clase =
-    tono === "good" ? estilos.kpiValueGood : tono === "bad" ? estilos.kpiValueBad : "";
+  const claseValor =
+    tono === "good"
+      ? estilos.kpiValueGood
+      : tono === "bad"
+        ? estilos.kpiValueBad
+        : tono === "warning"
+          ? estilos.kpiValueWarning
+          : "";
+
+  const claseFondo = relleno
+    ? tono === "good"
+      ? estilos.kpiFillGood
+      : tono === "bad"
+        ? estilos.kpiFillBad
+        : tono === "warning"
+          ? estilos.kpiFillWarning
+          : ""
+    : "";
 
   return (
-    <div className={estilos.kpi} data-revelar="">
+    <div className={`${estilos.kpi} ${claseFondo}`} data-revelar="">
       <div className={estilos.kpiLabel}>{etiqueta}</div>
-      <div className={`${estilos.kpiValue} ${clase}`}>{valor}</div>
+      <div className={`${estilos.kpiValue} ${claseValor}`}>{valor}</div>
       {nota ? <div className={estilos.kpiNote}>{nota}</div> : null}
     </div>
   );

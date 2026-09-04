@@ -22,7 +22,6 @@ const TODAS: ColumnaPedido[] = [
   { clave: "quieto", titulo: "Sin moverse", tipo: "dias" },
   { clave: "estado", titulo: "Estado", tipo: "estado" , campo: "estado" },
   { clave: "caso", titulo: "Caso", tipo: "caso" },
-  { clave: "demora", titulo: "Demora", tipo: "texto" , campo: "demora" },
   { clave: "creacion", titulo: "Creación", tipo: "texto" , campo: "creacion" },
   { clave: "movimiento", titulo: "Último mov.", tipo: "texto" },
   { clave: "repartidor", titulo: "Repartidor", tipo: "texto" , campo: "repartidor" },
@@ -36,7 +35,6 @@ const TODAS: ColumnaPedido[] = [
   { clave: "aviso", titulo: "Aviso", tipo: "aviso" , campo: "aviso" },
   { clave: "enlace", titulo: "Enlace", tipo: "texto" , campo: "enlace" },
   { clave: "informacionEnviar", titulo: "Información a enviar", tipo: "texto" , campo: "informacionEnviar" },
-  { clave: "ids", titulo: "IDs", tipo: "texto" , campo: "ids" },
 ];
 
 /**
@@ -76,6 +74,10 @@ export const FILTROS_PEDIDO: Filtro[] = [
  * vez. Sin ellos, cada gráfico tendría que reconstruir del lado del cliente lo
  * que la métrica ya calculó, y al primer desajuste el detalle mostraría un
  * recorte que no es el de la barra que se tocó.
+ *
+ * `demora` viaja igual, aunque ya no tenga columna propia en ninguna tabla:
+ * clasifica URGENTE / RETRASADA / A TIEMPO y queda disponible para quien lo
+ * necesite sin obligar a que el equipo la vea como una columna más.
  */
 export function filasDePedidos(pedidos: Pedido[], hoy = Date.now()): Fila[] {
   return pedidos.map((pedido) => ({
@@ -97,7 +99,6 @@ export function filasDePedidos(pedidos: Pedido[], hoy = Date.now()): Fila[] {
     aviso: pedido.aviso,
     enlace: pedido.enlace,
     informacionEnviar: pedido.informacionEnviar,
-    ids: pedido.ids,
     foto: enlaceFotoEntrega(pedido.foto),
     resultado: pedido.entregado ? "Entregado" : pedido.devuelto ? "Devuelto" : "",
     diaSemana: pedido.ultimoMovimiento

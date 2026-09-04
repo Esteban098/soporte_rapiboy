@@ -15,7 +15,6 @@ export default async function Ayer() {
   const ayer = casos.pedidos;
   const estados = porEstado(ayer);
   const resolucion = cierre(ayer);
-  const masFrecuente = estados[0];
 
   const porRepartidor = noEntregadosPor(ayer, "repartidor");
   const porPoligono = noEntregadosPor(ayer, "poligono");
@@ -46,13 +45,16 @@ export default async function Ayer() {
         <Kpi
           etiqueta="Sin entregar"
           valor={numero(sinEntregar)}
-          tono={sinEntregar > 0 ? "bad" : "good"}
+          tono="bad"
+          relleno
           nota="quedaron en «Pedido no entregado»"
         />
         <Kpi
-          etiqueta="Estado más frecuente"
-          valor={masFrecuente ? numero(masFrecuente.casos) : "—"}
-          nota={masFrecuente ? `en ${masFrecuente.estado.toLowerCase()}` : "sin casos"}
+          etiqueta="Paquetes Cerrados"
+          valor={numero(resolucion.cerrados)}
+          tono="good"
+          relleno
+          nota={`${porcentaje(resolucion.tasaCierre)} de los casos de ayer`}
         />
       </div>
 

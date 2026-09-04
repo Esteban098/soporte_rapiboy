@@ -41,13 +41,15 @@ export default async function Demorados() {
         <Kpi
           etiqueta="Sin entregar"
           valor={numero(sinEntregar)}
-          tono={sinEntregar > 0 ? "bad" : "good"}
+          tono="bad"
+          relleno
           nota="demorados que además están sin entregar"
         />
         <Kpi
           etiqueta="Más de una semana"
           valor={numero(unaSemana)}
-          tono={unaSemana > 0 ? "bad" : "good"}
+          tono="warning"
+          relleno
           nota="llevan más de 7 días parados"
         />
         <Kpi

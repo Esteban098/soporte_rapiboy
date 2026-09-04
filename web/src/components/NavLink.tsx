@@ -7,6 +7,7 @@ import estilos from "./ui.module.css";
 export function NavLink({
   href,
   exacto = false,
+  destacado = false,
   children,
 }: {
   href: string;
@@ -18,6 +19,8 @@ export function NavLink({
    * dónde estás.
    */
   exacto?: boolean;
+  /** La entrada se ve amarilla siempre, esté activa o no. Para Seguimiento. */
+  destacado?: boolean;
   children: React.ReactNode;
 }) {
   const ruta = usePathname();
@@ -26,7 +29,7 @@ export function NavLink({
   return (
     <Link
       href={href}
-      className={`${estilos.railItem} ${activo ? estilos.railItemActivo : ""}`}
+      className={`${estilos.railItem} ${activo ? estilos.railItemActivo : ""} ${destacado ? estilos.railItemAmarillo : ""}`}
       aria-current={activo ? "page" : undefined}
     >
       {children}

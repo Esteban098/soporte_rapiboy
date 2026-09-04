@@ -216,6 +216,22 @@
   opacity: 1;
 }
 
+/* Seguimiento se destaca siempre, esté activo o no: es la cola de reportes
+   sueltos, y conviene que salte a la vista incluso de paso por el menú. */
+.railItemAmarillo {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.railItemAmarillo svg {
+  opacity: 1;
+}
+
+.railItemAmarillo:hover {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
 .railPie {
   margin-top: auto;
   padding: 14px 14px 0;
@@ -450,6 +466,26 @@
 
 .kpiValueBad {
   color: var(--critical);
+}
+
+.kpiValueWarning {
+  color: var(--warning);
+}
+
+/* Fondo teñido, para las cápsulas que hay que reconocer sin leer la cifra. */
+.kpiFillGood {
+  background: var(--good-soft);
+  border-color: transparent;
+}
+
+.kpiFillBad {
+  background: var(--critical-soft);
+  border-color: transparent;
+}
+
+.kpiFillWarning {
+  background: var(--warning-soft);
+  border-color: transparent;
 }
 
 .kpiNote {

@@ -24,7 +24,6 @@ export default async function Reclamos() {
       return prioridad(a) - prioridad(b) || b.ultimoMovimiento!.getTime() - a.ultimoMovimiento!.getTime();
     });
   const filas = filasDePedidos(conReclamo);
-  const diferencia = datos.tasaEntregaConReclamo - datos.tasaEntregaSinReclamo;
 
   return (
     <>
@@ -44,18 +43,20 @@ export default async function Reclamos() {
         <Kpi
           etiqueta="Entregados con datos"
           valor={porcentaje(datos.tasaEntregaConReclamo)}
-          tono={diferencia >= 0 ? "good" : "bad"}
+          tono="good"
+          relleno
           nota={`${numero(datos.entregadosConReclamo)} de ${numero(datos.conReclamo)} fueron entregados`}
         />
         <Kpi
           etiqueta="Entregados sin datos"
           valor={porcentaje(datos.tasaEntregaSinReclamo)}
+          tono="warning"
+          relleno
           nota="referencia: casos donde la tienda no aportó nada"
         />
         <Kpi
           etiqueta="Con datos vacios"
           valor={numero(datos.tipificadosSinDatos)}
-          tono={datos.tipificadosSinDatos > 0 ? "bad" : "good"}
           nota="con reclamo cargado pero sin ningún dato atrás"
         />
       </div>

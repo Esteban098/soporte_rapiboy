@@ -165,46 +165,56 @@ export function BotonActualizar({
           )
         : null}
 
-      {aviso ? (
-        <div
-          className={`${estilos.aviso} ${aviso.tipo === "sinFlujos" ? estilos.avisoNeutro : ""}`}
-          role={aviso.tipo === "fallas" ? "alert" : "status"}
-        >
-          {aviso.tipo === "fallas" ? (
-            <>
-              <p className={estilos.avisoTitulo}>
-                {aviso.fallas.length === 1
-                  ? "Un flujo no corrió"
-                  : `${aviso.fallas.length} flujos no corrieron`}
-              </p>
-              <ul className={estilos.avisoLista}>
-                {aviso.fallas.map((falla) => (
-                  <li key={falla}>{falla}</li>
-                ))}
-              </ul>
-              <p className={estilos.avisoPie}>
-                Los datos se recargaron igual, pero pueden no incluir lo último.
-              </p>
-            </>
-          ) : (
-            <>
-              <p className={estilos.avisoTitulo}>Se recargaron los datos</p>
-              <p className={estilos.avisoTexto}>
-                No hay ningún flujo de n8n configurado para este botón, así que no se le preguntó
-                nada al sistema: los casos quedaron con el estado que ya tenían guardado.
-              </p>
-              <p className={estilos.avisoPie}>
-                Se cargan en <code className={estilos.clave}>{variable}</code>, con la URL de
-                producción de cada webhook.
-              </p>
-            </>
-          )}
+      {/*
+        Va al body con un portal, igual que la pantalla de espera: colgado del
+        botón como estaba antes, un `position: absolute` no empuja el resto de
+        la página y el cartel terminaba tapando la tarjeta de abajo. Como toast
+        fijo en la esquina, nunca se superpone con el contenido.
+      */}
+      {aviso
+        ? createPortal(
+            <div
+              className={`${estilos.aviso} ${aviso.tipo === "sinFlujos" ? estilos.avisoNeutro : ""}`}
+              role={aviso.tipo === "fallas" ? "alert" : "status"}
+            >
+              {aviso.tipo === "fallas" ? (
+                <>
+                  <p className={estilos.avisoTitulo}>
+                    {aviso.fallas.length === 1
+                      ? "Un flujo no corrió"
+                      : `${aviso.fallas.length} flujos no corrieron`}
+                  </p>
+                  <ul className={estilos.avisoLista}>
+                    {aviso.fallas.map((falla) => (
+                      <li key={falla}>{falla}</li>
+                    ))}
+                  </ul>
+                  <p className={estilos.avisoPie}>
+                    Los datos se recargaron igual, pero pueden no incluir lo último.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className={estilos.avisoTitulo}>Se recargaron los datos</p>
+                  <p className={estilos.avisoTexto}>
+                    No hay ningún flujo de n8n configurado para este botón, así que no se le
+                    preguntó nada al sistema: los casos quedaron con el estado que ya tenían
+                    guardado.
+                  </p>
+                  <p className={estilos.avisoPie}>
+                    Se cargan en <code className={estilos.clave}>{variable}</code>, con la URL de
+                    producción de cada webhook.
+                  </p>
+                </>
+              )}
 
-          <button type="button" className={estilos.cerrar} onClick={() => setAviso(null)}>
-            Entendido
-          </button>
-        </div>
-      ) : null}
+              <button type="button" className={estilos.cerrar} onClick={() => setAviso(null)}>
+                Entendido
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

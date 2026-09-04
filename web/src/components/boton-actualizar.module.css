@@ -64,12 +64,17 @@
 }
 
 
-/* Aviso de flujos fallidos: cuelga del botón sin empujar la barra superior. */
+/*
+ * Toast fijo en la esquina, montado con portal. Colgado del botón con
+ * `position: absolute` tapaba lo que hubiera debajo en la página, porque sacar
+ * el elemento del flujo no reserva su lugar: acá, al no depender de dónde está
+ * el botón, no compite con ninguna tarjeta.
+ */
 .aviso {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 40;
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 60;
   width: max-content;
   max-width: min(360px, calc(100vw - 32px));
   background: var(--surface);
@@ -78,6 +83,7 @@
   box-shadow: var(--shadow-alta);
   padding: 14px 16px;
   white-space: normal;
+  animation: subir var(--dur) var(--ease-salida) both;
 }
 
 .avisoTitulo {
@@ -87,6 +93,11 @@
   letter-spacing: -0.02em;
   color: var(--critical);
   margin: 0 0 6px;
+}
+
+/* No es una falla: el título no lleva el rojo de error. */
+.avisoNeutro .avisoTitulo {
+  color: var(--ink);
 }
 
 .avisoLista {

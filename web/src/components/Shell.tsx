@@ -97,7 +97,11 @@ export function Shell({
               >
                 {grupo.secciones.map((seccion) => (
                   <li key={seccion.href}>
-                    <NavLink href={seccion.href} exacto={"exacto" in seccion && seccion.exacto}>
+                    <NavLink
+                      href={seccion.href}
+                      exacto={"exacto" in seccion && seccion.exacto}
+                      destacado={seccion.href === "/seguimiento"}
+                    >
                       <seccion.icono />
                       {seccion.etiqueta ?? (esAdmin ? "Perfiles" : "Mi perfil")}
                     </NavLink>

@@ -58,18 +58,22 @@ export default async function Seguimiento() {
         <Kpi
           etiqueta="Sin tomar"
           valor={numero(datos.abiertos)}
-          tono={datos.abiertos > 0 ? "bad" : "good"}
+          tono="bad"
+          relleno
           nota="nadie los está atendiendo todavía"
         />
         <Kpi
           etiqueta="En curso"
           valor={numero(datos.tomados)}
+          tono="warning"
+          relleno
           nota="alguien los tomó y siguen abiertos"
         />
         <Kpi
           etiqueta="Cerrados"
           valor={numero(datos.cerrados)}
           tono="good"
+          relleno
           nota="resueltos y fuera de la cola"
         />
       </div>

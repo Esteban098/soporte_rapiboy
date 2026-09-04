@@ -106,9 +106,12 @@ export type Pedido = {
    * podía mostrar «A TIEMPO» llevando cuatro días parado. Calculado en cada
    * lectura siempre dice la verdad, y Postgres tampoco lo aceptaría como
    * columna generada porque esas tienen que ser deterministas.
+   *
+   * Vacía en los casos cerrados —Entregado, Devuelto, Siniestrado—: un paquete
+   * que ya llegó a destino no está más "parado", así que no tiene sentido
+   * marcarlo URGENTE por los días que pasaron desde que cerró.
    */
   demora: string;
-  ids: string;
 };
 
 /** Estados que significan que el paquete volvió al vendedor. */
@@ -152,7 +155,6 @@ export type CampoPedido =
   | "telefono"
   | "aviso"
   | "caso"
-  | "ids"
   | "informacionEnviar"
   | "demora"
   | "foto";
@@ -194,7 +196,6 @@ const ALIAS: Record<Exclude<CampoPedido, "demora">, string[]> = {
   telefono: ["telefono", "teléfono"],
   aviso: ["aviso"],
   caso: ["caso"],
-  ids: ["ids", "idcoma", "ids sql", "ids_sql"],
   informacionEnviar: ["informacion_enviar", "copiar"],
   foto: ["foto", "foto entrega", "firma", "url foto", "evidencia", "foto_entrega"],
 };
@@ -304,6 +305,7 @@ export function parsearPedido(fila: string[], mapa: MapaColumnas): Pedido | null
   const normalizado = estado.toLowerCase();
   const visitasCrudo = celda(fila, mapa.visitas);
   const visitas = Number(visitasCrudo);
+  const cerrado = cerradoDe(fila, mapa, normalizado);
 
   return {
     id,
@@ -322,7 +324,7 @@ export function parsearPedido(fila: string[], mapa: MapaColumnas): Pedido | null
     diasDeVida: creacion
       ? Math.round((ultimoMovimiento.getTime() - creacion.getTime()) / DIA_MS)
       : null,
-    cerrado: cerradoDe(fila, mapa, normalizado),
+    cerrado,
     reclamoTienda: celda(fila, mapa.reclamo),
     ubicacion: celda(fila, mapa.ubicacion),
     telefono: celda(fila, mapa.telefono),
@@ -332,8 +334,7 @@ export function parsearPedido(fila: string[], mapa: MapaColumnas): Pedido | null
     foto: celda(fila, mapa.foto),
     enlace: celda(fila, mapa.enlace),
     informacionEnviar: celda(fila, mapa.informacionEnviar),
-    demora: clasificarDemora(ultimoMovimiento),
-    ids: celda(fila, mapa.ids),
+    demora: cerrado ? "" : clasificarDemora(ultimoMovimiento),
   };
 }
 

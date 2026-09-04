@@ -82,6 +82,7 @@ export default async function Resumen() {
           etiqueta="Casos cerrados"
           valor={porcentaje(resolucion.tasaCierre)}
           tono="good"
+          relleno
           nota={`${numero(resolucion.cerrados)} casos resueltos`}
         />
         <Kpi
@@ -92,7 +93,8 @@ export default async function Resumen() {
         <Kpi
           etiqueta="Demorados"
           valor={numero(atrasados.length)}
-          tono={atrasados.length > 0 ? "bad" : "good"}
+          tono="warning"
+          relleno
           nota="más de 2 días sin moverse y sin cerrar"
         />
         <Kpi
