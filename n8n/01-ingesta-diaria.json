@@ -146,6 +146,42 @@
     },
     {
       "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Los ids que el tablero ya conoce.\n--\n-- `ayer` es la cola de lo nuevo de la jornada: entra un caso solo si no\n-- aparece ni entre los pedidos ni entre las cancelaciones tempranas. Sin este\n-- corte, un caso reprogramado volvía a listarse cada mañana como si recién\n-- hubiera fallado.\n--\n-- Van también las tablas históricas. Un caso archivado ya fue contado, y sin\n-- ellas volvería a entrar como nuevo si su FechaProgramado se corriera a una\n-- jornada posterior a la rotación, que es justo lo que este corte evita.\n--\n-- Se traen todos los ids en vez de preguntar por los del día: son unos pocos\n-- miles, caben de sobra en memoria, y armar un `in (...)` con la lista obliga a\n-- construir SQL por concatenación y a contemplar el caso de lista vacía.\nselect id from public.mensual\nunion\nselect id from public.mensual_historico\nunion\nselect id from public.cancelados\nunion\nselect id from public.cancelados_historico;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        280,
+        240
+      ],
+      "id": "c1d4f0a2-3b57-4e19-9a86-5f0c17d2ab41",
+      "name": "IDs ya vistos",
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Deja solo los casos que el tablero todavía no vio.\n *\n * El corte se hace acá y no en la consulta a SQL Server porque los ids\n * conocidos viven en Postgres, del otro lado. La consulta al origen ya\n * descarta las cancelaciones del mismo día; esto agrega las de días\n * anteriores y todo lo que ya está en Mensual.\n *\n * Corre antes de `Guardar en Mensual` a propósito: si corriera después,\n * compararía contra una tabla que acaba de recibir estos mismos casos y no\n * quedaría ninguno.\n */\nconst vistos = new Set($input.all().map(({ json }) => Number(json.id)));\n\nreturn $('A columnas de la base')\n  .all()\n  .filter((item) => !vistos.has(Number(item.json.id)));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        240
+      ],
+      "id": "d2e5a1b3-4c68-4f2a-8b97-6a1d28e3bc52",
+      "name": "Quitar los ya vistos",
+      "notes": "Los que quedan son los nuevos de la jornada: van a Mensual y a Ayer."
+    },
+    {
+      "parameters": {
         "schema": {
           "__rl": true,
           "mode": "list",
@@ -180,7 +216,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        280,
+        720,
         140
       ],
       "id": "983eb882-908d-55c7-b06b-6b4d986d6657",
@@ -228,7 +264,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        280,
+        720,
         340
       ],
       "id": "4acc9159-f311-5490-9fb6-f10c84aeb1cb",
@@ -251,7 +287,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        500,
+        940,
         340
       ],
       "id": "7a1b7994-2601-5f5b-b69e-14e7af0c4c50",
@@ -421,21 +457,10 @@
       "main": [
         [
           {
-            "node": "Guardar en Ayer",
+            "node": "IDs ya vistos",
             "type": "main",
             "index": 0
           },
-          {
-            "node": "Guardar en Mensual",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Guardar en Mensual": {
-      "main": [
-        [
           {
             "node": "Reabrir avisos del día",
             "type": "main",
@@ -460,6 +485,33 @@
         [
           {
             "node": "Guardar cancelados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IDs ya vistos": {
+      "main": [
+        [
+          {
+            "node": "Quitar los ya vistos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quitar los ya vistos": {
+      "main": [
+        [
+          {
+            "node": "Guardar en Ayer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Guardar en Mensual",
             "type": "main",
             "index": 0
           }

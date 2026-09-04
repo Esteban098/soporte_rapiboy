@@ -17,9 +17,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `mensual_historico` y `cancelados_historico` acumulan los períodos cerrados.
   La web los muestra por mes y permite actualizar el rango elegido con
   `desde` / `hasta`.
-- `ayer` es una fotografía de una jornada. Se reconstruye en cada ingesta y no
-  debe deduplicarse permanentemente contra `mensual`: es normal que el mismo ID
-  esté en ambas vistas porque responden preguntas distintas.
+- `ayer` es la cola de lo nuevo de una jornada. Se reconstruye en cada ingesta
+  y solo entra un caso si su ID no está en `mensual` ni en `cancelados` —ni en
+  sus históricas—. La misma corrida lo inserta en `mensual` y en `ayer`, así que
+  todo ID de `ayer` está también en `mensual`; lo que no puede pasar es que
+  aparezca en `ayer` un caso que ya venía de días anteriores.
 - La separación física se instala con `supabase/historico.sql`. La función
   copia antes de borrar, corre dentro de una transacción y es idempotente.
 - El mes de pedidos se determina con

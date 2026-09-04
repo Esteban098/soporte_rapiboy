@@ -28,14 +28,14 @@ export default async function Ayer() {
         eyebrow="Cola del día"
         titulo="Ayer"
         flujo="global"
-        dek="Los casos de la pestaña Ayer: lo que quedó sin cerrar en la jornada anterior. El acumulado del mes está en Mes en curso."
+        dek="Los casos que entraron nuevos en la jornada anterior: los que no estaban ya en Mensual ni en Cancelados. Un caso aparece acá una sola vez, el día que falló por primera vez; si sigue abierto después, se lo sigue en Mes en curso."
       />
 
       <div className={estilos.kpis}>
         <Kpi
           etiqueta="Casos de ayer"
           valor={numero(ayer.length)}
-          nota="agregados de la jornada anterior"
+          nota="entraron nuevos en la jornada anterior"
         />
         <Kpi
           etiqueta="Sin resolver"
@@ -69,7 +69,7 @@ export default async function Ayer() {
         <PanelCasos
           id="ayer-casos"
           titulo="Casos de ayer"
-          nota="El detalle completo de la pestaña Ayer. La columna «sin moverse» cuenta los días desde el último cambio de estado del paquete."
+          nota="Los casos nuevos de la jornada anterior. La columna «sin moverse» cuenta los días desde el último cambio de estado del paquete."
           tituloGrafico="Cómo se reparten los casos de ayer"
           casos={casos}
           vacio="Ayer cerró sin casos abiertos."

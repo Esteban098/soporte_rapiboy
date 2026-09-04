@@ -191,7 +191,7 @@ Las vistas principales, se lean de donde se lean:
 |---|---|---|---|
 | `mensual` | `mensual` | `Mensual` | El período operativo: mes anterior y actual del 1 al 9; solo el actual desde el día 10. |
 | histórico | `mensual_historico` | — | Períodos cerrados. Alimenta Histórico y se puede refrescar por el rango seleccionado. |
-| `ayer` | `ayer` | `Ayer` | Lo que quedó abierto del día anterior. Alimenta la sección Ayer. |
+| `ayer` | `ayer` | `Ayer` | Los casos nuevos de la jornada anterior: los que no estaban ya en `mensual` ni en `cancelados`. Alimenta la sección Ayer. |
 | cancelados | `cancelados` / `cancelados_historico` | `Cancelados` | La misma separación física para cancelaciones tempranas. |
 
 No comparten esquema a propósito: `ayer` sale del sistema sin pasar por soporte,

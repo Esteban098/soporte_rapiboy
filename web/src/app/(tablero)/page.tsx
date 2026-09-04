@@ -68,7 +68,7 @@ export default async function Resumen() {
         eyebrow={`Mensual · ${periodo}`}
         titulo="Entregas fallidas mensual"
         flujo="global"
-        dek={`${numero(total.casos)} casos acumulados en ${periodo}. ${hayMesAnterior ? "Hasta el día 9 se muestran juntos el mes anterior y el actual; el día 10 el anterior pasa a Histórico. " : "Los períodos anteriores ya están en Histórico. "}Para ver solo lo pendiente de la jornada anterior, entrá a Ayer.`}
+        dek={`${numero(total.casos)} casos acumulados en ${periodo}. ${hayMesAnterior ? "Hasta el día 9 se muestran juntos el mes anterior y el actual; el día 10 el anterior pasa a Histórico. " : "Los períodos anteriores ya están en Histórico. "}Para ver los que entraron nuevos en la jornada anterior, entrá a Ayer.`}
       />
 
       <div className={estilos.kpis}>

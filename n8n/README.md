@@ -207,7 +207,9 @@ garantizar, y el motivo de toda la migración.
   reclamo a los grupos ahora consulta la base con el mismo corte que usa el
   tablero, así que las dos listas no pueden discrepar.
 - **`CompareIDs`**, que leía dos hojas enteras para saber qué era nuevo. Ahora
-  lo resuelve la clave primaria con *Skip on Conflict*.
+  el corte lo hacen «IDs ya vistos» y «Quitar los ya vistos» contra las cuatro
+  tablas de Postgres, y la clave primaria de `mensual` queda como red por si
+  algo se cuela entre la lectura y el insert.
 - **El borrado de `Ayer` antes del `If`**, que los domingos la dejaba vacía todo
   el día sin volver a llenarla. Ahora va después.
 - **Las fórmulas `CASO`, `DEMORA`, `AVISO`, `COPIAR` e `IDS`.** Las tres
