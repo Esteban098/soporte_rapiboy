@@ -27,13 +27,13 @@ export function NavGrupo({
 }: {
   titulo: string;
   /** Las rutas de sus secciones, para saber si el grupo contiene la actual. */
-  rutas: string[];
+  rutas: { href: string; exacto?: boolean }[];
   icono: React.ReactNode;
   children: React.ReactNode;
 }) {
   const ruta = usePathname();
-  const contieneLaActual = rutas.some((href) =>
-    href === "/" ? ruta === "/" : ruta.startsWith(href),
+  const contieneLaActual = rutas.some(({ href, exacto }) =>
+    href === "/" || exacto ? ruta === href : ruta.startsWith(href),
   );
   const [abiertoAMano, setAbiertoAMano] = useState(false);
   const abierto = contieneLaActual || abiertoAMano;

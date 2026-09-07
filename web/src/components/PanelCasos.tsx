@@ -1,5 +1,6 @@
 import type { Casos } from "@/lib/datos";
-import type { Fila } from "./Tabla";
+import type { Columna, Fila } from "./Tabla";
+import type { OrigenCobro } from "@/lib/siniestrados";
 import { columnasPara, filasDePedidos, FILTROS_PEDIDO } from "@/lib/filas";
 import { Card } from "./Card";
 import { Tabla } from "./Tabla";
@@ -23,6 +24,8 @@ export function PanelCasos({
   vacio = "No quedó ningún caso en esta vista.",
   limite = 30,
   editable = false,
+  columnasExtra = [],
+  cobros,
 }: {
   id: string;
   titulo: string;
@@ -40,8 +43,10 @@ export function PanelCasos({
   limite?: number;
   /** Solo para las vistas que leen `mensual`: ver la nota en `Tabla`. */
   editable?: boolean;
+  columnasExtra?: Columna[];
+  cobros?: OrigenCobro;
 }) {
-  const columnas = columnasPara(casos.campos);
+  const columnas = [...columnasPara(casos.campos), ...columnasExtra];
   const filas = filasDadas ?? filasDePedidos(casos.pedidos);
 
   return (
@@ -67,6 +72,7 @@ export function PanelCasos({
           limite={limite}
           vacio={vacio}
           editable={editable}
+          cobros={cobros}
         />
       </Card>
     </>

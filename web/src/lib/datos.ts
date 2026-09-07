@@ -8,7 +8,6 @@ import {
   TABLA_MENSUAL_HISTORICO,
   TABLA_SEGUIMIENTO,
   modoDatos,
-  type ModoDatos,
 } from "./config";
 import {
   mapearColumnasCancelados,
@@ -36,19 +35,12 @@ import {
   type Pedido,
 } from "./normalizar";
 
-/**
- * Los casos de una pestaña junto con los campos que esa pestaña trae.
- *
- * Las pestañas no comparten esquema: `Ayer` no tiene visitas y solo `Mensual`
- * trae reclamo, aviso y caso. Cada tabla arma sus columnas con lo que su hoja
- * realmente tiene, en vez de mostrar columnas vacías.
- */
+/** Los campos disponibles determinan qué columnas muestra cada vista. */
 export type Casos = {
   pedidos: Pedido[];
   campos: CampoPedido[];
 };
 
-/** Lee una vista y devuelve sus casos junto con los campos que trae. */
 async function leerCasos(vista: Vista): Promise<Casos> {
   const [encabezado, ...filas] = await leerFilas(vista);
   const mapa = mapearColumnas(encabezado ?? []);
@@ -76,12 +68,6 @@ async function leerCasosDeTabla(tabla: string): Promise<Casos> {
   };
 }
 
-export type EstadoFuente = {
-  modo: ModoDatos;
-  actualizado: string;
-  pestanas: number;
-};
-
 /** Carga los casos que todavía pertenecen a la ventana operativa. */
 export const cargarPedidos = cache(async (): Promise<Casos> => {
   const { pedidos, campos } = await leerCasos("mensual");
@@ -89,11 +75,8 @@ export const cargarPedidos = cache(async (): Promise<Casos> => {
 });
 
 /**
- * Los períodos cerrados viven en una tabla física aparte.
- *
- * El fallback mantiene funcionando una publicación hecha antes de correr
- * `supabase/historico.sql`; una vez creada la tabla, Supabase toma siempre el
- * camino separado. Sheet y fixtures conservan el comportamiento anterior.
+ * Lee el histórico físico; usa Mensual como fallback si falta la migración
+ * `supabase/historico.sql` o la fuente es Sheet/fixtures.
  */
 export const cargarPedidosHistoricos = cache(async (): Promise<Casos> => {
   if (modoDatos() !== "supabase") return cargarPedidos();
@@ -106,16 +89,10 @@ export const cargarPedidosHistoricos = cache(async (): Promise<Casos> => {
   }
 });
 
-/** Los casos que quedaron sin cerrar en la jornada anterior. */
+/** Casos nuevos de la jornada, según el filtro de la ingesta. */
 export const cargarAyer = cache(() => leerCasos("ayer"));
 
-/**
- * Los viajes cancelados el mismo día en que se colectaron.
- *
- * Tiene su propio lector porque no comparte esquema con los pedidos: no hay
- * estado que cerrar ni reclamo que trabajar, y sí dos identificadores y dos
- * estados que conviene mirar por separado.
- */
+/** Viajes cancelados el mismo día de la colecta; tienen un esquema propio. */
 export const cargarCancelados = cache(async (): Promise<Cancelado[]> => {
   const [encabezado, ...filas] = await leerFilas("cancelados");
   const mapa = mapearColumnasCancelados(encabezado ?? []);
@@ -140,14 +117,7 @@ export const cargarCanceladosHistoricos = cache(async (): Promise<Cancelado[]> =
   }
 });
 
-/**
- * Los reportes que cargó el equipo, del más nuevo al más viejo.
- *
- * Con tope: la pantalla es una cola de trabajo, no un archivo histórico, y
- * traer todo haría más lenta cada visita a medida que la tabla crece. Si algún
- * día hace falta mirar más atrás, eso pide una búsqueda por viaje o por fecha,
- * no una lista más larga.
- */
+/** Cola limitada a los 500 reportes más recientes. */
 export type ColaSeguimiento = {
   reportes: Seguimiento[];
   /** La tabla todavía no está creada. La pantalla lo explica en vez de fallar. */
@@ -155,9 +125,7 @@ export type ColaSeguimiento = {
 };
 
 export const cargarSeguimientos = cache(async (): Promise<ColaSeguimiento> => {
-  // Esta sección solo existe contra la base. Con el sheet o los fixtures no hay
-  // dónde guardar un reporte, así que devuelve vacío en lugar de reventar por
-  // credenciales que en ese modo no tienen por qué estar.
+  // Los reportes solo están disponibles en Supabase.
   if (modoDatos() !== "supabase") return { reportes: [], sinTabla: false };
 
   try {
@@ -168,31 +136,14 @@ export const cargarSeguimientos = cache(async (): Promise<ColaSeguimiento> => {
     );
     return { reportes: filas.map(parsearSeguimiento), sinTabla: false };
   } catch (error) {
-    // Solo este caso se traga: cualquier otra falla de la base sigue siendo un
-    // error, porque ahí sí hay algo roto que conviene ver.
     if (error instanceof TablaFaltante) return { reportes: [], sinTabla: true };
     throw error;
   }
 });
 
-export function estadoFuente(pestanas: number): EstadoFuente {
-  return {
-    modo: modoDatos(),
-    actualizado: new Date().toISOString(),
-    pestanas,
-  };
-}
-
 /**
- * Las colectas: quién tiene asignado cada comercio y qué pasó cada día.
- *
- * Solo existen contra la base. Con el sheet o los fixtures devuelven vacío en
- * lugar de reventar por credenciales que en ese modo no tienen por qué estar,
- * igual que hace `cargarSeguimientos`.
- *
- * `sinTabla` distingue «todavía no corriste colectas.sql» de «la tabla existe y
- * está vacía». Son dos situaciones con arreglos distintos y la pantalla las
- * cuenta distinto.
+ * Colectas y asignaciones, disponibles solo en Supabase.
+ * `sinTabla` distingue una migración pendiente de una tabla vacía.
  */
 export type DatosColectas<T> = { filas: T[]; sinTabla: boolean };
 
@@ -216,9 +167,7 @@ export const cargarAsignaciones = cache(
     leerColectas(TABLA_COLECTAS_ASIGNACION, "id_usuario.asc", parsearAsignaciones),
 );
 
-// Se pagina por `id`, que es la clave: ordenar por `fecha` dejaría empates —hay
-// decenas de colectas por día— y entre páginas se repetirían unas y se
-// saltearían otras.
+// Orden único para evitar duplicados u omisiones entre páginas.
 export const cargarColectas = cache(
   (): Promise<DatosColectas<Colecta>> => leerColectas(TABLA_COLECTAS, "id.asc", parsearColectas),
 );

@@ -1,29 +1,13 @@
 /**
- * Meses y rangos de meses.
- *
- * Vive aparte porque lo comparten cosas que no se conocen entre sí: los pedidos
- * lo usan para saber a qué mes pertenece un caso, los cancelados para lo mismo
- * con la fecha de colecta, y las pantallas de histórico para leer el rango que
- * viene en la URL. Un solo módulo evita tres definiciones de "agosto".
- *
- * Los meses se escriben `2026-08` a propósito: ordenados como texto quedan
- * ordenados como fechas, así que alcanza con `<` y `>` para compararlos y no
- * hace falta reconstruir un `Date` cada vez.
+ * Meses en formato `AAAA-MM`: su orden alfabético coincide con el cronológico.
  */
 
-/** Mes de una fecha, como `2026-08`. Siempre en UTC, como el resto del proyecto. */
+/** Mes de una fecha de datos, interpretada en UTC. */
 export function mesDe(fecha: Date): string {
   return `${fecha.getUTCFullYear()}-${String(fecha.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-/**
- * El mes calendario en curso.
- *
- * Se calcula en hora de México y no en la del servidor: en Vercel el servidor
- * corre en UTC, así que del 1 de cada mes hasta las 6 de la mañana de México
- * `new Date()` todavía dice el mes anterior. El equipo entraría al tablero y
- * vería el mes pasado sin ningún aviso.
- */
+/** Mes calendario de México, independiente de la zona horaria del servidor. */
 export function mesEnCurso(hoy = new Date()): string {
   const enMexico = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Mexico_City",
@@ -42,11 +26,8 @@ export function mesAnterior(mes: string): string {
 }
 
 /**
- * Períodos que siguen activos en las tablas operativas.
- *
- * Del 1 al 9 se mantienen el mes anterior y el actual. El día 10 el anterior
- * pasa al histórico y desde entonces queda solamente el mes actual. Se usa la
- * misma zona de la operación que `mesEnCurso`, no la hora del servidor.
+ * Ventana operativa en hora de México: mes anterior y actual hasta el día 9;
+ * solo el actual desde el 10.
  */
 export function mesesOperativos(hoy = new Date()): string[] {
   const actual = mesEnCurso(hoy);
@@ -60,23 +41,11 @@ export function mesesOperativos(hoy = new Date()): string[] {
   return dia < 10 ? [mesAnterior(actual), actual] : [actual];
 }
 
-/**
- * Formato `2026-08`, que es lo único que se acepta desde la URL.
- *
- * Recibe `unknown` y no `string` porque también valida lo que llega al servidor
- * desde el navegador, donde nada garantiza que sea texto.
- */
 export function esMesValido(valor: unknown): valor is string {
   return typeof valor === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(valor);
 }
 
-/**
- * Los meses que realmente tienen datos, del más viejo al más nuevo.
- *
- * El selector se arma con esto y no con un calendario completo: ofrecer meses
- * vacíos invita a elegirlos y a concluir que no pasó nada, cuando lo que pasa
- * es que la ingesta todavía no llegaba tan atrás.
- */
+/** Meses con datos, sin duplicados y del más viejo al más nuevo. */
 export function mesesDisponibles(meses: string[]): string[] {
   return [...new Set(meses.filter(Boolean))].sort();
 }
@@ -84,12 +53,8 @@ export function mesesDisponibles(meses: string[]): string[] {
 export type Rango = { desde: string; hasta: string };
 
 /**
- * Qué rango mirar, a partir de lo que pide la URL y de lo que existe.
- *
- * Cualquier cosa que no sea un mes válido y presente se ignora en lugar de
- * vaciar la pantalla: alguien que edita la URL a mano, un link viejo a un mes
- * que ya no está, o `desde` y `hasta` al revés. Sin meses cargados devuelve
- * `null`, que es distinto de un rango vacío y la pantalla lo cuenta distinto.
+ * Acota el rango pedido a los extremos disponibles y corrige el orden.
+ * Sin meses cargados devuelve `null`; sin selección muestra el último mes.
  */
 export function resolverRango(
   pedido: { desde?: string | null; hasta?: string | null },
@@ -109,15 +74,10 @@ export function resolverRango(
   const pidioDesde = esMesValido(pedido.desde);
   const pidioHasta = esMesValido(pedido.hasta);
 
-  // Cada extremo que falta se completa con lo que hace verdadera la frase que
-  // el otro empieza: «desde agosto» es hasta el final, «hasta agosto» es desde
-  // el principio, y sin ninguno de los dos se muestra el último mes solo, que
-  // es lo que casi siempre se viene a ver.
+  // Una selección parcial se extiende al primer o último mes disponible.
   const desde = pidioDesde ? acotar(pedido.desde!) : pidioHasta ? primero : ultimo;
   const hasta = pidioHasta ? acotar(pedido.hasta!) : pidioDesde ? ultimo : desde;
 
-  // Al revés se da vuelta en lugar de no devolver nada: es un error de tipeo
-  // evidente y la intención se entiende igual.
   return desde <= hasta ? { desde, hasta } : { desde: hasta, hasta: desde };
 }
 

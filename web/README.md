@@ -252,6 +252,47 @@ operativas; desde el día 10 copia todo lo anterior al mes actual al histórico 
 solo entonces lo quita de la operación. Si una parte falla, PostgreSQL revierte
 todo. Repetir la función es seguro.
 
+### Siniestrados
+
+- `/siniestrados` muestra los casos con estado actual `Siniestrado` de la misma
+  ventana que Mes en curso: mes anterior y actual del 1 al 9; solo actual desde
+  el día 10.
+- `/siniestrados/historial` filtra `mensual_historico` por estado y por el mes o
+  rango elegido. Usa el mismo botón y webhook que Histórico; el refresco cubre
+  todos los casos del rango, para detectar también nuevos cambios a Siniestrado.
+- No hay tablas adicionales ni copias de casos: la rotación existente mueve
+  Mensual a Histórico, incluyendo el valor del producto. Las listas reflejan
+  el estado vigente, no una foto congelada del estado al cerrar el mes.
+- `valor_producto` toma `CAST(V.ValorDeclaradoCompleto AS DECIMAL(18, 2))`.
+  Los importes desconocidos aparecen como `—` y se cuentan por separado;
+  cero sigue siendo un valor válido. Se muestra el importe del origen sin
+  convertir ni asumir una moneda que la consulta no informa.
+- `valor_70` es una columna generada por Postgres: `round(valor_producto * 0.70, 2)`.
+  Si falta el valor declarado, también queda en `null`.
+- `cobrado` es booleano, por defecto `false`. Se marca o desmarca desde las
+  tablas de Siniestrados, tanto operativa como histórica, con sesión válida.
+  La edición registra al operador y la fecha en `editado_por` y `editado_en`.
+  n8n no modifica esta marca; la rotación la conserva y recalcula el 70%.
+
+Para actualizar una instalación existente:
+
+1. Ejecutar `supabase/migracion-03-cobros-siniestrados.sql` en Supabase. Agrega
+   `valor_producto` si falta, `valor_70` y `cobrado` en ambas tablas, y actualiza
+   la rotación; no mueve ni elimina filas durante la instalación. Incluye lo
+   necesario de la migración 02: no ejecutar la 02 después de la 03.
+2. Importar los JSON 01, 02 y 04 actualizados, conservando las credenciales y
+   URLs de producción. No se requieren nuevas variables de entorno.
+3. Publicar la web y usar **Actualizar** en Siniestrados y en cada período
+   histórico que se quiera completar con importes. No se rellenan importes al
+   ejecutar la migración SQL.
+
+La consulta de colectas suministrada se usa como referencia del campo de
+valor, no como reemplazo de las consultas: se conservan los filtros actuales
+de ingreso, modalidad y localidad, y el mes sigue siendo el de creación.
+
+Validación local sin tocar bases ni ejecutar webhooks: `npm run test:siniestrados`
+y `npm run test:cobros`.
+
 ### Lo que n8n tiene que hacer
 
 Usar el nodo de **Postgres** contra el connection string de Supabase, no el nodo
@@ -263,7 +304,7 @@ sistema**:
 
 ```sql
 insert into mensual (id, fecha_creacion, fecha_programado, estado,
-                     repartidor, tienda, destino, poligono, visitas)
+                     repartidor, tienda, destino, poligono, visitas, valor_producto)
 values (...)
 on conflict (id) do update set
   fecha_creacion = excluded.fecha_creacion,
@@ -273,7 +314,8 @@ on conflict (id) do update set
   tienda = excluded.tienda,
   destino = excluded.destino,
   poligono = excluded.poligono,
-  visitas = excluded.visitas;
+  visitas = excluded.visitas,
+  valor_producto = excluded.valor_producto;
 ```
 
 Las columnas de soporte —`reclamo_tienda`, `ubicacion`, `telefono`, `aviso`,

@@ -35,8 +35,11 @@ create table if not exists public.mensual (
   destino           text,
   poligono          text,
   visitas           integer,
+  valor_producto    numeric(18, 2),
+  valor_70          numeric(18, 2) generated always as (round(valor_producto * 0.70, 2)) stored,
 
   -- Columnas de soporte: las carga el equipo, n8n NO las toca.
+  cobrado           boolean not null default false,
   reclamo_tienda    text,
   ubicacion         text,
   telefono          text,

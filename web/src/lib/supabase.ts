@@ -91,6 +91,29 @@ export async function actualizarFila(
   return respuesta.ok ? null : motivoDeFalla(respuesta);
 }
 
+/** Actualiza solo siniestros y confirma que la fila no fue movida durante la edición. */
+export async function actualizarCobroSiniestrado(
+  tabla: string,
+  id: number,
+  cobrado: boolean,
+  quien: string,
+): Promise<string | null> {
+  const filtro = new URLSearchParams({ id: `eq.${id}`, estado: "ilike.Siniestrado", select: "id,cobrado" });
+  const respuesta = await pedir(`${encodeURIComponent(tabla)}?${filtro}`, {
+    method: "PATCH",
+    body: JSON.stringify({ cobrado, editado_por: quien, editado_en: new Date().toISOString() }),
+    headers: { prefer: "return=representation" },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!respuesta.ok) return motivoDeFalla(respuesta);
+  const filas = await respuesta.json() as { id: number; cobrado: boolean }[];
+  if (filas.length !== 1 || Number(filas[0].id) !== id || filas[0].cobrado !== cobrado) {
+    return "El caso cambió de estado o fue movido al Histórico. Actualizá la tabla.";
+  }
+  return null;
+}
+
 /** Borra una fila por id. Devuelve `null` si salió bien. */
 export async function borrarFila(tabla: string, id: string | number): Promise<string | null> {
   const respuesta = await pedir(`${encodeURIComponent(tabla)}?id=eq.${encodeURIComponent(id)}`, {

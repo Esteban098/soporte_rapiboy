@@ -13,26 +13,8 @@ export type ResultadoActualizacion = {
 };
 
 /**
- * Corre los flujos de n8n de un botón y descarta la copia cacheada.
-
- * `clave` dice qué botón se apretó: el global de la barra o el propio de una
- * pantalla de histórico. Llega del navegador, así que se valida contra la lista
- * en vez de usarse para armar el nombre de una variable de entorno: sin eso,
- * cualquiera podría pedir que se lea otra.
- *
- * Es la única forma de traer datos nuevos desde el tablero. Antes había también
- * un botón Refrescar que solo vencía el caché sin tocar n8n; se sacó porque
- * partía la acción en dos y ninguna de las dos mitades era lo que la gente
- * quería: apretar Refrescar releía los mismos datos viejos, porque lo que
- * estaba desactualizado era la base, no la copia.
- *
- * El orden importa: primero corren los flujos, y recién cuando terminan se
- * invalida el caché. Al revés, el tablero volvería a leer la base vieja y los
- * datos nuevos aparecerían recién en la visita siguiente.
- *
- * Que un flujo falle no cancela la invalidación: la base pudo haber cambiado
- * por otro lado —la ingesta de la mañana, alguien editando— y la falla se
- * informa aparte.
+ * Ejecuta los flujos y después invalida el caché, incluso si alguno falla.
+ * La clave del navegador se valida contra los alcances permitidos.
  */
 export async function actualizarDatos(
   clave: unknown = "global",
@@ -44,29 +26,16 @@ export async function actualizarDatos(
   const resultados = await Promise.all(flujos.map((url) => ejecutarFlujo(url, cual, rango)));
   const fallas = resultados.filter((r): r is string => r !== null);
 
-  // `updateTag` y no `revalidateTag` porque acá el usuario está esperando el
-  // dato nuevo: hace que el próximo pedido espere la lectura fresca en lugar de
-  // servir la copia vieja mientras revalida por detrás.
+  // `updateTag` espera datos frescos; `revalidateTag` puede servir la copia vieja.
   updateTag("datos");
 
-  // Los reportes no los toca ningún flujo de n8n; el botón global igual los
-  // invalida porque es el que la gente aprieta esperando ver todo al día.
+  // El refresco global también relee los reportes, aunque n8n no los modifica.
   if (cual === "global") updateTag("seguimiento");
 
   return { flujos: flujos.length, exitosos: flujos.length - fallas.length, fallas };
 }
 
-/**
- * Lo que el flujo recibe en el cuerpo del webhook.
- *
- * `alcance` y el rango existen para que n8n pueda acotar la consulta. Sin
- * esto el flujo no tiene forma de saber qué se está mirando y termina
- * releyendo todo, que es justo lo que no queremos en el histórico: son muchos
- * más casos y la consulta arma un `IN (...)` con todos los ids.
- *
- * El tablero los manda; usarlos o ignorarlos es decisión del flujo. Mientras
- * n8n no los lea, el botón sigue haciendo lo mismo que antes.
- */
+/** El alcance y el rango permiten a n8n acotar el refresco histórico. */
 export type CuerpoFlujo = {
   origen: "tablero";
   momento: string;

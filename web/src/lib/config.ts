@@ -1,12 +1,6 @@
 import "server-only";
 
 /**
- * Configuración de la fuente de datos. Todo lo de este módulo es server-only:
- * la URL del sheet nunca llega al navegador, así el login del sitio protege de
- * verdad los datos aunque la hoja esté publicada.
- */
-
-/**
  * Pestaña con el detalle de los casos abiertos del mes en curso. Es la única
  * del libro que la web lee como fuente de pedidos: las pestañas de meses
  * anteriores quedaron como archivo y varias fueron vaciadas o reutilizadas, así
@@ -14,11 +8,6 @@ import "server-only";
  */
 export const TAB_MENSUAL = process.env.SHEET_TAB_MENSUAL?.trim() || "Mensual";
 
-/**
- * Lo que quedó sin cerrar en la jornada anterior. Es la única vista del día que
- * se sigue leyendo del libro: los demorados se derivan de `Mensual`, así que ya
- * no hace falta que nadie los vuelva a pegar cada mañana.
- */
 export const TAB_AYER = "Ayer";
 
 /** Viajes cancelados el mismo día en que se colectaron. */
@@ -55,18 +44,11 @@ export function gidDeTab(tab: string): string {
   }
   return gid;
 }
-
-
 export type ModoDatos = "supabase" | "sheet" | "fixture";
 
 /**
- * De dónde salen los casos.
- *
- * Se elige solo según lo que haya configurado, sin variable de por medio en el
- * caso normal: si están las credenciales de Supabase manda la base, si no está
- * el sheet, y si no hay nada quedan los fixtures. `ORIGEN_DATOS` fuerza uno
- * puntual, que es lo que permite volver al sheet en el acto si la base falla
- * sin tener que borrar credenciales.
+ * Prioridad automática: Supabase, Sheet, fixtures.
+ * `ORIGEN_DATOS` permite forzar una fuente sin quitar credenciales.
  */
 export function modoDatos(): ModoDatos {
   const forzado = process.env.ORIGEN_DATOS?.trim();
@@ -104,7 +86,7 @@ export const TABLA_MENSUAL = process.env.SUPABASE_TABLA_MENSUAL?.trim() || "mens
 export const TABLA_MENSUAL_HISTORICO =
   process.env.SUPABASE_TABLA_MENSUAL_HISTORICO?.trim() || "mensual_historico";
 
-/** Tabla de la base con lo que quedó sin cerrar en la jornada anterior. */
+/** Cola de casos nuevos de la jornada. */
 export const TABLA_AYER = process.env.SUPABASE_TABLA_AYER?.trim() || "ayer";
 
 /** Tabla de la base con los viajes cancelados el mismo día. */
@@ -130,22 +112,10 @@ export const TABLA_COLECTAS = process.env.SUPABASE_TABLA_COLECTAS?.trim() || "co
 /** Bucket de Storage donde van los adjuntos de esos reportes. Privado. */
 export const BUCKET_SEGUIMIENTO = process.env.SUPABASE_BUCKET_SEGUIMIENTO?.trim() || "seguimiento";
 
-/**
- * Cuánto vive una URL firmada de adjunto, en segundos.
- *
- * Corta a propósito: la firma se pide al pintar la página, así que una hora
- * alcanza de sobra para mirar la foto, y un link que se copie a otro lado deja
- * de servir enseguida. El bucket es privado; esto es lo único que da acceso.
- */
+/** Vigencia en segundos de los enlaces firmados al bucket privado. */
 export const FIRMA_SEGUNDOS = Number(process.env.SUPABASE_FIRMA_SEGUNDOS ?? 3600);
 
-/**
- * Modelo que resume los comentarios, o `null` si no está configurado.
- *
- * Devuelve `null` en lugar de tirar error porque el resumen es opcional: sin
- * `OPENAI_API_KEY` el tablero sigue tomando reportes y los guarda sin resumir.
- * Es la diferencia entre una función de más y una función que falta.
- */
+/** Sin API key, los reportes se guardan sin resumen automático. */
 export function openaiConfig(): { clave: string; modelo: string } | null {
   const clave = process.env.OPENAI_API_KEY?.trim();
   if (!clave) return null;
@@ -158,16 +128,7 @@ export function sheetId(): string {
   return id;
 }
 
-/**
- * Qué botón Actualizar dispara qué flujos.
- *
- * Hay uno global en la barra y uno propio en cada pantalla de histórico. Están
- * separados porque hacen cosas distintas y tardan distinto: el global refresca
- * el mes en curso, que es lo que la operación mira todo el día, mientras que
- * los de histórico vuelven a preguntar por meses cerrados —muchos más casos, y
- * una consulta que no tiene sentido correr cada vez que alguien quiere ver la
- * cola de hoy.
- */
+/** Separa el refresco operativo de los históricos y las colectas. */
 export type ClaveFlujo = "global" | "historico" | "canceladosHistorico" | "colectas";
 
 const VARIABLE_DE_FLUJO: Record<ClaveFlujo, string> = {
@@ -176,8 +137,6 @@ const VARIABLE_DE_FLUJO: Record<ClaveFlujo, string> = {
   canceladosHistorico: "N8N_WEBHOOKS_CANCELADOS_HISTORICO",
   colectas: "N8N_WEBHOOKS_COLECTAS",
 };
-
-export const CLAVES_FLUJO = Object.keys(VARIABLE_DE_FLUJO) as ClaveFlujo[];
 
 export function esClaveFlujo(valor: unknown): valor is ClaveFlujo {
   return typeof valor === "string" && valor in VARIABLE_DE_FLUJO;
@@ -189,15 +148,8 @@ export function variableDeFlujo(clave: ClaveFlujo): string {
 }
 
 /**
- * Los webhooks de un botón, en el orden en que deben correr.
- *
- * Son las *Production URL* del nodo Webhook de cada flujo
- * (`https://…/webhook/…`), separadas por coma. La URL del editor
- * (`https://…/workflow/…`) no sirve: devuelve la interfaz de n8n y no ejecuta
- * nada.
- *
- * Viven en el servidor: el navegador nunca ve estas URLs, así nadie puede
- * disparar los flujos desde afuera del tablero.
+ * URLs de producción (`/webhook/`), separadas por coma y solo en el servidor.
+ * Las URLs del editor (`/workflow/`) no ejecutan flujos.
  */
 export function flujosDe(clave: ClaveFlujo): string[] {
   return (process.env[VARIABLE_DE_FLUJO[clave]] ?? "")

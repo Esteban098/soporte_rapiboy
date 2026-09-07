@@ -27,6 +27,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - El mes de pedidos se determina con
   `coalesce(fecha_creacion, fecha_programado)`; el de cancelados, con
   `fecha_colectado`. Los cortes de calendario usan `America/Mexico_City`.
+- `Siniestrados` y `Siniestrados Historial` filtran el estado actual
+  `Siniestrado` sobre `mensual` y `mensual_historico`, respectivamente. No
+  duplicar tablas ni modificar los criterios de ingreso de los workflows.
+- `valor_producto` es `numeric(18, 2)` y viene de
+  `Viaje.ValorDeclaradoCompleto`. Lo cargan los flujos 01, 02 y 04 y lo conserva
+  la rotación. Un importe desconocido es `null`, no cero. Para bases existentes
+  instalar `supabase/migracion-02-valor-producto.sql` antes de importar los flujos.
+- `valor_70` se genera en Postgres con `round(valor_producto * 0.70, 2)`.
+  `cobrado` es booleano, empieza en `false` y solo lo modifica el equipo desde
+  las vistas de Siniestrados. Ambos viven en Mensual e Histórico, sin nuevas
+  tablas. Instalar `supabase/migracion-03-cobros-siniestrados.sql` para agregarlos.
 
 ## Límites entre flujos
 
@@ -36,7 +47,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - No cambiar `fecha_creacion` ni `fecha_colectado` en un refresco histórico:
   esas columnas fijan el mes al que pertenece cada fila.
 - Los upserts automáticos nunca deben pisar `reclamo_tienda`, `ubicacion`,
-  `telefono`, `aviso`, `avisado_en`, `foto`, `editado_por` ni `editado_en`.
+  `telefono`, `aviso`, `avisado_en`, `foto`, `editado_por`, `editado_en` ni `cobrado`.
+- La rotación copia `cobrado` y bloquea las filas que archiva para conservar
+  ediciones concurrentes. Nunca insertar `valor_70`: es una columna generada.
+- En n8n, mapear únicamente `valor_producto`; no seleccionar ni enviar
+  `valor_70` en los nodos Postgres aunque aparezca entre las columnas disponibles.
 - `ayer` se vacía solamente dentro de la ingesta diaria y después de confirmar
   que hubo jornada. Una limpieza manual es puntual y no se incorpora al flujo.
 
@@ -59,6 +74,8 @@ Desde `web/` ejecutar como mínimo:
 ```bash
 npm run typecheck
 npm run lint
+npm run test:siniestrados
+npm run test:cobros
 ```
 
 Además, validar los workflows con `jq empty ../n8n/*.json`. El build no sale a

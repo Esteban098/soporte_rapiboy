@@ -4,6 +4,8 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import { colorEstado } from "@/lib/estados";
 import { enlaceViaje } from "@/lib/enlaces";
 import { CeldaTexto } from "./CeldaTexto";
+import { CobroSiniestrado } from "./CobroSiniestrado";
+import type { OrigenCobro } from "@/lib/siniestrados";
 import {
   guardarPreferencia,
   leerPreferencia,
@@ -33,6 +35,7 @@ export type TipoColumna =
   | "porcentaje"
   | "estado"
   | "caso"
+  | "cobrado"
   | "aviso"
   | "dias";
 
@@ -63,6 +66,7 @@ export function Tabla({
   vacio = "No hay datos para mostrar.",
   limite,
   editable = false,
+  cobros,
 }: {
   /** Identifica la tabla para recordar qué columnas ocultó cada persona. */
   id: string;
@@ -87,6 +91,7 @@ export function Tabla({
    * sería escribir en algo que se borra.
    */
   editable?: boolean;
+  cobros?: OrigenCobro;
 }) {
   const [orden, setOrden] = useState<Orden>(ordenInicial ?? null);
   const [edicion, setEdicion] = useState<Edicion | null>(null);
@@ -346,6 +351,7 @@ export function Tabla({
                       columna={columna}
                       valor={fila[columna.clave]}
                       fila={fila}
+                      cobros={cobros}
                     />
                   ))}
                   {editable ? (
@@ -408,10 +414,12 @@ function Celda({
   columna,
   valor,
   fila,
+  cobros,
 }: {
   columna: Columna;
   valor: Fila[string];
   fila: Fila;
+  cobros?: OrigenCobro;
 }) {
   // Sin recortes: cada celda muestra su contenido completo y la tabla scrollea
   // en horizontal si no entra.
@@ -426,6 +434,14 @@ function Celda({
   }
 
   switch (columna.tipo) {
+    case "cobrado":
+      return (
+        <td>
+          {cobros && typeof valor === "boolean" ? (
+            <CobroSiniestrado id={Number(fila.id)} cobrado={valor} origen={cobros} />
+          ) : valor === true ? "Sí" : valor === false ? "No" : "—"}
+        </td>
+      );
     case "viaje":
       return (
         <td className={clase}>

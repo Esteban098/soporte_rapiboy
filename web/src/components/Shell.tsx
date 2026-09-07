@@ -43,6 +43,7 @@ const NAVEGACION: (Grupo | Seccion)[] = [
       { href: "/demorados", etiqueta: "Demorados", icono: Alerta },
       { href: "/reclamos", etiqueta: "Informacion de tiendas", icono: Barras },
       { href: "/cancelados", etiqueta: "Cancelados", icono: Cruz },
+      { href: "/siniestrados", etiqueta: "Siniestrados", icono: Alerta, exacto: true },
       { href: "/comercios", etiqueta: "Comercios y zonas (BETA)", icono: Pin },
     ],
   },
@@ -66,6 +67,7 @@ const NAVEGACION: (Grupo | Seccion)[] = [
     secciones: [
       { href: "/historico", etiqueta: "Histórico", icono: Archivo },
       { href: "/cancelados-historico", etiqueta: "Cancelados históricos", icono: Archivo },
+      { href: "/siniestrados/historial", etiqueta: "Siniestrados Historial", icono: Archivo },
     ],
   },
   {
@@ -117,7 +119,7 @@ export function Shell({
                 <NavGrupo
                   key={entrada.titulo}
                   titulo={entrada.titulo}
-                  rutas={entrada.secciones.map((s) => s.href)}
+                  rutas={entrada.secciones.map(({ href, exacto }) => ({ href, exacto }))}
                   icono={<entrada.icono />}
                 >
                   {entrada.secciones.map((seccion) => (

@@ -104,7 +104,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Estado actual de los casos que ya están en la base.\nSELECT\n        V.Id,\n        (SELECT MIN(CAST(H.Fecha AS DATE)) FROM HistorialViaje H WITH (NOLOCK)\n          WHERE H.IdViaje = V.Id) AS FechaCreacion,\n        CAST(V.FechaProgramado AS DATE) AS FechaProgramado,\n        E.NombreCompleto AS Estado,\n        (SELECT TOP 1 H.Repartidor FROM HistorialViaje H WITH (NOLOCK)\n          WHERE H.IdViaje = V.Id AND H.Repartidor IS NOT NULL\n          ORDER BY H.Fecha DESC) AS Repartidor,\n        U.Alias AS Tienda,\n        V.Direccion AS Destino,\n        P.Nombre AS Poligono,\n        V.Visitas\n    FROM Viaje V WITH (NOLOCK)\n    JOIN Usuario U          WITH (NOLOCK) ON V.IdUsuario  = U.Id\n    LEFT JOIN EstadoViaje E WITH (NOLOCK) ON V.IdEstado   = E.Id\n    LEFT JOIN Poligono P    WITH (NOLOCK) ON V.IdPoligono = P.Id\n    WHERE V.Id IN ({{ $json.ids_concat }})\n    ORDER BY V.Id ASC"
+        "query": "-- Estado actual de los casos que ya están en la base.\nSELECT\n        V.Id,\n        (SELECT MIN(CAST(H.Fecha AS DATE)) FROM HistorialViaje H WITH (NOLOCK)\n          WHERE H.IdViaje = V.Id) AS FechaCreacion,\n        CAST(V.FechaProgramado AS DATE) AS FechaProgramado,\n        E.NombreCompleto AS Estado,\n        (SELECT TOP 1 H.Repartidor FROM HistorialViaje H WITH (NOLOCK)\n          WHERE H.IdViaje = V.Id AND H.Repartidor IS NOT NULL\n          ORDER BY H.Fecha DESC) AS Repartidor,\n        U.Alias AS Tienda,\n        V.Direccion AS Destino,\n        P.Nombre AS Poligono,\n        V.Visitas,\n        CAST(V.ValorDeclaradoCompleto AS DECIMAL(18, 2)) AS ValorProducto\n    FROM Viaje V WITH (NOLOCK)\n    JOIN Usuario U          WITH (NOLOCK) ON V.IdUsuario  = U.Id\n    LEFT JOIN EstadoViaje E WITH (NOLOCK) ON V.IdEstado   = E.Id\n    LEFT JOIN Poligono P    WITH (NOLOCK) ON V.IdPoligono = P.Id\n    WHERE V.Id IN ({{ $json.ids_concat }})\n    ORDER BY V.Id ASC"
       },
       "type": "n8n-nodes-base.microsoftSql",
       "typeVersion": 1.1,
@@ -123,7 +123,7 @@
     },
     {
       "parameters": {
-        "jsCode": "/*\n * Pasa la salida de SQL Server a los nombres de columna de Postgres.\n *\n * Las fechas se formatean SIEMPRE con getters UTC. El flujo viejo mezclaba\n * `toISOString()` para la fecha con `toLocaleTimeString()` para la hora, que usa\n * la zona del servidor: cerca de medianoche las dos mitades se contradecían.\n */\nconst fecha = (v) => (v ? new Date(v).toISOString().slice(0, 10) : null);\nconst texto = (v) => {\n  const t = String(v ?? '').trim();\n  return t === '' || t.toLowerCase() === 'null' ? null : t;\n};\n\nreturn $input.all().map(({ json: r }) => ({\n  json: {\n    id: Number(r.Id),\n    fecha_creacion: fecha(r.FechaCreacion),\n    fecha_programado: fecha(r.FechaProgramado),\n    estado: texto(r.Estado),\n    repartidor: texto(r.Repartidor),\n    tienda: texto(r.Tienda),\n    destino: texto(r.Destino),\n    poligono: texto(r.Poligono),\n    visitas: Number.isFinite(Number(r.Visitas)) ? Number(r.Visitas) : null,\n  },\n})).filter((i) => Number.isFinite(i.json.id) && i.json.id > 0);"
+        "jsCode": "/*\n * Pasa la salida de SQL Server a los nombres de columna de Postgres.\n *\n * Las fechas se formatean SIEMPRE con getters UTC. El flujo viejo mezclaba\n * `toISOString()` para la fecha con `toLocaleTimeString()` para la hora, que usa\n * la zona del servidor: cerca de medianoche las dos mitades se contradecían.\n */\nconst fecha = (v) => (v ? new Date(v).toISOString().slice(0, 10) : null);\nconst texto = (v) => {\n  const t = String(v ?? '').trim();\n  return t === '' || t.toLowerCase() === 'null' ? null : t;\n};\n\nreturn $input.all().map(({ json: r }) => ({\n  json: {\n    id: Number(r.Id),\n    fecha_creacion: fecha(r.FechaCreacion),\n    fecha_programado: fecha(r.FechaProgramado),\n    estado: texto(r.Estado),\n    repartidor: texto(r.Repartidor),\n    tienda: texto(r.Tienda),\n    destino: texto(r.Destino),\n    poligono: texto(r.Poligono),\n    visitas: Number.isFinite(Number(r.Visitas)) ? Number(r.Visitas) : null,\n    valor_producto: texto(r.ValorProducto) !== null && Number.isFinite(Number(r.ValorProducto))\n      ? Number(r.ValorProducto)\n      : null,\n  },\n})).filter((i) => Number.isFinite(i.json.id) && i.json.id > 0);"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -158,7 +158,8 @@
             "tienda": "={{ $json.tienda }}",
             "destino": "={{ $json.destino }}",
             "poligono": "={{ $json.poligono }}",
-            "visitas": "={{ $json.visitas }}"
+            "visitas": "={{ $json.visitas }}",
+            "valor_producto": "={{ $json.valor_producto }}"
           },
           "matchingColumns": [
             "id"
@@ -182,7 +183,7 @@
           "name": "Supabase - tablero soporte"
         }
       },
-      "notes": "Mapea SOLO las columnas del sistema. reclamo_tienda, ubicacion, telefono, aviso y avisado_en no figuran, así que el UPDATE no las nombra y el trabajo de soporte sobrevive a la corrida. caso, informacion_enviar e ids son generadas: las recalcula Postgres."
+      "notes": "Mapea SOLO las columnas del sistema. Envía valor_producto, nunca valor_70: es una columna generada por Supabase. Tampoco toca reclamo_tienda, ubicacion, telefono, aviso, avisado_en ni cobrado."
     },
     {
       "parameters": {

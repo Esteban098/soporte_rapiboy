@@ -106,6 +106,37 @@ se pisa en cada movimiento y es la que alimenta «hace cuánto que no se mueve»
 
 ## Rotación del día 10
 
+### Valor del producto y Siniestrados
+
+Los flujos 01, 02 (rama Mensual) y 04 leen
+`CAST(V.ValorDeclaradoCompleto AS DECIMAL(18, 2)) AS ValorProducto` y escriben
+`valor_producto`. No cambian los filtros de ingreso, las ramas de Ayer y
+Cancelados ni los campos protegidos de soporte. Los valores ausentes quedan
+en `null`, no en cero.
+
+En una base ya instalada, correr primero
+`web/supabase/migracion-02-valor-producto.sql` e importar después esos tres
+workflows. La migración no mueve filas y hace que la rotación conserve el
+importe. El flujo 02 completa los valores operativos; el 04 completa los del
+período histórico seleccionado.
+
+Para habilitar también el 70% y Cobrado, ejecutar la migración
+`web/supabase/migracion-03-cobros-siniestrados.sql` (incluye la columna de valor
+si aún falta). No aplicar la migración 02 después de la 03. `valor_70` es
+generada por Postgres y `cobrado` es manual: ningún nodo debe escribirlas.
+La rotación conserva la marca de cobro al pasar a Histórico.
+
+En los nodos Postgres **Guardar en Mensual**, **Actualizar Mensual** y
+**Guardar** del histórico, usar `Define Below` y dejar `valor_70` fuera de
+Columns to Send. Solo se envía `valor_producto`. Si se incluye la columna
+generada, PostgreSQL rechaza todo el upsert con
+`cannot insert a non-DEFAULT value into column "valor_70"`.
+
+Las pantallas Siniestrados usan los webhooks existentes: global para Mensual,
+histórico para el rango cerrado. No requieren workflows ni tablas adicionales.
+
+### Instalación de la rotación
+
 Antes de importar los workflows actualizados hay que correr
 `web/supabase/historico.sql`. El nodo **Rotar históricos** del flujo 01 llama la
 función instalada por ese script antes de evaluar si hubo jornada:
