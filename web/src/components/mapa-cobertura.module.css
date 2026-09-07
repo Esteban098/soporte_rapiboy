@@ -1,0 +1,194 @@
+.buscador {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.campo {
+  flex: 1 1 340px;
+  min-width: 0;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-2);
+  padding: 9px 12px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  transition:
+    border-color var(--dur-corta) var(--ease),
+    box-shadow var(--dur-corta) var(--ease);
+}
+
+.campo:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.boton {
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: var(--radio-2);
+  padding: 10px 18px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--dur-corta) var(--ease);
+}
+
+.boton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.ayuda {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+/*
+ * El veredicto va arriba del mapa y no adentro: es la respuesta a la pregunta
+ * que trajo al operador. El mapa está para confirmarla, no para tener que
+ * interpretarla.
+ */
+.resultado {
+  margin-top: 16px;
+  padding: 13px 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-2);
+  background: var(--surface-2);
+}
+
+.resultadoDentro {
+  border-color: color-mix(in srgb, var(--good) 40%, transparent);
+  background: var(--good-soft);
+}
+
+.resultadoFuera {
+  border-color: color-mix(in srgb, var(--critical) 40%, transparent);
+  background: var(--critical-soft);
+}
+
+.resultadoAviso {
+  border-color: color-mix(in srgb, var(--warning) 40%, transparent);
+  background: var(--warning-soft);
+}
+
+.veredicto {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.veredictoDentro { color: var(--good); }
+.veredictoFuera { color: var(--critical); }
+.veredictoAviso { color: var(--warning); }
+
+.detalle {
+  margin: 5px 0 0;
+  color: var(--ink-2);
+  font-size: 12.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.coordenadas {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/*
+ * El contorno es más alto que ancho, así que a todo el ancho de la tarjeta el
+ * mapa mide más de una pantalla y deja el buscador arriba de todo, fuera de
+ * vista. Acotado, la pregunta y la respuesta entran juntas.
+ */
+.mapaCaja {
+  position: relative;
+  max-width: min(100%, 560px);
+  margin: 18px auto 0;
+}
+
+.mapa {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/*
+ * La marca va en una capa aparte con el mismo viewBox. Así redibujar el punto
+ * de una búsqueda no vuelve a montar los 3.500 nodos del contorno.
+ */
+.marca {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pulso {
+  animation: pulso 1.9s var(--ease-salida) infinite;
+}
+
+@keyframes pulso {
+  from { r: 7; opacity: 0.5; }
+  to { r: 30; opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulso { animation: none; opacity: 0.3; }
+}
+
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.leyendaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.muestra {
+  width: 22px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+}
+
+.muestraFondo {
+  width: 22px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px dashed var(--rule);
+  background: var(--surface-2);
+}
+
+/* El nombre del polígono es lo que se compara contra el pedido, así que pesa
+   más que la dirección que lo produjo. */
+.poligono {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.poligonoNombre {
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.poligonoZona {
+  color: var(--muted);
+}

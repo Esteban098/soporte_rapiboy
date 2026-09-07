@@ -63,4 +63,24 @@ npm run lint
 
 Además, validar los workflows con `jq empty ../n8n/*.json`. El build no sale a
 la red: la tipografía son archivos locales en `src/app/fonts/` cargados con
-`next/font/local`.
+`next/font/local`, y el polígono de cobertura es `src/lib/cobertura.json`,
+versionado y generado a mano con `scripts/cobertura.mts`.
+
+## Cobertura
+
+- La fuente es `datos/poligonos-v10-bfv.kmz`. No editar `src/lib/cobertura.json`
+  a mano: se regenera con `npx tsx scripts/cobertura.mts`.
+- Solo se usan las carpetas `ZONA 1` y `ZONA 2` (`ZONAS` en el script). Las
+  capas por código postal y la `Capa sin título` quedan afuera: nombran por CP y
+  no por área de reparto, así que no se pueden comparar con la columna
+  `poligono` de un pedido. No volver a incluirlas sin pedido explícito.
+- Los polígonos se pisan en los bordes, así que `ubicarPunto()` devuelve todos
+  los que cubren el punto. No reducirlo a uno: la prioridad no está declarada.
+- `contorno` es el detalle completo y es lo único que puede decidir si un
+  domicilio entra. `trazo` está simplificado y sirve solo para dibujar.
+- Un polígono puede traer huecos —recortes internos sin servicio—. Este KMZ no
+  tiene, una versión anterior sí. Toda verificación tiene que descontarlos.
+- Geocodificar una dirección le manda una dirección de cliente a Nominatim
+  (OpenStreetMap). Por eso sale del servidor y no del navegador, pide sesión y
+  se cachea. Su política admite 1 consulta por segundo: no llamarlo en bucle ni
+  por fila de una tabla.

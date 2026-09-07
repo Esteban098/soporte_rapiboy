@@ -15,8 +15,25 @@ import estilos from "./ui.module.css";
  * «Historial» son los meses cerrados, que se consultan cuando hay tiempo de
  * analizar y no en medio de la operación. El grupo es la única jerarquía;
  * adentro la navegación es directa, sin submenús.
+ *
+ * Seguimiento y Cobertura van sueltas, sin grupo. No pertenecen a una cola ni a
+ * un período: se entra a reportar algo, o a preguntar si un domicilio entra,
+ * viniendo de cualquier pantalla. Meterlas en un grupo plegable las escondía
+ * detrás de un clic, y un grupo con una sola sección adentro es un rodeo.
  */
-const GRUPOS = [
+type Seccion = {
+  href: string;
+  /** `null` en las que cambian de nombre según el rol. */
+  etiqueta: string | null;
+  icono: () => React.ReactElement;
+  /** Para las rutas que son prefijo de otra hermana. */
+  exacto?: boolean;
+  destacado?: boolean;
+};
+
+type Grupo = { titulo: string; icono: () => React.ReactElement; secciones: Seccion[] };
+
+const NAVEGACION: (Grupo | Seccion)[] = [
   {
     titulo: "Cola de trabajo",
     icono: Reloj,
@@ -26,10 +43,13 @@ const GRUPOS = [
       { href: "/demorados", etiqueta: "Demorados", icono: Alerta },
       { href: "/reclamos", etiqueta: "Informacion de tiendas", icono: Barras },
       { href: "/cancelados", etiqueta: "Cancelados", icono: Cruz },
-      { href: "/seguimiento", etiqueta: "Seguimiento", icono: Nota },
       { href: "/comercios", etiqueta: "Comercios y zonas (BETA)", icono: Pin },
     ],
   },
+
+  { href: "/seguimiento", etiqueta: "Seguimiento", icono: Nota, destacado: true },
+  { href: "/cobertura", etiqueta: "Cobertura", icono: Mapa },
+
   {
     titulo: "Colectas",
     icono: Camion,
@@ -57,6 +77,10 @@ const GRUPOS = [
     secciones: [{ href: "/perfiles", etiqueta: null, icono: Persona }],
   },
 ];
+
+function esGrupo(entrada: Grupo | Seccion): entrada is Grupo {
+  return "secciones" in entrada;
+}
 
 export function Shell({
   children,
@@ -88,27 +112,31 @@ export function Shell({
           </Link>
 
           <div className={estilos.railCuerpo}>
-            {GRUPOS.map((grupo) => (
-              <NavGrupo
-                key={grupo.titulo}
-                titulo={grupo.titulo}
-                rutas={grupo.secciones.map((s) => s.href)}
-                icono={<grupo.icono />}
-              >
-                {grupo.secciones.map((seccion) => (
-                  <li key={seccion.href}>
-                    <NavLink
-                      href={seccion.href}
-                      exacto={"exacto" in seccion && seccion.exacto}
-                      destacado={seccion.href === "/seguimiento"}
-                    >
-                      <seccion.icono />
-                      {seccion.etiqueta ?? (esAdmin ? "Perfiles" : "Mi perfil")}
-                    </NavLink>
+            {NAVEGACION.map((entrada) =>
+              esGrupo(entrada) ? (
+                <NavGrupo
+                  key={entrada.titulo}
+                  titulo={entrada.titulo}
+                  rutas={entrada.secciones.map((s) => s.href)}
+                  icono={<entrada.icono />}
+                >
+                  {entrada.secciones.map((seccion) => (
+                    <li key={seccion.href}>
+                      <Enlace seccion={seccion} esAdmin={esAdmin} />
+                    </li>
+                  ))}
+                </NavGrupo>
+              ) : (
+                /* Sin cabecera de grupo y sin la indentación que aplica
+                   `.railGrupo .railLista`, así queda al nivel de los grupos y
+                   no adentro de ninguno. */
+                <ul key={entrada.href} className={`${estilos.railLista} ${estilos.railSuelta}`}>
+                  <li>
+                    <Enlace seccion={entrada} esAdmin={esAdmin} />
                   </li>
-                ))}
-              </NavGrupo>
-            ))}
+                </ul>
+              ),
+            )}
           </div>
 
           {usuario ? (
@@ -138,6 +166,15 @@ export function Shell({
         {modo === "supabase" ? <SeguimientoWidget /> : null}
       </div>
     </div>
+  );
+}
+
+function Enlace({ seccion, esAdmin }: { seccion: Seccion; esAdmin: boolean }) {
+  return (
+    <NavLink href={seccion.href} exacto={seccion.exacto} destacado={seccion.destacado}>
+      <seccion.icono />
+      {seccion.etiqueta ?? (esAdmin ? "Perfiles" : "Mi perfil")}
+    </NavLink>
   );
 }
 
@@ -267,6 +304,16 @@ function Persona() {
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <circle cx="8" cy="5.5" r="2.75" />
       <path d="M3 13.5c0-2.2 2.2-3.75 5-3.75s5 1.55 5 3.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/** Contorno cerrado con un punto adentro: el área donde hay servicio. */
+function Mapa() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <path d="M2.5 5.2 6 3.2l4 2 3.5-2v7.6l-3.5 2-4-2-3.5 2Z" strokeLinejoin="round" />
+      <path d="M6 3.2v7.6M10 5.2v7.6" />
     </svg>
   );
 }

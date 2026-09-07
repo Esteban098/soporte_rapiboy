@@ -49,6 +49,44 @@ Tres decisiones que vale la pena tener presentes:
 | `/demorados` | **Demorados**: la cola de escalamiento, derivada de `Mensual`. Entra todo caso que lleve más de 2 días sin cambiar de estado y todavía no haya cerrado. |
 | `/reclamos` | Casos donde la tienda aportó datos, con el dato tal cual y la información del viaje. Se filtra por avisado / no avisado. |
 | `/comercios` | De dónde salen los casos y a qué zonas van. |
+| `/cobertura` | **Cobertura**: el contorno donde hay servicio y un verificador puntual —por id de viaje, dirección o coordenadas— que responde si un domicilio entra. |
+
+## Cobertura
+
+Los polígonos los mantiene operaciones en `datos/poligonos-v10-bfv.kmz`. Ese KMZ
+es la fuente; la web consume `src/lib/cobertura.json`, que se genera con:
+
+```bash
+npx tsx scripts/cobertura.mts
+```
+
+Se corre a mano cuando cambia la cobertura, no en cada build. El JSON se
+versiona a propósito: así el build no depende de leer un binario, y el diff
+deja ver qué cambió.
+
+**Solo entran las carpetas `ZONA 1` y `ZONA 2`**: 86 polígonos que nombran las
+áreas igual que la columna `poligono` de los pedidos (`ECATEPEC CENTRO`,
+`ALVARO OBREGON A`), que es lo que hace comparable el resultado con un caso. El
+KMZ trae además capas por código postal —`Iztapalapa`, `Iztacalco`, `Tláhuac`—
+y una `Capa sin título` con doce polígonos sin nombre; el script las descarta
+(`ZONAS` en `scripts/cobertura.mts`). El recorte no achica la cobertura en la
+práctica: el área que cubrían solo ellas es el 1% del total, en bordes finos.
+
+Los polígonos se pisan un poco al tocarse —alrededor del 1% del área cae en
+dos—, así que `ubicarPunto()` devuelve todos los que cubren un punto en vez de
+elegir uno. Por lo mismo el mapa se dibuja con relleno opaco: con transparencia
+los solapes suman y dibujan una costura más oscura en cada límite.
+
+El JSON guarda dos versiones de cada contorno: `contorno`, completo, es el que
+decide si un domicilio entra; `trazo`, simplificado con Douglas-Peucker a
+0,0002° (~medio pixel a la escala del mapa), es solo para dibujar.
+
+Decidir si un punto entra es local e instantáneo. Lo único que sale a la red es
+traducir una dirección escrita a coordenadas, que pasa por Nominatim
+(OpenStreetMap): admite 1 consulta por segundo, exige identificar la aplicación
+con un User-Agent propio y **recibe la dirección del cliente**, así que se llama
+solo desde el servidor, detrás de sesión y con la respuesta cacheada un día. Un
+par `lat, lon` o un link de Google Maps pegado se resuelven sin salir.
 
 ## Correrlo local
 

@@ -232,6 +232,11 @@
   color: var(--warning);
 }
 
+/* Una sección suelta ocupa el lugar de un grupo, así que respira como uno. */
+.railSuelta {
+  margin: 8px 0;
+}
+
 .railPie {
   margin-top: auto;
   padding: 14px 14px 0;
@@ -863,7 +868,12 @@ details[open] > .summary::before {
   }
 
   .railGrupoTitulo,
-  .railPie {
+  /* Una sección suelta ocupa el lugar de un grupo, así que respira como uno. */
+.railSuelta {
+  margin: 8px 0;
+}
+
+.railPie {
     display: none;
   }
 
