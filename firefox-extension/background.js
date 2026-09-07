@@ -1,6 +1,8 @@
 const DEFAULT_WEBHOOK_URL = "https://linux.rapitools.com.ar/webhook/firefox-gestiones";
 const MENU_ID = "rapiboy-datos-tienda";
-const ICON = browser.runtime.getURL("icons/rapiboy.png");
+const ICON_16 = browser.runtime.getURL("icons/rapiboy-16.png");
+const ICON_32 = browser.runtime.getURL("icons/rapiboy-32.png");
+const ICON = browser.runtime.getURL("icons/rapiboy-96.png");
 
 async function crearMenu() {
   await browser.contextMenus.removeAll();
@@ -8,7 +10,7 @@ async function crearMenu() {
     id: MENU_ID,
     title: "Cargar datos de tienda en Rapiboy",
     contexts: ["selection"],
-    icons: { 16: ICON, 32: ICON },
+    icons: { 16: ICON_16, 32: ICON_32 },
   });
 }
 

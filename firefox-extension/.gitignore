@@ -1,0 +1,9 @@
+node_modules/
+artefactos/
+package-lock.json
+
+# Claves de firma de AMO
+firma.cjs
+
+# Estado local de web-ext sign
+.amo-upload-uuid
