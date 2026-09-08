@@ -12,14 +12,17 @@ import estilos from "./ui.module.css";
  * Las secciones van agrupadas por para qué se usan, no en una lista corrida.
  *
  * «Cola de trabajo» es lo del turno: todo ahí mira el mes en curso o el día.
- * «Historial» son los meses cerrados, que se consultan cuando hay tiempo de
- * analizar y no en medio de la operación. El grupo es la única jerarquía;
- * adentro la navegación es directa, sin submenús.
+ * «Siniestrados» y «Colectas» son procesos con vida propia, cada uno con su
+ * pantalla de trabajo y su historial. «Historial» junta los meses cerrados de
+ * la cola, que se consultan cuando hay tiempo de analizar y no en medio de la
+ * operación. El grupo es la única jerarquía; adentro la navegación es directa,
+ * sin submenús.
  *
- * Seguimiento y Cobertura van sueltas, sin grupo. No pertenecen a una cola ni a
- * un período: se entra a reportar algo, o a preguntar si un domicilio entra,
- * viniendo de cualquier pantalla. Meterlas en un grupo plegable las escondía
- * detrás de un clic, y un grupo con una sola sección adentro es un rodeo.
+ * Comercios, Seguimiento, Cobertura y Cuentas van sueltas, sin grupo. No
+ * pertenecen a una cola ni a un período: se entra a mirar una zona, a reportar
+ * algo, a preguntar si un domicilio entra o a tocar la propia cuenta, viniendo
+ * de cualquier pantalla. Meterlas en un grupo plegable las escondía detrás de
+ * un clic, y un grupo con una sola sección adentro es un rodeo.
  */
 type Seccion = {
   href: string;
@@ -40,23 +43,30 @@ const NAVEGACION: (Grupo | Seccion)[] = [
     secciones: [
       { href: "/", etiqueta: "Mes en curso", icono: Calendario },
       { href: "/operacion", etiqueta: "Ayer", icono: Reloj },
-      { href: "/demorados", etiqueta: "Demorados", icono: Alerta },
       { href: "/reclamos", etiqueta: "Informacion de tiendas", icono: Barras },
       { href: "/cancelados", etiqueta: "Cancelados", icono: Cruz },
+    ],
+  },
+  {
+    titulo: "Siniestrados",
+    icono: Alerta,
+    secciones: [
+      /* `exacto` porque /siniestrados es prefijo de /siniestrados/historial: sin
+         eso las dos entradas se encienden a la vez estando en la de abajo. */
       { href: "/siniestrados", etiqueta: "Siniestrados", icono: Alerta, exacto: true },
-      { href: "/comercios", etiqueta: "Comercios y zonas (BETA)", icono: Pin },
+      { href: "/siniestrados/historial", etiqueta: "Historial", icono: Archivo },
     ],
   },
 
+  { href: "/comercios", etiqueta: "Comercios y zonas (beta)", icono: Pin },
   { href: "/seguimiento", etiqueta: "Seguimiento", icono: Nota, destacado: true },
-  { href: "/cobertura", etiqueta: "Cobertura", icono: Mapa },
+  { href: "/cobertura", etiqueta: "Cobertura (beta)", icono: Mapa },
 
   {
     titulo: "Colectas",
     icono: Camion,
     secciones: [
-      /* `exacto` porque /colectas es prefijo de /colectas/historial: sin eso las dos
-         entradas se encienden a la vez estando en la de abajo. */
+      /* Mismo motivo que arriba: /colectas es prefijo de /colectas/historial. */
       { href: "/colectas", etiqueta: "Asignación", icono: Persona, exacto: true },
       { href: "/colectas/historial", etiqueta: "Historial", icono: Calendario },
     ],
@@ -65,19 +75,15 @@ const NAVEGACION: (Grupo | Seccion)[] = [
     titulo: "Historial",
     icono: Archivo,
     secciones: [
-      { href: "/historico", etiqueta: "Histórico", icono: Archivo },
-      { href: "/cancelados-historico", etiqueta: "Cancelados históricos", icono: Archivo },
-      { href: "/siniestrados/historial", etiqueta: "Siniestrados Historial", icono: Archivo },
+      { href: "/historico", etiqueta: "Históricos Casos", icono: Archivo },
+      { href: "/cancelados-historico", etiqueta: "Históricos Cancelados", icono: Archivo },
     ],
   },
-  {
-    titulo: "Cuenta",
-    icono: Persona,
-    /* La entrada está para todos —cualquiera necesita poder cambiar su propia
-       contraseña— y cambia de nombre según el rol. Quien no administra ve solo
-       su perfil: la lista de los demás no sale del servidor. */
-    secciones: [{ href: "/perfiles", etiqueta: null, icono: Persona }],
-  },
+
+  /* Cambia de nombre según el rol: quien administra ve «Perfiles» y el resto,
+     «Mi perfil». La entrada está para todos porque cualquiera necesita poder
+     cambiar su propia contraseña. */
+  { href: "/perfiles", etiqueta: null, icono: Persona },
 ];
 
 function esGrupo(entrada: Grupo | Seccion): entrada is Grupo {

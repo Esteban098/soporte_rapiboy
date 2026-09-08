@@ -100,9 +100,13 @@
 .railGrupoBoton {
   display: flex;
   align-items: center;
-  gap: 9px;
+  /* El gap y el padding izquierdo están calculados para que el icono y el
+     texto del título caigan en la misma columna que los de una entrada suelta:
+     esas son hermanas de los grupos, no hijas, y tienen que leerse así.
+     21px = los 10 del <ul> más los 11 del propio enlace. */
+  gap: 10px;
   width: 100%;
-  padding: 14px 16px 6px;
+  padding: 14px 21px 6px;
   margin: 0;
   background: none;
   border: 0;
@@ -144,8 +148,10 @@
 
 /* Las secciones quedan indentadas bajo su grupo, para que se lea la
    dependencia sin necesidad de líneas ni cajas. */
+/* Indentadas 11px respecto del título del grupo: la sangría es lo único que
+   dice que están adentro de él. */
 .railGrupo .railLista {
-  padding-left: 16px;
+  padding-left: 21px;
 }
 
 .railLista {
@@ -881,13 +887,7 @@ details[open] > .summary::before {
     gap: 8px;
   }
 
-  .railGrupoTitulo,
-  /* Una sección suelta ocupa el lugar de un grupo, así que respira como uno. */
-.railSuelta {
-  margin: 8px 0;
-}
-
-.railPie {
+  .railPie {
     display: none;
   }
 
