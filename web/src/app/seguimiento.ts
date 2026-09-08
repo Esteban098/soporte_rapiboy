@@ -1,7 +1,12 @@
 "use server";
 
 import { updateTag } from "next/cache";
-import { BUCKET_SEGUIMIENTO, TABLA_SEGUIMIENTO } from "@/lib/config";
+import {
+  BUCKET_SEGUIMIENTO,
+  TABLA_MENSUAL,
+  TABLA_MENSUAL_HISTORICO,
+  TABLA_SEGUIMIENTO,
+} from "@/lib/config";
 import { resumirComentario } from "@/lib/resumen";
 import { usuarioActual } from "@/lib/sesion";
 import { ESTADOS, type EstadoSeguimiento } from "@/lib/seguimiento";
@@ -39,6 +44,9 @@ const MAX_BYTES = 10 * 1024 * 1024;
 
 /** Un comentario más largo que esto no es un reporte, es un pegado accidental. */
 const MAX_COMENTARIO = 4000;
+
+/** Evita pegar por accidente textos largos en los nombres de responsables. */
+const MAX_RESPONSABLE = 200;
 
 /** Rutas que este código pudo haber emitido: `caso/uuid-nombre`. */
 const RUTA_VALIDA = /^[a-zA-Z0-9._-]+\/[0-9a-f-]{36}-[a-zA-Z0-9._-]+$/;
@@ -110,10 +118,38 @@ export async function prepararAdjuntos(
 /** Lo que se guarda de un reporte. Los archivos ya están subidos. */
 export type DatosReporte = {
   casoId: string;
+  driver: string;
+  seller: string;
   comentario: string;
   /** Rutas devueltas por `prepararAdjuntos`. */
   archivos: string[];
 };
+
+type FilaPedido = {
+  repartidor?: string | null;
+  tienda?: string | null;
+};
+
+/**
+ * Busca primero en la ventana operativa y también en el histórico físico.
+ *
+ * Se leen las dos en paralelo porque durante los días de rotación el pedido
+ * puede estar en cualquiera. Guardar una copia en Seguimiento evita que el
+ * driver y el seller desaparezcan de un reporte cuando Mensual se archive.
+ */
+async function responsablesDelCaso(
+  casoId: string,
+): Promise<{ driver: string | null; seller: string | null }> {
+  const [mensual, historico] = await Promise.all([
+    leerFila<FilaPedido>(TABLA_MENSUAL, casoId),
+    leerFila<FilaPedido>(TABLA_MENSUAL_HISTORICO, casoId),
+  ]);
+
+  return {
+    driver: mensual?.repartidor?.trim() || historico?.repartidor?.trim() || null,
+    seller: mensual?.tienda?.trim() || historico?.tienda?.trim() || null,
+  };
+}
 
 /**
  * Guarda un reporte.
@@ -126,12 +162,17 @@ export async function crearSeguimiento(datos: DatosReporte): Promise<Resultado> 
   if (!quien) return { ok: false, error: "No tenés permiso para cargar reportes." };
 
   const casoId = datos.casoId.trim();
+  const driver = datos.driver.trim();
+  const seller = datos.seller.trim();
   const comentario = datos.comentario.trim();
 
   if (!casoId) return { ok: false, error: "Falta el id del caso." };
   if (!comentario) return { ok: false, error: "Escribí un comentario antes de enviar." };
   if (comentario.length > MAX_COMENTARIO) {
     return { ok: false, error: "El comentario es demasiado largo." };
+  }
+  if (driver.length > MAX_RESPONSABLE || seller.length > MAX_RESPONSABLE) {
+    return { ok: false, error: "Driver o seller es demasiado largo." };
   }
 
   // Las rutas llegan del navegador, así que se comprueba la forma: solo se
@@ -143,7 +184,14 @@ export async function crearSeguimiento(datos: DatosReporte): Promise<Resultado> 
     return { ok: false, error: `Se pueden adjuntar hasta ${MAX_ARCHIVOS} archivos.` };
   }
 
-  const resumen = await resumirComentario(comentario);
+  const [resumen, encontrados] = await Promise.all([
+    resumirComentario(comentario),
+    responsablesDelCaso(casoId),
+  ]);
+  const responsables = {
+    driver: driver || encontrados.driver,
+    seller: seller || encontrados.seller,
+  };
 
   const falla = await insertarFila(TABLA_SEGUIMIENTO, {
     caso_id: casoId,
@@ -152,6 +200,7 @@ export async function crearSeguimiento(datos: DatosReporte): Promise<Resultado> 
     archivos,
     estado: "abierto",
     creado_por: quien,
+    ...responsables,
   });
   if (falla) return { ok: false, error: falla };
 
@@ -210,6 +259,8 @@ export async function editarSeguimiento(id: string, datos: DatosReporte): Promis
   if (!quien) return { ok: false, error: "No tenés permiso para editar reportes." };
 
   const casoId = datos.casoId.trim();
+  const driver = datos.driver.trim();
+  const seller = datos.seller.trim();
   const comentario = datos.comentario.trim();
 
   if (!id.trim()) return { ok: false, error: "Falta el reporte." };
@@ -218,13 +269,24 @@ export async function editarSeguimiento(id: string, datos: DatosReporte): Promis
   if (comentario.length > MAX_COMENTARIO) {
     return { ok: false, error: "El comentario es demasiado largo." };
   }
+  if (driver.length > MAX_RESPONSABLE || seller.length > MAX_RESPONSABLE) {
+    return { ok: false, error: "Driver o seller es demasiado largo." };
+  }
 
-  const resumen = await resumirComentario(comentario);
+  const [resumen, encontrados] = await Promise.all([
+    resumirComentario(comentario),
+    responsablesDelCaso(casoId),
+  ]);
+  const responsables = {
+    driver: driver || encontrados.driver,
+    seller: seller || encontrados.seller,
+  };
 
   const falla = await actualizarFila(TABLA_SEGUIMIENTO, id, {
     caso_id: casoId,
     comentario_original: comentario,
     resumen_llm: resumen,
+    ...responsables,
   });
   if (falla) return { ok: false, error: falla };
 
@@ -262,12 +324,8 @@ export async function borrarSeguimiento(id: string): Promise<Resultado> {
 }
 
 /**
- * Cambia de mano un reporte.
- *
- * Tomarlo o cerrarlo deja registrado quién fue: es el sentido del cambio de
- * estado, saber a quién preguntarle. Volver a `abierto` limpia ese registro,
- * porque el campo dice quién lo está atendiendo y en ese momento no lo atiende
- * nadie; el historial de quién lo tuvo antes no lo guarda esta tabla.
+ * Abre o cierra un reporte. Al cerrarlo queda registrado quién lo resolvió;
+ * volverlo a abrir limpia esa firma porque el caso regresó a la cola.
  */
 export async function cambiarEstado(id: string, estado: EstadoSeguimiento): Promise<Resultado> {
   const quien = await usuarioActual();
@@ -276,11 +334,17 @@ export async function cambiarEstado(id: string, estado: EstadoSeguimiento): Prom
   if (!id.trim()) return { ok: false, error: "Falta el reporte." };
   if (!ESTADOS.includes(estado)) return { ok: false, error: "Ese estado no existe." };
 
+  const filaActual = await leerFila<FilaSeguimiento>(TABLA_SEGUIMIENTO, id);
+  if (!filaActual) return { ok: false, error: "Ese reporte ya no está." };
+  if (parsearSeguimiento(filaActual).estado === estado) return { ok: true };
+
   const libera = estado === "abierto";
+  const momento = new Date().toISOString();
   const falla = await actualizarFila(TABLA_SEGUIMIENTO, id, {
     estado,
     atendido_por: libera ? null : quien,
-    atendido_en: libera ? null : new Date().toISOString(),
+    atendido_en: libera ? null : momento,
+    ...(libera ? { abierto_en: momento } : {}),
   });
   if (falla) return { ok: false, error: falla };
 

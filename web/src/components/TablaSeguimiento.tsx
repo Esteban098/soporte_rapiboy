@@ -1,15 +1,17 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cambiarEstado } from "@/app/seguimiento";
 import { EditorReporte } from "./EditorReporte";
 import { enlaceViaje } from "@/lib/enlaces";
-import { numero } from "@/lib/formato";
+import { duracion, numero } from "@/lib/formato";
 import {
   ESTADOS,
   ETIQUETA_ESTADO,
+  agruparSeguimientosPorSemana,
   nombreDePersona,
+  tiempoResolucionMinutos,
   type EstadoSeguimiento,
   type Seguimiento,
 } from "@/lib/seguimiento";
@@ -38,7 +40,7 @@ export function TablaSeguimiento({
    */
   urls: Record<string, string>;
 }) {
-  const [estado, setEstado] = useState<EstadoSeguimiento | "todos">("todos");
+  const [estado, setEstado] = useState<EstadoSeguimiento | "todos">("abierto");
   const [persona, setPersona] = useState("todas");
   const [busqueda, setBusqueda] = useState("");
   const [abiertos, setAbiertos] = useState<Set<string>>(new Set());
@@ -64,12 +66,16 @@ export function TablaSeguimiento({
       if (!texto) return true;
       return (
         reporte.casoId.toLowerCase().includes(texto) ||
+        (reporte.driver ?? "").toLowerCase().includes(texto) ||
+        (reporte.seller ?? "").toLowerCase().includes(texto) ||
         reporte.comentario.toLowerCase().includes(texto) ||
         (reporte.resumen ?? "").toLowerCase().includes(texto) ||
         reporte.creadoPor.toLowerCase().includes(texto)
       );
     });
   }, [reportes, estado, persona, busqueda]);
+
+  const grupos = useMemo(() => agruparSeguimientosPorSemana(visibles), [visibles]);
 
   function alternar(id: string) {
     setAbiertos((previo) => {
@@ -91,7 +97,7 @@ export function TablaSeguimiento({
         setError(resultado.error);
         return;
       }
-      // El servidor es el que sabe quién quedó como responsable y a qué hora,
+      // El servidor es el que sabe quién cerró el reporte y a qué hora,
       // así que la fila se repinta con lo que devuelve la base y no con lo que
       // supone el navegador.
       router.refresh();
@@ -112,7 +118,7 @@ export function TablaSeguimiento({
             className={tabla.buscador}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Caso, comentario, quien reportó…"
+            placeholder="Caso, driver, seller, comentario…"
           />
         </label>
 
@@ -132,7 +138,7 @@ export function TablaSeguimiento({
 
         {personas.length > 0 ? (
           <label className={tabla.filtro}>
-            <span className={tabla.filtroEtiqueta}>Atendido por</span>
+            <span className={tabla.filtroEtiqueta}>Cerrado por</span>
             <select
               className={tabla.buscador}
               value={persona}
@@ -169,26 +175,37 @@ export function TablaSeguimiento({
               <tr>
                 <th>Fecha</th>
                 <th>Caso</th>
+                <th>Driver a cargo</th>
+                <th>Seller</th>
                 <th>Resumen</th>
                 <th>Adjuntos</th>
                 <th>Reportó</th>
-                <th>Atiende</th>
+                <th>Cerró</th>
+                <th>Tiempo de resolución</th>
                 <th>Estado</th>
                 <th data-noimprimir aria-label="Acciones" />
               </tr>
             </thead>
             <tbody>
-              {visibles.map((reporte) => {
-                const desplegado = abiertos.has(reporte.id);
-                // El resumen es una comodidad; si falta —sin clave de OpenAI, o
-                // porque el comentario era corto— se muestra el original, que
-                // es el dato de verdad.
-                const texto = reporte.resumen ?? reporte.comentario;
-                const hayMas = reporte.resumen !== null;
+              {grupos.map((grupo) => (
+                <Fragment key={grupo.clave}>
+                  <tr className={propio.filaSemana}>
+                    <th colSpan={11} scope="rowgroup">
+                      {grupo.etiqueta} · {numero(grupo.reportes.length)}{" "}
+                      {grupo.reportes.length === 1 ? "reporte" : "reportes"}
+                    </th>
+                  </tr>
+                  {grupo.reportes.map((reporte) => {
+                    const desplegado = abiertos.has(reporte.id);
+                    // El resumen es una comodidad; si falta —sin clave de OpenAI, o
+                    // porque el comentario era corto— se muestra el original, que
+                    // es el dato de verdad.
+                    const texto = reporte.resumen ?? reporte.comentario;
+                    const hayMas = reporte.resumen !== null;
 
-                return (
-                  <tr key={reporte.id}>
-                    <td className={propio.fecha}>{cuando(reporte.creado)}</td>
+                    return (
+                      <tr key={reporte.id}>
+                        <td className={propio.fecha}>{cuando(reporte.creado)}</td>
 
                     <td>
                       <a
@@ -201,6 +218,9 @@ export function TablaSeguimiento({
                         {reporte.casoId}
                       </a>
                     </td>
+
+                    <td className={propio.persona}>{reporte.driver ?? "—"}</td>
+                    <td className={propio.persona}>{reporte.seller ?? "—"}</td>
 
                     <td className={propio.celdaTexto}>
                       <p className={propio.resumen}>{desplegado ? reporte.comentario : texto}</p>
@@ -251,6 +271,12 @@ export function TablaSeguimiento({
                       {reporte.atendidoPor ? nombreDePersona(reporte.atendidoPor) : "—"}
                     </td>
 
+                    <td className={propio.duracion}>
+                      {reporte.estado === "abierto"
+                        ? "Pendiente"
+                        : duracion(tiempoResolucionMinutos(reporte))}
+                    </td>
+
                     <td>
                       <select
                         className={`${propio.estado} ${propio[reporte.estado]}`}
@@ -277,9 +303,11 @@ export function TablaSeguimiento({
                         Editar
                       </button>
                     </td>
-                  </tr>
-                );
-              })}
+                      </tr>
+                    );
+                  })}
+                </Fragment>
+              ))}
             </tbody>
           </table>
         </div>

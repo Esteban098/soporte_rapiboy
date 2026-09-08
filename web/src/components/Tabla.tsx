@@ -507,7 +507,7 @@ function Celda({
       return (
         <td className={clase}>
           <span className={tono}>
-            {dias === 0 ? "Hoy" : dias === 1 ? "Ayer" : `${dias} d quieto`}
+            {dias}d
           </span>
         </td>
       );

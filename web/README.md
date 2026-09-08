@@ -420,9 +420,10 @@ abajo a la derecha está en **todas** las pantallas, porque el momento de
 reportar algo casi nunca coincide con estar parado en la pantalla de reportes:
 se encuentra algo raro mirando Demorados o el mes en curso.
 
-Se carga el id del caso, un comentario y, si hace falta, fotos o archivos. El
-reporte queda **abierto** hasta que alguien lo toma; al tomarlo o cerrarlo se
-registra quién fue, y eso es lo que alimenta el gráfico de la sección.
+Se carga el id del caso, driver, seller, un comentario y, si hace falta, fotos o archivos. El
+reporte queda **abierto** hasta que alguien lo cierra; al cerrarlo se registra
+quién fue. La pantalla abre con los pendientes y los agrupa por semana de lunes
+a domingo, usando el calendario de Ciudad de México.
 
 Tres cosas que conviene saber:
 
@@ -449,6 +450,16 @@ Tres cosas que conviene saber:
   entró a la tabla, o que ya salió del mes. El script está en
   `supabase/seguimiento.sql` y se corre una vez; hasta entonces la sección
   aparece con un aviso en vez de fallar.
+- **Driver y seller quedan guardados con el reporte.** Al cargarlo, el servidor
+  acepta ambos valores desde el formulario; si alguno queda vacío, busca el
+  pedido en `mensual` y `mensual_historico` y lo completa.
+  Así no desaparecen cuando el pedido rota al histórico. En una base existente,
+  ejecutar `supabase/migracion-04-seguimiento-semanal.sql`: también devuelve los
+  estados `tomado` antiguos a `abierto` y bloquea nuevas cargas con ese estado.
+- **La resolución se mide desde la última apertura.** `abierto_en` se crea con
+  el reporte y se reinicia si alguien lo reabre; al cerrarlo, `atendido_en`
+  marca el final. Así un segundo ciclo abierto/cerrado no suma el tiempo de un
+  cierre anterior.
 
 Esta sección no usa el componente `Tabla`: cada fila tiene un selector que
 escribe en la base, adjuntos que abrir y un comentario que se despliega, y meter

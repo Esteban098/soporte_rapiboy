@@ -26,18 +26,30 @@ export function EditorReporte({
   alCerrar: () => void;
 }) {
   const [casoId, setCasoId] = useState(reporte.casoId);
+  const [driver, setDriver] = useState(reporte.driver ?? "");
+  const [seller, setSeller] = useState(reporte.seller ?? "");
   const [comentario, setComentario] = useState(reporte.comentario);
   const [error, setError] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState(false);
   const [guardando, iniciar] = useTransition();
   const router = useRouter();
 
-  const cambio = comentario.trim() !== reporte.comentario;
+  const cambio =
+    casoId.trim() !== reporte.casoId ||
+    driver.trim() !== (reporte.driver ?? "") ||
+    seller.trim() !== (reporte.seller ?? "") ||
+    comentario.trim() !== reporte.comentario;
 
   function guardar() {
     iniciar(async () => {
       setError(null);
-      const resultado = await editarSeguimiento(reporte.id, { casoId, comentario, archivos: [] });
+      const resultado = await editarSeguimiento(reporte.id, {
+        casoId,
+        driver,
+        seller,
+        comentario,
+        archivos: [],
+      });
 
       if (!resultado.ok) {
         setError(resultado.error);
@@ -78,6 +90,28 @@ export function EditorReporte({
             value={casoId}
             onChange={(e) => setCasoId(e.target.value)}
             inputMode="numeric"
+            disabled={guardando}
+          />
+        </label>
+
+        <label className={estilos.campo}>
+          <span className={estilos.etiqueta}>Driver a cargo</span>
+          <input
+            className={estilos.entrada}
+            value={driver}
+            onChange={(e) => setDriver(e.target.value)}
+            placeholder="Se completa desde Mensual/Histórico si queda vacío"
+            disabled={guardando}
+          />
+        </label>
+
+        <label className={estilos.campo}>
+          <span className={estilos.etiqueta}>Seller</span>
+          <input
+            className={estilos.entrada}
+            value={seller}
+            onChange={(e) => setSeller(e.target.value)}
+            placeholder="Se completa desde Mensual/Histórico si queda vacío"
             disabled={guardando}
           />
         </label>

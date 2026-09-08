@@ -10,7 +10,8 @@
     "verificar": "tsx --conditions react-server scripts/verificar.mts",
     "typecheck": "tsc --noEmit",
     "test:siniestrados": "node --import tsx scripts/siniestrados.test.mts",
-    "test:cobros": "node --conditions=react-server --import tsx scripts/cobros.test.mts"
+    "test:cobros": "node --conditions=react-server --import tsx scripts/cobros.test.mts",
+    "test:seguimiento": "node --import tsx scripts/seguimiento.test.mts"
   },
   "dependencies": {
     "next": "16.3.3",

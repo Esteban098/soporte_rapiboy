@@ -127,6 +127,24 @@
   color: var(--ink-2);
 }
 
+.duracion {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-2);
+}
+
+.filaSemana th {
+  padding: 9px 12px;
+  background: var(--surface-2);
+  border-top: 1px solid var(--rule);
+  color: var(--ink-2);
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
 /* El estado se elige acá mismo. El color lo dice de un vistazo y el texto del
    option lo dice con palabras, así que el color no es el único portador. */
 .estado {
@@ -148,11 +166,6 @@
 
 .abierto {
   border-left-color: var(--serie-2);
-}
-
-.tomado {
-  border-left-color: var(--warning);
-  background: var(--warning-soft);
 }
 
 .cerrado {

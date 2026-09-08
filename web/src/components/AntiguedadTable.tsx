@@ -17,7 +17,7 @@ export function AntiguedadTable({
       id={id}
       titulo={titulo}
       columnas={[
-        { clave: "tramo", titulo: "Sin moverse", tipo: "texto" },
+        { clave: "tramo", titulo: "Sin mov", tipo: "texto" },
         { clave: "casos", titulo: "Casos abiertos", tipo: "numero" },
         { clave: "porcentaje", titulo: "% de los abiertos", tipo: "porcentaje" },
       ]}

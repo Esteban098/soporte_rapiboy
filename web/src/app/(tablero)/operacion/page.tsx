@@ -71,7 +71,7 @@ export default async function Ayer() {
         <PanelCasos
           id="ayer-casos"
           titulo="Casos de ayer"
-          nota="Los casos nuevos de la jornada anterior. La columna «sin moverse» cuenta los días desde el último cambio de estado del paquete."
+          nota="Los casos nuevos de la jornada anterior. La columna «Sin mov» cuenta los días desde el último cambio de estado del paquete."
           tituloGrafico="Cómo se reparten los casos de ayer"
           casos={casos}
           vacio="Ayer cerró sin casos abiertos."

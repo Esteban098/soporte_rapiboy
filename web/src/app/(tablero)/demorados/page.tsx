@@ -70,7 +70,7 @@ export default async function Demorados() {
         <PanelCasos
           id="demorados-casos"
           titulo="Casos demorados"
-          nota="Los casos abiertos que llevan más de dos días sin cambiar de estado. La columna «sin moverse» cuenta desde el último movimiento."
+          nota="Los casos abiertos que llevan más de dos días sin cambiar de estado. La columna «Sin mov» cuenta desde el último movimiento."
           tituloGrafico="Dónde se concentran los demorados"
           casos={casosDemorados}
           vacio="No hay pedidos demorados."

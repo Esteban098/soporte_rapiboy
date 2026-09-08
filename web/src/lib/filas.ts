@@ -19,7 +19,7 @@ type ColumnaPedido = Columna & {
 
 const TODAS: ColumnaPedido[] = [
   { clave: "id", titulo: "Viaje", tipo: "viaje" , campo: "id" },
-  { clave: "quieto", titulo: "Sin moverse", tipo: "dias" },
+  { clave: "quieto", titulo: "Sin mov", tipo: "dias" },
   { clave: "estado", titulo: "Estado", tipo: "estado" , campo: "estado" },
   { clave: "caso", titulo: "Caso", tipo: "caso" },
   { clave: "creacion", titulo: "Creación", tipo: "texto" , campo: "creacion" },

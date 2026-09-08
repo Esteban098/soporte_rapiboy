@@ -1,13 +1,5 @@
-/* ---------------------------------------------------------------------------
-   Sistema de diseño. Todo color pasa por un token para que el tema claro y el
-   oscuro se resuelvan como conjunto y ningún componente quede con un literal
-   que solo funciona en uno de los dos.
-
-   La paleta y las medidas son las del sistema de Apple: gris papel bajo
-   tarjetas blancas, esquinas grandes, sombras casi invisibles, azul de sistema
-   como único acento de acción y los colores semánticos —verde, ámbar, rojo— en
-   sus variantes accesibles, que son las que aguantan texto chico sobre blanco.
-   --------------------------------------------------------------------------- */
+/* Liquid Glass: superficies DOM translúcidas y reflejos de borde.
+   Los colores semánticos permanecen independientes del material. */
 
 :root {
   color-scheme: light;
@@ -52,8 +44,8 @@
   --segmento-activo: #ffffff;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 30px -14px rgba(0, 0, 0, 0.18);
   --shadow-alta: 0 2px 6px rgba(0, 0, 0, 0.05), 0 20px 46px -18px rgba(0, 0, 0, 0.26);
-  --radio: 18px;
-  --radio-2: 12px;
+  --radio: 24px;
+  --radio-2: 14px;
   --radio-3: 999px;
 
   /* ---- movimiento ----
@@ -232,6 +224,55 @@
   --estado-cancelado-fondo: rgba(174, 174, 178, 0.17);
 }
 
+
+/* Se conservan superficies opacas para tablas, menús y fallbacks. */
+:root {
+  --plane: #eaf0f8;
+  --muted: #626d80;
+  --glass: rgba(255, 255, 255, 0.64);
+  --glass-edge: rgba(255, 255, 255, 0.86);
+  --glass-glint: rgba(255, 255, 255, 0.75);
+  --glass-shadow: inset 0 1px 0 var(--glass-glint), inset 0 -1px 0 rgba(255, 255, 255, 0.2), 0 12px 36px -18px rgba(39, 67, 115, 0.32);
+  --glass-filter: blur(24px) saturate(145%);
+  --glass-sheen: linear-gradient(135deg, var(--glass-glint), transparent 38%, transparent 70%, rgba(150, 189, 237, 0.12));
+  --ambient: radial-gradient(ellipse at 8% 5%, #b9d8fa 0%, transparent 48%), radial-gradient(ellipse at 90% 28%, #d6c9ef 0%, transparent 45%), radial-gradient(ellipse at 55% 95%, #c1e5e3 0%, transparent 48%);
+}
+
+:root[data-theme="dark"] {
+  --plane: #101827;
+  --muted: #a5b2c7;
+  --glass: rgba(28, 39, 58, 0.76);
+  --glass-edge: rgba(191, 214, 255, 0.2);
+  --glass-glint: rgba(217, 233, 255, 0.14);
+  --glass-shadow: inset 0 1px 0 var(--glass-glint), inset 0 -1px 0 rgba(255, 255, 255, 0.03), 0 16px 42px -18px rgba(0, 0, 0, 0.6);
+  --ambient: radial-gradient(ellipse at 8% 5%, #203e66 0%, transparent 48%), radial-gradient(ellipse at 90% 28%, #342c52 0%, transparent 45%), radial-gradient(ellipse at 55% 95%, #173e46 0%, transparent 48%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --plane: #101827;
+    --muted: #a5b2c7;
+    --glass: rgba(28, 39, 58, 0.76);
+    --glass-edge: rgba(191, 214, 255, 0.2);
+    --glass-glint: rgba(217, 233, 255, 0.14);
+    --glass-shadow: inset 0 1px 0 var(--glass-glint), inset 0 -1px 0 rgba(255, 255, 255, 0.03), 0 16px 42px -18px rgba(0, 0, 0, 0.6);
+    --ambient: radial-gradient(ellipse at 8% 5%, #203e66 0%, transparent 48%), radial-gradient(ellipse at 90% 28%, #342c52 0%, transparent 45%), radial-gradient(ellipse at 55% 95%, #173e46 0%, transparent 48%);
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root { --glass: var(--surface); }
+}
+
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+  :root {
+    --glass: var(--surface);
+    --glass-filter: none;
+    --glass-sheen: none;
+    --ambient: none;
+  }
+}
+
 *,
 *::before,
 *::after {
@@ -246,6 +287,9 @@ html {
 body {
   margin: 0;
   background: var(--plane);
+  background-image: var(--ambient);
+  background-attachment: fixed;
+  min-height: 100vh;
   color: var(--ink);
   font-family: var(--sans);
   font-size: 15px;
@@ -363,6 +407,13 @@ a {
   @page {
     size: landscape;
     margin: 12mm;
+  }
+
+  :root {
+    --glass: #ffffff;
+    --glass-filter: none;
+    --glass-sheen: none;
+    --glass-shadow: none;
   }
 
   body {

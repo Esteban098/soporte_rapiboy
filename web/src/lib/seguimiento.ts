@@ -1,38 +1,32 @@
 /**
  * Reportes que carga el equipo desde el tablero.
  *
- * Es lo único que la web escribe por su cuenta y nadie más toca: `mensual` y
- * `ayer` las rehace n8n cada mañana, así que un comentario guardado ahí duraría
- * hasta la próxima corrida. Acá hay una fila por reporte —varias por viaje si
- * hace falta— con quién lo escribió, quién lo tomó y en qué quedó.
- *
- * Este módulo es puro a propósito: no lee la base ni importa `server-only`,
- * porque los tipos y las etiquetas también los usa la tabla del navegador. La
- * lectura vive en `datos.ts` y la escritura en `app/seguimiento.ts`.
+ * Hay una fila por reporte —varias por viaje si hace falta—. `driver` y
+ * `seller` son una foto del pedido al momento del alta: así siguen visibles
+ * aunque el viaje pase de Mensual a Histórico.
  */
 
-/** En qué mano está el reporte. Es el enum `estado_seguimiento` de la base. */
-export type EstadoSeguimiento = "abierto" | "tomado" | "cerrado";
+export type EstadoSeguimiento = "abierto" | "cerrado";
 
-export const ESTADOS: EstadoSeguimiento[] = ["abierto", "tomado", "cerrado"];
+export const ESTADOS: EstadoSeguimiento[] = ["abierto", "cerrado"];
 
 export const ETIQUETA_ESTADO: Record<EstadoSeguimiento, string> = {
   abierto: "Abierto",
-  tomado: "Tomado",
   cerrado: "Cerrado",
 };
 
 export type Seguimiento = {
   id: string;
   creado: Date | null;
-  /** Id del viaje al que se refiere, tal como lo escribieron. */
   casoId: string;
+  driver: string | null;
+  seller: string | null;
   comentario: string;
-  /** Lo que resumió el modelo, o `null` si no hubo resumen. */
   resumen: string | null;
-  /** Rutas dentro del bucket privado, no URLs: las firma quien las muestra. */
   archivos: string[];
   estado: EstadoSeguimiento;
+  /** Inicio del período abierto actual; se reinicia si el caso se reabre. */
+  abiertoEn: Date | null;
   creadoPor: string;
   atendidoPor: string | null;
   atendidoEn: Date | null;
@@ -43,10 +37,13 @@ export type FilaSeguimiento = {
   id: string;
   created_at: string | null;
   caso_id: string | null;
+  driver: string | null;
+  seller: string | null;
   comentario_original: string | null;
   resumen_llm: string | null;
   archivos: string[] | null;
   estado: string | null;
+  abierto_en: string | null;
   creado_por: string | null;
   atendido_por: string | null;
   atendido_en: string | null;
@@ -59,13 +56,11 @@ function fecha(valor: string | null): Date | null {
 }
 
 /**
- * Un valor desconocido en `estado` cae en `abierto`, que es lo seguro: el
- * reporte sigue apareciendo en la cola en vez de desaparecer de la vista de
- * todos por un dato mal escrito.
+ * Los `tomado` que todavía pudieran existir antes de aplicar la migración se
+ * leen como abiertos. No están resueltos y no deben desaparecer de la cola.
  */
 function estado(valor: string | null): EstadoSeguimiento {
-  const limpio = (valor ?? "").trim().toLowerCase();
-  return limpio === "tomado" || limpio === "cerrado" ? limpio : "abierto";
+  return (valor ?? "").trim().toLowerCase() === "cerrado" ? "cerrado" : "abierto";
 }
 
 export function parsearSeguimiento(fila: FilaSeguimiento): Seguimiento {
@@ -73,80 +68,125 @@ export function parsearSeguimiento(fila: FilaSeguimiento): Seguimiento {
     id: fila.id,
     creado: fecha(fila.created_at),
     casoId: (fila.caso_id ?? "").trim(),
+    driver: fila.driver?.trim() || null,
+    seller: fila.seller?.trim() || null,
     comentario: (fila.comentario_original ?? "").trim(),
     resumen: fila.resumen_llm?.trim() || null,
     archivos: (fila.archivos ?? []).filter(Boolean),
     estado: estado(fila.estado),
+    abiertoEn: fecha(fila.abierto_en) ?? fecha(fila.created_at),
     creadoPor: (fila.creado_por ?? "").trim(),
     atendidoPor: fila.atendido_por?.trim() || null,
     atendidoEn: fecha(fila.atendido_en),
   };
 }
 
-/**
- * Cómo se muestra a una persona: lo que va antes del arroba.
- *
- * El correo entero no entra en el eje de un gráfico y además repite el dominio
- * en todas las barras, que es justo lo que no distingue a nadie.
- */
 export function nombreDePersona(correo: string | null): string {
   if (!correo) return "Sin asignar";
   const local = correo.split("@")[0]?.trim();
   return local || correo;
 }
 
-export type ConteoPersona = {
-  persona: string;
-  correo: string;
-  tomados: number;
-  cerrados: number;
-  total: number;
-};
-
-/**
- * Cuántos casos tomó y cuántos cerró cada persona.
- *
- * Los `abierto` quedan afuera porque todavía no los atendió nadie: contarlos
- * pediría una barra "sin asignar" que no habla del trabajo de ninguna persona.
- * Se ordena por total para que el eje arranque por quien más movió.
- */
-export function contarPorPersona(reportes: Seguimiento[]): ConteoPersona[] {
-  const grupos = new Map<string, ConteoPersona>();
-
-  for (const reporte of reportes) {
-    if (!reporte.atendidoPor) continue;
-    if (reporte.estado !== "tomado" && reporte.estado !== "cerrado") continue;
-
-    const correo = reporte.atendidoPor;
-    const actual =
-      grupos.get(correo) ??
-      { persona: nombreDePersona(correo), correo, tomados: 0, cerrados: 0, total: 0 };
-
-    if (reporte.estado === "tomado") actual.tomados += 1;
-    else actual.cerrados += 1;
-    actual.total += 1;
-
-    grupos.set(correo, actual);
-  }
-
-  return [...grupos.values()].sort((a, b) => b.total - a.total);
-}
-
 export type ResumenSeguimiento = {
   total: number;
   abiertos: number;
-  tomados: number;
   cerrados: number;
-  /** Cuántos tienen al menos un archivo adjunto. */
-  conAdjuntos: number;
+  resolucionPromedioMinutos: number | null;
 };
 
+/** Minutos desde la última apertura hasta el cierre efectivo. */
+export function tiempoResolucionMinutos(reporte: Seguimiento): number | null {
+  if (reporte.estado !== "cerrado" || !reporte.abiertoEn || !reporte.atendidoEn) return null;
+  const diferencia = reporte.atendidoEn.getTime() - reporte.abiertoEn.getTime();
+  return diferencia >= 0 ? Math.round(diferencia / 60_000) : null;
+}
+
 export function resumirSeguimientos(reportes: Seguimiento[]): ResumenSeguimiento {
+  const tiempos = reportes
+    .map(tiempoResolucionMinutos)
+    .filter((valor): valor is number => valor !== null);
   return {
     total: reportes.length,
     abiertos: reportes.filter((r) => r.estado === "abierto").length,
-    tomados: reportes.filter((r) => r.estado === "tomado").length,
     cerrados: reportes.filter((r) => r.estado === "cerrado").length,
-    conAdjuntos: reportes.filter((r) => r.archivos.length > 0).length,
+    resolucionPromedioMinutos:
+      tiempos.length > 0
+        ? Math.round(tiempos.reduce((total, minutos) => total + minutos, 0) / tiempos.length)
+        : null,
   };
+}
+
+export type GrupoSemanaSeguimiento = {
+  /** Lunes de la semana operativa, como AAAA-MM-DD. */
+  clave: string;
+  etiqueta: string;
+  reportes: Seguimiento[];
+};
+
+const ZONA_OPERATIVA = "America/Mexico_City";
+const partesFecha = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  timeZone: ZONA_OPERATIVA,
+});
+const diaCorto = new Intl.DateTimeFormat("es-MX", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+});
+const diaLargo = new Intl.DateTimeFormat("es-MX", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+function fechaLocal(fecha: Date): Date {
+  const partes = Object.fromEntries(
+    partesFecha.formatToParts(fecha).map((parte) => [parte.type, parte.value]),
+  );
+  return new Date(Date.UTC(Number(partes.year), Number(partes.month) - 1, Number(partes.day)));
+}
+
+function inicioDeSemana(fecha: Date): Date {
+  const local = fechaLocal(fecha);
+  const desdeLunes = (local.getUTCDay() + 6) % 7;
+  local.setUTCDate(local.getUTCDate() - desdeLunes);
+  return local;
+}
+
+function claveFecha(fecha: Date): string {
+  return fecha.toISOString().slice(0, 10);
+}
+
+function etiquetaSemana(inicio: Date): string {
+  const fin = new Date(inicio);
+  fin.setUTCDate(fin.getUTCDate() + 6);
+  return `Semana ${diaCorto.format(inicio)} – ${diaLargo.format(fin)}`;
+}
+
+/** Agrupa por semanas de lunes a domingo según la fecha de Ciudad de México. */
+export function agruparSeguimientosPorSemana(
+  reportes: Seguimiento[],
+): GrupoSemanaSeguimiento[] {
+  const grupos = new Map<string, GrupoSemanaSeguimiento>();
+
+  for (const reporte of reportes) {
+    const inicio = reporte.creado ? inicioDeSemana(reporte.creado) : null;
+    const clave = inicio ? claveFecha(inicio) : "sin-fecha";
+    const grupo = grupos.get(clave) ?? {
+      clave,
+      etiqueta: inicio ? etiquetaSemana(inicio) : "Sin fecha",
+      reportes: [],
+    };
+    grupo.reportes.push(reporte);
+    grupos.set(clave, grupo);
+  }
+
+  return [...grupos.values()].sort((a, b) => {
+    if (a.clave === "sin-fecha") return 1;
+    if (b.clave === "sin-fecha") return -1;
+    return b.clave.localeCompare(a.clave);
+  });
 }

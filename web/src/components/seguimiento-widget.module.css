@@ -47,6 +47,13 @@
 }
 
 .panel {
+  background-color: var(--glass);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+
   position: fixed;
   right: 20px;
   bottom: 0;
@@ -58,11 +65,8 @@
   max-height: min(680px, calc(100vh - 24px));
   overflow-y: auto;
 
-  background: var(--surface);
-  border: 1px solid var(--warning);
   border-bottom: none;
   border-radius: var(--radio) var(--radio) 0 0;
-  box-shadow: 0 -3px 28px -10px rgba(176, 122, 30, 0.45), var(--shadow-alta);
   animation: subir var(--dur-larga) var(--ease-salida) both;
 }
 
@@ -129,6 +133,30 @@
   margin-bottom: 11px;
 }
 
+.responsables {
+  margin: 0 0 11px;
+  padding: 11px 12px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-2);
+}
+
+.responsablesTitulo {
+  padding: 0 5px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.responsablesCampos {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.campoCompacto {
+  display: block;
+}
+
 .etiqueta {
   display: block;
   font-size: 13px;
@@ -193,6 +221,12 @@
   margin-top: 5px;
   font-size: 11.5px;
   color: var(--muted);
+}
+
+@media (max-width: 520px) {
+  .responsablesCampos {
+    grid-template-columns: 1fr;
+  }
 }
 
 .error,

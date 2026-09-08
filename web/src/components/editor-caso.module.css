@@ -24,11 +24,15 @@
 }
 
 .panel {
+  background-color: var(--glass);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+
   width: min(440px, 100%);
-  background: var(--surface);
-  border: 1px solid var(--rule);
   border-radius: var(--radio);
-  box-shadow: var(--shadow-alta);
   padding: 24px 26px 22px;
   animation: subir var(--dur-larga) var(--ease-salida) both;
 }

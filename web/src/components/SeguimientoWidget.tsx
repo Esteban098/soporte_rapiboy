@@ -75,6 +75,8 @@ export function SeguimientoWidget() {
     evento.preventDefault();
     const campos = new FormData(evento.currentTarget);
     const casoId = String(campos.get("casoId") ?? "");
+    const driver = String(campos.get("driver") ?? "");
+    const seller = String(campos.get("seller") ?? "");
     const comentario = String(campos.get("comentario") ?? "");
     const archivos = campos
       .getAll("archivos")
@@ -107,7 +109,7 @@ export function SeguimientoWidget() {
       }
 
       setPaso("guardando");
-      const resultado = await crearSeguimiento({ casoId, comentario, archivos: rutas });
+      const resultado = await crearSeguimiento({ casoId, driver, seller, comentario, archivos: rutas });
       setPaso(null);
 
       if (!resultado.ok) {
@@ -186,6 +188,33 @@ export function SeguimientoWidget() {
           </div>
         ) : null}
 
+        <fieldset className={estilos.responsables}>
+          <legend className={estilos.responsablesTitulo}>Responsables</legend>
+          <div className={estilos.responsablesCampos}>
+            <label className={estilos.campoCompacto}>
+              <span className={estilos.etiqueta}>Driver a cargo</span>
+              <input
+                name="driver"
+                className={estilos.entrada}
+                placeholder="Nombre del driver"
+                disabled={enviando}
+              />
+            </label>
+            <label className={estilos.campoCompacto}>
+              <span className={estilos.etiqueta}>Seller</span>
+              <input
+                name="seller"
+                className={estilos.entrada}
+                placeholder="Nombre del seller"
+                disabled={enviando}
+              />
+            </label>
+          </div>
+          <span className={estilos.ayuda}>
+            Si quedan vacíos, se completan desde Mensual o Histórico.
+          </span>
+        </fieldset>
+
         <label className={estilos.campo}>
           <span className={estilos.etiqueta}>Comentario</span>
           <textarea
@@ -214,7 +243,7 @@ export function SeguimientoWidget() {
         {error ? <p className={estilos.error}>{error}</p> : null}
         {listo ? (
           <p className={estilos.exito} role="status">
-            Reporte guardado. Queda como abierto hasta que alguien lo tome.
+            Reporte guardado. Queda abierto hasta que alguien lo cierre.
           </p>
         ) : null}
 

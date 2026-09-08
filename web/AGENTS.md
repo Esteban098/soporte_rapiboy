@@ -38,6 +38,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `cobrado` es booleano, empieza en `false` y solo lo modifica el equipo desde
   las vistas de Siniestrados. Ambos viven en Mensual e Histórico, sin nuevas
   tablas. Instalar `supabase/migracion-03-cobros-siniestrados.sql` para agregarlos.
+- `seguimiento` usa solamente los estados `abierto` y `cerrado`; cualquier
+  `tomado` legado se migra a abierto. Cada reporte conserva `driver` y `seller`
+  como foto del pedido al momento del alta; se pueden cargar manualmente y, si
+  quedan vacíos, se buscan en Mensual o Histórico. `abierto_en` se reinicia al
+  reabrir y el tiempo de resolución es la diferencia hasta `atendido_en`.
+  Instalar `supabase/migracion-04-seguimiento-semanal.sql` en bases existentes.
 
 ## Límites entre flujos
 
@@ -64,8 +70,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - No truncar tablas ni cambiar workflows activos salvo pedido explícito.
 - Los JSON de `../n8n/` son exportaciones importables. Conservar credenciales,
   conexiones, expresiones y columnas protegidas al modificarlos.
-- Para una publicación compatible: desplegar la web, correr la migración SQL y
-  luego importar los workflows actualizados.
+- Para una publicación compatible: correr primero las migraciones aditivas,
+  desplegar la web y luego importar los workflows actualizados. El código viejo
+  ignora columnas nuevas; el código nuevo no puede escribir columnas ausentes.
 
 ## Validación
 
@@ -76,6 +83,7 @@ npm run typecheck
 npm run lint
 npm run test:siniestrados
 npm run test:cobros
+npm run test:seguimiento
 ```
 
 Además, validar los workflows con `jq empty ../n8n/*.json`. El build no sale a
