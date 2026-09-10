@@ -2,7 +2,7 @@ import { PageHead } from "@/components/Shell";
 import { Callout } from "@/components/Card";
 import { LiveTracker } from "@/components/LiveTracker";
 import { FondoCobertura } from "@/components/FondoCobertura";
-import { diasAtrasDelTracker, flujosDe, modoDatos } from "@/lib/config";
+import { flujosDe, modoDatos } from "@/lib/config";
 import { ventanaProyeccion } from "@/lib/cobertura";
 import { TablaFaltante } from "@/lib/supabase";
 import { diaVigente, leerTracker, type DatosDelTracker } from "@/lib/tracker-datos";
@@ -62,22 +62,6 @@ export default async function LiveTrackerPage() {
     <>
       <Cabecera />
 
-      {/*
-        Con el tracker corrido a un día anterior, esto va antes que el mapa y no
-        como una nota al pie. Alguien que mire posiciones de ayer creyendo que
-        son de ahora va a llamar a un repartidor para preguntarle por qué está
-        parado, y el aviso tiene que llegarle antes que el mapa.
-      */}
-      {datos.diasAtras > 0 ? (
-        <Callout tono="warning" titulo={`Estás viendo el ${datos.dia}, no hoy`}>
-          El tracker está corrido {datos.diasAtras}{" "}
-          {datos.diasAtras === 1 ? "día" : "días"} hacia atrás por{" "}
-          <code>TRACKER_DIAS_ATRAS</code>. Los repartidores y los paquetes son los de esa jornada, y
-          las posiciones son las últimas que se supieron ese día: no son de ahora. Para volver a la
-          jornada en curso, sacá la variable y recargá.
-        </Callout>
-      ) : null}
-
       <LiveTracker
         inicial={datos}
         ventana={ventanaProyeccion()}
@@ -96,11 +80,7 @@ export default async function LiveTrackerPage() {
 function Cabecera() {
   return (
     <PageHead
-      eyebrow={
-        diasAtrasDelTracker() > 0
-          ? `Jornada del ${diaVigente()} · no es hoy`
-          : `Jornada del ${diaVigente()}`
-      }
+      eyebrow={`Jornada del ${diaVigente()}, hora de México`}
       titulo="Live tracker"
       dek="Dónde está cada repartidor y qué le queda por entregar. Las posiciones y las rutas se traen con los dos botones del panel, cada uno por su lado: mover los puntos no rehace las rutas, y rehacer las rutas no espera a que todos los dispositivos reporten."
     />

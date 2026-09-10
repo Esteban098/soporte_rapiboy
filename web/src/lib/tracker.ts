@@ -447,45 +447,35 @@ export function enlaceAlOperador(idViaje: number): string {
 
 /* ---------- Día de operación ---------- */
 
-/**
- * El día de operación en Ciudad de México, como `YYYY-MM-DD`.
- *
- * Se resuelve con `Intl` y no restando horas: el desfase de México cambia con
- * el horario de verano, y una constante de −6 movería el corte del día durante
- * medio año. El servidor de la web, el de n8n y el de la base pueden estar en
- * tres zonas distintas, así que el día se decide en un solo lugar y viaja como
- * texto.
- */
+/** La operación vive en esta zona, y es la única que decide qué día es. */
 export const ZONA_OPERACION = "America/Mexico_City";
 
 /**
- * `diasAtras` corre el día hacia atrás, para mirar una jornada ya cerrada.
+ * El día de operación: la fecha que es **en México** en este momento.
  *
- * Sirve para probar contra datos completos: a media mañana la jornada de hoy
- * tiene tres paradas hechas y no se ve nada, mientras que la de ayer está
- * entera. Un solo número mueve las dos consultas —repartidores y paquetes— así
- * que no hay forma de terminar mirando los repartidores de hoy con los
- * paquetes de ayer.
+ * No es la fecha del servidor ni la de quien mira. Ciudad de México está tres
+ * horas detrás de Buenos Aires, así que entre la medianoche y las tres de la
+ * mañana en Argentina en México todavía es el día anterior, y los paquetes que
+ * hay que mostrar son los de esa jornada, que sigue abierta. Un tablero que
+ * mirara el reloj de quien lo abre pasaría a mostrar la jornada nueva -vacía-
+ * tres horas antes de que exista.
  *
- * La resta se hace sobre la fecha ya resuelta en México y en aritmética UTC, no
- * restándole 24 horas al instante. Restar horas cruza mal el cambio de horario
- * de verano: el día en que el reloj se corre, «hace 24 horas» puede caer en la
- * misma fecha o saltearse una.
+ * Se resuelve con `Intl` y no restando horas a mano. Hoy la diferencia es de
+ * tres horas fijas -ninguno de los dos países usa horario de verano-, pero eso
+ * es una circunstancia y no una regla: México lo dejó de usar en 2022 y podría
+ * volver, y una constante de −3 movería el corte del día durante medio año sin
+ * que nada avise. `Intl` sabe la respuesta correcta cualquiera sea el año.
+ *
+ * El servidor de la web, el de n8n y el de la base pueden estar en tres zonas
+ * distintas, así que el día se decide en un solo lugar y viaja como texto.
  */
-export function diaDeOperacion(momento: Date = new Date(), diasAtras = 0): string {
-  const hoy = new Intl.DateTimeFormat("en-CA", {
+export function diaDeOperacion(momento: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
     timeZone: ZONA_OPERACION,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(momento);
-
-  if (!Number.isFinite(diasAtras) || diasAtras === 0) return hoy;
-
-  const [anio, mes, dia] = hoy.split("-").map(Number);
-  return new Date(Date.UTC(anio, mes - 1, dia - Math.trunc(diasAtras)))
-    .toISOString()
-    .slice(0, 10);
 }
 
 /* ---------- Proyección en el navegador ---------- */

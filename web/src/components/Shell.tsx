@@ -58,17 +58,17 @@ const NAVEGACION: (Grupo | Seccion)[] = [
     ],
   },
 
-  { href: "/comercios", etiqueta: "Comercios y zonas (beta)", icono: Pin },
+  { href: "/comercios", etiqueta: "Comercios y zonas", icono: Pin },
   { href: "/seguimiento", etiqueta: "Seguimiento", icono: Nota, destacado: true },
-  { href: "/cobertura", etiqueta: "Cobertura (beta)", icono: Mapa },
+  { href: "/cobertura", etiqueta: "Cobertura", icono: Mapa },
   /* Al lado de Cobertura y no adentro del tracker: son las dos pantallas de
      «dónde queda esto», sin día ni jornada. Tiendas no depende del tracker y
      se entra a consultarla suelta. */
-  { href: "/tiendas", etiqueta: "Tiendas (beta)", icono: Local },
+  { href: "/tiendas", etiqueta: "Tiendas", icono: Local },
   /* Suelta y no en «Cola de trabajo»: no mira el mes ni el día de ayer, mira
      lo que está pasando ahora. Se entra a ver dónde está alguien, viniendo de
      cualquier pantalla, igual que a Cobertura. */
-  { href: "/live-tracker", etiqueta: "Live tracker (beta)", icono: Moto },
+  { href: "/live-tracker", etiqueta: "Live tracker", icono: Moto },
 
   {
     titulo: "Colectas",

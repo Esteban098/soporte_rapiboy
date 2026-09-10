@@ -131,31 +131,29 @@ El contorno se dibuja en el servidor y no se vuelve a pintar nunca; mover y
 acercar cambian solo el `viewBox`. Los ~3.500 puntos del polígono no viajan como
 datos al navegador.
 
-### Probar contra la jornada de ayer
+### Qué día muestra
 
-A media mañana la jornada de hoy tiene tres paradas hechas y la pantalla no
-muestra gran cosa. Para verla con datos completos, `TRACKER_DIAS_ATRAS=1` la
-corre un día hacia atrás:
+Siempre el de **hoy en México**, y ese «hoy» lo decide el reloj de Ciudad de
+México, no el de quien abre la pantalla ni el del servidor.
 
-```
-TRACKER_DIAS_ATRAS=1
-```
+La diferencia importa una vez por día. Ciudad de México está tres horas detrás
+de Buenos Aires, así que entre las 00:00 y las 03:00 argentinas en México
+todavía es el día anterior: a las 00:30 de acá allá son las 21:30, la jornada
+sigue abierta y los repartidores siguen en la calle. La pantalla muestra los
+paquetes de esa jornada, que es la que está pasando. Un tablero que mirara el
+reloj local pasaría a mostrar la jornada nueva —vacía— tres horas antes de que
+exista.
 
-Mueve **repartidores y paquetes juntos** —es un solo número, leído en un solo
-lugar— así que no se puede terminar mirando los repartidores de hoy con los
-paquetes de ayer. Los dos botones mandan ese mismo día al flujo, así que las
-dos consultas a SQL Server salen con la misma fecha.
+El corte se resuelve con `Intl` y `America/Mexico_City`, no restando horas.
+Hoy la diferencia es de tres horas fijas porque ninguno de los dos países usa
+horario de verano, pero eso es una circunstancia y no una regla: México lo dejó
+de usar en 2022 y podría volver. Con una constante de −3, el corte del día
+quedaría corrido durante medio año sin que nada avise.
 
-Con la variable puesta, la pantalla lo dice en la cabecera y en un cartel arriba
-del mapa. No es un detalle de cortesía: alguien que mire posiciones de ayer
-creyendo que son de ahora va a llamar a un repartidor para preguntarle por qué
-está parado. Las posiciones además van a aparecer en rojo, porque tienen más de
-un día de antigüedad, que es exactamente lo que son.
-
-Para volver a la jornada en curso, sacar la variable y recargar. Los flujos de
-n8n tienen su propia constante `DIAS_ATRAS` en el nodo **Día de operación**, que
-solo afecta a las corridas por horario: cuando el día llega desde el botón,
-gana el del tablero.
+El día se decide en un solo lugar —`diaDeOperacion()`— y viaja como texto a
+n8n con cada pedido, así que la consulta de repartidores y la de paquetes salen
+siempre con la misma fecha. Cuando un flujo arranca por horario y no por el
+botón, lo calcula igual, con la misma zona.
 
 ### Si una sincronización queda trabada
 

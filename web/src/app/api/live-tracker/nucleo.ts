@@ -2,7 +2,6 @@ import "server-only";
 import { NextResponse } from "next/server";
 import {
   TIMEOUT_FLUJO_MS,
-  diasAtrasDelTracker,
   flujosDe,
   variableDeFlujo,
   type ClaveFlujo,
@@ -56,7 +55,6 @@ type CuerpoTracker = {
   dia: string;
   zona: string;
   /** Cuántos días atrás salió ese día. Va para que quede en el log del flujo. */
-  diasAtras: number;
 };
 
 export async function ejecutarSync(
@@ -103,7 +101,6 @@ export async function ejecutarSync(
     alcance: clave,
     dia,
     zona: ZONA_OPERACION,
-    diasAtras: diasAtrasDelTracker(),
   };
 
   // Un solo webhook por botón. Si alguien carga varios en la variable, se usa

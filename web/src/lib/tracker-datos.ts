@@ -3,7 +3,6 @@ import {
   TABLA_TRACKER_CHOFERES,
   TABLA_TRACKER_PAQUETES,
   TABLA_TRACKER_SYNC,
-  diasAtrasDelTracker,
   VISTA_TRACKER_DRIVERS,
 } from "./config";
 import { consultarTodo, TablaFaltante } from "./supabase";
@@ -93,8 +92,6 @@ export type DriverDelTracker = {
 
 export type DatosDelTracker = {
   dia: string;
-  /** Cuántos días atrás se está mirando. `0` es hoy. La pantalla lo anuncia. */
-  diasAtras: number;
   drivers: DriverDelTracker[];
   /** Paquetes del día que ninguna reserva ata a un repartidor conocido. */
   huerfanos: PaqueteDelTracker[];
@@ -112,9 +109,9 @@ export type DatosDelTracker = {
   leidoEn: string;
 };
 
-/** El día que está mirando el tracker: hoy, o el que corra `TRACKER_DIAS_ATRAS`. */
+/** El día que está mirando el tracker: siempre hoy, en hora de México. */
 export function diaVigente(): string {
-  return diaDeOperacion(new Date(), diasAtrasDelTracker());
+  return diaDeOperacion();
 }
 
 /**
@@ -199,7 +196,6 @@ export async function leerTracker(dia = diaVigente()): Promise<DatosDelTracker> 
 
   return {
     dia,
-    diasAtras: diasAtrasDelTracker(),
     drivers: drivers.map((fila) =>
       armarDriver(fila, porDriver.get(fila.id_motoboy) ?? [], domicilios.get(fila.id_motoboy)),
     ),

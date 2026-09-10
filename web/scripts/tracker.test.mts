@@ -1085,63 +1085,92 @@ test("la clasificación de n8n y la de la web dan siempre el mismo resultado", (
  * El día de operación
  * ------------------------------------------------------------------------- */
 
-test("el día corrido se calcula por calendario, no restando 24 horas", () => {
-  const enMexico = new Date("2026-09-10T18:00:00Z"); // 12:00 en México
+test("el día es el de México, aunque en Argentina ya sea otro", () => {
+  /*
+   * El caso que importa: son las 00:30 en Buenos Aires y en México todavía son
+   * las 21:30 del día anterior. La jornada mexicana sigue abierta, así que los
+   * paquetes que hay que mostrar son los de ESE día, no los de la jornada nueva
+   * que en México todavía no empezó.
+   *
+   * Ciudad de México está tres horas detrás de Buenos Aires, así que la
+   * ventana en la que las dos fechas no coinciden va de la medianoche a las
+   * tres de la mañana argentinas.
+   */
+  assert.equal(diaDeOperacion(new Date("2026-09-11T03:00:00Z")), "2026-09-10"); // 00:00 ARG
+  assert.equal(diaDeOperacion(new Date("2026-09-11T05:59:00Z")), "2026-09-10"); // 02:59 ARG
 
-  assert.equal(diaDeOperacion(enMexico), "2026-09-10");
-  assert.equal(diaDeOperacion(enMexico, 1), "2026-09-09");
-  assert.equal(diaDeOperacion(enMexico, 7), "2026-09-03");
+  // A las tres de la mañana argentinas México cruza la medianoche y recién ahí
+  // cambia la jornada.
+  assert.equal(diaDeOperacion(new Date("2026-09-11T06:00:00Z")), "2026-09-11"); // 03:00 ARG
 
-  // Cruces de mes y de año, que es donde una resta ingenua se rompe.
-  assert.equal(diaDeOperacion(new Date("2026-03-01T18:00:00Z"), 1), "2026-02-28");
-  assert.equal(diaDeOperacion(new Date("2026-01-01T18:00:00Z"), 1), "2025-12-31");
+  // Y durante el día no hay ninguna diferencia.
+  assert.equal(diaDeOperacion(new Date("2026-09-10T18:00:00Z")), "2026-09-10"); // 15:00 ARG
 
-  // Antes de las 6 de la mañana UTC todavía es el día anterior en México.
-  assert.equal(diaDeOperacion(new Date("2026-09-10T03:00:00Z")), "2026-09-09");
-  assert.equal(diaDeOperacion(new Date("2026-09-10T03:00:00Z"), 1), "2026-09-08");
-
-  // Un valor inválido no corre nada: es preferible mirar hoy a mirar una fecha
-  // inventada por un NaN.
-  assert.equal(diaDeOperacion(enMexico, NaN), "2026-09-10");
-  assert.equal(diaDeOperacion(enMexico, 0), "2026-09-10");
+  /*
+   * El corte se resuelve con `Intl` y no restando seis horas. Hoy ninguno de
+   * los dos países usa horario de verano, pero México lo dejó en 2022 y podría
+   * volver: una constante movería el corte del día durante medio año sin que
+   * nada avise. Esto se comprueba mirando un día de enero y uno de julio, que
+   * es cuando un horario de verano estaría prendido o apagado.
+   */
+  assert.equal(diaDeOperacion(new Date("2026-01-15T05:30:00Z")), "2026-01-14");
+  assert.equal(diaDeOperacion(new Date("2026-07-15T05:30:00Z")), "2026-07-14");
 });
 
-test("TRACKER_DIAS_ATRAS mueve repartidores y paquetes al mismo día", async (t) => {
-  conEntorno(t, { ...BASE, TRACKER_DIAS_ATRAS: "1" });
-
-  const pedidos: string[] = [];
-  const simulado = t.mock.method(globalThis, "fetch", async (input: RequestInfo | URL) => {
-    const url = new URL(String(input));
-    pedidos.push(`${url.pathname.replace("/rest/v1/", "")}?${url.searchParams.get("fecha_operacion") ?? url.searchParams.get("fecha_ruta") ?? ""}`);
-    return Response.json([]);
+test("la jornada que se lee es siempre la de hoy en México", async (t) => {
+  conEntorno(t, BASE);
+  const base = baseSimulada(t, {
+    tracker_drivers_vista: [],
+    tracker_paquetes: [],
+    tracker_sincronizaciones: [],
   });
-  t.after(() => simulado.mock.restore());
+  t.after(base.restore);
 
-  const ayer = diaDeOperacion(new Date(), 1);
-  assert.equal(diaVigente(), ayer);
+  /*
+   * Ya no hay forma de correr la pantalla a una jornada anterior. La había
+   * -`TRACKER_DIAS_ATRAS`- y se sacó: quedó prendida en un entorno y la
+   * pantalla estuvo mostrando la jornada de ayer sin que nadie lo notara.
+   * Mirar posiciones viejas creyendo que son de ahora es peor que no tener la
+   * pantalla.
+   */
+  assert.equal(diaVigente(), diaDeOperacion());
 
   const datos = await leerTracker();
-  assert.equal(datos.dia, ayer);
-  assert.equal(datos.diasAtras, 1);
-
-  // Lo que de verdad importa: las dos tablas se piden con la MISMA fecha. Si
-  // cada una resolviera su día por su lado, el mapa mostraría repartidores de
-  // hoy con paquetes de ayer y nada avisaría.
-  assert.ok(pedidos.includes(`tracker_drivers_vista?eq.${ayer}`), pedidos.join(" | "));
-  assert.ok(pedidos.includes(`tracker_paquetes?eq.${ayer}`), pedidos.join(" | "));
+  assert.equal(datos.dia, diaDeOperacion());
+  assert.equal("diasAtras" in datos, false, "quedó el resto del knob de días atrás");
 });
 
-test("el flujo respeta el día que manda el tablero por encima de su propia constante", () => {
+test("nada del proyecto vuelve a mirar una jornada que no sea la de hoy", () => {
+  for (const archivo of [
+    "../src/lib/config.ts",
+    "../src/lib/tracker.ts",
+    "../src/lib/tracker-datos.ts",
+    "../src/app/api/live-tracker/nucleo.ts",
+    "../src/app/(tablero)/live-tracker/page.tsx",
+    "../.env.example",
+  ]) {
+    const fuente = readFileSync(new URL(archivo, import.meta.url), "utf8");
+    assert.doesNotMatch(fuente, /TRACKER_DIAS_ATRAS|diasAtras/, archivo);
+  }
+
+  // Y los dos flujos calculan el día sin correrlo, cuando arrancan por horario.
+  for (const archivo of ["08-tracker-drivers.json", "09-tracker-paquetes.json"]) {
+    const flujo = readFileSync(new URL(`../../n8n/${archivo}`, import.meta.url), "utf8");
+    assert.doesNotMatch(flujo, /DIAS_ATRAS/, archivo);
+    assert.match(flujo, /const dia = pedido \?\? hoy;/, archivo);
+  }
+});
+
+test("el flujo usa el día que manda el tablero y no vuelve a calcularlo", () => {
   for (const archivo of ["08-tracker-drivers.json", "09-tracker-paquetes.json"]) {
     const codigo = flujo(archivo).nodes
       .find((n: { name: string }) => n.name === "Día de operación").parameters.jsCode;
 
     // El botón manda el día ya resuelto y gana siempre: quien aprieta tiene que
     // ver lo que la pantalla le dijo que iba a ver.
-    assert.match(codigo, /const dia = pedido \?\? correr\(hoy, DIAS_ATRAS\)/, archivo);
+    assert.match(codigo, /const dia = pedido \?\? hoy;/, archivo);
 
     // Y se importa mirando hoy, no una jornada corrida por olvido.
-    assert.match(codigo, /const DIAS_ATRAS = 0;/, archivo);
   }
 });
 

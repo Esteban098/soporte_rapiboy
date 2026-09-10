@@ -54,10 +54,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   jornada y son lo que permite desactivar «lo del día que ya no está» sin tocar
   lo de ayer. El día se decide en `diaDeOperacion()` con `America/Mexico_City`
   y viaja como texto a n8n: la web, n8n y SQL Server pueden estar en tres zonas
-  distintas y el corte tiene que ser uno solo. `TRACKER_DIAS_ATRAS` lo corre
-  hacia atrás para probar contra una jornada completa; mueve las dos consultas
-  a la vez y la pantalla lo anuncia con un cartel, porque leer posiciones de
-  ayer como si fueran de ahora es peor que no tener la pantalla.
+  distintas y el corte tiene que ser uno solo. Es **siempre hoy en México**: de
+  00:00 a 03:00 en Argentina allá todavía es el día anterior y la jornada sigue
+  abierta, así que la pantalla muestra esa. No hay forma de correrlo a una
+  jornada pasada; la había (`TRACKER_DIAS_ATRAS`) y se sacó porque quedó
+  prendida en un entorno y el tablero estuvo mostrando ayer sin que nadie lo
+  notara. Nunca restar horas a mano: si México volviera al horario de verano,
+  una constante correría el corte durante medio año sin avisar.
 - `minutos_sin_actualizar` y `estado_posicion` **no se guardan**: los calcula
   la vista `tracker_drivers_vista` al leer, y el navegador los vuelve a
   calcular contra su propio reloj. Una antigüedad guardada envejece mal —diría
