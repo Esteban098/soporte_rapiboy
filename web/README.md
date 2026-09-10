@@ -226,9 +226,46 @@ de su color. Es un dato sensible: viaja solo el domicilio del repartidor que se
 está mirando, nunca la tabla entera. 63 de los 69 choferes del mapa cruzan con
 la jornada cargada; los que no tienen punto lo dicen en el detalle.
 
-El KMZ se convierte con `npx tsx scripts/lugares.mts`, que regenera
-`supabase/migracion-06-lugares.sql`. Es idempotente y hace un reemplazo
+Los dos KMZ —choferes y tiendas— se convierten con el mismo script; ver
+**Tiendas** más abajo.
+
+## Tiendas
+
+Pantalla aparte, en `/tiendas`, y **no** parte del live tracker: no tiene día
+ni jornada, y responde una sola pregunta —«¿dónde queda este comercio?»— que
+se hace suelta, casi siempre con un id o un nombre a mano.
+
+Muestra las tiendas, los puntos de dropoff y la bodega sobre las zonas de
+reparto, con un buscador que filtra por nombre (sin acentos) o por id. El
+nombre de cada punto abre esa ubicación en Google Maps: el mapa del tablero
+ubica contra las zonas, que es lo que sirve para decidir, y para llegar a la
+puerta hace falta un mapa de calles.
+
+La fuente son los dos KMZ de `datos/`:
+
+```bash
+npx tsx scripts/lugares.mts
+```
+
+Regenera `supabase/migracion-06-lugares.sql`, que se corre en Supabase y carga
+`tracker_tiendas` y `tracker_choferes`. Es idempotente y hace un reemplazo
 completo, así que un punto borrado del mapa desaparece de la tabla.
+
+Detalles que el script resuelve y conviene conocer:
+
+- **El tipo sale del color del ícono**: verde tienda, naranja dropoff, negro la
+  bodega. My Maps no guarda una categoría. La lectura se confirma contra el
+  flujo de colectas, que ya trae la lista de dropoff por nombre.
+- **El id no es único**: `#55004` está dos veces —«Marlovet» y «Marlovet 2»—,
+  dos sucursales del mismo vendedor. La pantalla marca los dos puntos como «ID
+  compartido» en vez de quedarse con uno: el sistema no dice cuál corresponde a
+  cada pedido, y mostrar una sola sería contestar una pregunta que nadie puede
+  responder.
+- **Tres puntos no traen id** (`Bodega`, `SPG Benito Juarez`, `David`): quedan
+  con id nulo, no con uno inventado.
+- **`#73517 Volk's Coruña`** viene envuelto en CDATA por el apóstrofo, y dos
+  nombres traen tabulación en vez de espacio. El importador los desenvuelve y
+  los normaliza; sin eso el id se pierde.
 
 ## Cobertura
 

@@ -61,6 +61,10 @@ const NAVEGACION: (Grupo | Seccion)[] = [
   { href: "/comercios", etiqueta: "Comercios y zonas (beta)", icono: Pin },
   { href: "/seguimiento", etiqueta: "Seguimiento", icono: Nota, destacado: true },
   { href: "/cobertura", etiqueta: "Cobertura (beta)", icono: Mapa },
+  /* Al lado de Cobertura y no adentro del tracker: son las dos pantallas de
+     «dónde queda esto», sin día ni jornada. Tiendas no depende del tracker y
+     se entra a consultarla suelta. */
+  { href: "/tiendas", etiqueta: "Tiendas (beta)", icono: Local },
   /* Suelta y no en «Cola de trabajo»: no mira el mes ni el día de ayer, mira
      lo que está pasando ahora. Se entra a ver dónde está alguien, viniendo de
      cualquier pantalla, igual que a Cobertura. */
@@ -326,6 +330,18 @@ function Mapa() {
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <path d="M2.5 5.2 6 3.2l4 2 3.5-2v7.6l-3.5 2-4-2-3.5 2Z" strokeLinejoin="round" />
       <path d="M6 3.2v7.6M10 5.2v7.6" />
+    </svg>
+  );
+}
+
+/** Toldo de local a la calle: dónde queda cada comercio. */
+function Local() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <path d="M2 6.2 3.2 2.8h9.6L14 6.2" strokeLinejoin="round" />
+      <path d="M2 6.2a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0" strokeLinejoin="round" />
+      <path d="M3 8v5.2h10V8" strokeLinejoin="round" />
+      <path d="M6.4 13.2V9.6h3.2v3.6" strokeLinejoin="round" />
     </svg>
   );
 }

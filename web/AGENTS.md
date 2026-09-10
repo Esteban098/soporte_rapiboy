@@ -195,16 +195,21 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   prueba compara las dos.
 - El id del repartidor es `Motoboy.Id`, no `ReservaxMotoboy.IdMotoboy`: es el
   número que el mapa de choferes lleva en el nombre de cada punto.
+- **Tiendas es una pantalla aparte** (`/tiendas`) y no parte del tracker. Se
+  pidió así expresamente. El tracker no lee `tracker_tiendas` ni dibuja
+  comercios, y la consulta de paquetes no devuelve `IdUsuario`; hay una prueba
+  en `scripts/tiendas.test.mts` que falla si vuelven a cruzarse.
 - Una tabla de referencia que falta se **anota y se avisa** (`tablasFaltantes`),
   no se traga con un `catch`. «No corriste la migración» y «esta persona no
   tiene domicilio» son respuestas distintas y la pantalla tiene que decir cuál.
 - `tracker_tiendas` y `tracker_choferes` son de referencia: las genera
   `npx tsx scripts/lugares.mts` desde los KMZ de `datos/` y no las escribe
-  ningún flujo. `id_tienda` **no** es único (#55004 tiene dos sucursales).
-- El encuadre movible y el fondo de cobertura los pone `LienzoMapa`. Tiene tres
-  sutilezas ya resueltas —la escala real en píxeles medida con
-  `ResizeObserver`, el foco de la rueda y el re-encuadre durante el render—: no
-  reimplementarlas por separado.
+  ningún flujo. `id_tienda` **no** es único (#55004 tiene dos sucursales) y la
+  pantalla lo marca en vez de elegir uno.
+- El encuadre movible y el fondo de cobertura los pone `LienzoMapa`, compartido
+  entre el tracker y tiendas. Tiene tres sutilezas ya resueltas —la escala real
+  en píxeles medida con `ResizeObserver`, el foco de la rueda y el re-encuadre
+  durante el render—: no reimplementarlas por separado.
 - El domicilio de un repartidor es dato sensible: sale del servidor solo dentro
   del repartidor que se está mirando, nunca como tabla completa.
 - El color de cada repartidor sale de su `id`, no de su posición en la lista:
