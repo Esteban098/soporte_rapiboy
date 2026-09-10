@@ -61,6 +61,10 @@ const NAVEGACION: (Grupo | Seccion)[] = [
   { href: "/comercios", etiqueta: "Comercios y zonas (beta)", icono: Pin },
   { href: "/seguimiento", etiqueta: "Seguimiento", icono: Nota, destacado: true },
   { href: "/cobertura", etiqueta: "Cobertura (beta)", icono: Mapa },
+  /* Suelta y no en «Cola de trabajo»: no mira el mes ni el día de ayer, mira
+     lo que está pasando ahora. Se entra a ver dónde está alguien, viniendo de
+     cualquier pantalla, igual que a Cobertura. */
+  { href: "/live-tracker", etiqueta: "Live tracker (beta)", icono: Moto },
 
   {
     titulo: "Colectas",
@@ -322,6 +326,18 @@ function Mapa() {
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <path d="M2.5 5.2 6 3.2l4 2 3.5-2v7.6l-3.5 2-4-2-3.5 2Z" strokeLinejoin="round" />
       <path d="M6 3.2v7.6M10 5.2v7.6" />
+    </svg>
+  );
+}
+
+/** Moto de reparto: lo que se está siguiendo en vivo. */
+function Moto() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+      <circle cx="4" cy="11.5" r="2.4" />
+      <circle cx="12" cy="11.5" r="2.4" />
+      <path d="M4 11.5h2.6l2-3.4h2.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8.6 6.2h2l1.4 5.3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

@@ -1,6 +1,6 @@
 # Flujos de n8n
 
-Siete workflows. Los tres primeros reemplazan al único que escribía en el
+Nueve workflows. Los tres primeros reemplazan al único que escribía en el
 Google Sheet; los siguientes cubren los botones Actualizar y la carga de datos
 de tienda desde Firefox. Se importan desde n8n con **Workflows ▸ Import from
 File**.
@@ -14,6 +14,8 @@ File**.
 | `05-refresco-cancelados-historico.json` | Ídem para las cancelaciones | Solo a pedido, desde **Cancelados históricos** |
 | `06-colectas.json` | Calcula quién colecta cada comercio y trae las colectas de 30 días | 12:00 de lunes a viernes, y desde **Colectas** |
 | `07-firefox-gestiones.json` | Interpreta el ID y los datos aportados por la tienda, y actualiza solo las columnas de soporte de `mensual` | Al enviar una selección desde la extensión de Firefox |
+| `08-tracker-drivers.json` | Repartidores con reserva del día y su última posición conocida | 6:45, y desde **Actualizar posiciones** del Live tracker |
+| `09-tracker-paquetes.json` | Reconcilia los paquetes de las rutas del día contra Supabase | 7:15, y desde **Actualizar paquetes** del Live tracker |
 
 ## Antes de importar
 
@@ -64,6 +66,8 @@ de hoy.
 | `N8N_WEBHOOKS_HISTORICO` | `04-refresco-historico` | `actualizar-historico` |
 | `N8N_WEBHOOKS_CANCELADOS_HISTORICO` | `05-refresco-cancelados-historico` | `actualizar-cancelados-historico` |
 | `N8N_WEBHOOKS_COLECTAS` | `06-colectas` | `actualizar-colectas` |
+| `N8N_WEBHOOKS_TRACKER_POSICIONES` | `08-tracker-drivers` | `tracker-posiciones` |
+| `N8N_WEBHOOKS_TRACKER_PAQUETES` | `09-tracker-paquetes` | `tracker-paquetes` |
 
 Las de histórico pueden quedar vacías: el botón avisa que no hay flujos y la
 pantalla sigue mostrando lo que ya está guardado.
@@ -197,6 +201,87 @@ Un detalle del grano: la rama de colectas agrupa por `(fecha, chofer, comercio)`
 en vez de traer cada registro suelto. Es lo que se mira —«quién fue el martes a
 este comercio»— y además hace que el upsert sea idempotente sin depender de que
 `dbo.Colecta` tenga un id estable, que es algo que no pudimos verificar.
+
+## Live tracker
+
+`08-tracker-drivers.json` y `09-tracker-paquetes.json` alimentan la pantalla
+**Live tracker**. Antes de la primera corrida hay que crear las tablas con
+`web/supabase/live-tracker.sql`.
+
+Cada flujo tiene **dos entradas independientes** que comparten la misma cadena
+de nodos: un horario, que hace la carga inicial de la jornada, y un webhook,
+que es el botón del tablero. No están duplicados a propósito: la carga inicial y
+la actualización son exactamente la misma reconciliación, y que lo sean es lo
+que hace que apretar el botón antes de que corra el horario funcione igual de
+bien. Son cuatro entradas en total.
+
+### Cómo funciona una corrida
+
+1. **Día de operación.** Se toma el `dia` que manda el tablero, ya resuelto en
+   hora de Ciudad de México. Si el flujo arrancó por horario, se calcula con
+   `Intl` —no restando seis horas, que se rompe con el horario de verano—.
+2. **Abrir sincronización.** `tracker_abrir_sync()` toma el lock del tipo y
+   devuelve un `sync_id`. Si ya hay otra corrida del mismo tipo en curso, falla
+   acá y no se toca ni una fila. El lock es por tipo: posiciones y paquetes
+   pueden correr a la vez.
+3. **Consulta a SQL Server**, siempre de solo lectura.
+4. **A columnas**, que valida coordenadas y clasifica.
+5. **Upsert** por `id_motoboy` o por `id_viaje`.
+6. **Cerrar sincronización.** Desactiva lo que la corrida no vio y marca la
+   ejecución como `success`, todo en la misma transacción.
+
+Si algo falla, la rama de error llama a `tracker_fallar_sync()`, que marca la
+corrida como `failed` **sin tocar ningún dato**. El mapa se queda con lo último
+que se supo, que es viejo pero cierto.
+
+### Lo que hay que saber antes de tocarlos
+
+- **La consulta de paquetes no lleva una lista de ids.** El universo son las
+  reservas del día. Un `WHERE V.Id IN (...)` con los tracking id guardados
+  devolvería siempre los mismos paquetes con los que arrancó la jornada, y el
+  que le agregaron al repartidor a media mañana no aparecería nunca. Hay una
+  prueba en `web/scripts/tracker.test.mts` que falla si alguien lo vuelve a
+  poner.
+- **La posición sale de `Motoboy.Latitud` / `.Longitud`.**
+  `Viaje.LatitudDestino` es a dónde va el paquete. También hay prueba.
+- **Verificar `@ZonaOrigen`.** Las dos consultas declaran en qué zona creen que
+  está guardada la fecha de la última posición, y por defecto dicen `'UTC'`.
+  Es un supuesto, no un hecho comprobado: sale de que los flujos 01, 02 y 05 le
+  restan tres horas a `HistorialViaje.Fecha`. De esto depende toda la
+  antigüedad que muestra el mapa —con la zona corrida, o está todo en rojo o
+  está todo en verde—. Para confirmarlo alcanza con mirar
+  `UltimaActualizacionCruda` de un repartidor que se sabe activo. Si resultara
+  que ya viene en hora de México, el valor es
+  `'Central Standard Time (Mexico)'` y es la única línea que hay que cambiar,
+  en las dos consultas.
+- **Ningún nodo lee a través del grafo.** No hay un solo `$('Otro nodo')`
+  dentro de `{{ }}`, y no es casualidad: esa lectura depende de que n8n pueda
+  rastrear la cadena de items hasta el nodo nombrado, y cuando la cadena se
+  corta —se corta sola, por ejemplo cuando un Code node devuelve un item
+  nuevo— n8n responde `Node 'X' hasn't been executed` y mata la corrida, con un
+  mensaje que habla de un nodo que no tiene nada que ver. Rompió el flujo de
+  paquetes mientras el de repartidores, idéntico, funcionaba.
+
+  Cada nodo lee de su entrada directa, y lo que hace falta más abajo se
+  arrastra en los datos: **Abrir sincronización** devuelve el día además del
+  `sync_id`, la consulta de SQL Server pega `SyncId` y `Dia` en cada fila, y
+  **Cerrar sincronización** los toma de ahí. Los dos Code nodes que sí lo usan
+  lo tienen dentro de un `try/catch`, que es lo que una expresión no puede
+  hacer. Hay una prueba que falla si alguien vuelve a meter uno.
+- **La clasificación está escrita dos veces**: en el nodo `A columnas ·
+  paquetes` y en `web/src/lib/tracker.ts`. La de n8n deja el resultado
+  consultable desde SQL; la de la web se recalcula al leer porque `PROXIMO`
+  depende de la ruta entera y cambia en cuanto el repartidor entrega. Si se
+  cambia una regla hay que cambiar las dos, y `npm run test:tracker` compara
+  las dos implementaciones sobre todas las combinaciones.
+- **Para probar contra la jornada de ayer** está la constante `DIAS_ATRAS` en
+  el nodo **Día de operación** de cada flujo, y hay que moverla en los dos o se
+  leerían los repartidores de un día y los paquetes de otro. Solo afecta a las
+  corridas por horario: cuando el día llega desde el botón del tablero, gana el
+  del tablero, que tiene su propia variable (`TRACKER_DIAS_ATRAS` en la web).
+  Es a propósito que mande la web: el que aprieta el botón tiene que ver lo que
+  la pantalla le dice que está viendo.
+- Los dos se importan **apagados**, como todos.
 
 ## Lo que está apagado
 

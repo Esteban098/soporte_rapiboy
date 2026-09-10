@@ -1,0 +1,421 @@
+{
+  "name": "Tracker · paquetes de la ruta",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7,
+              "triggerAtMinute": 15
+            }
+          ]
+        }
+      },
+      "id": "b64f55d1-5f30-5f7b-adfb-3eeb850e6f8e",
+      "name": "Carga inicial 07:15",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -460,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tracker-paquetes",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "fd53d9c1-7827-55d0-9f4f-d327e35fd8d2",
+      "name": "Botón Actualizar paquetes",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -460,
+        100
+      ],
+      "webhookId": "15b0eb3f-1d21-5654-bb8d-055fc02dafcd"
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Qué día de operación se está reconciliando.\n *\n * El tablero lo manda ya resuelto en hora de Ciudad de México, y se usa ese.\n * Solo cuando el flujo arranca por horario -no hay cuerpo que leer- se calcula\n * acá, y se calcula con `Intl` y no restando seis horas: el desfase de México\n * cambia con el horario de verano, así que una constante correría el corte del\n * día durante medio año.\n *\n * El día se decide en un solo lugar y viaja como texto justamente porque el\n * servidor de la web, el de n8n y el de SQL Server pueden estar en tres zonas\n * distintas. Si cada uno mirara su propio reloj, a las once de la noche de\n * México tres nodos del mismo flujo estarían trabajando sobre dos fechas.\n */\n\n/*\n * Cuántos días atrás mirar cuando el flujo arranca SOLO por horario.\n *\n * Sirve para probar contra una jornada completa: a media mañana la de hoy\n * tiene tres paradas hechas y no se ve nada, la de ayer está entera.\n *\n * No afecta al botón del tablero. Ese manda el día ya resuelto -la web tiene\n * su propia variable, `TRACKER_DIAS_ATRAS`- y acá se respeta lo que llegue.\n * Es a propósito: el que aprieta el botón tiene que ver lo que la pantalla le\n * dice que está viendo, y no lo que este número diga por su cuenta.\n *\n * Los dos flujos del tracker tienen esta misma constante y hay que moverlos a\n * la vez, o se leerían los repartidores de un día y los paquetes de otro.\n */\nconst DIAS_ATRAS = 0;\n\nconst cuerpo = $json?.body ?? $json ?? {};\nconst pedido = typeof cuerpo.dia === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(cuerpo.dia)\n  ? cuerpo.dia\n  : null;\n\n/*\n * La resta va sobre la fecha ya resuelta en México y en aritmética UTC, no\n * restándole 24 horas al instante: restar horas cruza mal el cambio de horario\n * de verano, y el día en que el reloj se corre puede repetir o saltear una\n * fecha.\n */\nconst correr = (texto, dias) => {\n  if (!dias) return texto;\n  const [a, m, d] = texto.split('-').map(Number);\n  return new Date(Date.UTC(a, m - 1, d - dias)).toISOString().slice(0, 10);\n};\n\nconst hoy = new Intl.DateTimeFormat('en-CA', {\n  timeZone: 'America/Mexico_City',\n  year: 'numeric', month: '2-digit', day: '2-digit',\n}).format(new Date());\n\nconst dia = pedido ?? correr(hoy, DIAS_ATRAS);\n\nreturn [{ json: { dia, origen: pedido ? 'tablero' : 'horario' } }];\n"
+      },
+      "id": "40d70b06-9c1a-5f72-b1c4-f8ac1f82cfb3",
+      "name": "Día de operación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        -10
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Toma el lock del tipo y devuelve el sync_id de esta corrida.\n-- Falla si ya hay otra del mismo tipo en curso, y ahí el flujo se corta\n-- antes de tocar una sola fila. El lock es por tipo: repartidores y\n-- paquetes pueden correr en paralelo.\n--\n-- Devuelve también el día, para que el nodo que sigue lo tenga en su\n-- propia entrada y no tenga que ir a buscarlo con `$('...')`.\n--\n-- Como TEXTO y no como date: con `::date`, el driver lo entrega como Date\n-- de JS y n8n lo serializa '2026-09-09T00:00:00.000Z'. Ese texto entraba\n-- tal cual en `DECLARE @Dia DATE = '...'` y el filtro dejaba de encontrar\n-- nada. El día viaja como 'YYYY-MM-DD' de punta a punta.\nselect public.tracker_abrir_sync('paquetes', '{{ $json.dia }}'::date) as sync_id,\n       to_char('{{ $json.dia }}'::date, 'YYYY-MM-DD') as dia;",
+        "options": {}
+      },
+      "id": "300979ec-9e2d-585f-a209-9fe0e80c354e",
+      "name": "Abrir sincronización",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -40,
+        -10
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Todos los paquetes de las rutas del día.\n--\n-- Esta consulta es el corazón de la reconciliación, y lo importante es lo que\n-- NO tiene: no recibe ninguna lista de ids. El universo lo definen las rutas\n-- del día -las reservas vigentes- y no lo que ya está guardado en Supabase.\n--\n-- Es la diferencia entre reconciliar y refrescar. Un `WHERE V.Id IN (...)` con\n-- los tracking id guardados devolvería siempre los mismos treinta paquetes con\n-- los que arrancó la jornada: el que le agregaron al repartidor a las once de\n-- la mañana no estaría en la lista, así que no se preguntaría por él y no\n-- aparecería nunca. Preguntando por la ruta entera aparece solo, y el total del\n-- repartidor pasa de 30 a 31 sin que nadie reinicie nada.\n--\n-- Por eso también el filtro va sobre la reserva y no sobre `V.FechaProgramado`:\n-- la ruta es la autoridad. Un paquete metido hoy en la ruta de hoy pero\n-- programado para mañana sigue siendo un paquete que el repartidor lleva\n-- encima, y filtrando por fecha del viaje quedaría afuera del mapa.\n--\n-- El universo se acota por comercio, igual que el resto del tablero:\n-- `Usuario.IdModalidad = 5` y `Usuario.IdLocalidad = 9`. Es la misma operación\n-- que miran Mensual, Ayer y Cancelados, así que los totales de esta pantalla\n-- se pueden comparar con los de las otras sin sorpresas.\n--\n-- Se probó primero sin este filtro, razonando que un repartidor lleva lo que\n-- lleva y que esconderle paradas mostraría una ruta incompleta. Es un\n-- argumento válido pero no es el de esta operación: el tablero entero está\n-- acotado a modalidad 5 en México, y una pantalla que contara además otras\n-- modalidades daría números que no cierran con ninguna otra vista.\n--\n-- Una sola consulta para todos los repartidores, agregable por `IdMotoboy`:\n-- una por repartidor serían veinte consultas para dibujar una pantalla.\n--\n-- NOLOCK: mismo criterio y mismo riesgo que en el flujo de repartidores. Un\n-- viaje que se está reasignando en ese instante puede leerse con el\n-- repartidor viejo o con el nuevo. La corrida siguiente lo corrige, y ninguna\n-- decisión se toma sobre una sola lectura.\nSET NOCOUNT ON;\n\nDECLARE @Dia   DATE = '{{ $json.dia }}';\nDECLARE @Hasta DATE = DATEADD(DAY, 1, @Dia);\n\n-- Mismo supuesto y mismo motivo que en el flujo de repartidores: si hay que\n-- corregirlo, se corrige en las dos consultas.\nDECLARE @ZonaOrigen VARCHAR(60) = 'UTC';\n\nSELECT\n    -- Viajan pegados a cada fila para que ningún nodo de abajo tenga que\n    -- ir a buscarlos a otro nodo con `$('...')`.\n    '{{ $json.sync_id }}' AS SyncId,\n    @Dia AS Dia,\n\n    V.Id AS IdViaje,\n    V.IdReserva,\n    V.IdRuta,\n    V.IdEstado,\n\n    -- El nombre y no solo el número. La clasificación del tablero se decide\n    -- por nombre porque los `IdEstado` que el proyecto tiene verificados son\n    -- apenas cuatro, y armar la tabla completa a ojo sería adivinar.\n    E.NombreCompleto AS NombreEstado,\n\n    /*\n     * El repartidor sale de la reserva, que es la relación operativa:\n     * Viaje.IdReserva -> ReservaxMotoboy.Id -> ReservaxMotoboy.IdMotoboy.\n     *\n     * `IdMotoboyBalanceado` se devuelve al lado, sin mezclarse. Cuando los dos\n     * no coinciden hay un balanceo a medio aplicar, y eso es algo que la\n     * operación mira; combinarlos con un COALESCE escondería justamente el caso\n     * que importa.\n     */\n    R.IdMotoboy,\n    V.IdMotoboyBalanceado,\n\n    V.Orden,\n    V.Direccion,\n\n    -- El destino del paquete. No es la posición del repartidor: esa sale de\n    -- Motoboy.Latitud / Motoboy.Longitud, en el otro flujo.\n    V.LatitudDestino,\n    V.LongitudDestino,\n\n    V.VisitadoMotoboy,\n\n    -- El día de la ruta es el de la reserva, no el del viaje. Es lo que hace\n    -- que la desactivación del cierre compare contra el mismo día que se\n    -- acaba de leer.\n    @Dia AS FechaRuta,\n\n    CAST(V.FechaProgramado      AS DATETIME2(0)) AT TIME ZONE @ZonaOrigen AS FechaProgramado,\n    CAST(V.FechaProgramadoHasta AS DATETIME2(0)) AT TIME ZONE @ZonaOrigen AS FechaProgramadoHasta,\n    CAST(V.FechaCambioEstado    AS DATETIME2(0)) AT TIME ZONE @ZonaOrigen AS FechaCambioEstado,\n\n    HV.FechaVisita\nFROM dbo.Viaje V WITH (NOLOCK)\nINNER JOIN dbo.ReservaxMotoboy R WITH (NOLOCK) ON R.Id = V.IdReserva\nINNER JOIN dbo.Usuario         U WITH (NOLOCK) ON U.Id = V.IdUsuario\nLEFT  JOIN dbo.EstadoViaje     E WITH (NOLOCK) ON E.Id = V.IdEstado\n\n/*\n * La visita, confirmada contra el historial.\n *\n * `Viaje.VisitadoMotoboy` es el estado de ahora y se puede pisar; el historial\n * guarda que el paso ocurrió. Un paquete visitado y después reprogramado puede\n * quedar con la marca actual en cero, y para el mapa sigue siendo una parada\n * por la que ya pasaron.\n *\n * Es un OUTER APPLY con TOP 1 y no un JOIN a una subconsulta agrupada: así SQL\n * Server corta en cuanto encuentra la más reciente, en vez de agrupar el\n * historial entero de viajes que no vienen al caso.\n */\nOUTER APPLY (\n    SELECT TOP 1\n        CAST(H.Fecha AS DATETIME2(0)) AT TIME ZONE @ZonaOrigen AS FechaVisita\n    FROM dbo.HistorialViaje H WITH (NOLOCK)\n    WHERE H.IdViaje = V.Id\n      AND H.VisitadoMotoboy = 1\n    ORDER BY H.Fecha DESC\n) HV\n\nWHERE R.Fecha >= @Dia\n  AND R.Fecha <  @Hasta\n  AND R.Cancelada = 0\n  AND U.IdModalidad = 5\n  AND U.IdLocalidad = 9\nORDER BY R.IdMotoboy, V.Orden, V.Id;\n"
+      },
+      "id": "9b16cffe-27cf-5814-8836-4cac5840e43d",
+      "name": "Paquetes de las rutas del día",
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        180,
+        -10
+      ],
+      "credentials": {
+        "microsoftSql": {
+          "id": "F5EJUfXcquXz7Rf3",
+          "name": "Microsoft SQL credencial Esteban RPBY"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Paquetes a columnas de Postgres.\n *\n * La clasificación se calcula acá con la misma regla que\n * web/src/lib/tracker.ts, y se guarda para poder consultarla con SQL sin\n * reimplementarla. La pantalla igual la recalcula al leer: `PROXIMO` depende\n * de la ruta entera y cambia en cuanto el repartidor entrega, así que la\n * columna guardada envejece entre corrida y corrida. La columna sirve para\n * preguntarle a la base; el mapa se guía por lo recalculado.\n *\n * Si se cambia una regla, se cambia en los dos lados. La prueba\n * `npm run test:tracker` compara las dos salidas justamente para que no se\n * separen en silencio.\n */\n/*\n * sync_id y día vienen pegados a cada fila que devolvió SQL Server, así que\n * en el camino normal no se cruza el grafo. El `$('...')` es solo el\n * respaldo para la corrida sin filas -ahí no hay fila de donde sacarlos- y\n * va dentro de un try/catch: si la cadena de items se cortó, n8n tira\n * «el nodo no se ejecutó», y eso no puede matar al flujo entero.\n */\nconst primera = $input.all()[0]?.json ?? {};\nlet sync = primera.SyncId ?? null;\nlet dia = primera.Dia ? String(primera.Dia).slice(0, 10) : null;\n\nif (!sync || !dia) {\n  try {\n    sync = sync ?? $('Abrir sincronización').first().json.sync_id;\n    dia = dia ?? String($('Abrir sincronización').first().json.dia).slice(0, 10);\n  } catch {\n    // Sin respaldo tampoco: se sigue con lo que haya. El cierre no va a\n    // encontrar filas con este sync_id y no va a desactivar nada, que es\n    // el comportamiento correcto cuando no se pudo leer nada.\n  }\n}\n\nconst texto = (v) => {\n  const t = String(v ?? '').trim();\n  return t === '' || t.toLowerCase() === 'null' ? null : t;\n};\nconst entero = (v) =>\n  v === null || v === undefined || v === '' || !Number.isFinite(Number(v))\n    ? null\n    : Math.trunc(Number(v));\nconst marca = (v) => {\n  if (!v) return null;\n  const d = new Date(v);\n  return Number.isNaN(d.getTime()) ? null : d.toISOString();\n};\nconst bandera = (v) => v === true || v === 1 || v === '1' || v === 'true';\n\nconst coordenada = (lat, lon) => {\n  const a = Number(lat);\n  const b = Number(lon);\n  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;\n  if (a < -90 || a > 90 || b < -180 || b > 180) return null;\n  if (a === 0 && b === 0) return null;\n  return { lat: a, lon: b };\n};\n\n/*\n * El desenlace por nombre de estado.\n *\n * Es la misma tabla que `colorEstado` de web/src/lib/estados.ts, que se armó\n * contra los `EstadoViaje.NombreCompleto` que devuelve el sistema de verdad.\n * No hay una lista de IdEstado a propósito: los ids verificados en el proyecto\n * son 22 y 24 y los del filtro de fallidos, y completar el resto a ojo sería\n * inventar identificadores.\n */\nconst DESENLACE = {\n  'entregado': 'ENTREGADO',\n  'devuelto': 'NO_ENTREGADO',\n  'devolucion': 'NO_ENTREGADO',\n  'devolución': 'NO_ENTREGADO',\n  'devolucion en centro de dropoff': 'NO_ENTREGADO',\n  'devolución en centro de dropoff': 'NO_ENTREGADO',\n  'pedido no entregado': 'NO_ENTREGADO',\n  'siniestrado': 'NO_ENTREGADO',\n  'en deposito': 'NO_ENTREGADO',\n  'en depósito': 'NO_ENTREGADO',\n  'en deposito con direccion incorrecta': 'NO_ENTREGADO',\n  'en centro de dropoff': 'NO_ENTREGADO',\n  'cancelado': 'CANCELADO',\n  'retirado en camino a destino': 'EN_RUTA',\n  'colectado': 'EN_RUTA',\n  'para retirar': 'EN_RUTA',\n  'por colectar': 'EN_RUTA',\n  'reprogramado por comprador': 'NO_ENTREGADO',\n};\n\nconst clasificar = (nombreEstado, visitado, activo) => {\n  const desenlace = DESENLACE[String(nombreEstado ?? '').toLowerCase().trim()] ?? 'DESCONOCIDO';\n  if (desenlace === 'CANCELADO') return 'CANCELADO';\n  if (!activo) return 'RETIRADO_DE_RUTA';\n  if (desenlace === 'ENTREGADO') return 'VISITADO_ENTREGADO';\n  if (desenlace === 'NO_ENTREGADO') return visitado ? 'VISITADO_NO_ENTREGADO' : 'SIN_CLASIFICAR';\n  if (desenlace === 'EN_RUTA') return visitado ? 'SIN_CLASIFICAR' : 'PENDIENTE_NO_VISITADO';\n  return 'SIN_CLASIFICAR';\n};\n\nconst filas = $input\n  .all()\n  .map((i) => i.json)\n  .filter((r) => Number.isFinite(Number(r.IdViaje)) && Number(r.IdViaje) > 0);\n\nlet omitidos = 0;\n\nconst salida = filas.map((r) => {\n  const destino = coordenada(r.LatitudDestino, r.LongitudDestino);\n  if (!destino) omitidos += 1;\n\n  const visitado = bandera(r.VisitadoMotoboy) || Boolean(r.FechaVisita);\n\n  return {\n    json: {\n      hay: true,\n      id_viaje: Number(r.IdViaje),\n\n      // El tracking id es el mismo Viaje.Id, en texto: es como lo nombra la\n      // operación y como viaja en los enlaces al operador.\n      tracking_id: String(Number(r.IdViaje)),\n\n      id_motoboy: entero(r.IdMotoboy),\n      id_motoboy_balanceado: entero(r.IdMotoboyBalanceado),\n      id_reserva: entero(r.IdReserva),\n      id_ruta: entero(r.IdRuta),\n\n      id_estado: entero(r.IdEstado),\n      nombre_estado: texto(r.NombreEstado),\n\n      // Se guarda como viene, nulo incluido. Completar un orden que el sistema\n      // no declaró sería inventar la secuencia de la ruta.\n      orden: entero(r.Orden),\n\n      direccion: texto(r.Direccion),\n      latitud_destino: destino?.lat ?? null,\n      longitud_destino: destino?.lon ?? null,\n\n      visitado,\n      fecha_visita: marca(r.FechaVisita),\n      clasificacion: clasificar(r.NombreEstado, visitado, true),\n\n      fecha_ruta: dia,\n      fecha_programado: marca(r.FechaProgramado),\n      fecha_programado_hasta: marca(r.FechaProgramadoHasta),\n      fecha_cambio_estado: marca(r.FechaCambioEstado),\n\n      // Todo lo que la corrida encontró en la ruta está en la ruta. Los que\n      // dejó de encontrar los apaga `tracker_cerrar_paquetes`, y solo si la\n      // corrida terminó bien.\n      activo_en_ruta: true,\n      sync_id: sync,\n    },\n  };\n});\n\nfor (const item of salida) {\n  item.json.leidos = filas.length;\n  item.json.omitidos = omitidos;\n}\n\n// Mismo testigo que en el flujo de repartidores, por el mismo motivo: sin\n// items no hay nodo que se ejecute y la sincronización quedaría abierta.\n// El testigo lleva sync_id y fecha porque el nodo que cierra los lee de su\n// entrada directa, no de otro nodo.\nreturn salida.length > 0\n  ? salida\n  : [{ json: { hay: false, leidos: 0, omitidos: 0, sync_id: sync, fecha_ruta: dia } }];\n"
+      },
+      "id": "e3652cb3-0372-5aae-b7d9-dfc4eb657dfa",
+      "name": "A columnas · paquetes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        -110
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a480ed84-fa93-56cd-a057-8ec27242642e",
+              "leftValue": "={{ $json.hay }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "433d9546-b728-5e21-a3a9-bee0e053937d",
+      "name": "¿Hubo paquetes?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        610,
+        -110
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "tracker_paquetes"
+        },
+        "operation": "upsert",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_viaje": "={{ $json.id_viaje }}",
+            "tracking_id": "={{ $json.tracking_id }}",
+            "id_motoboy": "={{ $json.id_motoboy }}",
+            "id_motoboy_balanceado": "={{ $json.id_motoboy_balanceado }}",
+            "id_reserva": "={{ $json.id_reserva }}",
+            "id_ruta": "={{ $json.id_ruta }}",
+            "id_estado": "={{ $json.id_estado }}",
+            "nombre_estado": "={{ $json.nombre_estado }}",
+            "orden": "={{ $json.orden }}",
+            "direccion": "={{ $json.direccion }}",
+            "latitud_destino": "={{ $json.latitud_destino }}",
+            "longitud_destino": "={{ $json.longitud_destino }}",
+            "visitado": "={{ $json.visitado }}",
+            "fecha_visita": "={{ $json.fecha_visita }}",
+            "clasificacion": "={{ $json.clasificacion }}",
+            "fecha_ruta": "={{ $json.fecha_ruta }}",
+            "fecha_programado": "={{ $json.fecha_programado }}",
+            "fecha_programado_hasta": "={{ $json.fecha_programado_hasta }}",
+            "fecha_cambio_estado": "={{ $json.fecha_cambio_estado }}",
+            "activo_en_ruta": "={{ $json.activo_en_ruta }}",
+            "sync_id": "={{ $json.sync_id }}"
+          },
+          "matchingColumns": [
+            "id_viaje"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "9d7aa65b-4140-572e-8a9f-d4dd92bec7e4",
+      "name": "Guardar paquetes",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        830,
+        -210
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Cierra la corrida: desactiva lo que no vio y la marca exitosa, en la\n-- misma transacción. La función cuenta sola las filas que quedaron con\n-- este sync_id, así que acá no hay que pasarle ningún total.\n--\n-- sync_id y fecha salen de la entrada directa de este nodo: por la rama\n-- verdadera los trae la fila que acaba de guardarse -son columnas de la\n-- tabla- y por la falsa, el testigo. Nada de `$('...')`: leer a través del\n-- grafo es lo que rompía este flujo.\nselect * from public.tracker_cerrar_paquetes(\n  '{{ $json.sync_id }}'::uuid,\n  '{{ $json.fecha_ruta }}'::date\n);",
+        "options": {}
+      },
+      "id": "766a10d1-9879-5921-b4d7-63374272a94b",
+      "name": "Cerrar sincronización",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1060,
+        -110
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * El motivo de la falla, recortado y sin comillas, más el sync_id a mano.\n *\n * Esta rama es la última línea de defensa: es la que evita que una corrida\n * muerta deje su fila en `running` reteniendo el lock. Por eso no puede\n * reventar ella misma, y por eso el sync_id se resuelve acá adentro, con\n * try/catch, en vez de en la expresión del nodo que sigue.\n *\n * La diferencia importa: si `Abrir sincronización` no llegó a ejecutarse -el\n * flujo murió antes, o alguien corrió un nodo suelto desde el editor-, una\n * expresión `$('Abrir sincronización')` tira ExpressionError y se lleva puesta\n * a la propia rama de error. Un Code node puede atajarlo; una expresión no.\n *\n * Sin sync_id se sigue igual, con la cadena vacía: la consulta la convierte en\n * NULL y `tracker_fallar_sync` no encuentra ninguna fila que marcar. No hay\n * nada que cerrar, que es exactamente el caso.\n */\nlet sync = '';\ntry {\n  sync = $('Abrir sincronización').first().json.sync_id ?? '';\n} catch {\n  sync = '';\n}\n\n/*\n * El mensaje se limpia por dos razones. Una es que se interpola en una consulta\n * y una comilla suelta la partiría al medio. La otra es que el error de un\n * driver de base puede traer la fila que estaba procesando, y de ahí a dejar un\n * domicilio guardado en la tabla de ejecuciones hay un paso. La función de\n * Postgres vuelve a recortar a 500: son dos redes para lo mismo, a propósito.\n */\nconst bruto = $json?.error?.message ?? $json?.error ?? 'El flujo se cortó sin detalle.';\n\nconst motivo = String(bruto)\n  .replace(/['\"\\\\]/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .slice(0, 200) || 'El flujo se cortó sin detalle.';\n\nreturn [{ json: { sync_id: String(sync), motivo } }];\n"
+      },
+      "id": "49c89cad-fb5a-535f-8398-916045b5cb99",
+      "name": "Motivo de la falla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        610,
+        190
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Deja la corrida como fallida sin tocar ni una fila de datos. Ante un error\n-- no se desactiva nada: la última información válida es mejor que una\n-- jornada a medio reconciliar.\n--\n-- El sync_id llega en el item, no por `$('Abrir sincronización')`. Si ese\n-- nodo no llegó a correr, la referencia tiraría ExpressionError y mataría a\n-- la propia rama de error. Con `nullif` la cadena vacía se vuelve NULL y la\n-- función no encuentra fila que marcar, que es justo lo que corresponde\n-- cuando nunca se abrió ninguna.\nselect * from public.tracker_fallar_sync(\n  nullif('{{ $json.sync_id }}', '')::uuid,\n  '{{ $json.motivo }}'\n);",
+        "options": {}
+      },
+      "id": "5bf9b67e-6bcf-5c14-b4c3-69b7225824ae",
+      "name": "Marcar falla",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        830,
+        190
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "Carga inicial 07:15": {
+      "main": [
+        [
+          {
+            "node": "Día de operación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Botón Actualizar paquetes": {
+      "main": [
+        [
+          {
+            "node": "Día de operación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Día de operación": {
+      "main": [
+        [
+          {
+            "node": "Abrir sincronización",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abrir sincronización": {
+      "main": [
+        [
+          {
+            "node": "Paquetes de las rutas del día",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paquetes de las rutas del día": {
+      "main": [
+        [
+          {
+            "node": "A columnas · paquetes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Motivo de la falla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A columnas · paquetes": {
+      "main": [
+        [
+          {
+            "node": "¿Hubo paquetes?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Motivo de la falla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hubo paquetes?": {
+      "main": [
+        [
+          {
+            "node": "Guardar paquetes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cerrar sincronización",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Motivo de la falla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar paquetes": {
+      "main": [
+        [
+          {
+            "node": "Cerrar sincronización",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Motivo de la falla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cerrar sincronización": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Motivo de la falla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Motivo de la falla": {
+      "main": [
+        [
+          {
+            "node": "Marcar falla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

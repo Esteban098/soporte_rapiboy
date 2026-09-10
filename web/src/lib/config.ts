@@ -109,6 +109,63 @@ export const TABLA_COLECTAS_ASIGNACION =
 /** Tabla con las colectas realizadas, una fila por día, chofer y comercio. */
 export const TABLA_COLECTAS = process.env.SUPABASE_TABLA_COLECTAS?.trim() || "colectas";
 
+/* ---------- Live tracker ---------- */
+
+/** Repartidores con operación del día y su última posición conocida. */
+export const TABLA_TRACKER_DRIVERS =
+  process.env.SUPABASE_TABLA_TRACKER_DRIVERS?.trim() || "tracker_drivers";
+
+/**
+ * La vista, no la tabla. Agrega `minutos_sin_actualizar` y `estado_posicion`,
+ * que se calculan al leer porque una antigüedad guardada envejece mal.
+ */
+export const VISTA_TRACKER_DRIVERS =
+  process.env.SUPABASE_VISTA_TRACKER_DRIVERS?.trim() || "tracker_drivers_vista";
+
+/** Paquetes de las rutas del día, una fila por viaje. */
+export const TABLA_TRACKER_PAQUETES =
+  process.env.SUPABASE_TABLA_TRACKER_PAQUETES?.trim() || "tracker_paquetes";
+
+/**
+ * Tiendas, dropoff y la bodega, con su punto en el mapa.
+ *
+ * Es una tabla de referencia: la carga `supabase/migracion-06-lugares.sql`,
+ * generado desde `datos/tiendas.kmz`, y no la escribe ningún flujo.
+ */
+export const TABLA_TRACKER_TIENDAS =
+  process.env.SUPABASE_TABLA_TRACKER_TIENDAS?.trim() || "tracker_tiendas";
+
+/** El domicilio de cada chofer, por `IdMotoboy`. Misma procedencia. */
+export const TABLA_TRACKER_CHOFERES =
+  process.env.SUPABASE_TABLA_TRACKER_CHOFERES?.trim() || "tracker_choferes";
+
+/** Una fila por corrida de n8n, con su resultado. */
+export const TABLA_TRACKER_SYNC =
+  process.env.SUPABASE_TABLA_TRACKER_SYNC?.trim() || "tracker_sincronizaciones";
+
+/**
+ * Cuántos días atrás mira el tracker. `0` es hoy, que es lo normal.
+ *
+ * Existe para poder probar la pantalla contra una jornada completa: a media
+ * mañana la de hoy tiene tres paradas hechas y no se ve nada, la de ayer está
+ * entera. Con `1`, tanto los repartidores como los paquetes salen del día
+ * anterior; el número viaja a n8n con cada pedido, así que las dos consultas
+ * se mueven juntas y no hay forma de cruzar repartidores de hoy con paquetes
+ * de ayer.
+ *
+ * No es un modo de demostración escondido: con cualquier valor distinto de
+ * cero la pantalla lo anuncia arriba de todo. Mirar posiciones de ayer creyendo
+ * que son de ahora es peor que no tener la pantalla.
+ *
+ * Es una función y no una constante, como el resto de lo que se puede cambiar
+ * en este módulo: leerla en cada llamada es lo que permite probarla sin tener
+ * que reimportar medio proyecto para que se vuelva a evaluar.
+ */
+export function diasAtrasDelTracker(): number {
+  const valor = Number(process.env.TRACKER_DIAS_ATRAS ?? 0);
+  return Number.isFinite(valor) && valor > 0 ? Math.trunc(valor) : 0;
+}
+
 /** Bucket de Storage donde van los adjuntos de esos reportes. Privado. */
 export const BUCKET_SEGUIMIENTO = process.env.SUPABASE_BUCKET_SEGUIMIENTO?.trim() || "seguimiento";
 
@@ -129,13 +186,28 @@ export function sheetId(): string {
 }
 
 /** Separa el refresco operativo de los históricos y las colectas. */
-export type ClaveFlujo = "global" | "historico" | "canceladosHistorico" | "colectas";
+export type ClaveFlujo =
+  | "global"
+  | "historico"
+  | "canceladosHistorico"
+  | "colectas"
+  | "trackerPosiciones"
+  | "trackerPaquetes";
 
 const VARIABLE_DE_FLUJO: Record<ClaveFlujo, string> = {
   global: "N8N_WEBHOOKS",
   historico: "N8N_WEBHOOKS_HISTORICO",
   canceladosHistorico: "N8N_WEBHOOKS_CANCELADOS_HISTORICO",
   colectas: "N8N_WEBHOOKS_COLECTAS",
+
+  /*
+   * Los dos del tracker van separados y no comparten webhook a propósito: son
+   * las dos consultas que la pantalla puede pedir por separado. Mover un punto
+   * en el mapa no tiene por qué rehacer la ruta entera, y rehacer la ruta no
+   * tiene por qué esperar a que todos los dispositivos reporten.
+   */
+  trackerPosiciones: "N8N_WEBHOOKS_TRACKER_POSICIONES",
+  trackerPaquetes: "N8N_WEBHOOKS_TRACKER_PAQUETES",
 };
 
 export function esClaveFlujo(valor: unknown): valor is ClaveFlujo {

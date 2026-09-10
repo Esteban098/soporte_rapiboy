@@ -392,3 +392,46 @@ function aTexto(valor: unknown): string {
   if (valor instanceof Date) return valor.toISOString().slice(0, 10);
   return String(valor);
 }
+
+/**
+ * Lee una tabla entera como JSON, sin caché y paginando hasta el final.
+ *
+ * Es `consultar` sin la copia guardada y `traerTodo` sin el rodeo por el CSV.
+ * Existe para el live tracker: las posiciones cambian entre una lectura y la
+ * siguiente —esa es toda la pantalla— así que servir una copia de hace una
+ * hora sería mostrar el mapa de la mañana; y una jornada pasa cómodamente las
+ * 1000 filas con las que corta PostgREST, así que sin paginar el tablero
+ * mostraría media ruta sin avisar que faltaba la otra mitad.
+ */
+export async function consultarTodo<T>(
+  tabla: string,
+  parametros: Record<string, string>,
+  orden: string,
+): Promise<T[]> {
+  const todo: T[] = [];
+
+  for (let desde = 0; ; desde += PAGINA) {
+    const consulta = new URLSearchParams({
+      select: "*",
+      ...parametros,
+      order: orden,
+      limit: String(PAGINA),
+      offset: String(desde),
+    });
+
+    const respuesta = await pedir(`${encodeURIComponent(tabla)}?${consulta}`, { cache: "no-store" });
+
+    if (!respuesta.ok) {
+      const detalle = await respuesta.text().catch(() => "");
+      if (respuesta.status === 404 && detalle.includes("PGRST205")) throw new TablaFaltante(tabla);
+      throw new Error(
+        `No se pudo leer "${tabla}" de Supabase (HTTP ${respuesta.status}). ` +
+          `El script está en web/supabase/. ${detalle}`.trim(),
+      );
+    }
+
+    const pagina = (await respuesta.json()) as T[];
+    todo.push(...pagina);
+    if (pagina.length < PAGINA) return todo;
+  }
+}

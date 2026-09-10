@@ -1,0 +1,415 @@
+{
+  "name": "Tracker · repartidores y posiciones",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6,
+              "triggerAtMinute": 45
+            }
+          ]
+        }
+      },
+      "id": "9dd38f62-427a-58bd-b384-882c03c93cba",
+      "name": "Carga inicial 06:45",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -460,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tracker-posiciones",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "e1431efc-75e4-51c7-b381-07b531c56054",
+      "name": "Botón Actualizar posiciones",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -460,
+        100
+      ],
+      "webhookId": "b1e2dbbb-29b2-541f-af0c-f1fc6c9132e6"
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Qué día de operación se está reconciliando.\n *\n * El tablero lo manda ya resuelto en hora de Ciudad de México, y se usa ese.\n * Solo cuando el flujo arranca por horario -no hay cuerpo que leer- se calcula\n * acá, y se calcula con `Intl` y no restando seis horas: el desfase de México\n * cambia con el horario de verano, así que una constante correría el corte del\n * día durante medio año.\n *\n * El día se decide en un solo lugar y viaja como texto justamente porque el\n * servidor de la web, el de n8n y el de SQL Server pueden estar en tres zonas\n * distintas. Si cada uno mirara su propio reloj, a las once de la noche de\n * México tres nodos del mismo flujo estarían trabajando sobre dos fechas.\n */\n\n/*\n * Cuántos días atrás mirar cuando el flujo arranca SOLO por horario.\n *\n * Sirve para probar contra una jornada completa: a media mañana la de hoy\n * tiene tres paradas hechas y no se ve nada, la de ayer está entera.\n *\n * No afecta al botón del tablero. Ese manda el día ya resuelto -la web tiene\n * su propia variable, `TRACKER_DIAS_ATRAS`- y acá se respeta lo que llegue.\n * Es a propósito: el que aprieta el botón tiene que ver lo que la pantalla le\n * dice que está viendo, y no lo que este número diga por su cuenta.\n *\n * Los dos flujos del tracker tienen esta misma constante y hay que moverlos a\n * la vez, o se leerían los repartidores de un día y los paquetes de otro.\n */\nconst DIAS_ATRAS = 0;\n\nconst cuerpo = $json?.body ?? $json ?? {};\nconst pedido = typeof cuerpo.dia === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(cuerpo.dia)\n  ? cuerpo.dia\n  : null;\n\n/*\n * La resta va sobre la fecha ya resuelta en México y en aritmética UTC, no\n * restándole 24 horas al instante: restar horas cruza mal el cambio de horario\n * de verano, y el día en que el reloj se corre puede repetir o saltear una\n * fecha.\n */\nconst correr = (texto, dias) => {\n  if (!dias) return texto;\n  const [a, m, d] = texto.split('-').map(Number);\n  return new Date(Date.UTC(a, m - 1, d - dias)).toISOString().slice(0, 10);\n};\n\nconst hoy = new Intl.DateTimeFormat('en-CA', {\n  timeZone: 'America/Mexico_City',\n  year: 'numeric', month: '2-digit', day: '2-digit',\n}).format(new Date());\n\nconst dia = pedido ?? correr(hoy, DIAS_ATRAS);\n\nreturn [{ json: { dia, origen: pedido ? 'tablero' : 'horario' } }];\n"
+      },
+      "id": "40d70b06-9c1a-5f72-b1c4-f8ac1f82cfb3",
+      "name": "Día de operación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        -10
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Toma el lock del tipo y devuelve el sync_id de esta corrida.\n-- Falla si ya hay otra del mismo tipo en curso, y ahí el flujo se corta\n-- antes de tocar una sola fila. El lock es por tipo: repartidores y\n-- paquetes pueden correr en paralelo.\n--\n-- Devuelve también el día, para que el nodo que sigue lo tenga en su\n-- propia entrada y no tenga que ir a buscarlo con `$('...')`.\n--\n-- Como TEXTO y no como date: con `::date`, el driver lo entrega como Date\n-- de JS y n8n lo serializa '2026-09-09T00:00:00.000Z'. Ese texto entraba\n-- tal cual en `DECLARE @Dia DATE = '...'` y el filtro dejaba de encontrar\n-- nada. El día viaja como 'YYYY-MM-DD' de punta a punta.\nselect public.tracker_abrir_sync('drivers', '{{ $json.dia }}'::date) as sync_id,\n       to_char('{{ $json.dia }}'::date, 'YYYY-MM-DD') as dia;",
+        "options": {}
+      },
+      "id": "300979ec-9e2d-585f-a209-9fe0e80c354e",
+      "name": "Abrir sincronización",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -40,
+        -10
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Repartidores con operación del día y su última posición conocida.\n--\n-- Una sola consulta para todos. Pedir la posición repartidor por repartidor\n-- serían tantas idas a la base como gente en la calle, y la pantalla se dibuja\n-- entera o no se dibuja.\n--\n-- El día llega como parámetro desde el tablero, ya resuelto en hora de Ciudad\n-- de México, y el rango es semiabierto contra la columna sin envolver: así el\n-- filtro puede apoyarse en el índice de `Fecha`. Escribirlo como\n-- `CAST(R.Fecha AS DATE) = @Dia` daría exactamente el mismo resultado y\n-- obligaría a recorrer la tabla entera, porque una función sobre la columna\n-- filtrada la vuelve inservible para el índice.\n--\n-- NOLOCK: se lee sin bloquear la operación, como en el resto de los flujos.\n-- Lo que puede introducir es lectura sucia: una reserva que se está creando o\n-- cancelando en ese mismo instante puede aparecer o faltar en la foto. Acá es\n-- tolerable porque la foto se rehace en cada corrida y ninguna decisión se\n-- toma sobre una sola lectura. No lo sería si de esto saliera una liquidación.\nSET NOCOUNT ON;\n\nDECLARE @Dia   DATE = '{{ $json.dia }}';\nDECLARE @Hasta DATE = DATEADD(DAY, 1, @Dia);\n\n/*\n * En qué zona está guardada `Motoboy.UltimaActualizacion`.\n *\n * De esto depende toda la antigüedad que muestra el mapa: con la zona corrida\n * seis horas, o está todo en rojo o está todo en verde. El valor de acá es un\n * supuesto, no un hecho verificado, y está declarado en una línea para poder\n * corregirlo sin tocar nada más.\n *\n * De dónde sale el supuesto: los flujos 01, 02 y 05 le restan tres horas a\n * `HistorialViaje.Fecha` para llevarla al reloj con el que trabaja la\n * operación, lo que da a entender que el sistema guarda en UTC. Para\n * confirmarlo alcanza con mirar `UltimaActualizacionCruda` de un repartidor\n * que se sabe activo y ver contra qué reloj cierra.\n *\n * Si resultara que la columna ya viene en hora de México, el valor es\n * 'Central Standard Time (Mexico)' y no hay nada más que cambiar.\n */\nDECLARE @ZonaOrigen VARCHAR(60) = 'UTC';\n\nWITH ReservasDelDia AS (\n    /*\n     * Una fila por repartidor: la reserva más reciente del día.\n     *\n     * Un mismo repartidor puede tener más de una —le amplían el turno, le\n     * cambian la modalidad— y el mapa lo muestra una sola vez. `ROW_NUMBER`\n     * elige la última en vez de un `MIN(Id)` arbitrario, que es lo que\n     * dejaría al panel mostrando la reserva de la mañana a las siete de la\n     * tarde.\n     *\n     * No se filtra por `IdModalidad` a propósito. El resto del proyecto acota\n     * a 5 y 7, pero eso es sobre `Usuario` -el comercio- y acá la tabla es la\n     * reserva del repartidor, que no es lo mismo. Un repartidor lleva lo que\n     * lleva, y esconderle paradas al mapa porque su reserva tiene otra\n     * modalidad sería mostrar una ruta incompleta. La modalidad se devuelve\n     * igual, para que se pueda mirar.\n     */\n    SELECT\n        R.IdMotoboy,\n        R.Id AS IdReserva,\n        R.IdLocalidad,\n        R.IdModalidad,\n        R.FechaDesde,\n        R.FechaHasta,\n        ROW_NUMBER() OVER (\n            PARTITION BY R.IdMotoboy\n            ORDER BY R.FechaDesde DESC, R.Id DESC) AS rn\n    FROM dbo.ReservaxMotoboy R WITH (NOLOCK)\n    WHERE R.Fecha >= @Dia\n      AND R.Fecha <  @Hasta\n      AND R.Cancelada = 0\n      AND R.IdLocalidad = 9\n)\nSELECT\n    -- Viajan pegados a cada fila para que ningún nodo de abajo tenga que\n    -- ir a buscarlos a otro nodo con `$('...')`.\n    '{{ $json.sync_id }}' AS SyncId,\n    @Dia AS Dia,\n\n    M.Id AS IdMotoboy,\n    M.Nombre,\n    M.Apellido,\n\n    -- La posición del repartidor sale de acá y de ningún otro lado.\n    -- `Viaje.LatitudDestino` es a dónde va el paquete, no dónde está él.\n    M.Latitud,\n    M.Longitud,\n    CAST(M.UltimaActualizacion AS DATETIME2(0)) AT TIME ZONE @ZonaOrigen AS UltimaActualizacion,\n\n    -- El mismo valor sin convertir, para poder verificar el supuesto de zona\n    -- de arriba mirando una corrida real. No se guarda en Supabase.\n    M.UltimaActualizacion AS UltimaActualizacionCruda,\n\n    M.UltimaInfo,\n\n    D.IdReserva,\n    D.IdLocalidad,\n    D.IdModalidad,\n    D.FechaDesde,\n    D.FechaHasta\nFROM ReservasDelDia D\nINNER JOIN dbo.Motoboy M WITH (NOLOCK) ON M.Id = D.IdMotoboy\nWHERE D.rn = 1\nORDER BY M.Id;\n"
+      },
+      "id": "3df3b798-679c-50f9-8e02-1c2b76c7040c",
+      "name": "Repartidores del día",
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        180,
+        -10
+      ],
+      "credentials": {
+        "microsoftSql": {
+          "id": "F5EJUfXcquXz7Rf3",
+          "name": "Microsoft SQL credencial Esteban RPBY"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Repartidores a columnas de Postgres.\n *\n * `primera_deteccion`, `ultima_deteccion` y `sincronizado_en` no se mapean: las\n * escribe un trigger de la base. Es lo que hace que `primera_deteccion`\n * sobreviva al upsert en vez de quedar pisada en cada corrida y terminar\n * siempre igual a la última.\n */\n/*\n * sync_id y día vienen pegados a cada fila que devolvió SQL Server, así que\n * en el camino normal no se cruza el grafo. El `$('...')` es solo el\n * respaldo para la corrida sin filas -ahí no hay fila de donde sacarlos- y\n * va dentro de un try/catch: si la cadena de items se cortó, n8n tira\n * «el nodo no se ejecutó», y eso no puede matar al flujo entero.\n */\nconst primera = $input.all()[0]?.json ?? {};\nlet sync = primera.SyncId ?? null;\nlet dia = primera.Dia ? String(primera.Dia).slice(0, 10) : null;\n\nif (!sync || !dia) {\n  try {\n    sync = sync ?? $('Abrir sincronización').first().json.sync_id;\n    dia = dia ?? String($('Abrir sincronización').first().json.dia).slice(0, 10);\n  } catch {\n    // Sin respaldo tampoco: se sigue con lo que haya. El cierre no va a\n    // encontrar filas con este sync_id y no va a desactivar nada, que es\n    // el comportamiento correcto cuando no se pudo leer nada.\n  }\n}\n\nconst texto = (v) => {\n  const t = String(v ?? '').trim();\n  return t === '' || t.toLowerCase() === 'null' ? null : t;\n};\nconst entero = (v) =>\n  v === null || v === undefined || v === '' || !Number.isFinite(Number(v))\n    ? null\n    : Math.trunc(Number(v));\nconst marca = (v) => {\n  if (!v) return null;\n  const d = new Date(v);\n  return Number.isNaN(d.getTime()) ? null : d.toISOString();\n};\n\n/*\n * La misma regla que `coordenadaValida` en web/src/lib/tracker.ts.\n *\n * El (0, 0) se descarta aparte del rango: es un par válido como número y no lo\n * es como posición. Es lo que reporta un equipo que todavía no consiguió\n * señal, y cae en el Atlántico. Sin este corte, todos los repartidores sin GPS\n * aparecerían amontonados frente a la costa de África.\n */\nconst coordenada = (lat, lon) => {\n  const a = Number(lat);\n  const b = Number(lon);\n  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;\n  if (a < -90 || a > 90 || b < -180 || b > 180) return null;\n  if (a === 0 && b === 0) return null;\n  return { lat: a, lon: b };\n};\n\nconst filas = $input\n  .all()\n  .map((i) => i.json)\n  .filter((r) => Number.isFinite(Number(r.IdMotoboy)) && Number(r.IdMotoboy) > 0);\n\nlet omitidos = 0;\n\nconst salida = filas.map((r) => {\n  const punto = coordenada(r.Latitud, r.Longitud);\n  if (!punto) omitidos += 1;\n\n  return {\n    json: {\n      hay: true,\n      id_motoboy: Number(r.IdMotoboy),\n      nombre: texto(r.Nombre),\n      apellido: texto(r.Apellido),\n\n      /*\n       * Un repartidor sin coordenadas válidas se guarda igual, sin posición.\n       * Está operando y tiene que aparecer en el panel: «salió y no está\n       * transmitiendo» es un dato que la operación mira. Lo que no se hace es\n       * dibujarlo en un lugar que no es.\n       */\n      latitud: punto?.lat ?? null,\n      longitud: punto?.lon ?? null,\n      fecha_ultima_posicion: punto ? marca(r.UltimaActualizacion) : null,\n\n      ultima_info: texto(r.UltimaInfo),\n      id_reserva: entero(r.IdReserva),\n      id_localidad: entero(r.IdLocalidad),\n      id_modalidad: entero(r.IdModalidad),\n      reserva_desde: marca(r.FechaDesde),\n      reserva_hasta: marca(r.FechaHasta),\n\n      fecha_operacion: dia,\n\n      // Todo lo que esta corrida ve está activo. Los que dejó de ver los apaga\n      // `tracker_cerrar_drivers`, y solo si la corrida terminó bien.\n      activo: true,\n      sync_id: sync,\n    },\n  };\n});\n\nfor (const item of salida) {\n  item.json.leidos = filas.length;\n  item.json.omitidos = omitidos;\n}\n\n/*\n * Sin repartidores, un item testigo.\n *\n * Un nodo sin items de entrada no se ejecuta, así que devolver el arreglo\n * vacío dejaría la sincronización abierta en `running` hasta que venza sola y\n * bloqueando el botón mientras tanto. El testigo mantiene la cadena viva hasta\n * el cierre, que con `leidos = 0` no desactiva nada.\n */\n// El testigo lleva sync_id y fecha porque el nodo que cierra los lee de su\n// entrada directa, no de otro nodo.\nreturn salida.length > 0\n  ? salida\n  : [{ json: { hay: false, leidos: 0, omitidos: 0, sync_id: sync, fecha_operacion: dia } }];\n"
+      },
+      "id": "ade4ea95-ac5f-5d41-a435-e03628b8e422",
+      "name": "A columnas · repartidores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        -110
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5bb0fc09-b1bc-50b4-acd4-cdf95878047b",
+              "leftValue": "={{ $json.hay }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5b0119ab-0811-55be-9ccc-7d3c2f16f55d",
+      "name": "¿Hubo repartidores?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        610,
+        -110
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "tracker_drivers"
+        },
+        "operation": "upsert",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_motoboy": "={{ $json.id_motoboy }}",
+            "nombre": "={{ $json.nombre }}",
+            "apellido": "={{ $json.apellido }}",
+            "latitud": "={{ $json.latitud }}",
+            "longitud": "={{ $json.longitud }}",
+            "fecha_ultima_posicion": "={{ $json.fecha_ultima_posicion }}",
+            "ultima_info": "={{ $json.ultima_info }}",
+            "id_reserva": "={{ $json.id_reserva }}",
+            "id_localidad": "={{ $json.id_localidad }}",
+            "id_modalidad": "={{ $json.id_modalidad }}",
+            "reserva_desde": "={{ $json.reserva_desde }}",
+            "reserva_hasta": "={{ $json.reserva_hasta }}",
+            "fecha_operacion": "={{ $json.fecha_operacion }}",
+            "activo": "={{ $json.activo }}",
+            "sync_id": "={{ $json.sync_id }}"
+          },
+          "matchingColumns": [
+            "id_motoboy"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "e5cc23ec-9de2-534e-806f-6ecc6cf473c5",
+      "name": "Guardar repartidores",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        830,
+        -210
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Cierra la corrida: desactiva lo que no vio y la marca exitosa, en la\n-- misma transacción. La función cuenta sola las filas que quedaron con\n-- este sync_id, así que acá no hay que pasarle ningún total.\n--\n-- sync_id y fecha salen de la entrada directa de este nodo: por la rama\n-- verdadera los trae la fila que acaba de guardarse -son columnas de la\n-- tabla- y por la falsa, el testigo. Nada de `$('...')`: leer a través del\n-- grafo es lo que rompía este flujo.\nselect * from public.tracker_cerrar_drivers(\n  '{{ $json.sync_id }}'::uuid,\n  '{{ $json.fecha_operacion }}'::date\n);",
+        "options": {}
+      },
+      "id": "766a10d1-9879-5921-b4d7-63374272a94b",
+      "name": "Cerrar sincronización",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1060,
+        -110
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "executeOnce": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * El motivo de la falla, recortado y sin comillas, más el sync_id a mano.\n *\n * Esta rama es la última línea de defensa: es la que evita que una corrida\n * muerta deje su fila en `running` reteniendo el lock. Por eso no puede\n * reventar ella misma, y por eso el sync_id se resuelve acá adentro, con\n * try/catch, en vez de en la expresión del nodo que sigue.\n *\n * La diferencia importa: si `Abrir sincronización` no llegó a ejecutarse -el\n * flujo murió antes, o alguien corrió un nodo suelto desde el editor-, una\n * expresión `$('Abrir sincronización')` tira ExpressionError y se lleva puesta\n * a la propia rama de error. Un Code node puede atajarlo; una expresión no.\n *\n * Sin sync_id se sigue igual, con la cadena vacía: la consulta la convierte en\n * NULL y `tracker_fallar_sync` no encuentra ninguna fila que marcar. No hay\n * nada que cerrar, que es exactamente el caso.\n */\nlet sync = '';\ntry {\n  sync = $('Abrir sincronización').first().json.sync_id ?? '';\n} catch {\n  sync = '';\n}\n\n/*\n * El mensaje se limpia por dos razones. Una es que se interpola en una consulta\n * y una comilla suelta la partiría al medio. La otra es que el error de un\n * driver de base puede traer la fila que estaba procesando, y de ahí a dejar un\n * domicilio guardado en la tabla de ejecuciones hay un paso. La función de\n * Postgres vuelve a recortar a 500: son dos redes para lo mismo, a propósito.\n */\nconst bruto = $json?.error?.message ?? $json?.error ?? 'El flujo se cortó sin detalle.';\n\nconst motivo = String(bruto)\n  .replace(/['\"\\\\]/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .slice(0, 200) || 'El flujo se cortó sin detalle.';\n\nreturn [{ json: { sync_id: String(sync), motivo } }];\n"
+      },
+      "id": "49c89cad-fb5a-535f-8398-916045b5cb99",
+      "name": "Motivo de la falla",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        610,
+        190
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Deja la corrida como fallida sin tocar ni una fila de datos. Ante un error\n-- no se desactiva nada: la última información válida es mejor que una\n-- jornada a medio reconciliar.\n--\n-- El sync_id llega en el item, no por `$('Abrir sincronización')`. Si ese\n-- nodo no llegó a correr, la referencia tiraría ExpressionError y mataría a\n-- la propia rama de error. Con `nullif` la cadena vacía se vuelve NULL y la\n-- función no encuentra fila que marcar, que es justo lo que corresponde\n-- cuando nunca se abrió ninguna.\nselect * from public.tracker_fallar_sync(\n  nullif('{{ $json.sync_id }}', '')::uuid,\n  '{{ $json.motivo }}'\n);",
+        "options": {}
+      },
+      "id": "5bf9b67e-6bcf-5c14-b4c3-69b7225824ae",
+      "name": "Marcar falla",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        830,
+        190
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "Carga inicial 06:45": {
+      "main": [
+        [
+          {
+            "node": "Día de operación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Botón Actualizar posiciones": {
+      "main": [
+        [
+          {
+            "node": "Día de operación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Día de operación": {
+      "main": [
+        [
+          {
+            "node": "Abrir sincronización",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abrir sincronización": {
+      "main": [
+        [
+          {
+            "node": "Repartidores del día",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Repartidores del día": {
+      "main": [
+        [
+          {
+            "node": "A columnas · repartidores",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Motivo de la falla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A columnas · repartidores": {
+      "main": [
+        [
+          {
+            "node": "¿Hubo repartidores?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Motivo de la falla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hubo repartidores?": {
+      "main": [
+        [
+          {
+            "node": "Guardar repartidores",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cerrar sincronización",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Motivo de la falla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar repartidores": {
+      "main": [
+        [
+          {
+            "node": "Cerrar sincronización",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Motivo de la falla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cerrar sincronización": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Motivo de la falla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Motivo de la falla": {
+      "main": [
+        [
+          {
+            "node": "Marcar falla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

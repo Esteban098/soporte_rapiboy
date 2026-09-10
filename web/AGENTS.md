@@ -44,6 +44,48 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   quedan vacíos, se buscan en Mensual o Histórico. `abierto_en` se reinicia al
   reabrir y el tiempo de resolución es la diferencia hasta `atendido_en`.
   Instalar `supabase/migracion-04-seguimiento-semanal.sql` en bases existentes.
+- El **live tracker** vive en tres tablas propias —`tracker_drivers`,
+  `tracker_paquetes`, `tracker_sincronizaciones`— y no toca ninguna de las
+  anteriores. Es la foto de la jornada en curso, no un histórico: la clave de
+  repartidores es `id_motoboy` y la de paquetes `id_viaje`, así que una
+  reasignación mueve la fila en vez de duplicarla. Se instala con
+  `supabase/live-tracker.sql`.
+- `tracker_drivers.fecha_operacion` y `tracker_paquetes.fecha_ruta` acotan la
+  jornada y son lo que permite desactivar «lo del día que ya no está» sin tocar
+  lo de ayer. El día se decide en `diaDeOperacion()` con `America/Mexico_City`
+  y viaja como texto a n8n: la web, n8n y SQL Server pueden estar en tres zonas
+  distintas y el corte tiene que ser uno solo. `TRACKER_DIAS_ATRAS` lo corre
+  hacia atrás para probar contra una jornada completa; mueve las dos consultas
+  a la vez y la pantalla lo anuncia con un cartel, porque leer posiciones de
+  ayer como si fueran de ahora es peor que no tener la pantalla.
+- `minutos_sin_actualizar` y `estado_posicion` **no se guardan**: los calcula
+  la vista `tracker_drivers_vista` al leer, y el navegador los vuelve a
+  calcular contra su propio reloj. Una antigüedad guardada envejece mal —diría
+  «hace 2 minutos» para siempre— y pintaría de verde a un teléfono apagado.
+- En los flujos del tracker, **ningún nodo lee a través del grafo**: nada de
+  `$('Otro nodo')` dentro de `{{ }}`. Esa lectura se rompe sola cuando se corta
+  la cadena de items y n8n la reporta como «el nodo no se ejecutó», culpando a
+  un nodo que no tiene nada que ver. Lo que hace falta aguas abajo se arrastra
+  en los datos. Solo se permite en un Code node, con `try/catch`.
+- Las funciones de cierre cuentan solas las filas de su `sync_id` en vez de
+  recibir el total desde n8n, justamente para que el nodo que cierra no tenga
+  que ir a buscarlo a otro lado.
+- El lock de sincronización es por tipo y vence a los 10 minutos.
+  `tracker_liberar_lock(tipo)` es la salida de emergencia; su caso típico es
+  haber ejecutado el nodo «Abrir sincronización» suelto desde el editor de n8n,
+  que crea la fila sin que nada la cierre. Instalar
+  `supabase/migracion-05-tracker-lock.sql` en bases que ya corrieron el script.
+- Ninguna sincronización del tracker desactiva nada si leyó cero filas, y una
+  corrida fallida no desactiva nunca. Una consulta que devuelve cero es
+  indistinguible de una que no llegó a correr, y vaciar el mapa por eso es peor
+  que quedarse con la última foto válida.
+- La clasificación de paquetes sale del **nombre** del estado
+  (`EstadoViaje.NombreCompleto`), nunca de una lista de `IdEstado`. Los ids
+  verificados del proyecto son 22, 24 y los del filtro de fallidos; el resto
+  sería adivinado. El vocabulario es el de `src/lib/estados.ts` y está escrito
+  dos veces —en la web y en el nodo Code del flujo 09—, así que
+  `npm run test:tracker` compara las dos implementaciones sobre todas las
+  combinaciones para que no se separen en silencio.
 
 ## Límites entre flujos
 
@@ -60,6 +102,18 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `valor_70` en los nodos Postgres aunque aparezca entre las columnas disponibles.
 - `ayer` se vacía solamente dentro de la ingesta diaria y después de confirmar
   que hubo jornada. Una limpieza manual es puntual y no se incorpora al flujo.
+- Los flujos 08 y 09 escriben **solo** las tablas `tracker_*` y leen SQL Server
+  en modo lectura. No comparten tablas con ningún otro flujo, así que se pueden
+  importar, apagar o rehacer sin mirar el resto.
+- El botón de paquetes hace una **reconciliación completa del día**, no un
+  refresco de lo guardado. La consulta del flujo 09 no lleva ningún
+  `WHERE V.Id IN (...)`: el universo lo definen las reservas del día. Es lo
+  único que hace que un paquete agregado a media mañana aparezca solo, y hay
+  una prueba que falla si alguien vuelve a meter la lista de ids.
+- Los endpoints del tracker no escriben en Supabase. Quien escribe es n8n, con
+  su credencial y dentro de su transacción; la web dispara y vuelve a leer. Dos
+  caminos de escritura harían que `sync_id` dejara de contar la historia
+  completa.
 
 ## Trabajo seguro
 
@@ -84,12 +138,79 @@ npm run lint
 npm run test:siniestrados
 npm run test:cobros
 npm run test:seguimiento
+npm run test:tracker
 ```
 
 Además, validar los workflows con `jq empty ../n8n/*.json`. El build no sale a
 la red: la tipografía son archivos locales en `src/app/fonts/` cargados con
 `next/font/local`, y el polígono de cobertura es `src/lib/cobertura.json`,
 versionado y generado a mano con `scripts/cobertura.mts`.
+
+## Live tracker
+
+- El universo de paquetes se acota con `Usuario.IdModalidad = 5` y
+  `Usuario.IdLocalidad = 9`, igual que el resto del tablero, para que los
+  totales sean comparables entre pantallas.
+- La fuente de la posición es `dbo.Motoboy.Latitud` / `.Longitud`, y se muestra
+  siempre como «última posición conocida». `Viaje.LatitudDestino` es a dónde va
+  el paquete, no dónde está la persona: hay una prueba que falla si esa columna
+  aparece en la consulta de repartidores.
+- El repartidor de un paquete sale de la reserva
+  (`Viaje.IdReserva` → `ReservaxMotoboy.IdMotoboy`).
+  `Viaje.IdMotoboyBalanceado` se guarda al lado, sin combinarse: cuando los dos
+  no coinciden hay un balanceo a medio aplicar, y eso se mira.
+- `ReservaxMotoboy` **no** expone `IdRuta` —está probado, ver `colectas.sql`—
+  así que la ruta del repartidor se deriva de `Viaje.IdRuta` de sus paquetes.
+  Tampoco hay un polígono verificado en las tablas de origen: el que muestra el
+  panel lo resuelve `ubicarPunto()` con las coordenadas contra el KMZ.
+- `PROXIMO` es el pendiente de menor `Viaje.Orden`, y solo si ese orden alcanza
+  para decidirlo. Con el mínimo empatado, o sin ningún pendiente con orden, no
+  hay próximo y la pantalla dice por qué. No completar la secuencia es
+  deliberado: el equipo leería un orden inventado como un dato del sistema.
+- El mapa reutiliza la proyección y los polígonos de Cobertura. No hay librería
+  de mapas ni tiles, así que la pantalla no le pide nada a ningún servidor
+  externo. `proyectarEn()` y `proyectar()` tienen que dar el mismo resultado o
+  los marcadores quedan corridos respecto del fondo; hay una prueba que lo
+  compara.
+- Los marcadores se dibujan en píxeles, midiendo la caja del SVG con un
+  `ResizeObserver`. Escalarlos con el `viewBox` los volvería gigantes al
+  acercar e invisibles al alejar.
+- El color del marcador dice el **estado** del paquete —verde entregado, rojo
+  no entregado, ámbar fuera de ruta, gris cancelado— y el aro dice de **quién**
+  es. Lo que todavía no tiene desenlace se pinta del color del repartidor y va
+  hueco: lleno es «resuelto», hueco es «falta». Los tonos salen de las mismas
+  variables que Mensual y Ayer, no de una paleta nueva.
+- El pin del repartidor es negro (`--ink`, para que no desaparezca en tema
+  oscuro). Su color de identidad queda en el aro y en la línea del recorrido.
+- El id de un paquete es un enlace a `rapiboy.com/Operador?modalidad=5&idviaje=`
+  con `id_viaje`. La fila no es un botón con el enlace adentro —sería HTML
+  inválido—: el botón va estirado por detrás y el enlace por encima.
+- La **ruta propuesta** sale siempre de la bodega (`BODEGA` en `lib/tracker.ts`)
+  y encadena la parada más cercana a la anterior. Es vecino más cercano puro y
+  tiene que seguir siéndolo: hay una prueba de propiedad que falla si alguien
+  cuela un optimizador. No pisa `Viaje.Orden` ni cambia cuál es el próximo
+  destino, y arranca apagada.
+- La bodega está duplicada a propósito: constante en el código —de ella depende
+  un cálculo y no puede quedarse sin origen— y fila en `tracker_tiendas`. Una
+  prueba compara las dos.
+- El id del repartidor es `Motoboy.Id`, no `ReservaxMotoboy.IdMotoboy`: es el
+  número que el mapa de choferes lleva en el nombre de cada punto.
+- Una tabla de referencia que falta se **anota y se avisa** (`tablasFaltantes`),
+  no se traga con un `catch`. «No corriste la migración» y «esta persona no
+  tiene domicilio» son respuestas distintas y la pantalla tiene que decir cuál.
+- `tracker_tiendas` y `tracker_choferes` son de referencia: las genera
+  `npx tsx scripts/lugares.mts` desde los KMZ de `datos/` y no las escribe
+  ningún flujo. `id_tienda` **no** es único (#55004 tiene dos sucursales).
+- El encuadre movible y el fondo de cobertura los pone `LienzoMapa`. Tiene tres
+  sutilezas ya resueltas —la escala real en píxeles medida con
+  `ResizeObserver`, el foco de la rueda y el re-encuadre durante el render—: no
+  reimplementarlas por separado.
+- El domicilio de un repartidor es dato sensible: sale del servidor solo dentro
+  del repartidor que se está mirando, nunca como tabla completa.
+- El color de cada repartidor sale de su `id`, no de su posición en la lista:
+  si dependiera del orden, alguien que entra a la jornada le correría el color
+  a todos los demás. La paleta está ordenada para que ids corridos —lo normal—
+  caigan en tonos que contrastan.
 
 ## Cobertura
 

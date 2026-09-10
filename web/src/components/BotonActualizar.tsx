@@ -67,6 +67,33 @@ const TEXTOS: Record<ClaveFlujo, Textos> = {
     esperaTexto:
       "Se está consultando el estado actual de las cancelaciones de meses cerrados. Puede tardar varios minutos.",
   },
+  /*
+   * El live tracker no usa este botón: tiene los suyos, que conservan la
+   * selección y el encuadre del mapa en vez de recargar el árbol de servidor.
+   * Las dos entradas están para que el mapa de claves siga siendo total —si
+   * mañana alguien agrega una clave, TypeScript avisa acá— y para que el texto
+   * exista si alguna pantalla decide mostrarlas.
+   */
+  trackerPosiciones: {
+    boton: "Actualizar posiciones",
+    cargando: "Actualizando posiciones…",
+    conFlujos:
+      "Vuelve a leer la última posición conocida de cada repartidor con operación del día. No toca los paquetes.",
+    sinFlujos:
+      "No hay flujo de posiciones configurado, así que no se consulta el sistema.",
+    esperaTitulo: "Actualizando posiciones",
+    esperaTexto: "Se está releyendo dónde está cada repartidor.",
+  },
+  trackerPaquetes: {
+    boton: "Actualizar paquetes",
+    cargando: "Actualizando paquetes…",
+    conFlujos:
+      "Vuelve a preguntar cuáles son los paquetes de las rutas de hoy y los compara con los guardados. Descubre los que se agregaron después.",
+    sinFlujos:
+      "No hay flujo de paquetes configurado, así que no se consulta el sistema.",
+    esperaTitulo: "Actualizando paquetes",
+    esperaTexto: "Se está reconciliando la ruta del día contra el sistema.",
+  },
   colectas: {
     boton: "Actualizar colectas",
     cargando: "Actualizando colectas…",

@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test:siniestrados": "node --import tsx scripts/siniestrados.test.mts",
     "test:cobros": "node --conditions=react-server --import tsx scripts/cobros.test.mts",
-    "test:seguimiento": "node --import tsx scripts/seguimiento.test.mts"
+    "test:seguimiento": "node --import tsx scripts/seguimiento.test.mts",
+    "test:tracker": "node --conditions=react-server --import tsx scripts/tracker.test.mts"
   },
   "dependencies": {
     "next": "16.3.3",

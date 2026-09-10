@@ -131,6 +131,19 @@ function conMargen(caja: Caja, proporcion: number): Caja {
   };
 }
 
+/**
+ * La ventana que cubre el `viewBox`, en grados, más su tamaño en unidades SVG.
+ *
+ * Se expone para que el live tracker pueda proyectar en el navegador sin
+ * importar este módulo: `cobertura.json` pesa casi 300 KB y mandarlo al cliente
+ * para ubicar diez marcadores sería pagar el archivo entero por seis números.
+ * El mapa de fondo se sigue dibujando en el servidor; al cliente le viajan
+ * solo estos límites.
+ */
+export function ventanaProyeccion(): Caja & { ancho: number; alto: number } {
+  return { ...CAJA, ancho: ANCHO, alto: ALTO };
+}
+
 /** Grados a coordenadas del `viewBox`. La `y` se invierte: el norte va arriba. */
 export function proyectar({ lon, lat }: Punto): { x: number; y: number } {
   return {

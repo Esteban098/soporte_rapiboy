@@ -1,0 +1,583 @@
+/*
+ * Live tracker.
+ *
+ * Dos columnas fijas: el panel manda —es donde se elige a quién mirar— y el
+ * mapa se queda con lo que sobra. En pantallas angostas se apilan, con el
+ * panel arriba: en un teléfono la lista sigue siendo lo primero que se toca.
+ */
+
+.pantalla {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .pantalla {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Panel ---------- */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-2);
+  box-shadow: var(--shadow);
+
+  /* El panel se queda quieto y la lista scrollea adentro: con veinte
+     repartidores, si scrolleara la página entera los botones de sincronizar
+     se irían de pantalla justo cuando hacen falta. */
+  position: sticky;
+  top: 16px;
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+}
+
+@media (max-width: 900px) {
+  .panel {
+    position: static;
+    max-height: none;
+  }
+}
+
+.panelBarra {
+  display: flex;
+}
+
+.buscador {
+  width: 100%;
+  padding: 8px 11px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-3);
+}
+
+.buscador:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.acciones {
+  display: flex;
+  gap: 6px;
+}
+
+.accion,
+.sync {
+  flex: 1;
+  padding: 7px 9px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-3);
+  cursor: pointer;
+  transition: background var(--dur-corta) var(--ease);
+}
+
+.sync {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-color: transparent;
+}
+
+.accion:hover:not(:disabled),
+.sync:hover:not(:disabled) {
+  background: var(--surface-3);
+}
+
+.accion:disabled,
+.sync:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.sincronizaciones {
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.marca b {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.marcaFalla {
+  color: var(--critical);
+}
+
+.aviso {
+  margin: 0;
+  padding: 7px 9px;
+  font-size: 12px;
+  color: var(--ink-2);
+  background: var(--good-soft);
+  border-radius: var(--radio-2);
+}
+
+.avisoError {
+  color: var(--critical);
+  background: var(--critical-soft);
+}
+
+.filtro {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- Lista de repartidores ---------- */
+
+.lista {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.vacio,
+.huerfanos {
+  margin: 0;
+  padding: 10px 2px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.fila {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 6px;
+  border-radius: var(--radio-2);
+  cursor: pointer;
+}
+
+.fila:hover {
+  background: var(--surface-2);
+}
+
+.filaElegida {
+  background: var(--accent-soft);
+}
+
+.chip {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.filaTexto {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.filaNombre {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filaDato {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/*
+ * La antigüedad de la posición, en color.
+ *
+ * Verde no quiere decir «va bien»: quiere decir «este punto es de recién». Es
+ * la única forma de que alguien no tome por actual el último punto de un
+ * teléfono que se quedó sin batería a las once de la mañana.
+ */
+.pastilla {
+  flex: none;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: var(--radio-3);
+}
+
+.posRECIENTE {
+  color: var(--good);
+  background: var(--good-soft);
+}
+
+.posDEMORADA {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.posVIEJA {
+  color: var(--critical);
+  background: var(--critical-soft);
+}
+
+.posSIN_POSICION,
+.posSIN_FECHA {
+  color: var(--muted);
+  background: var(--surface-3);
+}
+
+/* ---------- Mapa ---------- */
+
+.derecha {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.mapaCaja {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-2);
+  box-shadow: var(--shadow);
+}
+
+.mapa {
+  display: block;
+  width: 100%;
+  height: clamp(380px, 62dvh, 760px);
+  cursor: grab;
+  touch-action: none;
+}
+
+.mapa:active {
+  cursor: grabbing;
+}
+
+/* El contorno de las zonas, apagado: es referencia, no contenido. */
+.fondo path {
+  fill: color-mix(in srgb, var(--accent) 5%, var(--surface));
+  stroke: var(--rule);
+  stroke-width: 1.2;
+}
+
+.destino {
+  cursor: pointer;
+}
+
+.pulso {
+  transform-origin: center;
+  animation: latido 2.4s var(--ease) infinite;
+}
+
+@keyframes latido {
+  0% {
+    opacity: 0.28;
+    transform: scale(0.45);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* Un mapa que late todo el tiempo es ruido para quien no tolera movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  .pulso {
+    animation: none;
+    opacity: 0.2;
+  }
+}
+
+.controles {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.controles button {
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.controles button:hover {
+  background: var(--surface-2);
+}
+
+.vacioMapa {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  margin: 0;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-3);
+  box-shadow: var(--shadow);
+  transform: translateX(-50%);
+}
+
+/* ---------- Detalle por repartidor ---------- */
+
+.detalles {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+.detalle {
+  padding: 13px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-top: 3px solid;
+  border-radius: var(--radio-2);
+  box-shadow: var(--shadow);
+}
+
+.detalleHead {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.detalleTitulo {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.detalleSub,
+.detallePos {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.detallePos {
+  margin: 6px 0 10px;
+  line-height: 1.45;
+}
+
+.cifras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.cifra {
+  display: flex;
+  flex-direction: column;
+}
+
+.cifraValor {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.cifraEtiqueta {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.proximo {
+  margin: 10px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+/*
+ * La propuesta va en su propia caja y con la frase que dice qué es. El texto
+ * hace la mitad del trabajo: un número de kilómetros suelto al lado de la ruta
+ * real se leería como el orden que hay que seguir.
+ */
+.propuesta {
+  margin: 0 0 10px;
+  padding: 7px 9px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border-radius: var(--radio-3);
+}
+
+.paquetes {
+  max-height: 260px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+/*
+ * La fila del paquete tiene dos destinos: el mapa y el sistema.
+ *
+ * El botón que selecciona va estirado por detrás de toda la fila y el resto
+ * del contenido flota encima sin recibir clics, salvo el enlace del id. Así se
+ * puede tocar cualquier parte de la fila para verla en el mapa y el id sigue
+ * llevando a Rapiboy, sin meter un `<a>` adentro de un `<button>`.
+ */
+.paquete {
+  position: relative;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  width: 100%;
+  padding: 6px;
+  border-radius: var(--radio-2);
+}
+
+.paquete > :not(.paqueteFondo) {
+  position: relative;
+  pointer-events: none;
+}
+
+.paqueteFondo {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: inherit;
+  cursor: pointer;
+}
+
+.paqueteFondo:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.paquete:hover,
+.paqueteActivo {
+  background: var(--surface-2);
+}
+
+/* Visible solo para lectores de pantalla: el botón estirado está vacío. */
+.soloLectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.paqueteOrden {
+  flex: none;
+  width: 22px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.paqueteTexto {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+
+/*
+ * `align-self` es lo que mantiene el enlace del ancho del texto. La columna es
+ * un flex vertical, así que sin esto el `<a>` se estiraría hasta el borde y se
+ * comería los clics destinados a seleccionar la fila.
+ */
+.paqueteId {
+  align-self: flex-start;
+  font-size: 12px;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  pointer-events: auto;
+}
+
+.paqueteId:hover,
+.paqueteId:focus-visible {
+  color: var(--accent-ink);
+  border-bottom-color: currentcolor;
+}
+
+.paqueteDir {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag {
+  flex: none;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--surface-3);
+  border-radius: var(--radio-3);
+}
+
+.tagPROXIMO {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+
+.tagVISITADO_ENTREGADO {
+  color: var(--estado-entregado);
+  background: var(--estado-entregado-fondo);
+}
+
+.tagVISITADO_NO_ENTREGADO {
+  color: var(--estado-noentregado);
+  background: var(--estado-noentregado-fondo);
+}
+
+.tagCANCELADO,
+.tagRETIRADO_DE_RUTA {
+  color: var(--estado-cancelado);
+  background: var(--estado-cancelado-fondo);
+}
+
+.tagSIN_CLASIFICAR {
+  color: var(--warning);
+  background: var(--warning-soft);
+}

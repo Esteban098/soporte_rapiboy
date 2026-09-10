@@ -50,6 +50,185 @@ Tres decisiones que vale la pena tener presentes:
 | `/reclamos` | Casos donde la tienda aportó datos, con el dato tal cual y la información del viaje. Se filtra por avisado / no avisado. |
 | `/comercios` | De dónde salen los casos y a qué zonas van. |
 | `/cobertura` | **Cobertura**: el contorno donde hay servicio y un verificador puntual —por id de viaje, dirección o coordenadas— que responde si un domicilio entra. |
+| `/live-tracker` | **Live tracker**: dónde está cada repartidor de la jornada y qué le queda por entregar. Panel de selección a la izquierda, mapa a la derecha. |
+
+## Live tracker
+
+La jornada en curso: quiénes salieron, dónde se los vio por última vez y qué
+paquetes lleva cada uno.
+
+### Cómo se usa
+
+Arranca con el mapa vacío y el panel lleno. Es a propósito: con veinte
+repartidores y todas sus paradas encima, el mapa completo no dice nada. La
+pantalla empieza a servir cuando alguien elige a quién quiere mirar, con las
+casillas del panel, el buscador por nombre o ID, o **Seleccionar todos**.
+
+Al elegir a alguien aparecen su última posición conocida, sus destinos y la
+línea del recorrido que le queda, y abajo una ficha con paquetes, entregados,
+no entregados, pendientes, avance y próximo destino. Con varios elegidos, cada
+uno tiene su color y ese color es el mismo en el marcador, en la línea, en los
+destinos y en el casillero del panel.
+
+Los marcadores dicen en qué quedó cada parada: número de orden si está
+pendiente, un aro alrededor si es la próxima, un tilde si se entregó, un signo
+de admiración si se visitó y no se entregó. Los cancelados y los que salieron
+de la ruta están ocultos y se muestran con la casilla del panel.
+
+### Los dos botones
+
+Están separados porque son dos preguntas distintas, y una es mucho más barata
+que la otra:
+
+- **Actualizar posiciones** relee `Motoboy.Latitud` y `Motoboy.Longitud` de los
+  repartidores con reserva vigente. No toca los paquetes.
+- **Actualizar paquetes** vuelve a preguntar cuáles son los paquetes de las
+  rutas de hoy y los compara con los guardados. Inserta los nuevos, actualiza
+  estados, detecta reasignaciones y marca lo que salió de la ruta.
+
+Lo importante del segundo: **no parte de los paquetes que ya tiene**. Vuelve a
+descubrir el universo del día desde las reservas. Por eso, si a un repartidor
+que arrancó con 30 paquetes le agregan uno a media mañana, el botón lo trae y
+el total pasa a 31 sin reiniciar nada. Un refresco que consultara solo los
+tracking id guardados nunca preguntaría por ese paquete.
+
+Después de apretar cualquiera de los dos, la pantalla vuelve a leer la API y
+reemplaza los datos, **conservando la selección, los filtros, el zoom y el
+encuadre**. No se remonta el mapa: si se recargara el árbol de servidor, se
+perdería todo lo que el operador acomodó a mano.
+
+### Qué se muestra y qué no se inventa
+
+- La posición es siempre **«última posición conocida»**, con la hora y cuánto
+  hace. La pastilla del panel va en verde hasta 10 minutos, ámbar hasta 45 y
+  roja después. No es «va bien» o «va mal»: es cuán reciente es el punto. Sin
+  eso, nadie distinguiría a alguien que está repartiendo de un teléfono que se
+  quedó sin batería a las once.
+- Un repartidor **sin coordenadas** aparece igual en el panel, marcado «sin
+  GPS», y no se dibuja en ningún lado. Salió a operar y no está transmitiendo:
+  eso es un dato, no una fila que haya que esconder.
+- El **próximo destino** es el pendiente de menor `Orden`. Si ningún pendiente
+  trae orden, o si el menor está empatado entre varios, la pantalla dice que no
+  puede señalarlo y explica por qué. Elegir uno sería inventar la secuencia, y
+  se leería como un dato del sistema.
+- Un paquete cuyo estado dice que no se entregó pero del que no hay ninguna
+  visita registrada queda **sin clasificar**, a la vista. Es una contradicción
+  y conviene que se note, en vez de contarla como un intento fallido real.
+- El avance no cuenta cancelados ni retirados de ruta: no son paradas que el
+  repartidor tenga que resolver, y contarlas haría bajar el porcentaje justo
+  cuando le aligeran el día.
+
+### El mapa
+
+Es el mismo SVG de Cobertura con encuadre movible encima —arrastrar para mover,
+rueda o los botones para acercar—. **No hay librería de mapas ni tiles**: el
+fondo son los polígonos del KMZ, que ya están en el repo, así que la pantalla no
+le pide nada a ningún servidor de mapas y funciona con la red caída. Para una
+operación acotada a una ciudad, el contorno de las zonas de reparto ubica mejor
+que un mapa de calles: es el marco contra el que la operación piensa.
+
+El contorno se dibuja en el servidor y no se vuelve a pintar nunca; mover y
+acercar cambian solo el `viewBox`. Los ~3.500 puntos del polígono no viajan como
+datos al navegador.
+
+### Probar contra la jornada de ayer
+
+A media mañana la jornada de hoy tiene tres paradas hechas y la pantalla no
+muestra gran cosa. Para verla con datos completos, `TRACKER_DIAS_ATRAS=1` la
+corre un día hacia atrás:
+
+```
+TRACKER_DIAS_ATRAS=1
+```
+
+Mueve **repartidores y paquetes juntos** —es un solo número, leído en un solo
+lugar— así que no se puede terminar mirando los repartidores de hoy con los
+paquetes de ayer. Los dos botones mandan ese mismo día al flujo, así que las
+dos consultas a SQL Server salen con la misma fecha.
+
+Con la variable puesta, la pantalla lo dice en la cabecera y en un cartel arriba
+del mapa. No es un detalle de cortesía: alguien que mire posiciones de ayer
+creyendo que son de ahora va a llamar a un repartidor para preguntarle por qué
+está parado. Las posiciones además van a aparecer en rojo, porque tienen más de
+un día de antigüedad, que es exactamente lo que son.
+
+Para volver a la jornada en curso, sacar la variable y recargar. Los flujos de
+n8n tienen su propia constante `DIAS_ATRAS` en el nodo **Día de operación**, que
+solo afecta a las corridas por horario: cuando el día llega desde el botón,
+gana el del tablero.
+
+### Si una sincronización queda trabada
+
+El botón contesta *«Ya hay una sincronización de X en curso»* mientras haya una
+corrida abierta. El mensaje dice hace cuánto arrancó y cuánto falta para que se
+libere sola: si arrancó hace un minuto, es una corrida de verdad y hay que
+esperarla; si arrancó hace ocho, es una fila zombi.
+
+Se libera sola a los 10 minutos. Para no esperar:
+
+```sql
+select public.tracker_liberar_lock('drivers');   -- o 'paquetes'
+```
+
+No borra nada: marca la corrida como fallida y deja el registro. Una corrida
+abierta todavía no desactivó ningún repartidor ni ningún paquete, porque eso
+pasa recién al cerrar.
+
+La causa más común no es una falla: es haber ejecutado el nodo **Abrir
+sincronización** suelto desde el editor de n8n. Ese nodo crea la fila, y sin el
+resto del flujo no hay nada que la cierre. Para probar, conviene correr el
+workflow entero —«Execute Workflow» desde el trigger, o el botón del tablero—
+en vez de nodo por nodo.
+
+### Instalación
+
+1. Correr `supabase/live-tracker.sql` en el SQL Editor de Supabase.
+2. Correr `supabase/migracion-06-lugares.sql`: las tiendas y los domicilios de
+   los choferes.
+3. Importar `../n8n/08-tracker-drivers.json` y `../n8n/09-tracker-paquetes.json`,
+   elegir la credencial Postgres en los nodos morados y activarlos.
+4. Cargar las *Production URL* de los dos webhooks en
+   `N8N_WEBHOOKS_TRACKER_POSICIONES` y `N8N_WEBHOOKS_TRACKER_PAQUETES`.
+
+Sin el paso 1 la pantalla explica qué script falta, en vez de mostrar un 500.
+Sin el paso 2 funciona igual y avisa arriba cuál migración falta correr. Sin el
+paso 4 la pantalla sigue mostrando lo último que haya guardado n8n y el botón
+dice qué variable falta.
+
+### Ruta propuesta por cercanía
+
+El mapa puede dibujar, además de la ruta real, una **ruta propuesta**: sale de
+la bodega (19,455207 / −99,105858) y en cada paso toma la parada pendiente más
+cercana a la anterior. Es el «vecino más cercano» de toda la vida, y es
+deliberado que sea eso y no algo más fino: es una regla que una persona puede
+seguir con el dedo sobre el mapa y verificar. Deja kilómetros sobre la mesa
+—termina cruzando la zona para juntar lo que quedó suelto— y cambiar eso es una
+decisión de la operación, no un ajuste de implementación.
+
+Arranca **apagada**. El orden que manda es el del sistema, el que el repartidor
+tiene en su app; encendida por defecto, alguien la leería como la ruta asignada.
+El panel dice cuánto mide y, solo cuando las dos rutas cubren exactamente las
+mismas paradas, cuánto ahorraría. Con órdenes faltantes o repetidos no se
+compara nada: los dos números medirían recorridos distintos.
+
+El cálculo va en el servidor (`proponerRuta()` en `src/lib/tracker.ts`), así que
+el resultado es el mismo para todos los que miren la misma jornada.
+
+### Domicilios de los repartidores
+
+El mapa de choferes que mantiene operaciones, exportado como KMZ a
+`datos/choferes.kmz`. Cada punto se llama `#ID nombre`, donde el ID es
+`IdMotoboy`: es la única forma de atar el mapa con el sistema, porque Google My
+Maps no guarda campos propios.
+
+Al elegir un repartidor, su domicilio aparece en el mapa como una casita hueca
+de su color. Es un dato sensible: viaja solo el domicilio del repartidor que se
+está mirando, nunca la tabla entera. 63 de los 69 choferes del mapa cruzan con
+la jornada cargada; los que no tienen punto lo dicen en el detalle.
+
+El KMZ se convierte con `npx tsx scripts/lugares.mts`, que regenera
+`supabase/migracion-06-lugares.sql`. Es idempotente y hace un reemplazo
+completo, así que un punto borrado del mapa desaparece de la tabla.
 
 ## Cobertura
 
@@ -222,6 +401,12 @@ Los tres entregan las filas con la misma forma —encabezado primero, todo como
 texto— así que el resto de la app no sabe de dónde salieron. Eso es lo que
 permite cambiar de origen con variables de entorno y comparar los dos en
 paralelo: con los mismos datos, los tres dan exactamente los mismos números.
+
+El **Live tracker** es la excepción a todo esto: solo funciona con Supabase, no
+pasa por el normalizador y no tiene caché. Lee sus tres tablas propias en cada
+pedido, porque el sentido de la pantalla es ver dónde está la gente ahora y una
+copia de hace una hora sería el mapa de la mañana. Con el origen en `sheet` o
+`fixture`, la pantalla lo explica en vez de mostrar un error.
 
 Las vistas principales, se lean de donde se lean:
 
@@ -413,6 +598,31 @@ n8n. Se sacó: partía la acción en dos y ninguna mitad era lo que la gente
 quería. Apretar Refrescar releía los mismos datos viejos, porque lo que estaba
 desactualizado era la base, no la copia.
 
+## Los botones del Live tracker
+
+Son otros dos, con su propio endpoint cada uno, y no pasan por
+`app/actualizar.ts`:
+
+```
+POST /api/live-tracker/sync/drivers     -> N8N_WEBHOOKS_TRACKER_POSICIONES
+POST /api/live-tracker/sync/shipments   -> N8N_WEBHOOKS_TRACKER_PAQUETES
+GET  /api/live-tracker/datos            -> vuelve a leer la jornada
+```
+
+Los tres piden sesión y, además, están detrás del proxy. Se comprueba en los dos
+lados porque un endpoint se puede invocar por HTTP directo y porque el matcher
+del proxy es una línea de configuración.
+
+Ninguno escribe en Supabase. Disparan el flujo, esperan a que **termine de
+verdad** —`Response Mode: Last Node`— y devuelven el resumen que dejó la corrida
+en `tracker_sincronizaciones`: leídos, insertados, actualizados, desactivados,
+omitidos. Quien escribe es n8n, con su credencial y dentro de su transacción.
+
+Dos corridas del mismo tipo no pueden solaparse: `tracker_abrir_sync()` toma un
+lock en la base, y la segunda recibe un 409 con un mensaje que se entiende, no
+un error. El botón además se deshabilita mientras corre y hay un candado contra
+el doble clic, porque el estado de React se aplica un render tarde.
+
 ## Seguimiento
 
 La única parte del tablero donde el equipo escribe texto libre. La pestaña de
@@ -493,3 +703,37 @@ cambia (`src/components/useVista.ts`).
   rankings de `/comercios`.
 - La caché es de una hora. Si el equipo actualiza el sheet y quiere verlo al
   instante, hay que bajar `SHEET_REVALIDATE`.
+
+### Del Live tracker
+
+- **La zona horaria de `Motoboy.UltimaActualizacion` es un supuesto.** Las dos
+  consultas declaran `@ZonaOrigen = 'UTC'`, deducido de que los flujos 01, 02 y
+  05 le restan tres horas a `HistorialViaje.Fecha`. No está comprobado contra
+  producción, y de eso depende toda la antigüedad que muestra el mapa: con la
+  zona corrida, o está todo en verde o está todo en rojo. Se verifica mirando
+  `UltimaActualizacionCruda` de un repartidor que se sabe activo, y se corrige
+  en una línea de cada consulta.
+- **El universo de paquetes se acota por comercio**: `Usuario.IdModalidad = 5`
+  y `Usuario.IdLocalidad = 9`, el mismo alcance que Mensual, Ayer y Cancelados.
+  Así los totales del tracker se pueden comparar con los de las otras
+  pantallas. Los repartidores, en cambio, salen de `ReservaxMotoboy` filtrando
+  `IdLocalidad = 9` y `Cancelada = 0`: ahí la tabla es la reserva del
+  repartidor y no el comercio, así que la modalidad no aplica igual. Puede
+  aparecer un repartidor sin paquetes en el panel si toda su carga era de otra
+  modalidad.
+- **No hay polígono del repartidor que venga del sistema.** Ni `Motoboy` ni
+  `ReservaxMotoboy` exponen uno verificado, así que el que muestra el panel lo
+  resuelve `ubicarPunto()` con las coordenadas contra el KMZ. Es un dato real,
+  pero es del tablero y no del sistema: puede no coincidir con la asignación de
+  zona que tenga cargada la operación.
+- **La ruta del repartidor se deriva de sus paquetes.** `ReservaxMotoboy` no
+  tiene `IdRuta` —probado, ver `supabase/colectas.sql`— así que un repartidor
+  sin paquetes cargados aparece sin ruta.
+- **Una jornada sin paquetes no desactiva nada.** Es deliberado: una consulta
+  que devuelve cero es indistinguible de una que no llegó a correr. El efecto
+  es que, si a un repartidor le sacan el último paquete del día y no queda
+  ninguno en toda la operación, ese paquete sigue figurando en ruta hasta la
+  corrida siguiente que sí lea algo.
+- **El mapa no tiene calles.** El fondo son los polígonos de reparto, que
+  ubican bien dentro de la zona conocida pero no sirven para leer una dirección
+  puntual. Para eso está el destino escrito en la ficha del paquete.

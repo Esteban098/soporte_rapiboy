@@ -1,0 +1,61 @@
+{
+  "name": "Tracker · diagnóstico (desechable)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tracker-diagnostico",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "393769ad-81b7-5603-825c-58d19aa02738",
+      "name": "Diagnóstico",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        0
+      ],
+      "webhookId": "57d5c365-05a9-5f92-bbb7-7e02201b6c33"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Dónde se cae el universo de paquetes. Solo cuenta: no escribe nada.\n--\n-- Cada número es el anterior con un filtro más, así que el primer salto a cero\n-- señala exactamente cuál es el filtro que sobra o la relación que no es.\nSET NOCOUNT ON;\n\nDECLARE @Dia   DATE = '{{ $json.body.dia || $json.dia }}';\nDECLARE @Hasta DATE = DATEADD(DAY, 1, @Dia);\n\nSELECT\n    CONVERT(varchar(10), @Dia, 23) AS Dia,\n\n    -- 1. ¿Hay reservas ese día?\n    (SELECT COUNT(*) FROM dbo.ReservaxMotoboy R WITH (NOLOCK)\n      WHERE R.Fecha >= @Dia AND R.Fecha < @Hasta) AS Reservas,\n    (SELECT COUNT(*) FROM dbo.ReservaxMotoboy R WITH (NOLOCK)\n      WHERE R.Fecha >= @Dia AND R.Fecha < @Hasta AND R.Cancelada = 0) AS ReservasVigentes,\n    (SELECT COUNT(*) FROM dbo.ReservaxMotoboy R WITH (NOLOCK)\n      WHERE R.Fecha >= @Dia AND R.Fecha < @Hasta AND R.Cancelada = 0\n        AND R.IdLocalidad = 9) AS ReservasLocalidad9,\n\n    -- 2. ¿Hay viajes ese día, con el alcance del tablero?\n    (SELECT COUNT(*) FROM dbo.Viaje V WITH (NOLOCK)\n     INNER JOIN dbo.Usuario U WITH (NOLOCK) ON U.Id = V.IdUsuario\n      WHERE V.FechaProgramado >= @Dia AND V.FechaProgramado < @Hasta\n        AND U.IdModalidad = 5 AND U.IdLocalidad = 9) AS ViajesDelDia,\n\n    -- 3. ¿Esos viajes traen IdReserva? Si esto da 0, la relación no es por ahí.\n    (SELECT COUNT(*) FROM dbo.Viaje V WITH (NOLOCK)\n     INNER JOIN dbo.Usuario U WITH (NOLOCK) ON U.Id = V.IdUsuario\n      WHERE V.FechaProgramado >= @Dia AND V.FechaProgramado < @Hasta\n        AND U.IdModalidad = 5 AND U.IdLocalidad = 9\n        AND V.IdReserva IS NOT NULL) AS ViajesConIdReserva,\n\n    -- 4. ¿Ese IdReserva empalma con ReservaxMotoboy.Id?\n    (SELECT COUNT(*) FROM dbo.Viaje V WITH (NOLOCK)\n     INNER JOIN dbo.Usuario U WITH (NOLOCK) ON U.Id = V.IdUsuario\n     INNER JOIN dbo.ReservaxMotoboy R WITH (NOLOCK) ON R.Id = V.IdReserva\n      WHERE V.FechaProgramado >= @Dia AND V.FechaProgramado < @Hasta\n        AND U.IdModalidad = 5 AND U.IdLocalidad = 9) AS ViajesQueEmpalman,\n\n    -- 5. La consulta real: universo definido por la ruta del día.\n    (SELECT COUNT(*) FROM dbo.Viaje V WITH (NOLOCK)\n     INNER JOIN dbo.Usuario U WITH (NOLOCK) ON U.Id = V.IdUsuario\n     INNER JOIN dbo.ReservaxMotoboy R WITH (NOLOCK) ON R.Id = V.IdReserva\n      WHERE R.Fecha >= @Dia AND R.Fecha < @Hasta AND R.Cancelada = 0\n        AND U.IdModalidad = 5 AND U.IdLocalidad = 9) AS PorRutaDelDia,\n\n    -- 6. Alternativa: ¿y si el vínculo con el repartidor fuera el balanceado?\n    (SELECT COUNT(*) FROM dbo.Viaje V WITH (NOLOCK)\n     INNER JOIN dbo.Usuario U WITH (NOLOCK) ON U.Id = V.IdUsuario\n      WHERE V.FechaProgramado >= @Dia AND V.FechaProgramado < @Hasta\n        AND U.IdModalidad = 5 AND U.IdLocalidad = 9\n        AND V.IdMotoboyBalanceado IS NOT NULL) AS ViajesConMotoboyBalanceado,\n\n    -- 7. ¿Y IdRuta?\n    (SELECT COUNT(*) FROM dbo.Viaje V WITH (NOLOCK)\n     INNER JOIN dbo.Usuario U WITH (NOLOCK) ON U.Id = V.IdUsuario\n      WHERE V.FechaProgramado >= @Dia AND V.FechaProgramado < @Hasta\n        AND U.IdModalidad = 5 AND U.IdLocalidad = 9\n        AND V.IdRuta IS NOT NULL) AS ViajesConIdRuta;\n"
+      },
+      "id": "d84409eb-ee03-5dde-b05c-212b57d98091",
+      "name": "Contar",
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        40,
+        0
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "microsoftSql": {
+          "id": "F5EJUfXcquXz7Rf3",
+          "name": "Microsoft SQL credencial Esteban RPBY"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Diagnóstico": {
+      "main": [
+        [
+          {
+            "node": "Contar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

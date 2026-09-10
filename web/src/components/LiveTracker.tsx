@@ -1,0 +1,647 @@
+"use client";
+
+import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  colorDeDriver,
+  enlaceAlOperador,
+  type Clasificacion,
+  type Sincronizacion,
+  type Ventana,
+} from "@/lib/tracker";
+import type {
+  DatosDelTracker,
+  DriverDelTracker,
+  PaqueteDelTracker,
+} from "@/lib/tracker-datos";
+import { ETIQUETA, MapaTracker } from "./MapaTracker";
+import estilos from "./live-tracker.module.css";
+
+/**
+ * La pantalla del live tracker: panel de repartidores a la izquierda, mapa a la
+ * derecha.
+ *
+ * Todo el estado de trabajo —la selección, el buscador, el filtro, el encuadre—
+ * vive acá adentro y no en la URL ni en el servidor. Es lo que hace que
+ * actualizar no lo pierda: los botones traen datos nuevos por `fetch` y
+ * reemplazan solamente `datos`, así que el resto de la pantalla ni se entera.
+ *
+ * Arranca sin nadie seleccionado a propósito. Con veinte repartidores y sus
+ * paradas encima, el mapa completo no dice nada; la pantalla es útil desde que
+ * alguien elige a quién quiere mirar.
+ */
+
+type Sync = "posiciones" | "paquetes";
+
+type Aviso = { tono: "ok" | "error"; texto: string };
+
+export function LiveTracker({
+  inicial,
+  ventana,
+  hayFlujoPosiciones,
+  hayFlujoPaquetes,
+  children,
+}: {
+  inicial: DatosDelTracker;
+  ventana: Ventana;
+  hayFlujoPosiciones: boolean;
+  hayFlujoPaquetes: boolean;
+  /** Los polígonos de cobertura, dibujados en el servidor. */
+  children: React.ReactNode;
+}) {
+  const [datos, setDatos] = useState(inicial);
+  const [seleccion, setSeleccion] = useState<number[]>([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [mostrarInactivos, setMostrarInactivos] = useState(false);
+
+  /*
+   * La ruta propuesta arranca apagada, y no es una preferencia de estilo.
+   *
+   * El orden que manda es el del sistema —el que el repartidor tiene en su
+   * app— y la propuesta es un cálculo de este tablero. Encendida por defecto,
+   * alguien la leería como la ruta asignada y le diría a un repartidor que va
+   * en el orden equivocado. Prendida a mano, se sabe lo que se está mirando.
+   */
+  const [mostrarPropuesta, setMostrarPropuesta] = useState(false);
+  const [paqueteActivo, setPaqueteActivo] = useState<number | null>(null);
+  const [corriendo, setCorriendo] = useState<Sync | null>(null);
+  const [aviso, setAviso] = useState<Aviso | null>(null);
+
+  /*
+   * El candado del doble clic.
+   *
+   * `corriendo` deshabilita los botones, pero el estado de React se aplica en
+   * el siguiente render: dos clics muy seguidos entran los dos antes de que el
+   * botón se apague. La ref cambia en el acto y corta el segundo.
+   */
+  const enVuelo = useRef(false);
+
+  const filtrados = useMemo(() => {
+    const texto = busqueda.trim().toLowerCase();
+    if (!texto) return datos.drivers;
+    return datos.drivers.filter(
+      (d) => d.nombre.toLowerCase().includes(texto) || String(d.id).includes(texto),
+    );
+  }, [datos.drivers, busqueda]);
+
+  const elegidos = useMemo(
+    () => datos.drivers.filter((d) => seleccion.includes(d.id)),
+    [datos.drivers, seleccion],
+  );
+
+  const releer = useCallback(async () => {
+    const respuesta = await fetch("/api/live-tracker/datos", { cache: "no-store" });
+    const cuerpo = await respuesta.json().catch(() => null);
+    if (!respuesta.ok || !cuerpo?.ok) {
+      throw new Error(cuerpo?.error ?? "No se pudo releer la jornada.");
+    }
+    /*
+     * Se reemplazan los datos y nada más. La selección se conserva por id, así
+     * que un repartidor que dejó de operar desaparece de la lista pero no
+     * arrastra a los demás; y si vuelve, vuelve seleccionado.
+     */
+    setDatos(cuerpo.datos as DatosDelTracker);
+  }, []);
+
+  async function sincronizar(cual: Sync) {
+    if (enVuelo.current) return;
+    enVuelo.current = true;
+    setCorriendo(cual);
+    setAviso(null);
+
+    const ruta =
+      cual === "posiciones"
+        ? "/api/live-tracker/sync/drivers"
+        : "/api/live-tracker/sync/shipments";
+
+    try {
+      const respuesta = await fetch(ruta, { method: "POST", cache: "no-store" });
+      const cuerpo = await respuesta.json().catch(() => null);
+
+      if (!respuesta.ok || !cuerpo?.ok) {
+        setAviso({
+          tono: "error",
+          texto: cuerpo?.error ?? `La sincronización respondió ${respuesta.status}.`,
+        });
+        // Se relee igual: el flujo pudo haber guardado parte antes de fallar, y
+        // mostrar lo que sí quedó es mejor que dejar la pantalla en el pasado.
+        await releer().catch(() => {});
+        return;
+      }
+
+      await releer();
+      setAviso({ tono: "ok", texto: resumenEnPalabras(cual, cuerpo) });
+    } catch {
+      setAviso({ tono: "error", texto: "No se pudo completar la sincronización." });
+    } finally {
+      enVuelo.current = false;
+      setCorriendo(null);
+    }
+  }
+
+  return (
+    <div className={estilos.pantalla}>
+      <aside className={estilos.panel} aria-label="Repartidores del día">
+        <div className={estilos.panelBarra}>
+          <input
+            className={estilos.buscador}
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por nombre o ID"
+            aria-label="Buscar repartidor por nombre o ID"
+            type="search"
+          />
+        </div>
+
+        <div className={estilos.acciones}>
+          <button
+            type="button"
+            className={estilos.accion}
+            onClick={() => setSeleccion(filtrados.map((d) => d.id))}
+            disabled={filtrados.length === 0}
+          >
+            Seleccionar todos
+          </button>
+          <button
+            type="button"
+            className={estilos.accion}
+            onClick={() => {
+              setSeleccion([]);
+              setPaqueteActivo(null);
+            }}
+            disabled={seleccion.length === 0}
+          >
+            Limpiar selección
+          </button>
+        </div>
+
+        <div className={estilos.acciones}>
+          <button
+            type="button"
+            className={estilos.sync}
+            onClick={() => sincronizar("posiciones")}
+            disabled={corriendo !== null}
+            title={
+              hayFlujoPosiciones
+                ? "Vuelve a leer la última posición conocida de cada repartidor. No toca los paquetes."
+                : "No hay webhook configurado en N8N_WEBHOOKS_TRACKER_POSICIONES."
+            }
+          >
+            {corriendo === "posiciones" ? "Actualizando posiciones…" : "Actualizar posiciones"}
+          </button>
+          <button
+            type="button"
+            className={estilos.sync}
+            onClick={() => sincronizar("paquetes")}
+            disabled={corriendo !== null}
+            title={
+              hayFlujoPaquetes
+                ? "Vuelve a preguntar cuáles son los paquetes de las rutas de hoy. Descubre los que se agregaron después."
+                : "No hay webhook configurado en N8N_WEBHOOKS_TRACKER_PAQUETES."
+            }
+          >
+            {corriendo === "paquetes" ? "Actualizando paquetes…" : "Actualizar paquetes"}
+          </button>
+        </div>
+
+        <div className={estilos.sincronizaciones}>
+          <Marca titulo="Posiciones" sync={datos.sincronizaciones.drivers} />
+          <Marca titulo="Paquetes" sync={datos.sincronizaciones.paquetes} />
+        </div>
+
+        {aviso ? (
+          <p
+            className={`${estilos.aviso} ${aviso.tono === "error" ? estilos.avisoError : ""}`}
+            role={aviso.tono === "error" ? "alert" : "status"}
+          >
+            {aviso.texto}
+          </p>
+        ) : null}
+
+        <label className={estilos.filtro}>
+          <input
+            type="checkbox"
+            checked={mostrarInactivos}
+            onChange={(e) => setMostrarInactivos(e.target.checked)}
+          />
+          Mostrar cancelados y retirados de ruta
+        </label>
+
+        <label className={estilos.filtro}>
+          <input
+            type="checkbox"
+            checked={mostrarPropuesta}
+            onChange={(e) => setMostrarPropuesta(e.target.checked)}
+          />
+          Ver ruta propuesta por cercanía
+        </label>
+
+        {datos.tablasFaltantes.length > 0 ? (
+          /*
+           * Decir qué falta y qué correr, en vez de dejar la pantalla a medias
+           * sin explicación. Sin esto, un mapa sin domicilios se lee como «no
+           * hay domicilios cargados» y no como «falta la migración».
+           */
+          <p className={estilos.aviso} role="status">
+            Falta correr <code>supabase/migracion-06-lugares.sql</code>: no existe{" "}
+            {datos.tablasFaltantes.join(" ni ")}. El mapa funciona igual, pero sin los
+            domicilios de los repartidores.
+          </p>
+        ) : null}
+
+        <ul className={estilos.lista}>
+          {filtrados.length === 0 ? (
+            <li className={estilos.vacio}>
+              {datos.drivers.length === 0
+                ? "No hay repartidores con operación cargada para hoy. Probá «Actualizar posiciones»."
+                : "Ningún repartidor coincide con la búsqueda."}
+            </li>
+          ) : (
+            filtrados.map((driver) => (
+              <FilaDriver
+                key={driver.id}
+                driver={driver}
+                elegido={seleccion.includes(driver.id)}
+                onAlternar={() =>
+                  setSeleccion((antes) =>
+                    antes.includes(driver.id)
+                      ? antes.filter((id) => id !== driver.id)
+                      : [...antes, driver.id],
+                  )
+                }
+              />
+            ))
+          )}
+        </ul>
+
+        {datos.huerfanos.length > 0 ? (
+          <p className={estilos.huerfanos}>
+            {datos.huerfanos.length} paquete{datos.huerfanos.length === 1 ? "" : "s"} de hoy sin
+            repartidor asignado. No se dibujan en el mapa porque no hay a qué ruta atarlos.
+          </p>
+        ) : null}
+      </aside>
+
+      <div className={estilos.derecha}>
+        <MapaTracker
+          ventana={ventana}
+          drivers={datos.drivers}
+          seleccionados={seleccion}
+          mostrarInactivos={mostrarInactivos}
+          mostrarPropuesta={mostrarPropuesta}
+          paqueteActivo={paqueteActivo}
+          onPaquete={setPaqueteActivo}
+        >
+          {children}
+        </MapaTracker>
+
+        {elegidos.length > 0 ? (
+          <div className={estilos.detalles}>
+            {elegidos.map((driver) => (
+              <DetalleDriver
+                key={driver.id}
+                driver={driver}
+                mostrarInactivos={mostrarInactivos}
+                mostrarPropuesta={mostrarPropuesta}
+                paqueteActivo={paqueteActivo}
+                onPaquete={setPaqueteActivo}
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function FilaDriver({
+  driver,
+  elegido,
+  onAlternar,
+}: {
+  driver: DriverDelTracker;
+  elegido: boolean;
+  onAlternar: () => void;
+}) {
+  const color = colorDeDriver(driver.id);
+  const { resumen } = driver;
+
+  return (
+    <li>
+      <label className={`${estilos.fila} ${elegido ? estilos.filaElegida : ""}`}>
+        <input type="checkbox" checked={elegido} onChange={onAlternar} />
+        <span className={estilos.chip} style={{ background: color }} aria-hidden="true" />
+        <span className={estilos.filaTexto}>
+          <span className={estilos.filaNombre}>{driver.nombre}</span>
+          <span className={estilos.filaDato}>
+            #{driver.id} · {resumen.enRuta} paq. ·{" "}
+            {resumen.avance == null ? "sin ruta" : `${Math.round(resumen.avance)}% avance`}
+          </span>
+        </span>
+        <span
+          className={`${estilos.pastilla} ${estilos[`pos${driver.estadoPosicion}`] ?? ""}`}
+          title={`Última posición: ${textoAntiguedad(driver)}`}
+        >
+          {textoCorto(driver)}
+        </span>
+      </label>
+    </li>
+  );
+}
+
+function DetalleDriver({
+  driver,
+  mostrarInactivos,
+  mostrarPropuesta,
+  paqueteActivo,
+  onPaquete,
+}: {
+  driver: DriverDelTracker;
+  mostrarInactivos: boolean;
+  mostrarPropuesta: boolean;
+  paqueteActivo: number | null;
+  onPaquete: (id: number | null) => void;
+}) {
+  const color = colorDeDriver(driver.id);
+  const { resumen } = driver;
+
+  const visibles = driver.paquetes.filter(
+    (p) =>
+      mostrarInactivos ||
+      (p.clasificacion !== "CANCELADO" && p.clasificacion !== "RETIRADO_DE_RUTA"),
+  );
+
+  return (
+    <section className={estilos.detalle} style={{ borderTopColor: color }}>
+      <header className={estilos.detalleHead}>
+        <span className={estilos.chip} style={{ background: color }} aria-hidden="true" />
+        <h3 className={estilos.detalleTitulo}>{driver.nombre}</h3>
+        <span className={estilos.detalleSub}>
+          #{driver.id}
+          {driver.rutas.length > 0 ? ` · ruta ${driver.rutas.join(", ")}` : ""}
+          {driver.idReserva != null ? ` · reserva ${driver.idReserva}` : ""}
+        </span>
+      </header>
+
+      <p className={estilos.detallePos}>
+        {driver.posicion
+          ? `Última posición conocida: ${textoAntiguedad(driver)}`
+          : "Sin posición conocida: el dispositivo no reportó coordenadas válidas."}
+        {driver.poligonos.length > 0 ? ` · ${driver.poligonos.join(" / ")}` : ""}
+      </p>
+
+      <p className={estilos.detallePos}>
+        {driver.domicilio
+          ? "Su domicilio está marcado en el mapa con una casita."
+          : "Sin domicilio cargado en el mapa de choferes."}
+      </p>
+
+      <div className={estilos.cifras}>
+        <Cifra etiqueta="Paquetes" valor={resumen.enRuta} />
+        <Cifra etiqueta="Entregados" valor={resumen.entregados} />
+        <Cifra etiqueta="No entregados" valor={resumen.noEntregados} />
+        <Cifra etiqueta="Pendientes" valor={resumen.pendientes} />
+        <Cifra
+          etiqueta="Avance"
+          valor={resumen.avance == null ? "—" : `${Math.round(resumen.avance)}%`}
+        />
+        {resumen.sinClasificar > 0 ? (
+          <Cifra etiqueta="Sin clasificar" valor={resumen.sinClasificar} />
+        ) : null}
+        {resumen.cancelados + resumen.retirados > 0 ? (
+          <Cifra etiqueta="Fuera de ruta" valor={resumen.cancelados + resumen.retirados} />
+        ) : null}
+      </div>
+
+      <p className={estilos.proximo}>
+        {driver.proximo ? (
+          <>
+            <strong>Próximo destino:</strong> <EnlaceViaje paquete={driver.proximo} />
+            {driver.proximo.orden != null ? ` (orden ${driver.proximo.orden})` : ""}
+            {driver.proximo.direccion ? ` — ${driver.proximo.direccion}` : ""}
+          </>
+        ) : resumen.pendientes === 0 ? (
+          <>No le quedan paradas pendientes.</>
+        ) : (
+          /*
+           * Decir por qué no hay próximo, en vez de mostrar el primero de la
+           * lista. Sin orden declarado —o con dos pendientes compartiéndolo—
+           * elegir uno sería inventar la secuencia, y el equipo lo tomaría como
+           * un dato del sistema.
+           */
+          <>
+            No se puede señalar el próximo destino:{" "}
+            {driver.secuencia.sinOrden > 0 && driver.secuencia.duplicados > 0
+              ? `${driver.secuencia.sinOrden} pendientes sin orden y ${driver.secuencia.duplicados} con el orden repetido.`
+              : driver.secuencia.sinOrden > 0
+                ? `${driver.secuencia.sinOrden} pendiente${driver.secuencia.sinOrden === 1 ? "" : "s"} sin orden asignado.`
+                : `${driver.secuencia.duplicados} pendientes comparten el mismo orden.`}
+          </>
+        )}
+      </p>
+
+      {mostrarPropuesta ? <Propuesta driver={driver} /> : null}
+
+      <ul className={estilos.paquetes}>
+        {visibles.map((paquete) => (
+          /*
+           * Dos cosas para tocar en la misma fila: el id abre el viaje en
+           * Rapiboy y el resto lo señala en el mapa.
+           *
+           * Por eso la fila no es un botón con el enlace adentro —un `<a>`
+           * dentro de un `<button>` es HTML inválido y los lectores de
+           * pantalla lo anuncian mal—. El botón va detrás, estirado sobre toda
+           * la fila, y el enlace queda por encima. Se sigue pudiendo tocar
+           * cualquier parte para seleccionar, y el id lleva al sistema.
+           */
+          <li
+            key={paquete.id_viaje}
+            className={`${estilos.paquete} ${paqueteActivo === paquete.id_viaje ? estilos.paqueteActivo : ""}`}
+          >
+            <button
+              type="button"
+              className={estilos.paqueteFondo}
+              aria-pressed={paqueteActivo === paquete.id_viaje}
+              onClick={() => onPaquete(paqueteActivo === paquete.id_viaje ? null : paquete.id_viaje)}
+            >
+              {/* Lo que se lee en voz alta al llegar al botón: el texto de la
+                  fila está afuera, así que hay que nombrarlo acá. */}
+              <span className={estilos.soloLectores}>
+                Ver en el mapa el paquete {paquete.tracking_id}
+                {paquete.direccion ? `, ${paquete.direccion}` : ""}
+              </span>
+            </button>
+
+            <span className={estilos.paqueteOrden} style={{ color }}>
+              {paquete.orden ?? "—"}
+            </span>
+            <span className={estilos.paqueteTexto}>
+              <EnlaceViaje paquete={paquete} />
+              <span className={estilos.paqueteDir}>{paquete.direccion ?? "sin dirección"}</span>
+            </span>
+            <span className={`${estilos.tag} ${estilos[`tag${paquete.clasificacion}`] ?? ""}`}>
+              {ETIQUETA[paquete.clasificacion as Clasificacion]}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * El id del viaje, que abre ese viaje en el sistema de Rapiboy.
+ *
+ * Es la salida del tablero hacia donde se opera: acá se mira, allá se toca.
+ * Abre en otra pestaña porque nadie quiere perder la selección y el encuadre
+ * del mapa por ir a ver un pedido; `noopener` va con eso, para que la pestaña
+ * nueva no quede con una referencia a esta.
+ */
+function EnlaceViaje({ paquete }: { paquete: PaqueteDelTracker }) {
+  return (
+    <a
+      className={estilos.paqueteId}
+      href={enlaceAlOperador(paquete.id_viaje)}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={`Abrir el viaje ${paquete.tracking_id} en Rapiboy`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      #{paquete.tracking_id}
+    </a>
+  );
+}
+
+/**
+ * La ruta propuesta por cercanía, en palabras.
+ *
+ * Dice de dónde sale —siempre la bodega—, cuántas paradas ordenó y cuánto
+ * mide, y solo compara contra la ruta
+ * real cuando el servidor pudo medir las dos sobre exactamente las mismas
+ * paradas. Con órdenes faltantes o repetidos, los dos números medirían
+ * recorridos distintos y el «ahorro» sería un artefacto de la resta: ahí no se
+ * muestra ninguno.
+ *
+ * Los kilómetros son de línea recta, no de calle, y el texto lo dice. Un
+ * número que parece de ruteo y no lo es termina en una promesa de horario que
+ * nadie puede cumplir.
+ */
+function Propuesta({ driver }: { driver: DriverDelTracker }) {
+  const { propuesta } = driver;
+
+  if (!propuesta) {
+    return (
+      <p className={estilos.propuesta}>
+        Con menos de dos paradas pendientes ubicables no hay nada que ordenar.
+      </p>
+    );
+  }
+
+  const ahorro =
+    propuesta.kmDeclarado == null ? null : propuesta.kmDeclarado - propuesta.km;
+
+  return (
+    <p className={estilos.propuesta}>
+      <strong>Ruta propuesta:</strong> desde la bodega, {propuesta.secuencia.length} paradas,{" "}
+      {propuesta.km.toFixed(1)} km en línea recta.{" "}
+      {ahorro == null ? (
+        <>No se compara con el orden del sistema porque no cubren las mismas paradas.</>
+      ) : ahorro > 0.1 ? (
+        <>
+          El orden del sistema mide {propuesta.kmDeclarado?.toFixed(1)} km: son{" "}
+          {ahorro.toFixed(1)} km menos.
+        </>
+      ) : ahorro < -0.1 ? (
+        <>
+          El orden del sistema mide {propuesta.kmDeclarado?.toFixed(1)} km, o sea{" "}
+          {Math.abs(ahorro).toFixed(1)} km menos que esta propuesta.
+        </>
+      ) : (
+        <>Mide prácticamente lo mismo que el orden del sistema.</>
+      )}{" "}
+      Cada parada es la más cercana a la anterior. Es una sugerencia calculada,
+      no la ruta asignada.
+    </p>
+  );
+}
+
+function Cifra({ etiqueta, valor }: { etiqueta: string; valor: number | string }) {
+  return (
+    <span className={estilos.cifra}>
+      <span className={estilos.cifraValor}>{valor}</span>
+      <span className={estilos.cifraEtiqueta}>{etiqueta}</span>
+    </span>
+  );
+}
+
+/** Cuándo corrió por última vez cada sincronización y cómo le fue. */
+function Marca({ titulo, sync }: { titulo: string; sync: Sincronizacion | null }) {
+  if (!sync) {
+    return (
+      <span className={estilos.marca}>
+        <b>{titulo}</b> nunca
+      </span>
+    );
+  }
+
+  const hora = new Date(sync.fecha_fin ?? sync.fecha_inicio).toLocaleTimeString("es-MX", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return (
+    <span className={`${estilos.marca} ${sync.estado === "failed" ? estilos.marcaFalla : ""}`}>
+      <b>{titulo}</b>{" "}
+      {sync.estado === "running"
+        ? "corriendo…"
+        : sync.estado === "failed"
+          ? `falló ${hora}`
+          : `${hora} · ${sync.registros_leidos}`}
+    </span>
+  );
+}
+
+function textoAntiguedad(driver: DriverDelTracker): string {
+  if (!driver.posicion) return "sin posición";
+  if (!driver.fechaPosicion) return "sin fecha";
+  const minutos = driver.minutosSinActualizar;
+  const hora = new Date(driver.fechaPosicion).toLocaleTimeString("es-MX", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  if (minutos == null) return hora;
+  return minutos < 60 ? `${hora} (hace ${minutos} min)` : `${hora} (hace ${Math.floor(minutos / 60)} h)`;
+}
+
+function textoCorto(driver: DriverDelTracker): string {
+  if (!driver.posicion) return "sin GPS";
+  const minutos = driver.minutosSinActualizar;
+  if (minutos == null) return "s/f";
+  if (minutos < 60) return `${minutos}m`;
+  return `${Math.floor(minutos / 60)}h`;
+}
+
+/**
+ * El resultado de una corrida, en una frase.
+ *
+ * Se nombra lo que cambió y no solo cuántas filas se leyeron: «31 paquetes» no
+ * dice nada, «1 nuevo» sí. Es la confirmación de que el paquete que alguien
+ * agregó a la ruta hace un minuto ya está en el mapa.
+ */
+function resumenEnPalabras(cual: Sync, r: Record<string, number>): string {
+  const partes: string[] = [];
+  if (r.insertados) partes.push(`${r.insertados} nuevo${r.insertados === 1 ? "" : "s"}`);
+  if (r.actualizados) partes.push(`${r.actualizados} actualizado${r.actualizados === 1 ? "" : "s"}`);
+  if (r.desactivados) {
+    partes.push(
+      cual === "posiciones"
+        ? `${r.desactivados} fuera de operación`
+        : `${r.desactivados} fuera de ruta`,
+    );
+  }
+  if (r.omitidos) partes.push(`${r.omitidos} omitido${r.omitidos === 1 ? "" : "s"}`);
+  if (r.conError) partes.push(`${r.conError} con error`);
+
+  const que = cual === "posiciones" ? "repartidores" : "paquetes";
+  const leidos = `${r.leidos} ${que} leídos`;
+  return partes.length === 0 ? `${leidos}. Sin cambios.` : `${leidos}: ${partes.join(", ")}.`;
+}
