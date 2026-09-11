@@ -243,6 +243,13 @@ export function LiveTracker({
           <Marca titulo="Paquetes" sync={datos.sincronizaciones.paquetes} />
         </div>
 
+        {datos.pendientesAnteriores ? (
+          <p className={estilos.aviso} role="status">
+            Hasta las 15:00 de México se muestran los paquetes pendientes del {datos.dia}. Las
+            posiciones son las últimas disponibles de los repartidores.
+          </p>
+        ) : null}
+
         {aviso ? (
           <p
             className={`${estilos.aviso} ${aviso.tono === "error" ? estilos.avisoError : ""}`}

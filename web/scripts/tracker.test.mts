@@ -12,6 +12,7 @@ import {
   coordenadaValida,
   desenlaceDe,
   diaDeOperacion,
+  diaDePaquetes,
   distanciaKm,
   entregadosPorHora,
   enlaceAlOperador,
@@ -29,7 +30,7 @@ import {
   type Clasificacion,
 } from "../src/lib/tracker";
 import { proyectar, ventanaProyeccion } from "../src/lib/cobertura";
-import { diaVigente, leerTracker } from "../src/lib/tracker-datos";
+import { leerTracker } from "../src/lib/tracker-datos";
 import { ejecutarSync, responderJornada } from "../src/app/api/live-tracker/nucleo";
 import type { Operador } from "../src/lib/sesion";
 
@@ -361,8 +362,8 @@ test("7. actualizar posiciones dispara su webhook y devuelve el resumen real", a
   assert.equal(cuerpo.omitidos, 3, "los que se guardaron sin posición");
   assert.equal(cuerpo.desactivados, 1);
 
-  // El día lo decide la web y viaja al flujo: los tres relojes no pueden discrepar.
-  assert.equal(cuerpoEnviado.dia, diaDeOperacion());
+  // El día de la ruta visible decide también qué repartidores refrescar.
+  assert.equal(cuerpoEnviado.dia, diaDePaquetes());
   assert.equal(cuerpoEnviado.zona, "America/Mexico_City");
   assert.equal(cuerpoEnviado.alcance, "trackerPosiciones");
 });
@@ -1155,30 +1156,36 @@ test("el día es el de México, aunque en Argentina ya sea otro", () => {
   assert.equal(diaDeOperacion(new Date("2026-07-15T05:30:00Z")), "2026-07-14");
 });
 
-test("la jornada que se lee es siempre la de hoy en México", async (t) => {
+test("los paquetes cambian de ayer a hoy a las 15:00 de México", () => {
+  assert.equal(diaDePaquetes(new Date("2026-09-10T20:59:00Z")), "2026-09-09");
+  assert.equal(diaDePaquetes(new Date("2026-09-10T21:00:00Z")), "2026-09-10");
+
+  // El retroceso también tiene que cruzar correctamente mes y año.
+  assert.equal(diaDePaquetes(new Date("2026-01-01T12:00:00Z")), "2025-12-31");
+});
+
+test("la jornada conserva posiciones de hoy y muestra pendientes de ayer antes de las 15", async (t) => {
   conEntorno(t, BASE);
   const base = baseSimulada(t, {
-    tracker_drivers_vista: [],
-    tracker_paquetes: [],
+    tracker_drivers_vista: [driver()],
+    tracker_paquetes: [
+      paquete({ id_viaje: 1, nombre_estado: "Para retirar" }),
+      paquete({ id_viaje: 2, nombre_estado: "Entregado", visitado: true }),
+      paquete({ id_viaje: 3, nombre_estado: "Para retirar", activo_en_ruta: false }),
+    ],
     tracker_sincronizaciones: [],
   });
   t.after(base.restore);
 
-  /*
-   * Ya no hay forma de correr la pantalla a una jornada anterior. La había
-   * -`TRACKER_DIAS_ATRAS`- y se sacó: quedó prendida en un entorno y la
-   * pantalla estuvo mostrando la jornada de ayer sin que nadie lo notara.
-   * Mirar posiciones viejas creyendo que son de ahora es peor que no tener la
-   * pantalla.
-   */
-  assert.equal(diaVigente(), diaDeOperacion());
-
-  const datos = await leerTracker();
-  assert.equal(datos.dia, diaDeOperacion());
+  const datos = await leerTracker(undefined, new Date("2026-09-10T18:00:00Z"));
+  assert.equal(datos.diaPosiciones, "2026-09-10");
+  assert.equal(datos.dia, "2026-09-09");
+  assert.equal(datos.pendientesAnteriores, true);
+  assert.deepEqual(datos.drivers[0].paquetes.map((p) => p.id_viaje), [1]);
   assert.equal("diasAtras" in datos, false, "quedó el resto del knob de días atrás");
 });
 
-test("nada del proyecto vuelve a mirar una jornada que no sea la de hoy", () => {
+test("el corte de paquetes no reintroduce un desplazamiento configurable", () => {
   for (const archivo of [
     "../src/lib/config.ts",
     "../src/lib/tracker.ts",
@@ -1191,12 +1198,31 @@ test("nada del proyecto vuelve a mirar una jornada que no sea la de hoy", () => 
     assert.doesNotMatch(fuente, /TRACKER_DIAS_ATRAS|diasAtras/, archivo);
   }
 
-  // Y los dos flujos calculan el día sin correrlo, cuando arrancan por horario.
-  for (const archivo of ["08-tracker-drivers.json", "09-tracker-paquetes.json"]) {
-    const flujo = readFileSync(new URL(`../../n8n/${archivo}`, import.meta.url), "utf8");
-    assert.doesNotMatch(flujo, /DIAS_ATRAS/, archivo);
-    assert.match(flujo, /const dia = pedido \?\? hoy;/, archivo);
-  }
+  const drivers = flujo("08-tracker-drivers.json");
+  const paquetes = flujo("09-tracker-paquetes.json");
+  const codigoDrivers = drivers.nodes.find((n: { name: string }) => n.name === "Día de operación")
+    .parameters.jsCode;
+  const codigoPaquetes = paquetes.nodes.find((n: { name: string }) => n.name === "Día de operación")
+    .parameters.jsCode;
+  assert.doesNotMatch(JSON.stringify(drivers), /DIAS_ATRAS/);
+  assert.doesNotMatch(JSON.stringify(paquetes), /DIAS_ATRAS/);
+  assert.match(codigoDrivers, /hora < 15 \? ayer : hoy/);
+  assert.match(codigoPaquetes, /hora < 15 \? ayer : hoy/);
+  assert.equal(drivers.settings.timezone, "America/Mexico_City");
+  assert.equal(paquetes.settings.timezone, "America/Mexico_City");
+
+  const horariosDrivers = drivers.nodes
+    .find((n: { type: string }) => n.type.includes("scheduleTrigger")).parameters.rule.interval;
+  const horariosPaquetes = paquetes.nodes
+    .find((n: { type: string }) => n.type.includes("scheduleTrigger")).parameters.rule.interval;
+  assert.deepEqual(horariosDrivers, [
+    { triggerAtHour: 6, triggerAtMinute: 45 },
+    { triggerAtHour: 15, triggerAtMinute: 0 },
+  ]);
+  assert.deepEqual(horariosPaquetes, [
+    { triggerAtHour: 7, triggerAtMinute: 15 },
+    { triggerAtHour: 15, triggerAtMinute: 0 },
+  ]);
 });
 
 test("el flujo usa el día que manda el tablero y no vuelve a calcularlo", () => {
@@ -1206,9 +1232,9 @@ test("el flujo usa el día que manda el tablero y no vuelve a calcularlo", () =>
 
     // El botón manda el día ya resuelto y gana siempre: quien aprieta tiene que
     // ver lo que la pantalla le dijo que iba a ver.
-    assert.match(codigo, /const dia = pedido \?\? hoy;/, archivo);
+    assert.match(codigo, /const dia = pedido \?\?/, archivo);
 
-    // Y se importa mirando hoy, no una jornada corrida por olvido.
+    assert.match(codigo, /hora < 15 \? ayer : hoy/, archivo);
   }
 });
 

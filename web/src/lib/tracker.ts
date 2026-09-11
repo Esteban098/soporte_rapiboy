@@ -516,6 +516,36 @@ export function diaDeOperacion(momento: Date = new Date()): string {
   }).format(momento);
 }
 
+/** Hora de Ciudad de México en la que la pantalla pasa a la ruta nueva. */
+export const HORA_INICIO_RUTA = 15;
+
+/**
+ * Día cuyos paquetes debe mostrar el tracker.
+ *
+ * Antes de las 15:00 la ruta nueva todavía no salió y se conserva la del día
+ * anterior para terminar sus pendientes. Desde las 15:00 se muestra
+ * exclusivamente la ruta del día. La posición nunca usa esta fecha: siempre
+ * se toma la última disponible del repartidor.
+ */
+export function diaDePaquetes(momento: Date = new Date()): string {
+  const hoy = diaDeOperacion(momento);
+  const hora = Number(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: ZONA_OPERACION,
+      hour: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(momento)
+      .find((parte) => parte.type === "hour")?.value,
+  );
+  return hora < HORA_INICIO_RUTA ? diaAnterior(hoy) : hoy;
+}
+
+function diaAnterior(dia: string): string {
+  const [anio, mes, fecha] = dia.split("-").map(Number);
+  return new Date(Date.UTC(anio, mes - 1, fecha - 1)).toISOString().slice(0, 10);
+}
+
 /* ---------- Proyección en el navegador ---------- */
 
 /**

@@ -8,8 +8,8 @@ import {
 } from "@/lib/config";
 import type { Operador } from "@/lib/sesion";
 import { TablaFaltante } from "@/lib/supabase";
-import { ZONA_OPERACION } from "@/lib/tracker";
-import { diaVigente, leerTracker } from "@/lib/tracker-datos";
+import { ZONA_OPERACION, diaDePaquetes } from "@/lib/tracker";
+import { leerTracker } from "@/lib/tracker-datos";
 
 /**
  * El motor de los tres endpoints del live tracker.
@@ -86,15 +86,8 @@ export async function ejecutarSync(
     );
   }
 
-  /*
-   * El mismo día para los dos flujos, resuelto en un solo lugar.
-   *
-   * n8n sabe calcularlo solo, pero solo lo hace cuando arranca por horario. Si
-   * cada botón dejara que el flujo decidiera, «actualizar posiciones» y
-   * «actualizar paquetes» podrían caer en fechas distintas alrededor de la
-   * medianoche, y el mapa mostraría repartidores sin paradas.
-   */
-  const dia = diaVigente();
+  /* Ambos flujos necesitan los repartidores y paquetes de la ruta visible. */
+  const dia = diaDePaquetes();
   const cuerpo: CuerpoTracker = {
     origen: "tablero",
     momento: new Date().toISOString(),

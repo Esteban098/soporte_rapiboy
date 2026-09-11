@@ -14,8 +14,8 @@ File**.
 | `05-refresco-cancelados-historico.json` | Ídem para las cancelaciones | Solo a pedido, desde **Cancelados históricos** |
 | `06-colectas.json` | Calcula quién colecta cada comercio y trae las colectas de 30 días | 12:00 de lunes a viernes, y desde **Colectas** |
 | `07-firefox-gestiones.json` | Interpreta el ID y los datos aportados por la tienda, y actualiza solo las columnas de soporte de `mensual` | Al enviar una selección desde la extensión de Firefox |
-| `08-tracker-drivers.json` | Repartidores con reserva del día y su última posición conocida | 6:45, y desde **Actualizar posiciones** del Live tracker |
-| `09-tracker-paquetes.json` | Reconcilia los paquetes de las rutas del día contra Supabase | 7:15, y desde **Actualizar paquetes** del Live tracker |
+| `08-tracker-drivers.json` | Repartidores de la ruta visible y su última posición conocida | 6:45 y 15:00, y desde **Actualizar posiciones** del Live tracker |
+| `09-tracker-paquetes.json` | Reconcilia pendientes de ayer o la ruta de hoy según el corte de las 15:00 de México | 7:15 y 15:00, y desde **Actualizar paquetes** del Live tracker |
 
 ## Antes de importar
 
@@ -208,18 +208,20 @@ este comercio»— y además hace que el upsert sea idempotente sin depender de 
 **Live tracker**. Antes de la primera corrida hay que crear las tablas con
 `web/supabase/live-tracker.sql`.
 
-Cada flujo tiene **dos entradas independientes** que comparten la misma cadena
-de nodos: un horario, que hace la carga inicial de la jornada, y un webhook,
-que es el botón del tablero. No están duplicados a propósito: la carga inicial y
-la actualización son exactamente la misma reconciliación, y que lo sean es lo
-que hace que apretar el botón antes de que corra el horario funcione igual de
-bien. Son cuatro entradas en total.
+Cada flujo tiene entradas independientes que comparten la misma cadena de
+nodos: uno o más horarios y un webhook, que es el botón del tablero. El flujo
+de posiciones corre a las 06:45 y a las 15:00. El de paquetes corre a las
+07:15 para reconciliar los pendientes de ayer y a las 15:00 para cargar la
+ruta de hoy. La actualización manual usa exactamente la misma reconciliación.
+Los dos workflows fijan `America/Mexico_City` en sus ajustes para que esos
+horarios no dependan de la zona configurada en el servidor de n8n.
 
 ### Cómo funciona una corrida
 
 1. **Día de operación.** Se toma el `dia` que manda el tablero, ya resuelto en
-   hora de Ciudad de México. Si el flujo arrancó por horario, se calcula con
-   `Intl` —no restando seis horas, que se rompe con el horario de verano—.
+   hora de Ciudad de México. En paquetes, antes de las 15:00 es ayer y desde
+   las 15:00 es hoy. Si el flujo arrancó por horario, se calcula la misma regla
+   con `Intl`, sin restar una cantidad fija de horas.
 2. **Abrir sincronización.** `tracker_abrir_sync()` toma el lock del tipo y
    devuelve un `sync_id`. Si ya hay otra corrida del mismo tipo en curso, falla
    acá y no se toca ni una fila. El lock es por tipo: posiciones y paquetes
@@ -281,13 +283,9 @@ que se supo, que es viejo pero cierto.
   depende de la ruta entera y cambia en cuanto el repartidor entrega. Si se
   cambia una regla hay que cambiar las dos, y `npm run test:tracker` compara
   las dos implementaciones sobre todas las combinaciones.
-- **Para probar contra la jornada de ayer** está la constante `DIAS_ATRAS` en
-  el nodo **Día de operación** de cada flujo, y hay que moverla en los dos o se
-  leerían los repartidores de un día y los paquetes de otro. Solo afecta a las
-  corridas por horario: cuando el día llega desde el botón del tablero, gana el
-  del tablero, que tiene su propia variable (`TRACKER_DIAS_ATRAS` en la web).
-  Es a propósito que mande la web: el que aprieta el botón tiene que ver lo que
-  la pantalla le dice que está viendo.
+- **No hay una variable para correr la jornada a mano.** La web manda el día
+  que muestra y ese valor gana en el webhook. En la entrada por horario, el
+  flujo de paquetes calcula ayer antes de las 15:00 y hoy a partir de esa hora.
 - Los dos se importan **apagados**, como todos.
 
 ## Lo que está apagado

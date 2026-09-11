@@ -54,9 +54,11 @@ Tres decisiones que vale la pena tener presentes:
 
 ## Live tracker
 
-La jornada en curso: quiénes tienen una ruta activa, dónde se los vio por
-última vez y qué paquetes lleva cada uno. Un repartidor que tenga posición o
-reserva pero ningún paquete activo no aparece en esta pantalla.
+La jornada que corresponde al horario operativo: quiénes tienen una ruta
+visible, dónde se los vio por última vez y qué paquetes lleva cada uno. Antes
+de las 15:00 de México conserva los pendientes de ayer; desde las 15:00 muestra
+la ruta de hoy. Un repartidor que tenga posición o reserva pero ningún paquete
+activo no aparece en esta pantalla.
 
 ### Cómo se usa
 
@@ -93,10 +95,13 @@ Están separados porque son dos preguntas distintas, y una es mucho más barata
 que la otra:
 
 - **Actualizar posiciones** relee `Motoboy.Latitud` y `Motoboy.Longitud` de los
-  repartidores con reserva vigente. No toca los paquetes.
+  repartidores y mantiene la última posición conocida de quienes aparecen por
+  sus pendientes. No toca los paquetes ni cambia la fecha visible.
 - **Actualizar paquetes** vuelve a preguntar cuáles son los paquetes de las
-  rutas de hoy y los compara con los guardados. Inserta los nuevos, actualiza
-  estados, detecta reasignaciones y marca lo que salió de la ruta.
+  rutas que corresponden al corte operativo y los compara con los guardados.
+  Antes de las 15:00 reconcilia ayer; desde las 15:00 reconcilia hoy. Inserta
+  los nuevos, actualiza estados, detecta reasignaciones y marca lo que salió de
+  la ruta.
 
 Lo importante del segundo: **no parte de los paquetes que ya tiene**. Vuelve a
 descubrir el universo del día desde las reservas. Por eso, si a un repartidor
@@ -158,8 +163,17 @@ solo se muestran cuando el origen los tiene cargados.
 
 ### Qué día muestra
 
-Siempre el de **hoy en México**, y ese «hoy» lo decide el reloj de Ciudad de
-México, no el de quien abre la pantalla ni el del servidor.
+El reloj de Ciudad de México decide la vista, no el reloj de quien abre la
+pantalla ni el del servidor:
+
+- Antes de las **15:00**, muestra únicamente los paquetes activos de ayer cuyo
+  estado es distinto de `Entregado`.
+- Desde las **15:00**, muestra únicamente la ruta de hoy.
+
+Las posiciones no retroceden de fecha junto con los paquetes: para cada
+repartidor visible se conserva su última posición conocida. La cabecera indica
+por separado la fecha de los paquetes y la fecha de las posiciones cuando son
+distintas.
 
 La diferencia importa una vez por día. Ciudad de México está tres horas detrás
 de Buenos Aires, así que entre las 00:00 y las 03:00 argentinas en México
@@ -175,10 +189,11 @@ horario de verano, pero eso es una circunstancia y no una regla: México lo dej�
 de usar en 2022 y podría volver. Con una constante de −3, el corte del día
 quedaría corrido durante medio año sin que nada avise.
 
-El día se decide en un solo lugar —`diaDeOperacion()`— y viaja como texto a
-n8n con cada pedido, así que la consulta de repartidores y la de paquetes salen
-siempre con la misma fecha. Cuando un flujo arranca por horario y no por el
-botón, lo calcula igual, con la misma zona.
+`diaDeOperacion()` resuelve hoy en México y `diaDePaquetes()` aplica el corte
+de las 15:00. Ambos días viajan como texto a n8n. El flujo de paquetes corre a
+las 07:15 para actualizar los pendientes de ayer y a las 15:00 para cargar la
+ruta nueva; el de posiciones corre a las 06:45 y nuevamente a las 15:00. Al
+arrancar por horario calculan la misma regla con la misma zona.
 
 ### Si una sincronización queda trabada
 

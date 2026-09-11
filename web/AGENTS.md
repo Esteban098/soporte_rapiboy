@@ -50,17 +50,14 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   repartidores es `id_motoboy` y la de paquetes `id_viaje`, así que una
   reasignación mueve la fila en vez de duplicarla. Se instala con
   `supabase/live-tracker.sql`.
-- `tracker_drivers.fecha_operacion` y `tracker_paquetes.fecha_ruta` acotan la
-  jornada y son lo que permite desactivar «lo del día que ya no está» sin tocar
-  lo de ayer. El día se decide en `diaDeOperacion()` con `America/Mexico_City`
-  y viaja como texto a n8n: la web, n8n y SQL Server pueden estar en tres zonas
-  distintas y el corte tiene que ser uno solo. Es **siempre hoy en México**: de
-  00:00 a 03:00 en Argentina allá todavía es el día anterior y la jornada sigue
-  abierta, así que la pantalla muestra esa. No hay forma de correrlo a una
-  jornada pasada; la había (`TRACKER_DIAS_ATRAS`) y se sacó porque quedó
-  prendida en un entorno y el tablero estuvo mostrando ayer sin que nadie lo
-  notara. Nunca restar horas a mano: si México volviera al horario de verano,
-  una constante correría el corte durante medio año sin avisar.
+- `tracker_drivers.fecha_operacion` y `tracker_paquetes.fecha_ruta` acotan cada
+  jornada y permiten leer ayer sin mezclarlo con hoy. `diaDeOperacion()`
+  resuelve hoy con `America/Mexico_City`; `diaDePaquetes()` muestra ayer antes
+  de las 15:00 y hoy desde esa hora. En la vista de ayer se filtran los paquetes
+  inactivos y los entregados. Las posiciones se leen como la última foto de
+  cada repartidor visible y no retroceden junto con la fecha de la ruta. Los
+  días viajan como texto a n8n porque la web, n8n y SQL Server pueden estar en
+  zonas distintas. Nunca restar horas a mano.
 - `minutos_sin_actualizar` y `estado_posicion` **no se guardan**: los calcula
   la vista `tracker_drivers_vista` al leer, y el navegador los vuelve a
   calcular contra su propio reloj. Una antigüedad guardada envejece mal —diría

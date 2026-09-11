@@ -8,12 +8,16 @@
             {
               "triggerAtHour": 6,
               "triggerAtMinute": 45
+            },
+            {
+              "triggerAtHour": 15,
+              "triggerAtMinute": 0
             }
           ]
         }
       },
       "id": "9dd38f62-427a-58bd-b384-882c03c93cba",
-      "name": "Carga inicial 06:45",
+      "name": "Actualización 06:45 y 15:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
       "position": [
@@ -40,7 +44,7 @@
     },
     {
       "parameters": {
-        "jsCode": "/*\n * Qué día de operación se está reconciliando: siempre el de hoy en México.\n *\n * El tablero lo manda ya resuelto, y se usa ese. Solo cuando el flujo arranca\n * por horario -no hay cuerpo que leer- se calcula acá, con `Intl` y no\n * restando seis horas: si México volviera a usar horario de verano, una\n * constante correría el corte del día durante medio año sin que nada avise.\n *\n * El día se decide en un solo lugar y viaja como texto justamente porque el\n * servidor de la web, el de n8n y el de SQL Server pueden estar en tres zonas\n * distintas. Si cada uno mirara su propio reloj, a las once de la noche de\n * México tres nodos del mismo flujo estarían trabajando sobre dos fechas.\n */\n\nconst cuerpo = $json?.body ?? $json ?? {};\nconst pedido = typeof cuerpo.dia === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(cuerpo.dia)\n  ? cuerpo.dia\n  : null;\n\nconst hoy = new Intl.DateTimeFormat('en-CA', {\n  timeZone: 'America/Mexico_City',\n  year: 'numeric', month: '2-digit', day: '2-digit',\n}).format(new Date());\n\nconst dia = pedido ?? hoy;\n\nreturn [{ json: { dia, origen: pedido ? 'tablero' : 'horario' } }];\n"
+        "jsCode": "/*\n * La posición se obtiene de Motoboy en el momento de la consulta, pero el día\n * selecciona qué reservas aportan repartidores. Antes de las 15:00 se usan las\n * reservas de ayer para seguir actualizando a quienes entregan pendientes;\n * desde las 15:00 se usan las rutas de hoy.\n */\n\nconst cuerpo = $json?.body ?? $json ?? {};\nconst pedido = typeof cuerpo.dia === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(cuerpo.dia)\n  ? cuerpo.dia\n  : null;\nconst ahora = new Date();\nconst hoy = new Intl.DateTimeFormat('en-CA', {\n  timeZone: 'America/Mexico_City',\n  year: 'numeric', month: '2-digit', day: '2-digit',\n}).format(ahora);\nconst hora = Number(new Intl.DateTimeFormat('en-US', {\n  timeZone: 'America/Mexico_City', hour: '2-digit', hourCycle: 'h23',\n}).formatToParts(ahora).find((p) => p.type === 'hour')?.value);\nconst [anio, mes, fecha] = hoy.split('-').map(Number);\nconst ayer = new Date(Date.UTC(anio, mes - 1, fecha - 1)).toISOString().slice(0, 10);\nconst dia = pedido ?? (hora < 15 ? ayer : hoy);\n\nreturn [{ json: { dia, origen: pedido ? 'tablero' : 'horario' } }];\n"
       },
       "id": "40d70b06-9c1a-5f72-b1c4-f8ac1f82cfb3",
       "name": "Día de operación",
@@ -260,7 +264,7 @@
     }
   ],
   "connections": {
-    "Carga inicial 06:45": {
+    "Actualización 06:45 y 15:00": {
       "main": [
         [
           {
@@ -409,7 +413,8 @@
   },
   "active": false,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City"
   },
   "pinData": {}
 }

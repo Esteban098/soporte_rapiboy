@@ -14,6 +14,8 @@ import {
   clasificarRuta,
   coordenadaValida,
   diaDeOperacion,
+  diaDePaquetes,
+  desenlaceDe,
   nombreDeDriver,
   proponerRuta,
   recorridoPendiente,
@@ -108,7 +110,12 @@ export type DriverDelTracker = {
 };
 
 export type DatosDelTracker = {
+  /** Fecha de los paquetes que se están mostrando. */
   dia: string;
+  /** Hoy en México; las posiciones nunca retroceden con la ruta visible. */
+  diaPosiciones: string;
+  /** Antes de las 15:00 se muestran solo los pendientes de la ruta anterior. */
+  pendientesAnteriores: boolean;
   drivers: DriverDelTracker[];
   /** Paquetes del día que ninguna reserva ata a un repartidor conocido. */
   huerfanos: PaqueteDelTracker[];
@@ -126,7 +133,7 @@ export type DatosDelTracker = {
   leidoEn: string;
 };
 
-/** El día que está mirando el tracker: siempre hoy, en hora de México. */
+/** El día actual de posiciones: siempre hoy, en hora de México. */
 export function diaVigente(): string {
   return diaDeOperacion();
 }
@@ -138,12 +145,14 @@ export function diaVigente(): string {
  * sin caché: el sentido de la pantalla es ver dónde está la gente ahora. El
  * cruce de soporte se hace después, cuando ya se conocen los IDs necesarios.
  *
- * Repartidores y paquetes se piden con el mismo `dia`. No es un detalle: si
- * cada uno resolviera su fecha por su lado, una corrida a las 23:59 podría leer
- * los repartidores de hoy y los paquetes de mañana, y el mapa mostraría gente
- * sin ruta sin que nada avisara.
+ * Las posiciones son siempre las últimas disponibles. Los paquetes cambian de
+ * jornada a las 15:00 de México: antes se conservan los pendientes de ayer y
+ * después entra exclusivamente la ruta de hoy.
  */
-export async function leerTracker(dia = diaVigente()): Promise<DatosDelTracker> {
+export async function leerTracker(diaForzado?: string, momento = new Date()): Promise<DatosDelTracker> {
+  const diaPosiciones = diaForzado ?? diaDeOperacion(momento);
+  const dia = diaForzado ?? diaDePaquetes(momento);
+  const pendientesAnteriores = dia !== diaPosiciones;
   /*
    * Qué tablas de referencia faltan.
    *
@@ -169,7 +178,7 @@ export async function leerTracker(dia = diaVigente()): Promise<DatosDelTracker> 
   const [drivers, paquetes, sincronizaciones, choferes] = await Promise.all([
     consultarTodo<DriverFila>(
       VISTA_TRACKER_DRIVERS,
-      { fecha_operacion: `eq.${dia}`, activo: "is.true" },
+      { activo: "is.true" },
       "id_motoboy.asc",
     ),
     consultarTodo<PaqueteFila>(
@@ -198,6 +207,12 @@ export async function leerTracker(dia = diaVigente()): Promise<DatosDelTracker> 
     opcional<DomicilioFila>(TABLA_TRACKER_CHOFERES, "id_motoboy.asc"),
   ]);
 
+  const paquetesVisibles = pendientesAnteriores
+    ? paquetes.filter(
+        (paquete) => paquete.activo_en_ruta && desenlaceDe(paquete.nombre_estado) !== "ENTREGADO",
+      )
+    : paquetes;
+
   const domicilios = new Map(choferes.map((c) => [c.id_motoboy, c]));
 
   /*
@@ -205,8 +220,8 @@ export async function leerTracker(dia = diaVigente()): Promise<DatosDelTracker> 
    * solo por los ids de esta jornada; leer el mes entero en cada refresco del
    * mapa haría crecer el costo con datos que no se van a mostrar.
    */
-  const detalles = await leerDetalles(paquetes.map((p) => p.id_viaje));
-  const paquetesConDetalle: PaqueteDelTracker[] = paquetes.map((paquete) => ({
+  const detalles = await leerDetalles(paquetesVisibles.map((p) => p.id_viaje));
+  const paquetesConDetalle: PaqueteDelTracker[] = paquetesVisibles.map((paquete) => ({
     ...paquete,
     detalle: detalles.get(paquete.id_viaje) ?? null,
   }));
@@ -229,6 +244,8 @@ export async function leerTracker(dia = diaVigente()): Promise<DatosDelTracker> 
 
   return {
     dia,
+    diaPosiciones,
+    pendientesAnteriores,
     // Una posición sin paquetes activos no representa una ruta de reparto.
     drivers: armados.filter((driver) => driver.paquetes.some((p) => p.activo_en_ruta)),
 

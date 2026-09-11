@@ -4,6 +4,7 @@ import { LiveTracker } from "@/components/LiveTracker";
 import { FondoCobertura } from "@/components/FondoCobertura";
 import { flujosDe, modoDatos } from "@/lib/config";
 import { ventanaProyeccion } from "@/lib/cobertura";
+import { diaDePaquetes } from "@/lib/tracker";
 import { TablaFaltante } from "@/lib/supabase";
 import { diaVigente, leerTracker, type DatosDelTracker } from "@/lib/tracker-datos";
 
@@ -60,7 +61,7 @@ export default async function LiveTrackerPage() {
 
   return (
     <>
-      <Cabecera />
+      <Cabecera datos={datos} />
 
       <LiveTracker
         inicial={datos}
@@ -77,10 +78,16 @@ export default async function LiveTrackerPage() {
   );
 }
 
-function Cabecera() {
+function Cabecera({ datos }: { datos?: DatosDelTracker }) {
+  const diaPosiciones = datos?.diaPosiciones ?? diaVigente();
+  const diaPaquetes = datos?.dia ?? diaDePaquetes();
   return (
     <PageHead
-      eyebrow={`Jornada del ${diaVigente()}, hora de México`}
+      eyebrow={
+        diaPaquetes === diaPosiciones
+          ? `Ruta del ${diaPaquetes}, hora de México`
+          : `Pendientes del ${diaPaquetes} · posiciones del ${diaPosiciones}, hora de México`
+      }
       titulo="Live tracker"
       dek="Dónde está cada repartidor y qué le queda por entregar. Las posiciones y las rutas se traen con los dos botones del panel, cada uno por su lado: mover los puntos no rehace las rutas, y rehacer las rutas no espera a que todos los dispositivos reporten."
     />
