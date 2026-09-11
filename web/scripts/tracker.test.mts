@@ -246,6 +246,24 @@ test("2b. el paquete cruza sus datos de soporte y evidencia por id", async (t) =
   });
 });
 
+test("2c. una foto vacía no pisa la última evidencia válida del paquete", async (t) => {
+  conEntorno(t, BASE);
+  const base = baseSimulada(t, {
+    tracker_drivers_vista: [driver()],
+    tracker_paquetes: [paquete({ id_viaje: 301 })],
+    tracker_sincronizaciones: [],
+    mensual_historico: [{ id: 301, foto: "https://files.rapiboy.com/evidencia-anterior.jpg" }],
+    mensual: [{ id: 301, foto: "   " }],
+  });
+  t.after(base.restore);
+
+  const { drivers } = await leerTracker("2026-09-10");
+  assert.equal(
+    drivers[0].paquetes[0].detalle?.foto,
+    "https://files.rapiboy.com/evidencia-anterior.jpg",
+  );
+});
+
 /* ---------------------------------------------------------------------------
  * 3-4. Coordenadas
  * ------------------------------------------------------------------------- */
@@ -1090,6 +1108,16 @@ test("la posición del repartidor sale de Motoboy y nunca del destino del viaje"
     .find((n: { name: string }) => n.name === "A columnas · paquetes").parameters.jsCode;
   assert.match(mapeo, /latitud_destino/);
   assert.ok(!/(^|[^_])latitud:/m.test(mapeo), "el paquete no tiene posición de repartidor");
+});
+
+test("la antigüedad de la posición corrige la zona de origen argentina", () => {
+  const flujoDrivers = flujo("08-tracker-drivers.json");
+  const correccion = flujoDrivers.nodes.find(
+    (n: { name: string }) => n.name === "Corregir zona de posición",
+  );
+  assert.ok(correccion, "el flujo normaliza el reloj que devuelve Motoboy");
+  assert.match(correccion.parameters.jsCode, /3 \* 60 \* 60 \* 1000/);
+  assert.match(correccion.parameters.jsCode, /UltimaActualizacion/);
 });
 
 test("la clasificación de n8n y la de la web dan siempre el mismo resultado", () => {

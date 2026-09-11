@@ -114,6 +114,20 @@
     },
     {
       "parameters": {
+        "jsCode": "/*\n * Motoboy.UltimaActualizacion llega sin zona desde SQL Server. La evidencia\n * operativa mostró un desfase uniforme de tres horas: el reloj de origen es\n * Argentina (UTC-3), mientras que la consulta lo había interpretado como UTC.\n *\n * Las coordenadas no cambian; se corrige solamente el instante asociado al\n * reporte para que la antigüedad del punto se calcule contra la hora real.\n */\nconst DESFASE_ARGENTINA_MS = 3 * 60 * 60 * 1000;\n\nreturn $input.all().map((item) => {\n  const fecha = new Date(item.json.UltimaActualizacion);\n  if (Number.isNaN(fecha.getTime())) return item;\n\n  return {\n    ...item,\n    json: {\n      ...item.json,\n      UltimaActualizacion: new Date(fecha.getTime() + DESFASE_ARGENTINA_MS).toISOString(),\n    },\n  };\n});\n"
+      },
+      "id": "2e99dfea-c142-5a48-859a-f9be9b273124",
+      "name": "Corregir zona de posición",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        -110
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": true,
@@ -312,11 +326,30 @@
       "main": [
         [
           {
-            "node": "A columnas · repartidores",
+            "node": "Corregir zona de posición",
             "type": "main",
             "index": 0
           }
         ],
+        [
+          {
+            "node": "Motivo de la falla",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Corregir zona de posición": {
+      "main": [
+        [
+          {
+            "node": "A columnas · repartidores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+        ,
         [
           {
             "node": "Motivo de la falla",

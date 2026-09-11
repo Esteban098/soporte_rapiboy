@@ -397,8 +397,13 @@ async function leerDetalles(ids: number[]): Promise<Map<number, DetallePaquete>>
   const resultado = new Map<number, DetallePaquete>();
 
   // Mensual se procesa último: si el id existe en ambos, es la versión viva.
+  // La foto es la excepción: una actualización sin evidencia no puede borrar
+  // la última URL válida que quedó en el histórico.
   for (const fila of [...historico, ...mensual]) {
-    resultado.set(Number(fila.id), {
+    const id = Number(fila.id);
+    const anterior = resultado.get(id);
+    const foto = enlaceFotoEntrega(fila.foto ?? "") ?? anterior?.foto ?? null;
+    resultado.set(id, {
       destino: texto(fila.destino),
       poligono: texto(fila.poligono),
       telefono: texto(fila.telefono),
@@ -406,7 +411,7 @@ async function leerDetalles(ids: number[]): Promise<Map<number, DetallePaquete>>
       aclaraciones: texto(fila.informacion_enviar),
       tienda: texto(fila.tienda),
       repartidor: texto(fila.repartidor),
-      foto: enlaceFotoEntrega(fila.foto ?? ""),
+      foto,
     });
   }
   return resultado;
