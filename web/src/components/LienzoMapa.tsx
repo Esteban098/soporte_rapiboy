@@ -140,14 +140,35 @@ export function LienzoMapa({
     [ventana],
   );
 
-  function aCoordenadas(evento: { clientX: number; clientY: number }): { x: number; y: number } {
-    const medida = svgRef.current?.getBoundingClientRect();
-    if (!medida) return { x: vista.x + vista.w / 2, y: vista.y + vista.h / 2 };
-    return {
-      x: vista.x + ((evento.clientX - medida.left) / medida.width) * vista.w,
-      y: vista.y + ((evento.clientY - medida.top) / medida.height) * vista.h,
+  const aCoordenadas = useCallback(
+    (evento: { clientX: number; clientY: number }): { x: number; y: number } => {
+      const medida = svgRef.current?.getBoundingClientRect();
+      if (!medida) return { x: vista.x + vista.w / 2, y: vista.y + vista.h / 2 };
+      return {
+        x: vista.x + ((evento.clientX - medida.left) / medida.width) * vista.w,
+        y: vista.y + ((evento.clientY - medida.top) / medida.height) * vista.h,
+      };
+    },
+    [vista],
+  );
+
+  /*
+   * React delega `wheel` con un listener pasivo en algunos navegadores. En
+   * ese caso `preventDefault()` dentro de `onWheel` llega tarde y la página se
+   * desplaza al mismo tiempo que cambia el zoom. El listener nativo se declara
+   * explícitamente no pasivo para que la rueda pertenezca al mapa mientras el
+   * cursor está encima.
+   */
+  useEffect(() => {
+    const elemento = svgRef.current;
+    if (!elemento) return;
+    const rueda = (evento: WheelEvent) => {
+      evento.preventDefault();
+      acercar(evento.deltaY > 0 ? 1.15 : 1 / 1.15, aCoordenadas(evento));
     };
-  }
+    elemento.addEventListener("wheel", rueda, { passive: false });
+    return () => elemento.removeEventListener("wheel", rueda);
+  }, [acercar, aCoordenadas]);
 
   function poligonoDe(elemento: EventTarget | null): { nombre: string; zona: string } | null {
     if (!(elemento instanceof Element)) return null;
@@ -205,7 +226,6 @@ export function LienzoMapa({
         onPointerCancel={() => {
           arrastre.current = null;
         }}
-        onWheel={(e) => acercar(e.deltaY > 0 ? 1.15 : 1 / 1.15, aCoordenadas(e))}
       >
         {/* El fondo, dibujado en el servidor. No se vuelve a pintar nunca. */}
         <g className={estilos.fondo}>{fondo}</g>
