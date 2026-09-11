@@ -1023,6 +1023,16 @@ test("el día viaja como texto, no como date", () => {
       (n: { type: string }) => n.type === "n8n-nodes-base.microsoftSql",
     );
     assert.match(sql.parameters.query, /DECLARE @Dia\s+DATE = '\{\{ \$json\.dia \}\}'/, archivo);
+
+    // El upsert devuelve DATE como objeto Date. El cierre no puede interpolarlo
+    // directo porque n8n lo convierte a "Thu Sep ...", inválido para Postgres.
+    const cerrar = f.nodes.find((n: { name: string }) => n.name === "Cerrar sincronización");
+    const campo = archivo.startsWith("08-") ? "fecha_operacion" : "fecha_ruta";
+    assert.match(
+      cerrar.parameters.query,
+      new RegExp(`new Date\\(\\$json\\.${campo}\\)\\.toISOString\\(\\)\\.slice\\(0, 10\\)`),
+      `${archivo}: el cierre normaliza la fecha a YYYY-MM-DD`,
+    );
   }
 });
 

@@ -212,7 +212,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Cierra la corrida: desactiva lo que no vio y la marca exitosa, en la\n-- misma transacción. La función cuenta sola las filas que quedaron con\n-- este sync_id, así que acá no hay que pasarle ningún total.\n--\n-- sync_id y fecha salen de la entrada directa de este nodo: por la rama\n-- verdadera los trae la fila que acaba de guardarse -son columnas de la\n-- tabla- y por la falsa, el testigo. Nada de `$('...')`: leer a través del\n-- grafo es lo que rompía este flujo.\nselect * from public.tracker_cerrar_paquetes(\n  '{{ $json.sync_id }}'::uuid,\n  '{{ $json.fecha_ruta }}'::date\n);",
+        "query": "-- Cierra la corrida: desactiva lo que no vio y la marca exitosa, en la\n-- misma transacción. La función cuenta sola las filas que quedaron con\n-- este sync_id, así que acá no hay que pasarle ningún total.\n--\n-- El upsert de Postgres devuelve las columnas DATE como objetos Date de JS.\n-- Se normaliza antes de interpolar: String(Date) produce texto como\n-- 'Thu Sep 10 2026 ...', que PostgreSQL no acepta como date.\nselect * from public.tracker_cerrar_paquetes(\n  '{{ $json.sync_id }}'::uuid,\n  '{{ new Date($json.fecha_ruta).toISOString().slice(0, 10) }}'::date\n);",
         "options": {}
       },
       "id": "766a10d1-9879-5921-b4d7-63374272a94b",
