@@ -13,7 +13,7 @@ export function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className={estilos.card} data-revelar="">
+    <section className={estilos.card}>
       {titulo ? (
         <div className={estilos.cardHead}>
           <h2 className={estilos.cardTitle}>{titulo}</h2>
@@ -43,7 +43,7 @@ export function Callout({
         : "";
 
   return (
-    <div className={`${estilos.callout} ${clase}`} data-revelar="">
+    <div className={`${estilos.callout} ${clase}`}>
       <h3 className={estilos.calloutTitle}>{titulo}</h3>
       <p className={estilos.calloutBody}>{children}</p>
     </div>
@@ -87,7 +87,7 @@ export function Kpi({
     : "";
 
   return (
-    <div className={`${estilos.kpi} ${claseFondo}`} data-revelar="">
+    <div className={`${estilos.kpi} ${claseFondo}`}>
       <div className={estilos.kpiLabel}>{etiqueta}</div>
       <div className={`${estilos.kpiValue} ${claseValor}`}>{valor}</div>
       {nota ? <div className={estilos.kpiNote}>{nota}</div> : null}

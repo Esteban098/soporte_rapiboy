@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   colorDeDriver,
+  entregadosPorHora,
   enlaceAlOperador,
+  porcentajeEntregado,
   type Clasificacion,
   type Sincronizacion,
   type Ventana,
@@ -33,6 +35,7 @@ import estilos from "./live-tracker.module.css";
 type Sync = "posiciones" | "paquetes";
 
 type Aviso = { tono: "ok" | "error"; texto: string };
+type OrdenLista = "porcentaje" | "total" | "entregados" | "actualizacion";
 
 export function LiveTracker({
   inicial,
@@ -51,6 +54,7 @@ export function LiveTracker({
   const [datos, setDatos] = useState(inicial);
   const [seleccion, setSeleccion] = useState<number[]>([]);
   const [busqueda, setBusqueda] = useState("");
+  const [orden, setOrden] = useState<OrdenLista>("porcentaje");
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
   /*
@@ -63,6 +67,7 @@ export function LiveTracker({
    */
   const [mostrarPropuesta, setMostrarPropuesta] = useState(false);
   const [paqueteActivo, setPaqueteActivo] = useState<number | null>(null);
+  const [poligonoActivo, setPoligonoActivo] = useState<{ nombre: string; zona: string } | null>(null);
   const [corriendo, setCorriendo] = useState<Sync | null>(null);
   const [aviso, setAviso] = useState<Aviso | null>(null);
 
@@ -77,15 +82,35 @@ export function LiveTracker({
 
   const filtrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
-    if (!texto) return datos.drivers;
-    return datos.drivers.filter(
-      (d) => d.nombre.toLowerCase().includes(texto) || String(d.id).includes(texto),
-    );
-  }, [datos.drivers, busqueda]);
+    const coinciden = texto
+      ? datos.drivers.filter(
+          (d) => d.nombre.toLowerCase().includes(texto) || String(d.id).includes(texto),
+        )
+      : datos.drivers;
+    return [...coinciden].sort((a, b) => compararDrivers(a, b, orden));
+  }, [datos.drivers, busqueda, orden]);
 
   const elegidos = useMemo(
-    () => datos.drivers.filter((d) => seleccion.includes(d.id)),
-    [datos.drivers, seleccion],
+    () =>
+      datos.drivers
+        .filter((d) => seleccion.includes(d.id))
+        .sort((a, b) => compararDrivers(a, b, orden)),
+    [datos.drivers, seleccion, orden],
+  );
+
+  const paqueteSeleccionado = useMemo(
+    () =>
+      paqueteActivo == null
+        ? null
+        : datos.drivers
+            .flatMap((driver) => driver.paquetes.map((paquete) => ({ paquete, driver })))
+            .find(({ paquete }) => paquete.id_viaje === paqueteActivo) ?? null,
+    [datos.drivers, paqueteActivo],
+  );
+
+  const horas = useMemo(
+    () => entregadosPorHora((elegidos.length > 0 ? elegidos : datos.drivers).flatMap((d) => d.paquetes)),
+    [datos.drivers, elegidos],
   );
 
   const releer = useCallback(async () => {
@@ -151,6 +176,16 @@ export function LiveTracker({
             type="search"
           />
         </div>
+
+        <label className={estilos.ordenLista}>
+          <span>Ordenar repartidores por</span>
+          <select value={orden} onChange={(e) => setOrden(e.target.value as OrdenLista)}>
+            <option value="porcentaje">% entregado</option>
+            <option value="total">Paquetes totales</option>
+            <option value="entregados">Paquetes entregados</option>
+            <option value="actualizacion">Última actualización</option>
+          </select>
+        </label>
 
         <div className={estilos.acciones}>
           <button
@@ -252,7 +287,7 @@ export function LiveTracker({
           {filtrados.length === 0 ? (
             <li className={estilos.vacio}>
               {datos.drivers.length === 0
-                ? "No hay repartidores con operación cargada para hoy. Probá «Actualizar posiciones»."
+                ? "No hay repartidores con una ruta activa para hoy. Probá «Actualizar paquetes»."
                 : "Ningún repartidor coincide con la búsqueda."}
             </li>
           ) : (
@@ -290,9 +325,15 @@ export function LiveTracker({
           mostrarPropuesta={mostrarPropuesta}
           paqueteActivo={paqueteActivo}
           onPaquete={setPaqueteActivo}
+          onPoligono={(poligono) => {
+            setPaqueteActivo(null);
+            setPoligonoActivo(poligono);
+          }}
         >
           {children}
         </MapaTracker>
+
+        <EntregasPorHora horas={horas} acotado={elegidos.length > 0} />
 
         {elegidos.length > 0 ? (
           <div className={estilos.detalles}>
@@ -309,6 +350,19 @@ export function LiveTracker({
           </div>
         ) : null}
       </div>
+
+      {paqueteSeleccionado ? (
+        <DetallePaqueteModal
+          key={paqueteSeleccionado.paquete.id_viaje}
+          paquete={paqueteSeleccionado.paquete}
+          driver={paqueteSeleccionado.driver}
+          onCerrar={() => setPaqueteActivo(null)}
+        />
+      ) : null}
+
+      {poligonoActivo ? (
+        <DetallePoligono poligono={poligonoActivo} onCerrar={() => setPoligonoActivo(null)} />
+      ) : null}
     </div>
   );
 }
@@ -334,7 +388,9 @@ function FilaDriver({
           <span className={estilos.filaNombre}>{driver.nombre}</span>
           <span className={estilos.filaDato}>
             #{driver.id} · {resumen.enRuta} paq. ·{" "}
-            {resumen.avance == null ? "sin ruta" : `${Math.round(resumen.avance)}% avance`}
+            {porcentajeEntregado(resumen) == null
+              ? "sin ruta"
+              : `${Math.round(porcentajeEntregado(resumen) as number)}% entregado`}
           </span>
         </span>
         <span
@@ -345,6 +401,65 @@ function FilaDriver({
         </span>
       </label>
     </li>
+  );
+}
+
+function compararDrivers(a: DriverDelTracker, b: DriverDelTracker, orden: OrdenLista): number {
+  let diferencia = 0;
+  if (orden === "porcentaje") {
+    diferencia = (porcentajeEntregado(b.resumen) ?? -1) - (porcentajeEntregado(a.resumen) ?? -1);
+  } else if (orden === "total") {
+    diferencia = b.resumen.enRuta - a.resumen.enRuta;
+  } else if (orden === "entregados") {
+    diferencia = b.resumen.entregados - a.resumen.entregados;
+  } else {
+    diferencia = fechaNumero(b.fechaPosicion) - fechaNumero(a.fechaPosicion);
+  }
+  return diferencia || a.nombre.localeCompare(b.nombre, "es");
+}
+
+function fechaNumero(fecha: string | null): number {
+  if (!fecha) return -1;
+  const numero = new Date(fecha).getTime();
+  return Number.isFinite(numero) ? numero : -1;
+}
+
+function EntregasPorHora({
+  horas,
+  acotado,
+}: {
+  horas: { hora: number; cantidad: number }[];
+  acotado: boolean;
+}) {
+  const maximo = Math.max(1, ...horas.map((h) => h.cantidad));
+  const total = horas.reduce((suma, h) => suma + h.cantidad, 0);
+
+  return (
+    <section className={estilos.horas} aria-label="Paquetes entregados por hora">
+      <header className={estilos.horasHead}>
+        <div>
+          <h2>Entregados por hora</h2>
+          <p>Hora de Ciudad de México{acotado ? " · repartidores seleccionados" : " · todas las rutas"}</p>
+        </div>
+        <strong>{total} entregados con horario</strong>
+      </header>
+      <div className={estilos.graficoHoras}>
+        {horas.map(({ hora, cantidad }) => (
+          <div
+            key={hora}
+            className={estilos.horaColumna}
+            title={`${String(hora).padStart(2, "0")}:00 · ${cantidad} paquete${cantidad === 1 ? "" : "s"}`}
+          >
+            <span className={estilos.horaCantidad}>{cantidad || ""}</span>
+            <span
+              className={estilos.horaBarra}
+              style={{ height: `${cantidad === 0 ? 2 : Math.max(8, (cantidad / maximo) * 100)}%` }}
+            />
+            <span className={estilos.horaEtiqueta}>{hora % 3 === 0 ? `${hora}h` : ""}</span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -486,6 +601,158 @@ function DetalleDriver({
       </ul>
     </section>
   );
+}
+
+function DetallePaqueteModal({
+  paquete,
+  driver,
+  onCerrar,
+}: {
+  paquete: PaqueteDelTracker;
+  driver: DriverDelTracker;
+  onCerrar: () => void;
+}) {
+  const [verEvidencia, setVerEvidencia] = useState(false);
+  const detalle = paquete.detalle;
+  const direccion = detalle?.destino ?? paquete.direccion;
+  const maps =
+    paquete.latitud_destino != null && paquete.longitud_destino != null
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${paquete.latitud_destino},${paquete.longitud_destino}`)}`
+      : direccion
+        ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}`
+        : null;
+
+  useEffect(() => {
+    const cerrar = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape") onCerrar();
+    };
+    window.addEventListener("keydown", cerrar);
+    return () => window.removeEventListener("keydown", cerrar);
+  }, [onCerrar]);
+
+  return (
+    <div className={estilos.modalFondo} role="presentation" onMouseDown={onCerrar}>
+      <section
+        className={estilos.modal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="detalle-paquete-titulo"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className={estilos.modalAcciones}>
+          {maps ? (
+            <a href={maps} target="_blank" rel="noopener noreferrer">
+              Ir a Google Maps
+            </a>
+          ) : null}
+          <a href={enlaceAlOperador(paquete.id_viaje)} target="_blank" rel="noopener noreferrer">
+            Abrir en Rapiboy
+          </a>
+        </div>
+
+        <header className={estilos.modalHead}>
+          <span className={`${estilos.tag} ${estilos[`tag${paquete.clasificacion}`] ?? ""}`}>
+            {ETIQUETA[paquete.clasificacion]}
+          </span>
+          <h2 id="detalle-paquete-titulo">Paquete #{paquete.tracking_id}</h2>
+        </header>
+
+        <dl className={estilos.modalDatos}>
+          <DatoModal etiqueta="Dirección" valor={direccion} />
+          <DatoModal etiqueta="Teléfono" valor={detalle?.telefono} telefono />
+          <DatoModal etiqueta="Información de la tienda" valor={detalle?.ubicacion} />
+          <DatoModal etiqueta="Polígono / barrio" valor={detalle?.poligono} />
+          <DatoModal etiqueta="Tienda" valor={detalle?.tienda} />
+          <DatoModal etiqueta="Repartidor" valor={detalle?.repartidor ?? driver.nombre} />
+          <DatoModal etiqueta="Aclaraciones" valor={detalle?.aclaraciones} />
+          <DatoModal etiqueta="Ruta" valor={paquete.id_ruta == null ? null : String(paquete.id_ruta)} />
+          <DatoModal etiqueta="Orden" valor={paquete.orden == null ? null : String(paquete.orden)} />
+          <DatoModal etiqueta="Estado del sistema" valor={paquete.nombre_estado} />
+          <DatoModal etiqueta="Programado" valor={fechaMexico(paquete.fecha_programado)} />
+          <DatoModal etiqueta="Visita" valor={fechaMexico(paquete.fecha_visita)} />
+          <DatoModal etiqueta="Último cambio" valor={fechaMexico(paquete.fecha_cambio_estado)} />
+          <DatoModal etiqueta="ID" valor={String(paquete.id_viaje)} />
+        </dl>
+
+        {detalle?.foto ? (
+          <div className={estilos.evidencia}>
+            <button type="button" onClick={() => setVerEvidencia((antes) => !antes)}>
+              {verEvidencia ? "Ocultar evidencia" : "Ver evidencia"}
+            </button>
+            {verEvidencia ? (
+              <a href={detalle.foto} target="_blank" rel="noopener noreferrer">
+                {/* La evidencia puede vivir en distintos hosts de Rapiboy; su URL viene validada. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={detalle.foto} alt={`Última evidencia del paquete ${paquete.tracking_id}`} />
+              </a>
+            ) : null}
+          </div>
+        ) : (
+          <p className={estilos.sinEvidencia}>Este paquete no tiene una foto de evidencia cargada.</p>
+        )}
+
+        <button type="button" className={estilos.cerrarModal} onClick={onCerrar}>
+          Cerrar
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function DatoModal({ etiqueta, valor, telefono = false }: { etiqueta: string; valor?: string | null; telefono?: boolean }) {
+  if (!valor) return null;
+  return (
+    <div>
+      <dt>{etiqueta}</dt>
+      <dd>{telefono ? <a href={`tel:${valor.replace(/\s+/g, "")}`}>{valor}</a> : valor}</dd>
+    </div>
+  );
+}
+
+function DetallePoligono({
+  poligono,
+  onCerrar,
+}: {
+  poligono: { nombre: string; zona: string };
+  onCerrar: () => void;
+}) {
+  useEffect(() => {
+    const cerrar = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape") onCerrar();
+    };
+    window.addEventListener("keydown", cerrar);
+    return () => window.removeEventListener("keydown", cerrar);
+  }, [onCerrar]);
+
+  return (
+    <div className={estilos.modalFondo} role="presentation" onMouseDown={onCerrar}>
+      <section
+        className={`${estilos.modal} ${estilos.modalPoligono}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="detalle-poligono-titulo"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <span className={estilos.modalEyebrow}>Polígono del KMZ</span>
+        <h2 id="detalle-poligono-titulo">{poligono.nombre}</h2>
+        {poligono.zona && poligono.zona !== poligono.nombre ? <p>Zona: {poligono.zona}</p> : null}
+        <button type="button" className={estilos.cerrarModal} onClick={onCerrar}>
+          Cerrar
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function fechaMexico(valor: string | null): string | null {
+  if (!valor) return null;
+  const fecha = new Date(valor);
+  if (!Number.isFinite(fecha.getTime())) return valor;
+  return fecha.toLocaleString("es-MX", {
+    timeZone: "America/Mexico_City",
+    dateStyle: "short",
+    timeStyle: "short",
+  });
 }
 
 /**

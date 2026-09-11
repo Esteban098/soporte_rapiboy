@@ -1,7 +1,5 @@
 /* Piezas compartidas por todos los tableros. */
 
-/* Navegación flotante sobre el fondo ambiental compartido. */
-
 .app {
   display: grid;
   grid-template-columns: 244px minmax(0, 1fr);
@@ -17,7 +15,6 @@
 /* Panel flotante que acompaña el scroll del tablero. */
 .railFijo {
   background-color: var(--glass);
-  background-image: var(--glass-sheen);
   border: 1px solid var(--glass-edge);
   box-shadow: var(--glass-shadow);
   -webkit-backdrop-filter: var(--glass-filter);
@@ -213,8 +210,7 @@
 }
 
 .railItemActivo {
-  background: var(--glass-sheen), var(--accent-soft);
-  box-shadow: inset 0 0 0 1px var(--glass-edge), var(--glass-shadow);
+  background: var(--accent-soft);
   color: var(--accent-ink);
   font-weight: 590;
 }
@@ -262,7 +258,6 @@
    de cortarse contra un bloque opaco. */
 .barra {
   background-color: var(--glass);
-  background-image: var(--glass-sheen);
   border: 1px solid var(--glass-edge);
   box-shadow: var(--glass-shadow);
   -webkit-backdrop-filter: var(--glass-filter);
@@ -287,18 +282,6 @@
 
 .pageHead {
   margin-bottom: 30px;
-  animation: entrar var(--dur-larga) var(--ease-salida) both;
-}
-
-@keyframes entrar {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 12px, 0);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 /* El título y el botón comparten renglón; el dek va abajo, a todo el ancho,
@@ -346,7 +329,6 @@
 /* Cristal esmerilado con reflejo diagonal y borde iluminado. */
 .card {
   background-color: var(--glass);
-  background-image: var(--glass-sheen);
   border: 1px solid var(--glass-edge);
   box-shadow: var(--glass-shadow);
   -webkit-backdrop-filter: var(--glass-filter);
@@ -398,29 +380,8 @@
   margin-bottom: 30px;
 }
 
-/* El escalonado del revelado va acá y no en el JS: la grilla ya sabe el orden. */
-.kpis > *:nth-child(1) {
-  --retraso: 0s;
-}
-.kpis > *:nth-child(2) {
-  --retraso: 0.06s;
-}
-.kpis > *:nth-child(3) {
-  --retraso: 0.12s;
-}
-.kpis > *:nth-child(4) {
-  --retraso: 0.18s;
-}
-.kpis > *:nth-child(5) {
-  --retraso: 0.24s;
-}
-.kpis > *:nth-child(6) {
-  --retraso: 0.3s;
-}
-
 .kpi {
   background-color: var(--glass);
-  background-image: var(--glass-sheen);
   border: 1px solid var(--glass-edge);
   box-shadow: var(--glass-shadow);
   -webkit-backdrop-filter: var(--glass-filter);
@@ -454,30 +415,6 @@
   letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
   margin: 8px 0 4px;
-}
-
-/*
- * Las cifras entran desenfocadas y enfocan: el número se lee como si se
- * estuviera resolviendo, no como si apareciera de golpe. El @keyframes vive en
- * este módulo porque CSS Modules renombra el nombre junto con la referencia.
- */
-@keyframes enfocar {
-  from {
-    opacity: 0;
-    filter: blur(7px);
-    transform: translate3d(0, 6px, 0);
-  }
-  to {
-    opacity: 1;
-    filter: blur(0);
-    transform: none;
-  }
-}
-
-/* Enfoca un pelo después de que la tarjeta terminó de subir. */
-.kpi[data-revelar="visible"] .kpiValue {
-  animation: enfocar var(--dur-larga) var(--ease-salida) both;
-  animation-delay: calc(var(--retraso, 0s) + 0.12s);
 }
 
 .kpiValueGood {
@@ -766,29 +703,24 @@ details[open] > .summary::before {
   background: var(--surface);
 }
 
+/*
+ * Antes latía con un box-shadow animado sin parar. Ese punto vive adentro de
+ * la barra superior, que tiene `backdrop-filter`: una animación infinita ahí
+ * adentro obliga a recalcular el desenfoque de fondo en cada frame, para
+ * siempre, en todas las pantallas. El halo se deja fijo y dice lo mismo.
+ */
 .fuenteDot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--good);
+  box-shadow: 0 0 0 3px var(--good-soft);
   flex: none;
-  /* Latido lento: se nota que el dato está vivo sin robar la atención. */
-  animation: latir 2.6s var(--ease) infinite;
-}
-
-@keyframes latir {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 var(--good-soft);
-  }
-  50% {
-    box-shadow: 0 0 0 4px transparent;
-  }
 }
 
 .fuenteDotFixture {
   background: var(--warning);
-  animation: none;
+  box-shadow: 0 0 0 3px var(--warning-soft);
 }
 
 /*
@@ -906,12 +838,6 @@ details[open] > .summary::before {
 
   .kpiValue {
     font-size: 32px;
-  }
-}
-
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .card:hover, .kpi:hover {
-    box-shadow: var(--glass-shadow), 0 20px 44px -26px var(--accent);
   }
 }
 

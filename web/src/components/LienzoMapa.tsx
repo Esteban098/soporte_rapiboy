@@ -32,6 +32,7 @@ export function LienzoMapa({
   encuadrar,
   etiqueta,
   fondo,
+  onPoligono,
   children,
 }: {
   ventana: Ventana;
@@ -54,6 +55,9 @@ export function LienzoMapa({
   /** Los polígonos de cobertura, dibujados en el servidor. */
   fondo: React.ReactNode;
 
+  /** Informa el nombre original del KMZ cuando se toca un polígono. */
+  onPoligono?: (poligono: { nombre: string; zona: string }) => void;
+
   /** Lo que va encima, con `k` = cuánto mide un píxel en unidades del viewBox. */
   children: (k: number) => React.ReactNode;
 }) {
@@ -63,7 +67,13 @@ export function LienzoMapa({
   );
 
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const arrastre = useRef<{ x: number; y: number; vista: Vista } | null>(null);
+  const arrastre = useRef<{
+    x: number;
+    y: number;
+    vista: Vista;
+    movio: boolean;
+    poligono: { nombre: string; zona: string } | null;
+  } | null>(null);
 
   const [vista, setVista] = useState<Vista>(completa);
 
@@ -139,6 +149,14 @@ export function LienzoMapa({
     };
   }
 
+  function poligonoDe(elemento: EventTarget | null): { nombre: string; zona: string } | null {
+    if (!(elemento instanceof Element)) return null;
+    const path = elemento.closest("[data-poligono-nombre]");
+    const nombre = path?.getAttribute("data-poligono-nombre")?.trim();
+    if (!nombre) return null;
+    return { nombre, zona: path?.getAttribute("data-poligono-zona")?.trim() ?? "" };
+  }
+
   return (
     <div className={estilos.mapaCaja}>
       <svg
@@ -147,14 +165,30 @@ export function LienzoMapa({
         viewBox={`${vista.x} ${vista.y} ${vista.w} ${vista.h}`}
         role="img"
         aria-label={etiqueta}
+        onKeyDown={(e) => {
+          if (e.key !== "Enter" && e.key !== " ") return;
+          const poligono = poligonoDe(e.target);
+          if (!poligono) return;
+          e.preventDefault();
+          onPoligono?.(poligono);
+        }}
         onPointerDown={(e) => {
           if (e.button !== 0) return;
           e.currentTarget.setPointerCapture(e.pointerId);
-          arrastre.current = { x: e.clientX, y: e.clientY, vista };
+          arrastre.current = {
+            x: e.clientX,
+            y: e.clientY,
+            vista,
+            movio: false,
+            // Con pointer capture, al soltar `event.target` pasa a ser el SVG.
+            // El nombre se conserva acá, antes de que se pierda ese target.
+            poligono: poligonoDe(e.target),
+          };
         }}
         onPointerMove={(e) => {
           const inicio = arrastre.current;
           if (!inicio) return;
+          if (Math.hypot(e.clientX - inicio.x, e.clientY - inicio.y) > 3) inicio.movio = true;
           const medida = svgRef.current?.getBoundingClientRect();
           if (!medida) return;
           setVista({
@@ -164,7 +198,9 @@ export function LienzoMapa({
           });
         }}
         onPointerUp={() => {
+          const gesto = arrastre.current;
           arrastre.current = null;
+          if (gesto && !gesto.movio && gesto.poligono) onPoligono?.(gesto.poligono);
         }}
         onPointerCancel={() => {
           arrastre.current = null;

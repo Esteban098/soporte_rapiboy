@@ -13,11 +13,13 @@ import {
   desenlaceDe,
   diaDeOperacion,
   distanciaKm,
+  entregadosPorHora,
   enlaceAlOperador,
   estadoPosicion,
   largoDeRuta,
   proponerRuta,
   proyectarEn,
+  porcentajeEntregado,
   recorridoPendiente,
   resumirRuta,
   rutaPorCercania,
@@ -207,6 +209,42 @@ test("2. con varios repartidores, cada uno queda con sus paquetes y su resumen",
   assert.deepEqual(drivers[0].rutas, [55]);
 });
 
+test("2b. el paquete cruza sus datos de soporte y evidencia por id", async (t) => {
+  conEntorno(t, BASE);
+  const base = baseSimulada(t, {
+    tracker_drivers_vista: [driver()],
+    tracker_paquetes: [paquete({ id_viaje: 300 })],
+    tracker_sincronizaciones: [],
+    mensual_historico: [],
+    mensual: [
+      {
+        id: 300,
+        destino: "Calle Uno 20",
+        poligono: "Norte",
+        telefono: "5551234",
+        ubicacion: "Portón azul",
+        informacion_enviar: "Llamar antes",
+        tienda: "Tienda Uno",
+        repartidor: "Ana Ruiz",
+        foto: "https://files.rapiboy.com/evidencia.jpg",
+      },
+    ],
+  });
+  t.after(base.restore);
+
+  const { drivers } = await leerTracker("2026-09-10");
+  assert.deepEqual(drivers[0].paquetes[0].detalle, {
+    destino: "Calle Uno 20",
+    poligono: "Norte",
+    telefono: "5551234",
+    ubicacion: "Portón azul",
+    aclaraciones: "Llamar antes",
+    tienda: "Tienda Uno",
+    repartidor: "Ana Ruiz",
+    foto: "https://files.rapiboy.com/evidencia.jpg",
+  });
+});
+
 /* ---------------------------------------------------------------------------
  * 3-4. Coordenadas
  * ------------------------------------------------------------------------- */
@@ -215,13 +253,13 @@ test("3. un repartidor sin coordenadas aparece igual, sin posición", async (t) 
   conEntorno(t, BASE);
   const base = baseSimulada(t, {
     tracker_drivers_vista: [driver({ latitud: null, longitud: null, estado_posicion: "SIN_POSICION" })],
-    tracker_paquetes: [],
+    tracker_paquetes: [paquete()],
     tracker_sincronizaciones: [],
   });
   t.after(base.restore);
 
   const { drivers } = await leerTracker("2026-09-10");
-  assert.equal(drivers.length, 1, "sigue en el panel: salió a operar");
+  assert.equal(drivers.length, 1, "sigue en el panel porque tiene una ruta");
   assert.equal(drivers[0].posicion, null, "pero no se lo dibuja en ningún lado");
   assert.equal(drivers[0].estadoPosicion, "SIN_POSICION");
   assert.deepEqual(drivers[0].poligonos, []);
@@ -283,7 +321,7 @@ test("5-6. la API agrupa por repartidor y no mezcla paquetes entre rutas", async
   // paquetes: no hay forma de que el mapa mezcle rutas aunque quisiera.
   assert.deepEqual(porId.get(7)!.paquetes.map((p) => p.id_viaje), [1]);
   assert.deepEqual(porId.get(8)!.paquetes.map((p) => p.id_viaje), [2]);
-  assert.deepEqual(porId.get(9)!.paquetes, [], "sin paquetes, pero seleccionable");
+  assert.equal(porId.has(9), false, "sin ruta activa no aparece en el tracker");
 
   // Un paquete sin repartidor no se le cuelga a nadie.
   assert.deepEqual(huerfanos.map((p) => p.id_viaje), [3]);
@@ -427,7 +465,7 @@ test("10. un paquete reasignado se mueve entero al repartidor nuevo", async (t) 
 
   const { drivers } = await leerTracker("2026-09-10");
   const porId = new Map(drivers.map((d) => [d.id, d]));
-  assert.deepEqual(porId.get(7)!.paquetes, [], "no queda una copia en el anterior");
+  assert.equal(porId.has(7), false, "sin ruta activa deja de aparecer en el tracker");
   assert.deepEqual(porId.get(8)!.paquetes.map((p) => p.id_viaje), [1]);
 });
 
@@ -1207,9 +1245,35 @@ test("el resumen no cuenta como avance lo que le sacaron de la ruta", () => {
   assert.equal(resumen.enRuta, 4);
   assert.equal(resumen.pendientes, 2, "el próximo sigue siendo un pendiente");
   assert.equal(resumen.avance, 50);
+  assert.equal(porcentajeEntregado(resumen), 25, "el porcentaje entregado no suma intentos fallidos");
 
   // Sin paquetes no hay porcentaje: cero de cero no es cero por ciento.
   assert.equal(resumirRuta([]).avance, null);
+  assert.equal(porcentajeEntregado(resumirRuta([])), null);
+});
+
+test("las entregas por hora usan el reloj de Ciudad de México", () => {
+  const horas = entregadosPorHora([
+    {
+      clasificacion: "VISITADO_ENTREGADO",
+      fecha_visita: "2026-09-10T15:05:00Z",
+      fecha_cambio_estado: null,
+    },
+    {
+      clasificacion: "VISITADO_ENTREGADO",
+      fecha_visita: null,
+      fecha_cambio_estado: "2026-09-10T15:55:00Z",
+    },
+    {
+      clasificacion: "VISITADO_NO_ENTREGADO",
+      fecha_visita: "2026-09-10T15:30:00Z",
+      fecha_cambio_estado: null,
+    },
+  ]);
+
+  assert.equal(horas.length, 24);
+  assert.equal(horas[9].cantidad, 2, "15 UTC son las 09 en Ciudad de México");
+  assert.equal(horas.reduce((suma, h) => suma + h.cantidad, 0), 2);
 });
 
 /* ---------------------------------------------------------------------------

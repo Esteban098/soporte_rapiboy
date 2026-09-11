@@ -31,6 +31,7 @@ export function MapaTracker({
   mostrarPropuesta,
   paqueteActivo,
   onPaquete,
+  onPoligono,
   children,
 }: {
   ventana: Ventana;
@@ -42,6 +43,7 @@ export function MapaTracker({
   mostrarPropuesta: boolean;
   paqueteActivo: number | null;
   onPaquete: (idViaje: number | null) => void;
+  onPoligono: (poligono: { nombre: string; zona: string }) => void;
   /** Los polígonos de cobertura, dibujados en el servidor. */
   children: React.ReactNode;
 }) {
@@ -93,6 +95,7 @@ export function MapaTracker({
             : `Mapa con ${visibles.length} repartidor${visibles.length === 1 ? "" : "es"} en pantalla`
         }
         fondo={children}
+        onPoligono={onPoligono}
       >
         {(k) => (
           <>
@@ -293,8 +296,10 @@ function MarcaDriver({
         {`${driver.nombre} · ${textoPosicion(driver)}`}
       </title>
 
-      {/* Anillo que late mientras la posición sea reciente. Es el único
-          movimiento del mapa, y señala lo único que de verdad es «en vivo». */}
+      {/* Halo fijo mientras la posición sea reciente. Antes latía con una
+          animación infinita por repartidor; con varios en pantalla, sobre un
+          SVG que además se redibuja con cada pan/zoom, eran demasiadas
+          animaciones corriendo juntas. El color sigue diciendo «en vivo». */}
       {driver.estadoPosicion === "RECIENTE" ? (
         <circle r={r * 1.8} fill={color} className={estilos.pulso} />
       ) : null}

@@ -160,10 +160,12 @@ export function proyectar({ lon, lat }: Punto): { x: number; y: number } {
  * Este KMZ no trae ninguno, pero el anterior sí y la próxima versión puede
  * volver a traerlos.
  */
-export function caminos(): { clave: string; d: string }[] {
+export function caminos(): { clave: string; d: string; nombre: string; zona: string }[] {
   return COBERTURA.poligonos.map((poligono, i) => ({
     clave: `${poligono.zona}-${poligono.nombre}-${i}`,
     d: poligono.trazo.map(camino).join(" "),
+    nombre: poligono.nombre,
+    zona: poligono.zona,
   }));
 }
 

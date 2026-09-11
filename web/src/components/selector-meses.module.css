@@ -25,9 +25,7 @@
 }
 
 .select {
-  box-shadow: inset 0 1px 0 var(--glass-glint);
   background: var(--surface);
-  background-image: var(--glass-sheen);
   color: var(--ink);
   border: 1px solid var(--rule);
   border-radius: var(--radio-2);
@@ -62,9 +60,7 @@
 }
 
 .atajo {
-  box-shadow: inset 0 1px 0 var(--glass-glint);
   background: var(--surface-2);
-  background-image: var(--glass-sheen);
   border: 0;
   border-radius: var(--radio-3);
   padding: 6px 14px;

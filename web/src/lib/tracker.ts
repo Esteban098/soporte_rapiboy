@@ -285,6 +285,44 @@ export function resumirRuta(paquetes: { clasificacion: Clasificacion }[]): Resum
   };
 }
 
+/** Porcentaje entregado sobre los paquetes que siguen formando parte de la ruta. */
+export function porcentajeEntregado(resumen: Pick<Resumen, "entregados" | "enRuta">): number | null {
+  return resumen.enRuta === 0 ? null : (resumen.entregados / resumen.enRuta) * 100;
+}
+
+export type EntregasDeHora = { hora: number; cantidad: number };
+
+/**
+ * Entregas agrupadas por hora de Ciudad de México.
+ *
+ * Se usa la visita y, cuando el origen no la informó, el último cambio de
+ * estado. Los 24 casilleros salen siempre para que una hora con cero no
+ * desaparezca del gráfico ni haga parecer que el día tuvo menos horas.
+ */
+export function entregadosPorHora(
+  paquetes: Pick<PaqueteFila, "clasificacion" | "fecha_visita" | "fecha_cambio_estado">[],
+): EntregasDeHora[] {
+  const horas = Array.from({ length: 24 }, (_, hora) => ({ hora, cantidad: 0 }));
+  const formateador = new Intl.DateTimeFormat("en-US", {
+    timeZone: ZONA_OPERACION,
+    hour: "2-digit",
+    hourCycle: "h23",
+  });
+
+  for (const paquete of paquetes) {
+    if (paquete.clasificacion !== "VISITADO_ENTREGADO") continue;
+    const cruda = paquete.fecha_visita ?? paquete.fecha_cambio_estado;
+    if (!cruda) continue;
+    const fecha = new Date(cruda);
+    if (!Number.isFinite(fecha.getTime())) continue;
+    const parte = formateador.formatToParts(fecha).find((p) => p.type === "hour")?.value;
+    const hora = Number(parte);
+    if (Number.isInteger(hora) && hora >= 0 && hora < 24) horas[hora].cantidad += 1;
+  }
+
+  return horas;
+}
+
 /* ---------- Coordenadas ---------- */
 
 /**

@@ -7,9 +7,7 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background: color-mix(in srgb, var(--plane) 72%, transparent);
-  -webkit-backdrop-filter: saturate(180%) blur(14px);
-  backdrop-filter: saturate(180%) blur(14px);
+  background: color-mix(in srgb, var(--plane) 88%, transparent);
   overflow-y: auto;
   animation: aparecer var(--dur) var(--ease-salida) both;
 }
@@ -25,7 +23,6 @@
 
 .panel {
   background-color: var(--glass);
-  background-image: var(--glass-sheen);
   border: 1px solid var(--glass-edge);
   box-shadow: var(--glass-shadow);
   -webkit-backdrop-filter: var(--glass-filter);

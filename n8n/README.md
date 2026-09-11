@@ -230,6 +230,13 @@ bien. Son cuatro entradas en total.
 6. **Cerrar sincronización.** Desactiva lo que la corrida no vio y marca la
    ejecución como `success`, todo en la misma transacción.
 
+La lista de la web muestra después solamente los repartidores que tengan al
+menos un paquete activo en `tracker_paquetes`. El flujo de posiciones puede
+seguir guardando otras reservas: ese filtro se hace al leer para no mezclar una
+posición conocida con una ruta inexistente. Los datos de soporte y la evidencia
+no se agregan a estos flujos; la web los cruza por `id_viaje` con `mensual` y
+`mensual_historico`, mediante consultas acotadas a los paquetes de la jornada.
+
 Si algo falla, la rama de error llama a `tracker_fallar_sync()`, que marca la
 corrida como `failed` **sin tocar ningún dato**. El mapa se queda con lo último
 que se supo, que es viejo pero cierto.

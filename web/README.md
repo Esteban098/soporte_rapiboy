@@ -54,8 +54,9 @@ Tres decisiones que vale la pena tener presentes:
 
 ## Live tracker
 
-La jornada en curso: quiénes salieron, dónde se los vio por última vez y qué
-paquetes lleva cada uno.
+La jornada en curso: quiénes tienen una ruta activa, dónde se los vio por
+última vez y qué paquetes lleva cada uno. Un repartidor que tenga posición o
+reserva pero ningún paquete activo no aparece en esta pantalla.
 
 ### Cómo se usa
 
@@ -63,6 +64,12 @@ Arranca con el mapa vacío y el panel lleno. Es a propósito: con veinte
 repartidores y todas sus paradas encima, el mapa completo no dice nada. La
 pantalla empieza a servir cuando alguien elige a quién quiere mirar, con las
 casillas del panel, el buscador por nombre o ID, o **Seleccionar todos**.
+
+La lista arranca ordenada por **porcentaje entregado** —entregados sobre
+paquetes que siguen en ruta— y se puede reordenar de mayor a menor por total de
+paquetes, entregados o última actualización de posición. Este porcentaje no es
+el mismo que **avance**: avance también considera resuelto un intento no
+entregado.
 
 Al elegir a alguien aparecen su última posición conocida, sus destinos y la
 línea del recorrido que le queda, y abajo una ficha con paquetes, entregados,
@@ -74,6 +81,11 @@ Los marcadores dicen en qué quedó cada parada: número de orden si está
 pendiente, un aro alrededor si es la próxima, un tilde si se entregó, un signo
 de admiración si se visitó y no se entregó. Los cancelados y los que salieron
 de la ruta están ocultos y se muestran con la casilla del panel.
+
+Debajo del mapa, **Entregados por hora** agrupa por la hora de Ciudad de México
+de `fecha_visita`; si esa marca falta en un entregado, usa
+`fecha_cambio_estado`. Con repartidores seleccionados muestra solamente los de
+esa selección; sin selección resume todas las rutas visibles.
 
 ### Los dos botones
 
@@ -104,9 +116,9 @@ perdería todo lo que el operador acomodó a mano.
   roja después. No es «va bien» o «va mal»: es cuán reciente es el punto. Sin
   eso, nadie distinguiría a alguien que está repartiendo de un teléfono que se
   quedó sin batería a las once.
-- Un repartidor **sin coordenadas** aparece igual en el panel, marcado «sin
-  GPS», y no se dibuja en ningún lado. Salió a operar y no está transmitiendo:
-  eso es un dato, no una fila que haya que esconder.
+- Un repartidor **sin coordenadas** aparece igual si tiene una ruta, marcado
+  «sin GPS», y no se dibuja en ningún lado. Tiene paquetes y no está
+  transmitiendo: eso es un dato que el tracker debe conservar.
 - El **próximo destino** es el pendiente de menor `Orden`. Si ningún pendiente
   trae orden, o si el menor está empatado entre varios, la pantalla dice que no
   puede señalarlo y explica por qué. Elegir uno sería inventar la secuencia, y
@@ -130,6 +142,19 @@ que un mapa de calles: es el marco contra el que la operación piensa.
 El contorno se dibuja en el servidor y no se vuelve a pintar nunca; mover y
 acercar cambian solo el `viewBox`. Los ~3.500 puntos del polígono no viajan como
 datos al navegador.
+
+Cada polígono conserva el `nombre` y la `zona` originales del KMZ. Al tocarlo
+se abre un cuadro con ese nombre. Al tocar un paquete se abre su ficha con
+estado, dirección, teléfono e información de tienda disponible, polígono,
+repartidor, ruta, orden, horarios e ID, además de accesos a Google Maps y al
+viaje en Rapiboy.
+
+La ficha cruza el `id_viaje` con `mensual` y `mensual_historico`, pidiendo solo
+los IDs de la jornada. De ahí salen los datos aportados por soporte y la URL de
+la última evidencia. **Ver evidencia** muestra esa foto dentro del cuadro y
+permite abrirla en tamaño completo; si esas tablas no tienen foto para el ID,
+la ficha lo informa sin bloquear el mapa. Teléfono, aclaraciones y otros campos
+solo se muestran cuando el origen los tiene cargados.
 
 ### Qué día muestra
 

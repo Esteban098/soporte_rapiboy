@@ -4,7 +4,6 @@ import { NavGrupo } from "./NavGrupo";
 import { SignOutButton } from "./SignOutButton";
 import { BotonActualizar } from "./BotonActualizar";
 import { SeguimientoWidget } from "./SeguimientoWidget";
-import { Revelar } from "./Revelar";
 import { flujosDe, variableDeFlujo, type ClaveFlujo, type ModoDatos } from "@/lib/config";
 import estilos from "./ui.module.css";
 
@@ -43,6 +42,7 @@ const NAVEGACION: (Grupo | Seccion)[] = [
     secciones: [
       { href: "/", etiqueta: "Mes en curso", icono: Calendario },
       { href: "/operacion", etiqueta: "Ayer", icono: Reloj },
+      { href: "/demorados", etiqueta: "Demorados", icono: Alerta },
       { href: "/reclamos", etiqueta: "Informacion de tiendas", icono: Barras },
       { href: "/cancelados", etiqueta: "Cancelados", icono: Cruz },
     ],
@@ -112,9 +112,6 @@ export function Shell({
 }) {
   return (
     <div className={estilos.app}>
-      {/* Observa todo lo que lleve `data-revelar` y lo anima al entrar en pantalla. */}
-      <Revelar />
-
       <nav className={estilos.rail} aria-label="Secciones">
         <div className={estilos.railFijo}>
           <Link href="/" className={estilos.marca}>

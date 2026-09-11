@@ -67,6 +67,24 @@
   outline-offset: 1px;
 }
 
+.ordenLista {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ordenLista select {
+  width: 100%;
+  padding: 7px 9px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-3);
+}
+
 .acciones {
   display: flex;
   gap: 6px;
@@ -278,35 +296,29 @@
   fill: color-mix(in srgb, var(--accent) 5%, var(--surface));
   stroke: var(--rule);
   stroke-width: 1.2;
+  cursor: pointer;
+  transition: fill var(--dur-corta) var(--ease);
+}
+
+.fondo path:hover,
+.fondo path:focus-visible {
+  fill: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  outline: none;
 }
 
 .destino {
   cursor: pointer;
 }
 
+/*
+ * Antes latía sin parar por cada repartidor con posición reciente: con veinte
+ * en pantalla son veinte animaciones infinitas corriendo juntas sobre el mismo
+ * SVG que además se redibuja con cada pan/zoom. El halo queda fijo y dice lo
+ * mismo —posición reciente— sin mantener el compositor ocupado para siempre.
+ */
 .pulso {
   transform-origin: center;
-  animation: latido 2.4s var(--ease) infinite;
-}
-
-@keyframes latido {
-  0% {
-    opacity: 0.28;
-    transform: scale(0.45);
-  }
-  70%,
-  100% {
-    opacity: 0;
-    transform: scale(1);
-  }
-}
-
-/* Un mapa que late todo el tiempo es ruido para quien no tolera movimiento. */
-@media (prefers-reduced-motion: reduce) {
-  .pulso {
-    animation: none;
-    opacity: 0.2;
-  }
+  opacity: 0.22;
 }
 
 .controles {
@@ -346,6 +358,84 @@
   border-radius: var(--radio-3);
   box-shadow: var(--shadow);
   transform: translateX(-50%);
+}
+
+/* ---------- Entregas por hora ---------- */
+
+.horas {
+  padding: 13px 15px 10px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-2);
+  box-shadow: var(--shadow);
+}
+
+.horasHead {
+  display: flex;
+  gap: 12px;
+  align-items: start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.horasHead h2 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.horasHead p,
+.horasHead strong {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.horasHead strong {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.graficoHoras {
+  display: grid;
+  grid-template-columns: repeat(24, minmax(5px, 1fr));
+  gap: 3px;
+  height: 112px;
+  padding-top: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.horaColumna {
+  display: grid;
+  grid-template-rows: 1fr 14px;
+  align-items: end;
+  min-width: 0;
+}
+
+.horaBarra {
+  display: block;
+  grid-row: 1;
+  width: 100%;
+  min-height: 2px;
+  background: var(--accent);
+  border-radius: 3px 3px 0 0;
+}
+
+.horaCantidad {
+  grid-row: 1;
+  align-self: start;
+  font-size: 9px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.horaEtiqueta {
+  grid-row: 2;
+  overflow: visible;
+  font-size: 9px;
+  text-align: center;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
 /* ---------- Detalle por repartidor ---------- */
@@ -580,4 +670,156 @@
 .tagSIN_CLASIFICAR {
   color: var(--warning);
   background: var(--warning-soft);
+}
+
+/* ---------- Cuadros del mapa ---------- */
+
+.modalFondo {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  overflow-y: auto;
+  background: rgb(0 0 0 / 42%);
+}
+
+.modal {
+  width: min(520px, 100%);
+  max-height: calc(100dvh - 36px);
+  padding: 18px;
+  overflow-y: auto;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-2);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 25%);
+}
+
+.modalAcciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.modalAcciones a,
+.evidencia button {
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--accent-ink);
+  text-decoration: none;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  border-radius: var(--radio-3);
+  cursor: pointer;
+}
+
+.modalHead {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 15px 0 8px;
+}
+
+.modalHead h2,
+.modalPoligono h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--ink);
+}
+
+.modalDatos {
+  margin: 0;
+}
+
+.modalDatos > div {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.modalDatos dt {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.modalDatos dd {
+  margin: 1px 0 0;
+  font-size: 13px;
+  font-weight: 550;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.modalDatos a {
+  color: var(--accent-ink);
+}
+
+.evidencia {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.evidencia img {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  background: var(--surface-2);
+  border-radius: var(--radio-2);
+}
+
+.sinEvidencia {
+  margin: 14px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.cerrarModal {
+  width: 100%;
+  margin-top: 16px;
+  padding: 9px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-3);
+  cursor: pointer;
+}
+
+.modalPoligono {
+  width: min(380px, 100%);
+}
+
+.modalPoligono p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.modalEyebrow {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-ink);
+}
+
+@media (max-width: 560px) {
+  .modalAcciones {
+    grid-template-columns: 1fr;
+  }
+
+  .graficoHoras {
+    gap: 1px;
+  }
 }

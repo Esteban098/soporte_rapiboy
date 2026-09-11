@@ -8,7 +8,6 @@
 
 .caja {
   background-color: var(--glass);
-  background-image: var(--glass-sheen);
   border: 1px solid var(--glass-edge);
   box-shadow: var(--glass-shadow);
   -webkit-backdrop-filter: var(--glass-filter);

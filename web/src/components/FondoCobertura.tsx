@@ -15,7 +15,19 @@ export function FondoCobertura() {
   return (
     <>
       {caminos().map((poligono) => (
-        <path key={poligono.clave} d={poligono.d} fillRule="evenodd" strokeLinejoin="round" />
+        <path
+          key={poligono.clave}
+          d={poligono.d}
+          fillRule="evenodd"
+          strokeLinejoin="round"
+          data-poligono-nombre={poligono.nombre}
+          data-poligono-zona={poligono.zona}
+          role="button"
+          tabIndex={0}
+          aria-label={`Ver polígono ${poligono.nombre}`}
+        >
+          <title>{poligono.nombre}</title>
+        </path>
       ))}
     </>
   );

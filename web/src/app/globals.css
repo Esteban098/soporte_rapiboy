@@ -39,11 +39,15 @@
   --grid: rgba(0, 0, 0, 0.07);
   --axis: rgba(0, 0, 0, 0.22);
 
-  /* Dos capas: un filo de contacto de 1px y una difusa y muy abierta. Es lo que
-     hace que la tarjeta parezca apoyada sobre el papel y no dibujada encima. */
+  /*
+   * Una sola capa, chica. Había dos —un filo de contacto y una difusa y muy
+   * abierta— y el navegador rasteriza cada capa por separado: con una tarjeta
+   * o un KPI en cada esquina de la pantalla, duplicar la sombra duplica ese
+   * costo en cada una. Una capa alcanza para leer que algo está apoyado.
+   */
   --segmento-activo: #ffffff;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 30px -14px rgba(0, 0, 0, 0.18);
-  --shadow-alta: 0 2px 6px rgba(0, 0, 0, 0.05), 0 20px 46px -18px rgba(0, 0, 0, 0.26);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-alta: 0 3px 10px rgba(0, 0, 0, 0.14);
   --radio: 24px;
   --radio-2: 14px;
   --radio-3: 999px;
@@ -130,8 +134,8 @@
     --axis: rgba(255, 255, 255, 0.28);
 
     --segmento-activo: #5b5b60;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px -14px rgba(0, 0, 0, 0.9);
-    --shadow-alta: 0 2px 6px rgba(0, 0, 0, 0.55), 0 20px 46px -18px rgba(0, 0, 0, 1);
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    --shadow-alta: 0 3px 10px rgba(0, 0, 0, 0.65);
 
     --caso-cerrado: #30d158;
     --caso-cerrado-fondo: rgba(48, 209, 88, 0.18);
@@ -225,51 +229,41 @@
 }
 
 
-/* Se conservan superficies opacas para tablas, menús y fallbacks. */
+/*
+ * Superficies opacas, sin desenfoque.
+ *
+ * Había un material "vidrio": fondo translúcido más `backdrop-filter: blur(24px)
+ * saturate(145%)`, repetido en la barra lateral, la barra superior, cada
+ * tarjeta y cada KPI. Cada una de esas es una región que el navegador tiene
+ * que samplear y desenfocar por separado; con varias tarjetas y KPIs a la vez
+ * en pantalla —lo normal acá— son varios desenfoques de 24px recalculándose
+ * en cada scroll. `--glass` pasa a ser una superficie sólida más y las
+ * variables quedan para no tener que tocar cada componente que las usa.
+ */
 :root {
   --plane: #eaf0f8;
   --muted: #626d80;
-  --glass: rgba(255, 255, 255, 0.64);
-  --glass-edge: rgba(255, 255, 255, 0.86);
-  --glass-glint: rgba(255, 255, 255, 0.75);
-  --glass-shadow: inset 0 1px 0 var(--glass-glint), inset 0 -1px 0 rgba(255, 255, 255, 0.2), 0 12px 36px -18px rgba(39, 67, 115, 0.32);
-  --glass-filter: blur(24px) saturate(145%);
-  --glass-sheen: linear-gradient(135deg, var(--glass-glint), transparent 38%, transparent 70%, rgba(150, 189, 237, 0.12));
-  --ambient: radial-gradient(ellipse at 8% 5%, #b9d8fa 0%, transparent 48%), radial-gradient(ellipse at 90% 28%, #d6c9ef 0%, transparent 45%), radial-gradient(ellipse at 55% 95%, #c1e5e3 0%, transparent 48%);
+  --glass: var(--surface);
+  --glass-edge: var(--rule);
+  --glass-glint: transparent;
+  --glass-shadow: var(--shadow);
+  --glass-filter: none;
+  --glass-sheen: none;
 }
 
 :root[data-theme="dark"] {
   --plane: #101827;
   --muted: #a5b2c7;
-  --glass: rgba(28, 39, 58, 0.76);
-  --glass-edge: rgba(191, 214, 255, 0.2);
-  --glass-glint: rgba(217, 233, 255, 0.14);
-  --glass-shadow: inset 0 1px 0 var(--glass-glint), inset 0 -1px 0 rgba(255, 255, 255, 0.03), 0 16px 42px -18px rgba(0, 0, 0, 0.6);
-  --ambient: radial-gradient(ellipse at 8% 5%, #203e66 0%, transparent 48%), radial-gradient(ellipse at 90% 28%, #342c52 0%, transparent 45%), radial-gradient(ellipse at 55% 95%, #173e46 0%, transparent 48%);
+  --glass: var(--surface);
+  --glass-edge: var(--rule);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --plane: #101827;
     --muted: #a5b2c7;
-    --glass: rgba(28, 39, 58, 0.76);
-    --glass-edge: rgba(191, 214, 255, 0.2);
-    --glass-glint: rgba(217, 233, 255, 0.14);
-    --glass-shadow: inset 0 1px 0 var(--glass-glint), inset 0 -1px 0 rgba(255, 255, 255, 0.03), 0 16px 42px -18px rgba(0, 0, 0, 0.6);
-    --ambient: radial-gradient(ellipse at 8% 5%, #203e66 0%, transparent 48%), radial-gradient(ellipse at 90% 28%, #342c52 0%, transparent 45%), radial-gradient(ellipse at 55% 95%, #173e46 0%, transparent 48%);
-  }
-}
-
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root { --glass: var(--surface); }
-}
-
-@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
-  :root {
     --glass: var(--surface);
-    --glass-filter: none;
-    --glass-sheen: none;
-    --ambient: none;
+    --glass-edge: var(--rule);
   }
 }
 
@@ -287,8 +281,6 @@ html {
 body {
   margin: 0;
   background: var(--plane);
-  background-image: var(--ambient);
-  background-attachment: fixed;
   min-height: 100vh;
   color: var(--ink);
   font-family: var(--sans);
@@ -342,35 +334,11 @@ a {
 /* ---------------------------------------------------------------------------
    Movimiento.
 
-   Dos gestos, nada más: lo que aparece al entrar en pantalla sube unos píxeles
-   mientras se revela, y lo que responde al puntero se levanta apenas. Las dos
-   cosas usan la misma curva larga, que es lo que da la sensación de continuo.
+   El fade-in al hacer scroll se sacó: costaba un IntersectionObserver global
+   más un MutationObserver sobre todo el body, que se disparaba de nuevo cada
+   vez que una tabla se ordenaba o filtraba. Queda solo lo que responde al
+   puntero, que es interacción directa y no corre solo.
    --------------------------------------------------------------------------- */
-
-@keyframes revelar {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 14px, 0);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  /* El estado inicial vive acá adentro a propósito: si el sistema pide menos
-     movimiento, el contenido nunca llega a estar oculto y no depende de que
-     algún observador lo revele. */
-  [data-revelar] {
-    opacity: 0;
-  }
-
-  [data-revelar="visible"] {
-    animation: revelar var(--dur-larga) var(--ease-salida) both;
-    animation-delay: var(--retraso, 0s);
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -418,12 +386,6 @@ a {
 
   body {
     background: #ffffff;
-  }
-
-  /* En el papel no hay revelado posible: lo que no se anima quedaría en blanco. */
-  [data-revelar] {
-    opacity: 1 !important;
-    animation: none !important;
   }
 
   body * {
