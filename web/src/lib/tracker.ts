@@ -399,7 +399,7 @@ export function estadoPosicion(
  */
 export const PALETA = [
   "#2f6fed", // azul
-  "#e07a1f", // naranja
+  "#b6e01fff", // naranja
   "#1f9d6b", // verde
   "#be185d", // magenta
   "#0c8fa8", // turquesa
@@ -463,7 +463,7 @@ export const COLOR_DRIVER = "var(--ink, #111827)";
 export const COLOR_CLASIFICACION: Record<Clasificacion, string | null> = {
   VISITADO_ENTREGADO: "var(--estado-entregado, #248a3d)",
   VISITADO_NO_ENTREGADO: "var(--estado-noentregado, #d70015)",
-  RETIRADO_DE_RUTA: "var(--warning, #b45309)",
+  RETIRADO_DE_RUTA: "var(--warning, #ffe600)",
 
   /*
    * Cancelado no comparte el ámbar de retirado aunque los dos salgan del mapa.

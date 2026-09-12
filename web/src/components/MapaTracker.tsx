@@ -24,7 +24,7 @@ const COLOR_RELLENO_POR_ESTADO: Partial<Record<ColorEstado, string>> = {
   devolucion: "var(--estado-noentregado, #d70015)",
   deposito: "var(--estado-noentregado, #d70015)",
   siniestrado: "var(--estado-noentregado, #d70015)",
-  retirado: "var(--warning, #b45309)",
+  retirado: "var(--warning, #ffe600)",
 };
 
 /**
