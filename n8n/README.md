@@ -15,7 +15,7 @@ File**.
 | `06-colectas.json` | Calcula quién colecta cada comercio y trae las colectas de 30 días | 12:00 de lunes a viernes, y desde **Colectas** |
 | `07-firefox-gestiones.json` | Interpreta el ID y los datos aportados por la tienda, y actualiza solo las columnas de soporte de `mensual` | Al enviar una selección desde la extensión de Firefox |
 | `08-tracker-drivers.json` | Repartidores de la ruta visible y su última posición conocida | 6:45 y 15:00, y desde **Actualizar posiciones** del Live tracker |
-| `09-tracker-paquetes.json` | Reconcilia pendientes de ayer o la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 7:15 y 15:00, y desde **Actualizar paquetes** del Live tracker |
+| `09-tracker-paquetes.json` | Actualiza la ruta guardada de ayer o reconcilia la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 7:15 y 15:00, y desde **Actualizar paquetes** del Live tracker |
 
 ## Antes de importar
 
@@ -211,11 +211,22 @@ importar el flujo 09 actualizado se corren además
 `web/supabase/migracion-07-tracker-detalle-sistema.sql` y
 `web/supabase/migracion-08-tracker-destino-laboral.sql`.
 
+Para congelar los pendientes de la jornada anterior, correr también
+`web/supabase/migracion-09-tracker-snapshot-pendientes.sql` y agregar el nodo
+Postgres **Congelar foto de pendientes de ayer** entre **Abrir sincronización**
+y **Paquetes y detalle del sistema**. Su consulta es:
+
+```sql
+select public.tracker_congelar_pendientes_anteriores('{{ $json.dia }}'::date);
+select '{{ $json.sync_id }}'::uuid as sync_id, '{{ $json.dia }}'::date as dia;
+```
+
 Cada flujo tiene entradas independientes que comparten la misma cadena de
 nodos: uno o más horarios y un webhook, que es el botón del tablero. El flujo
 de posiciones corre a las 06:45 y a las 15:00. El de paquetes corre a las
-07:15 para reconciliar los pendientes de ayer y a las 15:00 para cargar la
-ruta de hoy. La actualización manual usa exactamente la misma reconciliación.
+07:15 para actualizar los estados de la ruta guardada de ayer y a las 15:00
+para cargar la ruta de hoy. Las entregas de ayer se conservan en la foto de la
+ruta; la actualización cambia su estado, no el total.
 Los dos workflows fijan `America/Mexico_City` en sus ajustes para que esos
 horarios no dependan de la zona configurada en el servidor de n8n.
 
@@ -231,7 +242,8 @@ horarios no dependan de la zona configurada en el servidor de n8n.
    pueden correr a la vez.
 3. **Consulta a SQL Server**, siempre de solo lectura. El flujo de paquetes
    obtiene su ficha desde `Viaje`, `Direccion`, `Poligono`, `HistorialViaje` y
-   `FotoViaje`; no consulta `mensual`.
+   `FotoViaje`; no consulta `mensual`. `Viaje.Id` es el identificador visible
+   del paquete en la web; `ReferenciaExterna` queda guardada como trazabilidad.
 4. **A columnas**, que valida coordenadas y clasifica.
 5. **Upsert** por `id_motoboy` o por `id_viaje`.
 6. **Cerrar sincronización.** Desactiva lo que la corrida no vio y marca la

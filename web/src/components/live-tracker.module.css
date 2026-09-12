@@ -74,8 +74,14 @@
   color: var(--muted);
 }
 
-.ordenLista select {
-  width: 100%;
+.ordenControl {
+  display: flex;
+  gap: 6px;
+}
+
+.ordenControl select {
+  min-width: 0;
+  flex: 1;
   padding: 7px 9px;
   font: inherit;
   font-size: 12px;
@@ -83,6 +89,29 @@
   background: var(--surface-2);
   border: 1px solid var(--rule);
   border-radius: var(--radio-3);
+}
+
+.direccionOrden {
+  width: 34px;
+  flex: none;
+  padding: 0;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-3);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.direccionOrden:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.direccionOrden:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .acciones {

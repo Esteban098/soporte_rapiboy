@@ -179,16 +179,18 @@ versionado y generado a mano con `scripts/cobertura.mts`.
 - Los marcadores se dibujan en píxeles, midiendo la caja del SVG con un
   `ResizeObserver`. Escalarlos con el `viewBox` los volvería gigantes al
   acercar e invisibles al alejar.
-- El color del marcador dice el **estado** del paquete —verde entregado, rojo
-  no entregado, ámbar fuera de ruta, gris cancelado— y el aro dice de **quién**
-  es. Lo que todavía no tiene desenlace se pinta del color del repartidor y va
-  hueco: lleno es «resuelto», hueco es «falta». Los tonos salen de las mismas
-  variables que Mensual y Ayer, no de una paleta nueva.
+- El color del marcador dice el **estado** del paquete: verde entregado, rojo
+  no entregado, verde azulado devuelto y amarillo retirado. Los destinos
+  laborales reemplazan el glifo interior por un maletín sin cambiar el color.
+  El aro dice de **quién** es. Lo que todavía no tiene desenlace se pinta del
+  color del repartidor y va hueco: lleno es «resuelto», hueco es «falta».
 - El pin del repartidor es negro (`--ink`, para que no desaparezca en tema
   oscuro). Su color de identidad queda en el aro y en la línea del recorrido.
-- El id de un paquete es un enlace a `rapiboy.com/Operador?modalidad=5&idviaje=`
-  con `id_viaje`. La fila no es un botón con el enlace adentro —sería HTML
-  inválido—: el botón va estirado por detrás y el enlace por encima.
+- El identificador visible de un paquete es `id_viaje` (`Viaje.Id`), y también
+  es el valor del enlace a `rapiboy.com/Operador?modalidad=5&idviaje=`. El
+  `tracking_id` (`ReferenciaExterna`) se conserva para trazabilidad. La fila
+  no es un botón con el enlace adentro —sería HTML inválido—: el botón va
+  estirado por detrás y el enlace por encima.
 - La **ruta propuesta** sale siempre de la bodega (`BODEGA` en `lib/tracker.ts`)
   y encadena la parada más cercana a la anterior. Es vecino más cercano puro y
   tiene que seguir siéndolo: hay una prueba de propiedad que falla si alguien

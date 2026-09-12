@@ -1219,7 +1219,7 @@ test("los paquetes cambian de ayer a hoy a las 15:00 de México", () => {
   assert.equal(diaDePaquetes(new Date("2026-01-01T12:00:00Z")), "2025-12-31");
 });
 
-test("la jornada conserva posiciones de hoy y muestra pendientes de ayer antes de las 15", async (t) => {
+test("la jornada conserva posiciones de hoy y la ruta completa de ayer antes de las 15", async (t) => {
   conEntorno(t, BASE);
   const base = baseSimulada(t, {
     tracker_drivers_vista: [driver()],
@@ -1236,7 +1236,7 @@ test("la jornada conserva posiciones de hoy y muestra pendientes de ayer antes d
   assert.equal(datos.diaPosiciones, "2026-09-10");
   assert.equal(datos.dia, "2026-09-09");
   assert.equal(datos.pendientesAnteriores, true);
-  assert.deepEqual(datos.drivers[0].paquetes.map((p) => p.id_viaje), [1]);
+  assert.deepEqual(datos.drivers[0].paquetes.map((p) => p.id_viaje), [1, 2, 3]);
   assert.equal("diasAtras" in datos, false, "quedó el resto del knob de días atrás");
 });
 

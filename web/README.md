@@ -56,8 +56,8 @@ Tres decisiones que vale la pena tener presentes:
 
 La jornada que corresponde al horario operativo: quiénes tienen una ruta
 visible, dónde se los vio por última vez y qué paquetes lleva cada uno. Antes
-de las 15:00 de México conserva los pendientes de ayer; desde las 15:00 muestra
-la ruta de hoy. Un repartidor que tenga posición o reserva pero ningún paquete
+de las 15:00 de México conserva la ruta completa de ayer y actualiza sus
+estados sin cambiar su total; desde las 15:00 muestra la ruta de hoy. Un repartidor que tenga posición o reserva pero ningún paquete
 activo no aparece en esta pantalla.
 
 La pantalla lee la jornada desde sus tablas propias de Supabase. Es una copia
@@ -72,11 +72,16 @@ pantalla empieza a servir cuando alguien elige a quién quiere mirar, con las
 casillas del panel, el buscador por repartidor, dirección o **ID de viaje** de
 paquete, o **Seleccionar todos**.
 
+El identificador visible del paquete es siempre `Viaje.Id` (`id_viaje`), por
+ejemplo `30448011`. `ReferenciaExterna` se conserva como `tracking_id` para
+trazabilidad, pero no se muestra ni se usa para identificar el paquete.
+
 La lista arranca ordenada por **porcentaje entregado** —entregados sobre
 paquetes que siguen en ruta— y se puede reordenar de mayor a menor por total de
 paquetes, entregados o última actualización de posición. Este porcentaje no es
 el mismo que **avance**: avance también considera resuelto un intento no
-entregado.
+entregado. El ícono de flecha al lado del criterio alterna entre mayor a menor
+y menor a mayor.
 
 Al elegir a alguien aparecen su última posición conocida, sus destinos y la
 línea del recorrido que le queda, y abajo una ficha con paquetes, entregados,
@@ -104,9 +109,9 @@ que la otra:
   sus pendientes. No toca los paquetes ni cambia la fecha visible.
 - **Actualizar paquetes** vuelve a preguntar cuáles son los paquetes de las
   rutas que corresponden al corte operativo y los compara con los guardados.
-  Antes de las 15:00 reconcilia ayer; desde las 15:00 reconcilia hoy. Inserta
-  los nuevos, actualiza estados, detecta reasignaciones y marca lo que salió de
-  la ruta.
+  Antes de las 15:00 actualiza los estados de la ruta guardada de ayer; desde
+  las 15:00 reconcilia la ruta de hoy. Una entrega de ayer cambia a verde, pero
+  no sale del total de esa ruta.
 
 Lo importante del segundo: **no parte de los paquetes que ya tiene**. Vuelve a
 descubrir el universo del día desde las reservas. Por eso, si a un repartidor
@@ -200,8 +205,8 @@ quedaría corrido durante medio año sin que nada avise.
 
 `diaDeOperacion()` resuelve hoy en México y `diaDePaquetes()` aplica el corte
 de las 15:00. Ambos días viajan como texto a n8n. El flujo de paquetes corre a
-las 07:15 para actualizar los pendientes de ayer y a las 15:00 para cargar la
-ruta nueva; el de posiciones corre a las 06:45 y nuevamente a las 15:00. Al
+las 07:15 para actualizar los estados de la ruta de ayer y a las 15:00 para
+cargar la ruta nueva; el de posiciones corre a las 06:45 y nuevamente a las 15:00. Al
 arrancar por horario calculan la misma regla con la misma zona.
 
 ### Si una sincronización queda trabada
@@ -234,7 +239,8 @@ en vez de nodo por nodo.
    los choferes.
 3. En una base que ya tenía el tracker, correr también
    `supabase/migracion-07-tracker-detalle-sistema.sql` y
-   `supabase/migracion-08-tracker-destino-laboral.sql` antes de importar el
+   `supabase/migracion-08-tracker-destino-laboral.sql` y
+   `supabase/migracion-09-tracker-snapshot-pendientes.sql` antes de importar el
    flujo de paquetes actualizado.
 4. Importar `../n8n/08-tracker-drivers.json` y `../n8n/09-tracker-paquetes.json`,
    elegir la credencial Postgres en los nodos morados y activarlos.

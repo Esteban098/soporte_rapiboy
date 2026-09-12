@@ -12,7 +12,6 @@ import {
   coordenadaValida,
   diaDeOperacion,
   diaDePaquetes,
-  desenlaceDe,
   nombreDeDriver,
   proponerRuta,
   recorridoPendiente,
@@ -192,11 +191,13 @@ export async function leerTracker(diaForzado?: string, momento = new Date()): Pr
     opcional<DomicilioFila>(TABLA_TRACKER_CHOFERES, "id_motoboy.asc"),
   ]);
 
-  const paquetesVisibles = pendientesAnteriores
-    ? paquetes.filter(
-        (paquete) => paquete.activo_en_ruta && desenlaceDe(paquete.nombre_estado) !== "ENTREGADO",
-      )
-    : paquetes;
+  /*
+   * La jornada anterior es una foto de ruta, no una cola que se achica.
+   * Cuando una de sus paradas se entrega, la actualización cambia su estado
+   * a verde pero conserva la fila: así 18 paradas siguen siendo 18 y se ve
+   * qué ocurrió con cada una. `activo_en_ruta` sigue marcando los retiros.
+   */
+  const paquetesVisibles = paquetes;
 
   const domicilios = new Map(choferes.map((c) => [c.id_motoboy, c]));
 

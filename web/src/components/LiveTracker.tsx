@@ -35,6 +35,7 @@ type Sync = "posiciones" | "paquetes";
 
 type Aviso = { tono: "ok" | "error"; texto: string };
 type OrdenLista = "porcentaje" | "total" | "entregados" | "actualizacion";
+type DireccionOrden = "desc" | "asc";
 
 export function LiveTracker({
   inicial,
@@ -54,6 +55,7 @@ export function LiveTracker({
   const [seleccion, setSeleccion] = useState<number[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [orden, setOrden] = useState<OrdenLista>("porcentaje");
+  const [direccionOrden, setDireccionOrden] = useState<DireccionOrden>("desc");
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
   /*
@@ -93,15 +95,15 @@ export function LiveTracker({
             ),
         )
       : datos.drivers;
-    return [...coinciden].sort((a, b) => compararDrivers(a, b, orden));
-  }, [datos.drivers, busqueda, orden]);
+    return [...coinciden].sort((a, b) => compararDrivers(a, b, orden, direccionOrden));
+  }, [datos.drivers, busqueda, orden, direccionOrden]);
 
   const elegidos = useMemo(
     () =>
       datos.drivers
         .filter((d) => seleccion.includes(d.id))
-        .sort((a, b) => compararDrivers(a, b, orden)),
-    [datos.drivers, seleccion, orden],
+        .sort((a, b) => compararDrivers(a, b, orden, direccionOrden)),
+    [datos.drivers, seleccion, orden, direccionOrden],
   );
 
   const paqueteSeleccionado = useMemo(
@@ -185,12 +187,23 @@ export function LiveTracker({
 
         <label className={estilos.ordenLista}>
           <span>Ordenar repartidores por</span>
-          <select value={orden} onChange={(e) => setOrden(e.target.value as OrdenLista)}>
-            <option value="porcentaje">% entregado</option>
-            <option value="total">Paquetes totales</option>
-            <option value="entregados">Paquetes entregados</option>
-            <option value="actualizacion">Última actualización</option>
-          </select>
+          <span className={estilos.ordenControl}>
+            <select value={orden} onChange={(e) => setOrden(e.target.value as OrdenLista)}>
+              <option value="porcentaje">% entregado</option>
+              <option value="total">Paquetes totales</option>
+              <option value="entregados">Paquetes entregados</option>
+              <option value="actualizacion">Última actualización</option>
+            </select>
+            <button
+              type="button"
+              className={estilos.direccionOrden}
+              onClick={() => setDireccionOrden((actual) => (actual === "desc" ? "asc" : "desc"))}
+              aria-label={direccionOrden === "desc" ? "Orden descendente: mayor a menor" : "Orden ascendente: menor a mayor"}
+              title={direccionOrden === "desc" ? "Mayor a menor" : "Menor a mayor"}
+            >
+              {direccionOrden === "desc" ? "↓" : "↑"}
+            </button>
+          </span>
         </label>
 
         <div className={estilos.acciones}>
@@ -251,8 +264,8 @@ export function LiveTracker({
 
         {datos.pendientesAnteriores ? (
           <p className={estilos.aviso} role="status">
-            Hasta las 15:00 de México se muestran los paquetes pendientes del {datos.dia}. Las
-            posiciones son las últimas disponibles de los repartidores.
+            Hasta las 15:00 de México se conserva la ruta del {datos.dia}. Las entregas cambian
+            a verde sin salir del total; las posiciones son las últimas disponibles de los repartidores.
           </p>
         ) : null}
 
@@ -417,7 +430,12 @@ function FilaDriver({
   );
 }
 
-function compararDrivers(a: DriverDelTracker, b: DriverDelTracker, orden: OrdenLista): number {
+function compararDrivers(
+  a: DriverDelTracker,
+  b: DriverDelTracker,
+  orden: OrdenLista,
+  direccion: DireccionOrden,
+): number {
   let diferencia = 0;
   if (orden === "porcentaje") {
     diferencia = (porcentajeEntregado(b.resumen) ?? -1) - (porcentajeEntregado(a.resumen) ?? -1);
@@ -428,7 +446,7 @@ function compararDrivers(a: DriverDelTracker, b: DriverDelTracker, orden: OrdenL
   } else {
     diferencia = fechaNumero(b.fechaPosicion) - fechaNumero(a.fechaPosicion);
   }
-  return diferencia || a.nombre.localeCompare(b.nombre, "es");
+  return (direccion === "desc" ? diferencia : -diferencia) || a.nombre.localeCompare(b.nombre, "es");
 }
 
 function fechaNumero(fecha: string | null): number {

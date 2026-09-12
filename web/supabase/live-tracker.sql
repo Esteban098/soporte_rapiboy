@@ -145,10 +145,9 @@ create index if not exists tracker_drivers_sync_idx   on public.tracker_drivers 
 -- upsert por `id_viaje` es lo que hace que una reasignación se vea como lo que
 -- es: la misma fila que cambia de dueño, y no dos filas compitiendo.
 --
--- `tracking_id` es el número que usa la operación para hablar del paquete y es
--- el mismo `Viaje.Id` en texto. Se guarda aparte porque en pantalla y en los
--- enlaces al operador se usa como cadena, y porque si algún día el sistema
--- expone un tracking propio distinto del id, esta es la columna que cambia.
+-- `id_viaje` es el identificador visible y operativo del paquete. `tracking_id`
+-- guarda `Viaje.ReferenciaExterna` para trazabilidad, pero no reemplaza a
+-- `Viaje.Id` en la pantalla ni en los enlaces al operador.
 --
 -- `fecha_ruta` no está en la lista mínima pero hace falta: sin ella, «marcar
 -- inactivos solamente los registros del día» no tiene cómo saber cuáles son
