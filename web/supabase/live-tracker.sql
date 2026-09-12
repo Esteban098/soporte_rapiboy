@@ -183,6 +183,9 @@ create table if not exists public.tracker_paquetes (
   barrio                 text,
   codigo_postal          text,
   observacion_direccion  text,
+  -- Se calcula desde Viaje.ObservacionDestino. Permite distinguir los
+  -- destinos laborales sin inferirlo de la dirección o del polígono.
+  es_laboral             boolean not null default false,
   poligono               text,
   nombre_recibe          text,
   comentario_motoboy     text,

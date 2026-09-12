@@ -6,7 +6,6 @@ import {
   entregadosPorHora,
   enlaceAlOperador,
   porcentajeEntregado,
-  type Clasificacion,
   type Sincronizacion,
   type Ventana,
 } from "@/lib/tracker";
@@ -15,7 +14,7 @@ import type {
   DriverDelTracker,
   PaqueteDelTracker,
 } from "@/lib/tracker-datos";
-import { ETIQUETA, MapaTracker } from "./MapaTracker";
+import { etiquetaPaquete, MapaTracker } from "./MapaTracker";
 import estilos from "./live-tracker.module.css";
 
 /**
@@ -84,7 +83,16 @@ export function LiveTracker({
     const texto = busqueda.trim().toLowerCase();
     const coinciden = texto
       ? datos.drivers.filter(
-          (d) => d.nombre.toLowerCase().includes(texto) || String(d.id).includes(texto),
+          (d) =>
+            d.nombre.toLowerCase().includes(texto) ||
+            String(d.id).includes(texto) ||
+            d.paquetes.some(
+              (p) =>
+                p.direccion?.toLowerCase().includes(texto) ||
+                String(p.id_viaje).includes(texto) ||
+                p.tracking_id.toLowerCase().includes(texto) ||
+                p.referencia_auxiliar?.toLowerCase().includes(texto),
+            ),
         )
       : datos.drivers;
     return [...coinciden].sort((a, b) => compararDrivers(a, b, orden));
@@ -171,8 +179,8 @@ export function LiveTracker({
             className={estilos.buscador}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre o ID"
-            aria-label="Buscar repartidor por nombre o ID"
+            placeholder="Buscar repartidor, dirección o Tracking ID"
+            aria-label="Buscar por repartidor, dirección o Tracking ID de paquete"
             type="search"
           />
         </div>
@@ -601,7 +609,7 @@ function DetalleDriver({
               <span className={estilos.paqueteDir}>{paquete.direccion ?? "sin dirección"}</span>
             </span>
             <span className={`${estilos.tag} ${estilos[`tag${paquete.clasificacion}`] ?? ""}`}>
-              {ETIQUETA[paquete.clasificacion as Clasificacion]}
+              {etiquetaPaquete(paquete)}
             </span>
           </li>
         ))}
@@ -658,7 +666,7 @@ function DetallePaqueteModal({
 
         <header className={estilos.modalHead}>
           <span className={`${estilos.tag} ${estilos[`tag${paquete.clasificacion}`] ?? ""}`}>
-            {ETIQUETA[paquete.clasificacion]}
+            {etiquetaPaquete(paquete)}
           </span>
           <h2 id="detalle-paquete-titulo">Paquete #{paquete.tracking_id}</h2>
         </header>
@@ -669,6 +677,7 @@ function DetallePaqueteModal({
           <DatoModal etiqueta="Ciudad" valor={paquete.ciudad} />
           <DatoModal etiqueta="Barrio" valor={paquete.barrio} />
           <DatoModal etiqueta="Código postal" valor={paquete.codigo_postal} />
+          <DatoModal etiqueta="Tipo de destino" valor={paquete.es_laboral ? "Domicilio laboral" : "Domicilio particular"} />
           <DatoModal etiqueta="Polígono" valor={paquete.poligono} />
           <DatoModal etiqueta="Tienda" valor={paquete.tienda} />
           <DatoModal etiqueta="Repartidor" valor={driver.nombre} />
@@ -684,7 +693,7 @@ function DetallePaqueteModal({
           <DatoModal etiqueta="Programado" valor={fechaMexico(paquete.fecha_programado)} />
           <DatoModal etiqueta="Visita" valor={fechaMexico(paquete.fecha_visita)} />
           <DatoModal etiqueta="Último cambio" valor={fechaMexico(paquete.fecha_cambio_estado)} />
-          <DatoModal etiqueta="ID" valor={String(paquete.id_viaje)} />
+          <DatoModal etiqueta="Tracking ID" valor={paquete.tracking_id} />
         </dl>
 
         {paquete.evidencia_foto ? (

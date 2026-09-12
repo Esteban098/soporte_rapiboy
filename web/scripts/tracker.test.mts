@@ -134,6 +134,7 @@ function paquete(over: Record<string, unknown> = {}) {
     barrio: null,
     codigo_postal: null,
     observacion_direccion: null,
+    es_laboral: false,
     poligono: null,
     nombre_recibe: null,
     comentario_motoboy: null,
@@ -237,6 +238,7 @@ test("2b. el paquete conserva los datos y la evidencia que sincronizó el sistem
       poligono: "Norte",
       telefono: "5551234",
       observacion_direccion: "Portón azul",
+      es_laboral: true,
       tienda: "Tienda Uno",
       evidencia_foto: "https://files.rapiboy.com/evidencia.jpg",
       evidencia_tipo: "foto_viaje",
@@ -248,6 +250,7 @@ test("2b. el paquete conserva los datos y la evidencia que sincronizó el sistem
   const { drivers } = await leerTracker("2026-09-10");
   assert.equal(drivers[0].paquetes[0].poligono, "Norte");
   assert.equal(drivers[0].paquetes[0].telefono, "5551234");
+  assert.equal(drivers[0].paquetes[0].es_laboral, true);
   assert.equal(drivers[0].paquetes[0].evidencia_foto, "https://files.rapiboy.com/evidencia.jpg");
 });
 

@@ -207,8 +207,9 @@ este comercio»— y además hace que el upsert sea idempotente sin depender de 
 `08-tracker-drivers.json` y `09-tracker-paquetes.json` alimentan la pantalla
 **Live tracker**. Antes de la primera corrida hay que crear las tablas con
 `web/supabase/live-tracker.sql`. En una instalación existente, antes de
-importar el flujo 09 actualizado se corre además
-`web/supabase/migracion-07-tracker-detalle-sistema.sql`.
+importar el flujo 09 actualizado se corren además
+`web/supabase/migracion-07-tracker-detalle-sistema.sql` y
+`web/supabase/migracion-08-tracker-destino-laboral.sql`.
 
 Cada flujo tiene entradas independientes que comparten la misma cadena de
 nodos: uno o más horarios y un webhook, que es el botón del tablero. El flujo
@@ -243,6 +244,9 @@ posición conocida con una ruta inexistente. El flujo de paquetes guarda tambié
 el detalle operativo desde RapiboyData: `Viaje`, `Direccion`, `Poligono`,
 `HistorialViaje` y `FotoViaje`. La web lo lee desde `tracker_paquetes`; no
 consulta `mensual` ni `mensual_historico` para la ficha ni para la evidencia.
+También clasifica el destino desde `Viaje.ObservacionDestino`: el prefijo
+`Domicilio Laboral` marca el paquete como laboral, sin distinguir mayúsculas
+ni acentos.
 
 Si algo falla, la rama de error llama a `tracker_fallar_sync()`, que marca la
 corrida como `failed` **sin tocar ningún dato**. El mapa se queda con lo último

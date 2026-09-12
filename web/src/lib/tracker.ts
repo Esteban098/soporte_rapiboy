@@ -56,6 +56,7 @@ export type PaqueteFila = {
   barrio: string | null;
   codigo_postal: string | null;
   observacion_direccion: string | null;
+  es_laboral: boolean;
   poligono: string | null;
   nombre_recibe: string | null;
   comentario_motoboy: string | null;
@@ -489,8 +490,8 @@ export function colorDeClasificacion(clasificacion: Clasificacion, colorDriver: 
  * El viaje abierto en el sistema de Rapiboy.
  *
  * Es la salida del tablero hacia donde se opera de verdad: acá se mira, allá
- * se toca. `idviaje` es `Viaje.Id`, el mismo número que la tabla guarda en
- * `id_viaje` y muestra como tracking id.
+ * se toca. `idviaje` es `Viaje.Id`, la clave interna que Rapiboy necesita
+ * para abrir el viaje. La pantalla identifica el paquete con `tracking_id`.
  *
  * La modalidad va fija en 5 porque es la única que este tablero mira: la
  * consulta que alimenta el tracker filtra `Usuario.IdModalidad = 5`, así que

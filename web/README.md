@@ -69,7 +69,8 @@ operativa que n8n arma directamente desde RapiboyData; no cruza ni consulta
 Arranca con el mapa vacío y el panel lleno. Es a propósito: con veinte
 repartidores y todas sus paradas encima, el mapa completo no dice nada. La
 pantalla empieza a servir cuando alguien elige a quién quiere mirar, con las
-casillas del panel, el buscador por nombre o ID, o **Seleccionar todos**.
+casillas del panel, el buscador por repartidor, dirección, referencia o
+**Tracking ID** de paquete, o **Seleccionar todos**.
 
 La lista arranca ordenada por **porcentaje entregado** —entregados sobre
 paquetes que siguen en ruta— y se puede reordenar de mayor a menor por total de
@@ -165,6 +166,10 @@ foto del viaje. **Ver evidencia** la muestra dentro del cuadro y permite abrirla
 en tamaño completo; si el sistema no tiene foto para el ID, la ficha lo informa
 sin bloquear el mapa.
 
+El tipo de destino también viene de `Viaje`: se marca como **Domicilio laboral**
+cuando `ObservacionDestino` comienza por `Domicilio Laboral`, sin distinguir
+mayúsculas ni acentos.
+
 ### Qué día muestra
 
 El reloj de Ciudad de México decide la vista, no el reloj de quien abre la
@@ -228,7 +233,8 @@ en vez de nodo por nodo.
 2. Correr `supabase/migracion-06-lugares.sql`: las tiendas y los domicilios de
    los choferes.
 3. En una base que ya tenía el tracker, correr también
-   `supabase/migracion-07-tracker-detalle-sistema.sql` antes de importar el
+   `supabase/migracion-07-tracker-detalle-sistema.sql` y
+   `supabase/migracion-08-tracker-destino-laboral.sql` antes de importar el
    flujo de paquetes actualizado.
 4. Importar `../n8n/08-tracker-drivers.json` y `../n8n/09-tracker-paquetes.json`,
    elegir la credencial Postgres en los nodos morados y activarlos.

@@ -463,7 +463,8 @@ function Destino({
     >
       <title>
         {`#${paquete.tracking_id} · ${driver}\n${paquete.nombre_estado ?? "sin estado"}` +
-          `\n${ETIQUETA[paquete.clasificacion]}` +
+          `\n${etiquetaPaquete(paquete)}` +
+          (paquete.es_laboral ? " · destino laboral" : "") +
           (paquete.orden != null ? ` · orden ${paquete.orden}` : " · sin orden") +
           (paquete.direccion ? `\n${paquete.direccion}` : "")}
       </title>
@@ -478,7 +479,15 @@ function Destino({
 
       <circle r={r} fill={relleno} stroke={color} strokeWidth={2 * k} />
 
-      {paquete.clasificacion === "VISITADO_ENTREGADO" ? (
+      {paquete.es_laboral ? (
+        /* El maletín identifica el tipo de destino. El círculo conserva el
+           relleno y borde calculados arriba, que son los que comunican el
+           estado del paquete y el repartidor asignado. */
+        <g fill="none" stroke={glifo} strokeWidth={1.8 * k} strokeLinecap="round" strokeLinejoin="round">
+          <rect x={-r * 0.48} y={-r * 0.18} width={r * 0.96} height={r * 0.58} rx={r * 0.07} />
+          <path d={`M${-r * 0.18} ${-r * 0.18} v${-r * 0.17} h${r * 0.36} v${r * 0.17} M${-r * 0.48} ${r * 0.08} h${r * 0.96} M0 ${r * 0.08} v${r * 0.12}`} />
+        </g>
+      ) : paquete.clasificacion === "VISITADO_ENTREGADO" ? (
         <path
           d={`M${-r * 0.45} 0 L${-r * 0.1} ${r * 0.38} L${r * 0.5} ${-r * 0.4}`}
           fill="none"
@@ -529,3 +538,14 @@ export const ETIQUETA: Record<Clasificacion, string> = {
   RETIRADO_DE_RUTA: "Retirado de la ruta",
   SIN_CLASIFICAR: "Sin clasificar",
 };
+
+/** Muestra el estado textual del sistema cuando no hay una categoría segura. */
+export function etiquetaPaquete(
+  paquete: Pick<PaqueteDelTracker, "clasificacion" | "nombre_estado">,
+): string {
+  if (paquete.clasificacion === "SIN_CLASIFICAR") {
+    const estado = paquete.nombre_estado?.trim();
+    if (estado) return estado;
+  }
+  return ETIQUETA[paquete.clasificacion];
+}
