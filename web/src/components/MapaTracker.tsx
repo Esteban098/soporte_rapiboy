@@ -11,9 +11,21 @@ import {
   type Clasificacion,
   type Ventana,
 } from "@/lib/tracker";
+import { colorEstado, type ColorEstado } from "@/lib/estados";
 import type { DriverDelTracker, PaqueteDelTracker } from "@/lib/tracker-datos";
 import { encuadreDe, LienzoMapa } from "./LienzoMapa";
 import estilos from "./live-tracker.module.css";
+
+/** El relleno comunica el desenlace que informa el sistema. */
+const COLOR_RELLENO_POR_ESTADO: Partial<Record<ColorEstado, string>> = {
+  entregado: "var(--estado-entregado, #248a3d)",
+  noentregado: "var(--estado-noentregado, #d70015)",
+  devuelto: "var(--estado-noentregado, #d70015)",
+  devolucion: "var(--estado-noentregado, #d70015)",
+  deposito: "var(--estado-noentregado, #d70015)",
+  siniestrado: "var(--estado-noentregado, #d70015)",
+  retirado: "var(--warning, #b45309)",
+};
 
 /**
  * El mapa del live tracker: los repartidores, sus rutas y sus paradas.
@@ -443,9 +455,10 @@ function Destino({
    * va lleno o hueco: una sola fuente para el color y para la forma, así no
    * pueden discrepar.
    */
-  const tono = colorDeClasificacion(paquete.clasificacion, color);
+  const colorDelEstado = COLOR_RELLENO_POR_ESTADO[colorEstado(paquete.nombre_estado ?? "")];
+  const tono = colorDelEstado ?? colorDeClasificacion(paquete.clasificacion, color);
   const resuelto = COLOR_CLASIFICACION[paquete.clasificacion] !== null;
-  const lleno = resuelto || paquete.clasificacion === "PROXIMO";
+  const lleno = colorDelEstado != null || resuelto || paquete.clasificacion === "PROXIMO";
 
   const relleno = lleno ? tono : blanco;
   const glifo = lleno ? blanco : tono;
