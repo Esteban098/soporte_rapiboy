@@ -69,8 +69,8 @@ operativa que n8n arma directamente desde RapiboyData; no cruza ni consulta
 Arranca con el mapa vacío y el panel lleno. Es a propósito: con veinte
 repartidores y todas sus paradas encima, el mapa completo no dice nada. La
 pantalla empieza a servir cuando alguien elige a quién quiere mirar, con las
-casillas del panel, el buscador por repartidor, dirección, referencia o
-**Tracking ID** de paquete, o **Seleccionar todos**.
+casillas del panel, el buscador por repartidor, dirección o **ID de viaje** de
+paquete, o **Seleccionar todos**.
 
 La lista arranca ordenada por **porcentaje entregado** —entregados sobre
 paquetes que siguen en ruta— y se puede reordenar de mayor a menor por total de

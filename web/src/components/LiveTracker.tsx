@@ -89,9 +89,7 @@ export function LiveTracker({
             d.paquetes.some(
               (p) =>
                 p.direccion?.toLowerCase().includes(texto) ||
-                String(p.id_viaje).includes(texto) ||
-                p.tracking_id.toLowerCase().includes(texto) ||
-                p.referencia_auxiliar?.toLowerCase().includes(texto),
+                String(p.id_viaje).includes(texto),
             ),
         )
       : datos.drivers;
@@ -179,8 +177,8 @@ export function LiveTracker({
             className={estilos.buscador}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar repartidor, dirección o Tracking ID"
-            aria-label="Buscar por repartidor, dirección o Tracking ID de paquete"
+            placeholder="Buscar repartidor, dirección o ID de viaje"
+            aria-label="Buscar por repartidor, dirección o ID de viaje"
             type="search"
           />
         </div>
@@ -596,7 +594,7 @@ function DetalleDriver({
               {/* Lo que se lee en voz alta al llegar al botón: el texto de la
                   fila está afuera, así que hay que nombrarlo acá. */}
               <span className={estilos.soloLectores}>
-                Ver en el mapa el paquete {paquete.tracking_id}
+                Ver en el mapa el paquete {paquete.id_viaje}
                 {paquete.direccion ? `, ${paquete.direccion}` : ""}
               </span>
             </button>
@@ -668,7 +666,7 @@ function DetallePaqueteModal({
           <span className={`${estilos.tag} ${estilos[`tag${paquete.clasificacion}`] ?? ""}`}>
             {etiquetaPaquete(paquete)}
           </span>
-          <h2 id="detalle-paquete-titulo">Paquete #{paquete.tracking_id}</h2>
+          <h2 id="detalle-paquete-titulo">Paquete #{paquete.id_viaje}</h2>
         </header>
 
         <dl className={estilos.modalDatos}>
@@ -693,7 +691,7 @@ function DetallePaqueteModal({
           <DatoModal etiqueta="Programado" valor={fechaMexico(paquete.fecha_programado)} />
           <DatoModal etiqueta="Visita" valor={fechaMexico(paquete.fecha_visita)} />
           <DatoModal etiqueta="Último cambio" valor={fechaMexico(paquete.fecha_cambio_estado)} />
-          <DatoModal etiqueta="Tracking ID" valor={paquete.tracking_id} />
+          <DatoModal etiqueta="ID de viaje" valor={String(paquete.id_viaje)} />
         </dl>
 
         {paquete.evidencia_foto ? (
@@ -705,7 +703,7 @@ function DetallePaqueteModal({
               <a href={paquete.evidencia_foto} target="_blank" rel="noopener noreferrer">
                 {/* La última foto viene de FotoViaje, HistorialViaje o Viaje. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={paquete.evidencia_foto} alt={`Última evidencia del paquete ${paquete.tracking_id}`} />
+                <img src={paquete.evidencia_foto} alt={`Última evidencia del paquete ${paquete.id_viaje}`} />
               </a>
             ) : null}
           </div>
@@ -792,10 +790,10 @@ function EnlaceViaje({ paquete }: { paquete: PaqueteDelTracker }) {
       href={enlaceAlOperador(paquete.id_viaje)}
       target="_blank"
       rel="noopener noreferrer"
-      title={`Abrir el viaje ${paquete.tracking_id} en Rapiboy`}
+      title={`Abrir el viaje ${paquete.id_viaje} en Rapiboy`}
       onClick={(e) => e.stopPropagation()}
     >
-      #{paquete.tracking_id}
+      #{paquete.id_viaje}
     </a>
   );
 }

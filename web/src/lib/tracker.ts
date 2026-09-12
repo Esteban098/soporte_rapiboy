@@ -491,7 +491,7 @@ export function colorDeClasificacion(clasificacion: Clasificacion, colorDriver: 
  *
  * Es la salida del tablero hacia donde se opera de verdad: acá se mira, allá
  * se toca. `idviaje` es `Viaje.Id`, la clave interna que Rapiboy necesita
- * para abrir el viaje. La pantalla identifica el paquete con `tracking_id`.
+ * para abrir el viaje y el identificador visible del paquete.
  *
  * La modalidad va fija en 5 porque es la única que este tablero mira: la
  * consulta que alimenta el tracker filtra `Usuario.IdModalidad = 5`, así que

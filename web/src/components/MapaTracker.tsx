@@ -477,7 +477,7 @@ function Destino({
       opacity={paquete.clasificacion === "RETIRADO_DE_RUTA" || paquete.clasificacion === "CANCELADO" ? 0.4 : 1}
     >
       <title>
-        {`#${paquete.tracking_id} · ${driver}\n${paquete.nombre_estado ?? "sin estado"}` +
+        {`#${paquete.id_viaje} · ${driver}\n${paquete.nombre_estado ?? "sin estado"}` +
           `\n${etiquetaPaquete(paquete)}` +
           (paquete.es_laboral ? " · destino laboral" : "") +
           (paquete.orden != null ? ` · orden ${paquete.orden}` : " · sin orden") +
