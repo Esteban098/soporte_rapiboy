@@ -20,7 +20,7 @@ import estilos from "./live-tracker.module.css";
 const COLOR_RELLENO_POR_ESTADO: Partial<Record<ColorEstado, string>> = {
   entregado: "var(--estado-entregado, #248a3d)",
   noentregado: "var(--estado-noentregado, #d70015)",
-  devuelto: "var(--estado-noentregado, #d70015)",
+  devuelto: "var(--estado-devuelto, #0a7d6d)",
   devolucion: "var(--estado-noentregado, #d70015)",
   deposito: "var(--estado-noentregado, #d70015)",
   siniestrado: "var(--estado-noentregado, #d70015)",
@@ -459,9 +459,11 @@ function Destino({
   const tono = colorDelEstado ?? colorDeClasificacion(paquete.clasificacion, color);
   const resuelto = COLOR_CLASIFICACION[paquete.clasificacion] !== null;
   const lleno = colorDelEstado != null || resuelto || paquete.clasificacion === "PROXIMO";
+  const amarillo = colorEstado(paquete.nombre_estado ?? "") === "retirado" ||
+    paquete.clasificacion === "RETIRADO_DE_RUTA";
 
   const relleno = lleno ? tono : blanco;
-  const glifo = lleno ? blanco : tono;
+  const glifo = amarillo ? "#1f2937" : lleno ? blanco : tono;
 
   return (
     <g
