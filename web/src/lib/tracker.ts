@@ -39,6 +39,9 @@ export type DriverFila = {
 export type PaqueteFila = {
   id_viaje: number;
   tracking_id: string;
+  referencia_auxiliar: string | null;
+  id_usuario: number | null;
+  tienda: string | null;
   id_motoboy: number | null;
   id_motoboy_balanceado: number | null;
   id_reserva: number | null;
@@ -48,6 +51,20 @@ export type PaqueteFila = {
   nombre_estado: string | null;
   orden: number | null;
   direccion: string | null;
+  telefono: string | null;
+  ciudad: string | null;
+  barrio: string | null;
+  codigo_postal: string | null;
+  observacion_direccion: string | null;
+  poligono: string | null;
+  nombre_recibe: string | null;
+  comentario_motoboy: string | null;
+  comentario_estado: string | null;
+  motivo_no_entregado: string | null;
+  motivo_no_devuelto: string | null;
+  evidencia_foto: string | null;
+  evidencia_tipo: string | null;
+  fecha_evidencia: string | null;
   latitud_destino: number | null;
   longitud_destino: number | null;
   visitado: boolean;

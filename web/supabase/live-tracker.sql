@@ -157,6 +157,9 @@ create index if not exists tracker_drivers_sync_idx   on public.tracker_drivers 
 create table if not exists public.tracker_paquetes (
   id_viaje               bigint primary key,
   tracking_id            text not null,
+  referencia_auxiliar    text,
+  id_usuario             bigint,
+  tienda                 text,
 
   -- Sale de `ReservaxMotoboy.IdMotoboy` a través de `Viaje.IdReserva`, que es
   -- la relación operativa. `id_motoboy_balanceado` es `Viaje.IdMotoboyBalanceado`
@@ -175,6 +178,20 @@ create table if not exists public.tracker_paquetes (
   orden                  integer,
 
   direccion              text,
+  telefono               text,
+  ciudad                 text,
+  barrio                 text,
+  codigo_postal          text,
+  observacion_direccion  text,
+  poligono               text,
+  nombre_recibe          text,
+  comentario_motoboy     text,
+  comentario_estado      text,
+  motivo_no_entregado    text,
+  motivo_no_devuelto     text,
+  evidencia_foto         text,
+  evidencia_tipo         text,
+  fecha_evidencia        timestamptz,
   latitud_destino        double precision,
   longitud_destino       double precision,
 

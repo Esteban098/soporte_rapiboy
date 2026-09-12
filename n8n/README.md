@@ -15,7 +15,7 @@ File**.
 | `06-colectas.json` | Calcula quién colecta cada comercio y trae las colectas de 30 días | 12:00 de lunes a viernes, y desde **Colectas** |
 | `07-firefox-gestiones.json` | Interpreta el ID y los datos aportados por la tienda, y actualiza solo las columnas de soporte de `mensual` | Al enviar una selección desde la extensión de Firefox |
 | `08-tracker-drivers.json` | Repartidores de la ruta visible y su última posición conocida | 6:45 y 15:00, y desde **Actualizar posiciones** del Live tracker |
-| `09-tracker-paquetes.json` | Reconcilia pendientes de ayer o la ruta de hoy según el corte de las 15:00 de México | 7:15 y 15:00, y desde **Actualizar paquetes** del Live tracker |
+| `09-tracker-paquetes.json` | Reconcilia pendientes de ayer o la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 7:15 y 15:00, y desde **Actualizar paquetes** del Live tracker |
 
 ## Antes de importar
 
@@ -206,7 +206,9 @@ este comercio»— y además hace que el upsert sea idempotente sin depender de 
 
 `08-tracker-drivers.json` y `09-tracker-paquetes.json` alimentan la pantalla
 **Live tracker**. Antes de la primera corrida hay que crear las tablas con
-`web/supabase/live-tracker.sql`.
+`web/supabase/live-tracker.sql`. En una instalación existente, antes de
+importar el flujo 09 actualizado se corre además
+`web/supabase/migracion-07-tracker-detalle-sistema.sql`.
 
 Cada flujo tiene entradas independientes que comparten la misma cadena de
 nodos: uno o más horarios y un webhook, que es el botón del tablero. El flujo
@@ -226,7 +228,9 @@ horarios no dependan de la zona configurada en el servidor de n8n.
    devuelve un `sync_id`. Si ya hay otra corrida del mismo tipo en curso, falla
    acá y no se toca ni una fila. El lock es por tipo: posiciones y paquetes
    pueden correr a la vez.
-3. **Consulta a SQL Server**, siempre de solo lectura.
+3. **Consulta a SQL Server**, siempre de solo lectura. El flujo de paquetes
+   obtiene su ficha desde `Viaje`, `Direccion`, `Poligono`, `HistorialViaje` y
+   `FotoViaje`; no consulta `mensual`.
 4. **A columnas**, que valida coordenadas y clasifica.
 5. **Upsert** por `id_motoboy` o por `id_viaje`.
 6. **Cerrar sincronización.** Desactiva lo que la corrida no vio y marca la
@@ -235,9 +239,10 @@ horarios no dependan de la zona configurada en el servidor de n8n.
 La lista de la web muestra después solamente los repartidores que tengan al
 menos un paquete activo en `tracker_paquetes`. El flujo de posiciones puede
 seguir guardando otras reservas: ese filtro se hace al leer para no mezclar una
-posición conocida con una ruta inexistente. Los datos de soporte y la evidencia
-no se agregan a estos flujos; la web los cruza por `id_viaje` con `mensual` y
-`mensual_historico`, mediante consultas acotadas a los paquetes de la jornada.
+posición conocida con una ruta inexistente. El flujo de paquetes guarda también
+el detalle operativo desde RapiboyData: `Viaje`, `Direccion`, `Poligono`,
+`HistorialViaje` y `FotoViaje`. La web lo lee desde `tracker_paquetes`; no
+consulta `mensual` ni `mensual_historico` para la ficha ni para la evidencia.
 
 Si algo falla, la rama de error llama a `tracker_fallar_sync()`, que marca la
 corrida como `failed` **sin tocar ningún dato**. El mapa se queda con lo último

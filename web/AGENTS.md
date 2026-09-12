@@ -161,8 +161,12 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   no coinciden hay un balanceo a medio aplicar, y eso se mira.
 - `ReservaxMotoboy` **no** expone `IdRuta` —está probado, ver `colectas.sql`—
   así que la ruta del repartidor se deriva de `Viaje.IdRuta` de sus paquetes.
-  Tampoco hay un polígono verificado en las tablas de origen: el que muestra el
-  panel lo resuelve `ubicarPunto()` con las coordenadas contra el KMZ.
+- La ficha de un paquete se sincroniza desde RapiboyData, nunca desde
+  `mensual`: `Viaje` aporta el estado, destinatario y comentarios; `Direccion`
+  aporta teléfono y domicilio; `Poligono.Nombre` aporta el polígono; y
+  `FotoViaje`, `HistorialViaje` y `Viaje.Foto` aportan la evidencia. n8n deja
+  esa instantánea en `tracker_paquetes` para que el mapa no haga consultas por
+  paquete. La prioridad de la foto es FotoViaje, historial y foto del viaje.
 - `PROXIMO` es el pendiente de menor `Viaje.Orden`, y solo si ese orden alcanza
   para decidirlo. Con el mínimo empatado, o sin ningún pendiente con orden, no
   hay próximo y la pantalla dice por qué. No completar la secuencia es
@@ -197,8 +201,8 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   número que el mapa de choferes lleva en el nombre de cada punto.
 - **Tiendas es una pantalla aparte** (`/tiendas`) y no parte del tracker. Se
   pidió así expresamente. El tracker no lee `tracker_tiendas` ni dibuja
-  comercios, y la consulta de paquetes no devuelve `IdUsuario`; hay una prueba
-  en `scripts/tiendas.test.mts` que falla si vuelven a cruzarse.
+  comercios; solo conserva `Viaje.IdUsuario` y `Usuario.Alias` como contexto
+  del paquete en su ficha.
 - Una tabla de referencia que falta se **anota y se avisa** (`tablasFaltantes`),
   no se traga con un `catch`. «No corriste la migración» y «esta persona no
   tiene domicilio» son respuestas distintas y la pantalla tiene que decir cuál.

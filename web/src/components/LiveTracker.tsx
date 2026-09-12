@@ -620,8 +620,7 @@ function DetallePaqueteModal({
   onCerrar: () => void;
 }) {
   const [verEvidencia, setVerEvidencia] = useState(false);
-  const detalle = paquete.detalle;
-  const direccion = detalle?.destino ?? paquete.direccion;
+  const direccion = paquete.direccion;
   const maps =
     paquete.latitud_destino != null && paquete.longitud_destino != null
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${paquete.latitud_destino},${paquete.longitud_destino}`)}`
@@ -666,12 +665,19 @@ function DetallePaqueteModal({
 
         <dl className={estilos.modalDatos}>
           <DatoModal etiqueta="Dirección" valor={direccion} />
-          <DatoModal etiqueta="Teléfono" valor={detalle?.telefono} telefono />
-          <DatoModal etiqueta="Información de la tienda" valor={detalle?.ubicacion} />
-          <DatoModal etiqueta="Polígono / barrio" valor={detalle?.poligono} />
-          <DatoModal etiqueta="Tienda" valor={detalle?.tienda} />
-          <DatoModal etiqueta="Repartidor" valor={detalle?.repartidor ?? driver.nombre} />
-          <DatoModal etiqueta="Aclaraciones" valor={detalle?.aclaraciones} />
+          <DatoModal etiqueta="Teléfono" valor={paquete.telefono} telefono />
+          <DatoModal etiqueta="Ciudad" valor={paquete.ciudad} />
+          <DatoModal etiqueta="Barrio" valor={paquete.barrio} />
+          <DatoModal etiqueta="Código postal" valor={paquete.codigo_postal} />
+          <DatoModal etiqueta="Polígono" valor={paquete.poligono} />
+          <DatoModal etiqueta="Tienda" valor={paquete.tienda} />
+          <DatoModal etiqueta="Repartidor" valor={driver.nombre} />
+          <DatoModal etiqueta="Aclaraciones de dirección" valor={paquete.observacion_direccion} />
+          <DatoModal etiqueta="Comentario del repartidor" valor={paquete.comentario_motoboy} />
+          <DatoModal etiqueta="Comentario de estado" valor={paquete.comentario_estado} />
+          <DatoModal etiqueta="Motivo no entregado" valor={paquete.motivo_no_entregado} />
+          <DatoModal etiqueta="Motivo no devuelto" valor={paquete.motivo_no_devuelto} />
+          <DatoModal etiqueta="Recibe" valor={paquete.nombre_recibe} />
           <DatoModal etiqueta="Ruta" valor={paquete.id_ruta == null ? null : String(paquete.id_ruta)} />
           <DatoModal etiqueta="Orden" valor={paquete.orden == null ? null : String(paquete.orden)} />
           <DatoModal etiqueta="Estado del sistema" valor={paquete.nombre_estado} />
@@ -681,16 +687,16 @@ function DetallePaqueteModal({
           <DatoModal etiqueta="ID" valor={String(paquete.id_viaje)} />
         </dl>
 
-        {detalle?.foto ? (
+        {paquete.evidencia_foto ? (
           <div className={estilos.evidencia}>
             <button type="button" onClick={() => setVerEvidencia((antes) => !antes)}>
               {verEvidencia ? "Ocultar evidencia" : "Ver evidencia"}
             </button>
             {verEvidencia ? (
-              <a href={detalle.foto} target="_blank" rel="noopener noreferrer">
-                {/* La evidencia puede vivir en distintos hosts de Rapiboy; su URL viene validada. */}
+              <a href={paquete.evidencia_foto} target="_blank" rel="noopener noreferrer">
+                {/* La última foto viene de FotoViaje, HistorialViaje o Viaje. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={detalle.foto} alt={`Última evidencia del paquete ${paquete.tracking_id}`} />
+                <img src={paquete.evidencia_foto} alt={`Última evidencia del paquete ${paquete.tracking_id}`} />
               </a>
             ) : null}
           </div>

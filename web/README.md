@@ -60,6 +60,10 @@ de las 15:00 de México conserva los pendientes de ayer; desde las 15:00 muestra
 la ruta de hoy. Un repartidor que tenga posición o reserva pero ningún paquete
 activo no aparece en esta pantalla.
 
+La pantalla lee la jornada desde sus tablas propias de Supabase. Es una copia
+operativa que n8n arma directamente desde RapiboyData; no cruza ni consulta
+`mensual` o `mensual_historico` para los viajes, sus estados o su evidencia.
+
 ### Cómo se usa
 
 Arranca con el mapa vacío y el panel lleno. Es a propósito: con veinte
@@ -154,12 +158,12 @@ estado, dirección, teléfono e información de tienda disponible, polígono,
 repartidor, ruta, orden, horarios e ID, además de accesos a Google Maps y al
 viaje en Rapiboy.
 
-La ficha cruza el `id_viaje` con `mensual` y `mensual_historico`, pidiendo solo
-los IDs de la jornada. De ahí salen los datos aportados por soporte y la URL de
-la última evidencia. **Ver evidencia** muestra esa foto dentro del cuadro y
-permite abrirla en tamaño completo; si esas tablas no tienen foto para el ID,
-la ficha lo informa sin bloquear el mapa. Teléfono, aclaraciones y otros campos
-solo se muestran cuando el origen los tiene cargados.
+La ficha se alimenta de RapiboyData durante la sincronización: `Viaje`,
+`Direccion`, `Poligono`, `HistorialViaje` y `FotoViaje`. La evidencia prioriza
+la última foto no vacía de `FotoViaje`, luego la del historial y finalmente la
+foto del viaje. **Ver evidencia** la muestra dentro del cuadro y permite abrirla
+en tamaño completo; si el sistema no tiene foto para el ID, la ficha lo informa
+sin bloquear el mapa.
 
 ### Qué día muestra
 
@@ -223,14 +227,17 @@ en vez de nodo por nodo.
 1. Correr `supabase/live-tracker.sql` en el SQL Editor de Supabase.
 2. Correr `supabase/migracion-06-lugares.sql`: las tiendas y los domicilios de
    los choferes.
-3. Importar `../n8n/08-tracker-drivers.json` y `../n8n/09-tracker-paquetes.json`,
+3. En una base que ya tenía el tracker, correr también
+   `supabase/migracion-07-tracker-detalle-sistema.sql` antes de importar el
+   flujo de paquetes actualizado.
+4. Importar `../n8n/08-tracker-drivers.json` y `../n8n/09-tracker-paquetes.json`,
    elegir la credencial Postgres en los nodos morados y activarlos.
-4. Cargar las *Production URL* de los dos webhooks en
+5. Cargar las *Production URL* de los dos webhooks en
    `N8N_WEBHOOKS_TRACKER_POSICIONES` y `N8N_WEBHOOKS_TRACKER_PAQUETES`.
 
 Sin el paso 1 la pantalla explica qué script falta, en vez de mostrar un 500.
 Sin el paso 2 funciona igual y avisa arriba cuál migración falta correr. Sin el
-paso 4 la pantalla sigue mostrando lo último que haya guardado n8n y el botón
+paso 5 la pantalla sigue mostrando lo último que haya guardado n8n y el botón
 dice qué variable falta.
 
 ### Ruta propuesta por cercanía

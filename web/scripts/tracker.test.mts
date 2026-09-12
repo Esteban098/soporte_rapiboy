@@ -118,6 +118,9 @@ function paquete(over: Record<string, unknown> = {}) {
   return {
     id_viaje: 1,
     tracking_id: "1",
+    referencia_auxiliar: null,
+    id_usuario: 9,
+    tienda: null,
     id_motoboy: 7,
     id_motoboy_balanceado: null,
     id_reserva: 100,
@@ -126,6 +129,20 @@ function paquete(over: Record<string, unknown> = {}) {
     nombre_estado: "Retirado en camino a destino",
     orden: 1,
     direccion: "Calle 1",
+    telefono: null,
+    ciudad: null,
+    barrio: null,
+    codigo_postal: null,
+    observacion_direccion: null,
+    poligono: null,
+    nombre_recibe: null,
+    comentario_motoboy: null,
+    comentario_estado: null,
+    motivo_no_entregado: null,
+    motivo_no_devuelto: null,
+    evidencia_foto: null,
+    evidencia_tipo: null,
+    fecha_evidencia: null,
     latitud_destino: 19.44,
     longitud_destino: -99.14,
     visitado: false,
@@ -210,58 +227,41 @@ test("2. con varios repartidores, cada uno queda con sus paquetes y su resumen",
   assert.deepEqual(drivers[0].rutas, [55]);
 });
 
-test("2b. el paquete cruza sus datos de soporte y evidencia por id", async (t) => {
+test("2b. el paquete conserva los datos y la evidencia que sincronizó el sistema", async (t) => {
   conEntorno(t, BASE);
   const base = baseSimulada(t, {
     tracker_drivers_vista: [driver()],
-    tracker_paquetes: [paquete({ id_viaje: 300 })],
+    tracker_paquetes: [paquete({
+      id_viaje: 300,
+      direccion: "Calle Uno 20",
+      poligono: "Norte",
+      telefono: "5551234",
+      observacion_direccion: "Portón azul",
+      tienda: "Tienda Uno",
+      evidencia_foto: "https://files.rapiboy.com/evidencia.jpg",
+      evidencia_tipo: "foto_viaje",
+    })],
     tracker_sincronizaciones: [],
-    mensual_historico: [],
-    mensual: [
-      {
-        id: 300,
-        destino: "Calle Uno 20",
-        poligono: "Norte",
-        telefono: "5551234",
-        ubicacion: "Portón azul",
-        informacion_enviar: "Llamar antes",
-        tienda: "Tienda Uno",
-        repartidor: "Ana Ruiz",
-        foto: "https://files.rapiboy.com/evidencia.jpg",
-      },
-    ],
   });
   t.after(base.restore);
 
   const { drivers } = await leerTracker("2026-09-10");
-  assert.deepEqual(drivers[0].paquetes[0].detalle, {
-    destino: "Calle Uno 20",
-    poligono: "Norte",
-    telefono: "5551234",
-    ubicacion: "Portón azul",
-    aclaraciones: "Llamar antes",
-    tienda: "Tienda Uno",
-    repartidor: "Ana Ruiz",
-    foto: "https://files.rapiboy.com/evidencia.jpg",
-  });
+  assert.equal(drivers[0].paquetes[0].poligono, "Norte");
+  assert.equal(drivers[0].paquetes[0].telefono, "5551234");
+  assert.equal(drivers[0].paquetes[0].evidencia_foto, "https://files.rapiboy.com/evidencia.jpg");
 });
 
-test("2c. una foto vacía no pisa la última evidencia válida del paquete", async (t) => {
+test("2c. una fila sin evidencia conserva el dato nulo del sistema", async (t) => {
   conEntorno(t, BASE);
   const base = baseSimulada(t, {
     tracker_drivers_vista: [driver()],
     tracker_paquetes: [paquete({ id_viaje: 301 })],
     tracker_sincronizaciones: [],
-    mensual_historico: [{ id: 301, foto: "https://files.rapiboy.com/evidencia-anterior.jpg" }],
-    mensual: [{ id: 301, foto: "   " }],
   });
   t.after(base.restore);
 
   const { drivers } = await leerTracker("2026-09-10");
-  assert.equal(
-    drivers[0].paquetes[0].detalle?.foto,
-    "https://files.rapiboy.com/evidencia-anterior.jpg",
-  );
+  assert.equal(drivers[0].paquetes[0].evidencia_foto, null);
 });
 
 /* ---------------------------------------------------------------------------
@@ -1064,6 +1064,20 @@ test("el universo de paquetes se acota por comercio, como el resto del tablero",
   assert.match(consulta, /INNER JOIN dbo\.Usuario\s+U\s+WITH \(NOLOCK\) ON U\.Id = V\.IdUsuario/);
   assert.match(consulta, /U\.IdModalidad = 5/);
   assert.match(consulta, /U\.IdLocalidad = 9/);
+});
+
+test("la ficha del tracker se completa desde RapiboyData y no desde Mensual", () => {
+  const flujoPaquetes = flujo("09-tracker-paquetes.json");
+  const consulta = sinComentarios(
+    flujoPaquetes.nodes
+      .find((n: { name: string }) => n.name === "Paquetes y detalle del sistema").parameters.query,
+  );
+
+  for (const tabla of ["dbo.Viaje", "dbo.Direccion", "dbo.Poligono", "dbo.HistorialViaje", "dbo.FotoViaje"]) {
+    assert.match(consulta, new RegExp(tabla.replace(/\./g, "\\.")));
+  }
+  assert.match(consulta, /COALESCE\(FV\.Foto, HF\.Foto/);
+  assert.equal(flujoPaquetes.connections["Abrir sincronización"].main[0][0].node, "Paquetes y detalle del sistema");
 });
 
 test("la reconciliación de paquetes no parte de los ids ya guardados", () => {

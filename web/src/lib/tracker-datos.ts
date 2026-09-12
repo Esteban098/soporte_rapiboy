@@ -1,7 +1,5 @@
 import "server-only";
 import {
-  TABLA_MENSUAL,
-  TABLA_MENSUAL_HISTORICO,
   TABLA_TRACKER_CHOFERES,
   TABLA_TRACKER_PAQUETES,
   TABLA_TRACKER_SYNC,
@@ -9,7 +7,6 @@ import {
 } from "./config";
 import { consultarTodo, TablaFaltante } from "./supabase";
 import { ubicarPunto } from "./cobertura";
-import { enlaceFotoEntrega } from "./enlaces";
 import {
   clasificarRuta,
   coordenadaValida,
@@ -39,20 +36,8 @@ import {
  * mezclarlos aunque quisiera.
  */
 
-export type DetallePaquete = {
-  destino: string | null;
-  poligono: string | null;
-  telefono: string | null;
-  ubicacion: string | null;
-  aclaraciones: string | null;
-  tienda: string | null;
-  repartidor: string | null;
-  foto: string | null;
-};
-
 export type PaqueteDelTracker = PaqueteFila & {
   clasificacion: Clasificacion;
-  detalle: DetallePaquete | null;
 };
 
 export type DriverDelTracker = {
@@ -142,8 +127,8 @@ export function diaVigente(): string {
  * Lee la jornada entera y la devuelve armada.
  *
  * Las cuatro lecturas base van en paralelo porque no dependen entre sí, y van
- * sin caché: el sentido de la pantalla es ver dónde está la gente ahora. El
- * cruce de soporte se hace después, cuando ya se conocen los IDs necesarios.
+ * sin caché: el sentido de la pantalla es ver dónde está la gente ahora.
+ * Los datos de cada viaje ya llegan con el paquete, desde RapiboyData.
  *
  * Las posiciones son siempre las últimas disponibles. Los paquetes cambian de
  * jornada a las 15:00 de México: antes se conservan los pendientes de ayer y
@@ -215,16 +200,7 @@ export async function leerTracker(diaForzado?: string, momento = new Date()): Pr
 
   const domicilios = new Map(choferes.map((c) => [c.id_motoboy, c]));
 
-  /*
-   * La tabla mensual ya guarda los datos de soporte y la evidencia. Se pide
-   * solo por los ids de esta jornada; leer el mes entero en cada refresco del
-   * mapa haría crecer el costo con datos que no se van a mostrar.
-   */
-  const detalles = await leerDetalles(paquetesVisibles.map((p) => p.id_viaje));
-  const paquetesConDetalle: PaqueteDelTracker[] = paquetesVisibles.map((paquete) => ({
-    ...paquete,
-    detalle: detalles.get(paquete.id_viaje) ?? null,
-  }));
+  const paquetesConDetalle: PaqueteDelTracker[] = paquetesVisibles;
 
   const porDriver = new Map<number, PaqueteDelTracker[]>();
   const huerfanos: PaqueteDelTracker[] = [];
@@ -347,79 +323,6 @@ function armarDriver(
      */
     propuesta: proponerRuta(pendientes, declaradas),
   };
-}
-
-type DetalleFila = {
-  id: number;
-  destino: string | null;
-  poligono: string | null;
-  telefono: string | null;
-  ubicacion: string | null;
-  informacion_enviar: string | null;
-  tienda: string | null;
-  repartidor: string | null;
-  foto: string | null;
-};
-
-/** Datos y última evidencia del caso, con el mensual actual por encima del archivo. */
-async function leerDetalles(ids: number[]): Promise<Map<number, DetallePaquete>> {
-  const unicos = [...new Set(ids)].filter(Number.isFinite);
-  if (unicos.length === 0) return new Map();
-
-  const leer = async (tabla: string): Promise<DetalleFila[]> => {
-    const filas: DetalleFila[] = [];
-    for (let i = 0; i < unicos.length; i += 150) {
-      const lote = unicos.slice(i, i + 150);
-      try {
-        filas.push(
-          ...(await consultarTodo<DetalleFila>(
-            tabla,
-            {
-              select:
-                "id,destino,poligono,telefono,ubicacion,informacion_enviar,tienda,repartidor,foto",
-              id: `in.(${lote.join(",")})`,
-            },
-            "id.asc",
-          )),
-        );
-      } catch {
-        // Es información accesoria: una tabla histórica todavía no creada o
-        // una falla puntual no puede dejar sin mapa a toda la operación.
-      }
-    }
-    return filas;
-  };
-
-  const [historico, mensual] = await Promise.all([
-    leer(TABLA_MENSUAL_HISTORICO),
-    leer(TABLA_MENSUAL),
-  ]);
-  const resultado = new Map<number, DetallePaquete>();
-
-  // Mensual se procesa último: si el id existe en ambos, es la versión viva.
-  // La foto es la excepción: una actualización sin evidencia no puede borrar
-  // la última URL válida que quedó en el histórico.
-  for (const fila of [...historico, ...mensual]) {
-    const id = Number(fila.id);
-    const anterior = resultado.get(id);
-    const foto = enlaceFotoEntrega(fila.foto ?? "") ?? anterior?.foto ?? null;
-    resultado.set(id, {
-      destino: texto(fila.destino),
-      poligono: texto(fila.poligono),
-      telefono: texto(fila.telefono),
-      ubicacion: texto(fila.ubicacion),
-      aclaraciones: texto(fila.informacion_enviar),
-      tienda: texto(fila.tienda),
-      repartidor: texto(fila.repartidor),
-      foto,
-    });
-  }
-  return resultado;
-}
-
-function texto(valor: string | null | undefined): string | null {
-  const limpio = valor?.trim();
-  return limpio || null;
 }
 
 /** Las paradas con coordenadas utilizables, en el orden en que vienen. */
