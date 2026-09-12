@@ -463,7 +463,7 @@ function Destino({
     paquete.clasificacion === "RETIRADO_DE_RUTA";
 
   const relleno = lleno ? tono : blanco;
-  const glifo = amarillo ? "#1f2937" : lleno ? blanco : tono;
+  const glifo = amarillo ? "var(--warning-ink, #21180a)" : lleno ? blanco : tono;
 
   return (
     <g

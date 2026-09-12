@@ -20,7 +20,7 @@
   background: var(--warning);
   /* Tinta oscura fija: el amarillo es claro en los dos temas, así que el texto
      no puede seguir al tema o se pierde en el modo oscuro. */
-  color: #21180a;
+  color: var(--warning-ink);
   border: 1px solid var(--warning);
   border-bottom: none;
   border-radius: var(--radio) var(--radio) 0 0;
@@ -90,7 +90,7 @@
   gap: 8px;
   padding: 13px 18px 12px;
   background: var(--warning);
-  color: #21180a;
+  color: var(--warning-ink);
   /* Se queda arriba si el panel scrollea. */
   position: sticky;
   top: 0;
