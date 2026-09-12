@@ -223,7 +223,7 @@
    sueltos, y conviene que salte a la vista incluso de paso por el menú. */
 .railItemAmarillo {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-ink);
 }
 
 .railItemAmarillo svg {
@@ -232,7 +232,7 @@
 
 .railItemAmarillo:hover {
   background: var(--warning-soft);
-  color: var(--warning);
+  color: var(--warning-ink);
 }
 
 /* Una sección suelta ocupa el lugar de un grupo, así que respira como uno. */
@@ -757,7 +757,7 @@ details[open] > .summary::before {
 }
 
 .calloutWarning .calloutTitle {
-  color: var(--warning);
+  color: var(--warning-ink);
 }
 
 .calloutBody {

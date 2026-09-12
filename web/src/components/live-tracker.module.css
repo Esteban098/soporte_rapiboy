@@ -246,7 +246,7 @@
 }
 
 .posDEMORADA {
-  color: var(--warning);
+  color: var(--warning-ink);
   background: var(--warning-soft);
 }
 
@@ -668,7 +668,7 @@
 }
 
 .tagSIN_CLASIFICAR {
-  color: var(--warning);
+  color: var(--warning-ink);
   background: var(--warning-soft);
 }
 
