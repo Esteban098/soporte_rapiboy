@@ -13,7 +13,7 @@
 }
 
 .filtroEtiqueta {
-  font-size: 13px;
+  font-size: var(--type-label-md);
   letter-spacing: -0.005em;
   color: var(--ink-2);
 }
@@ -22,10 +22,10 @@
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--rule);
-  border-radius: var(--radio-2);
+  border-radius: var(--radio-3);
   padding: 7px 11px;
   font-family: var(--sans);
-  font-size: 13.5px;
+  font-size: var(--type-body-md);
   min-width: 150px;
   cursor: pointer;
   transition:
@@ -47,10 +47,10 @@
   background: var(--surface);
   color: var(--ink);
   border: 1px solid var(--rule);
-  border-radius: var(--radio-2);
+  border-radius: var(--radio-3);
   padding: 7px 12px;
   font-family: var(--sans);
-  font-size: 13.5px;
+  font-size: var(--type-body-md);
   min-width: 250px;
   transition:
     border-color var(--dur-corta) var(--ease),
@@ -75,7 +75,7 @@
   align-self: flex-end;
   background: none;
   border: 1px solid var(--rule);
-  border-radius: var(--radio-2);
+  border-radius: var(--radio-3);
   padding: 7px 13px;
   cursor: pointer;
   font-family: var(--sans);
@@ -446,7 +446,7 @@
   font-weight: 500;
   font-size: 13px;
   letter-spacing: -0.01em;
-  color: #fff;
+  color: var(--on-primary);
   cursor: pointer;
   white-space: nowrap;
   align-self: flex-end;

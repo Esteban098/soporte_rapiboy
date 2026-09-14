@@ -50,7 +50,7 @@
   font-family: var(--display);
   font-weight: 600;
   letter-spacing: -0.022em;
-  font-size: 18px;
+  font-size: var(--type-title-lg);
   color: var(--ink);
   margin: 0 0 6px;
 }
@@ -69,7 +69,7 @@
 
 .etiqueta {
   display: block;
-  font-size: 13px;
+  font-size: var(--type-label-md);
   letter-spacing: -0.005em;
   color: var(--ink-2);
   margin-bottom: 5px;
@@ -82,7 +82,7 @@
   border-radius: var(--radio-2);
   padding: 8px 12px;
   font-family: var(--sans);
-  font-size: 13.5px;
+  font-size: var(--type-body-md);
   color: var(--ink);
   transition:
     border-color var(--dur-corta) var(--ease),
@@ -105,7 +105,7 @@
   padding: 10px 13px;
   border-radius: var(--radio-2);
   background: var(--critical-soft);
-  font-size: 13px;
+  font-size: var(--type-label-md);
   color: var(--ink);
   line-height: 1.5;
 }
@@ -144,7 +144,7 @@
 
 .principal {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-primary);
 }
 
 .principal:hover:not(:disabled) {
@@ -175,7 +175,7 @@
 
 .peligro {
   background: var(--critical);
-  color: #fff;
+  color: var(--on-primary);
 }
 
 .confirmar {

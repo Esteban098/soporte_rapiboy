@@ -182,10 +182,10 @@
   align-items: center;
   gap: 10px;
   padding: 7px 11px;
-  border-radius: 9px;
+  border-radius: var(--radio-3);
   color: var(--rail-ink);
   text-decoration: none;
-  font-size: 14px;
+  font-size: var(--type-body-md);
   letter-spacing: -0.012em;
   line-height: 1.35;
   transition:
@@ -309,7 +309,7 @@
 
 .pageTitle {
   font-family: var(--display);
-  font-size: 34px;
+  font-size: var(--type-headline-md);
   font-weight: 700;
   letter-spacing: -0.032em;
   line-height: 1.1;
@@ -320,7 +320,7 @@
   color: var(--ink-2);
   max-width: 68ch;
   margin: 0;
-  font-size: 15.5px;
+  font-size: var(--type-body-lg);
   line-height: 1.55;
 }
 
@@ -358,13 +358,13 @@
 
 .cardTitle {
   font-family: var(--display);
-  font-size: 17.5px;
+  font-size: var(--type-title-md);
   font-weight: 600;
   letter-spacing: -0.022em;
 }
 
 .cardNote {
-  font-size: 13.5px;
+  font-size: var(--type-body-md);
   color: var(--muted);
   margin: 4px 0 18px;
   max-width: 72ch;
@@ -400,7 +400,7 @@
 }
 
 .kpiLabel {
-  font-size: 13.5px;
+  font-size: var(--type-label-md);
   color: var(--muted);
   letter-spacing: -0.008em;
 }
@@ -410,7 +410,7 @@
 .kpiValue {
   font-family: var(--display);
   font-weight: 600;
-  font-size: 38px;
+  font-size: clamp(2rem, 3vw, 2.5rem);
   line-height: 1.08;
   letter-spacing: -0.035em;
   font-variant-numeric: tabular-nums;
@@ -488,7 +488,7 @@
      repartía todo el ancho libre entre ellas y dejaba huecos enormes en
      pantallas grandes; si el contenido no entra, el scroll queda en tableWrap. */
   width: max-content;
-  font-size: 13.5px;
+  font-size: var(--type-body-md);
   line-height: 1.45;
   letter-spacing: -0.01em;
 }
@@ -504,7 +504,7 @@
 /* El encabezado dejó de ser versalita mono: la jerarquía la dan el gris y el
    peso, que es como el sistema separa una cabecera de su columna. */
 .table th {
-  font-size: 12.5px;
+  font-size: var(--type-label-md);
   font-weight: 590;
   letter-spacing: -0.005em;
   color: var(--muted);

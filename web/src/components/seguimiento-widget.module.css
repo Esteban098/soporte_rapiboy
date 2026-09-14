@@ -280,7 +280,7 @@
   background: var(--accent);
   border: 0;
   border-radius: var(--radio-3);
-  color: #fff;
+  color: var(--on-primary);
   padding: 10px 22px;
   font-family: var(--sans);
   font-weight: 500;

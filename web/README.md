@@ -59,6 +59,12 @@ selector solo pone `data-theme` en `<html>`, y «Sistema» lo saca para que mand
 navegador, no de la cuenta— y un script en `<head>` la aplica antes del primer
 pintado para que no destelle el tema equivocado.
 
+La identidad visual parte de `--seed` en `globals.css`. Los roles `primary`,
+`secondary`, `tertiary` y sus contenedores se derivan de esa semilla; los
+componentes compartidos consumen esos roles y la escala tipográfica
+`display`/`headline`/`title`/`body`/`label`. Para cambiar la marca se modifica
+la semilla, conservando los estados operativos y sus contrastes.
+
 ## Live tracker
 
 La jornada que corresponde al horario operativo: quiénes tienen una ruta
