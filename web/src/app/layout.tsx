@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { SCRIPT_TEMA } from "@/lib/tema";
 import "./globals.css";
 
 /*
@@ -46,7 +47,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es-MX" className={`${sans.variable} ${display.variable}`}>
+    /* `suppressHydrationWarning` porque el script de tema estampa `data-theme`
+       en `<html>` antes de hidratar y React vería un atributo que no renderizó. */
+    <html lang="es-MX" className={`${sans.variable} ${display.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+      </head>
       <body>{children}</body>
     </html>
   );

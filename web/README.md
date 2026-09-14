@@ -52,6 +52,13 @@ Tres decisiones que vale la pena tener presentes:
 | `/cobertura` | **Cobertura**: el contorno donde hay servicio y un verificador puntual —por id de viaje, dirección o coordenadas— que responde si un domicilio entra. |
 | `/live-tracker` | **Live tracker**: dónde está cada repartidor de la jornada y qué le queda por entregar. Panel de selección a la izquierda, mapa a la derecha. |
 
+Junto al indicador de la fuente («Base en vivo») hay un selector de tema:
+**Claro**, **Oscuro** o **Sistema**. Las paletas están en `globals.css`; el
+selector solo pone `data-theme` en `<html>`, y «Sistema» lo saca para que mande
+`prefers-color-scheme`. La elección se guarda en `localStorage` —es del
+navegador, no de la cuenta— y un script en `<head>` la aplica antes del primer
+pintado para que no destelle el tema equivocado.
+
 ## Live tracker
 
 La jornada que corresponde al horario operativo: quiénes tienen una ruta

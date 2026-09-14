@@ -4,6 +4,7 @@ import { NavGrupo } from "./NavGrupo";
 import { SignOutButton } from "./SignOutButton";
 import { BotonActualizar } from "./BotonActualizar";
 import { SeguimientoWidget } from "./SeguimientoWidget";
+import { SelectorTema } from "./SelectorTema";
 import { flujosDe, variableDeFlujo, type ClaveFlujo, type ModoDatos } from "@/lib/config";
 import estilos from "./ui.module.css";
 
@@ -169,6 +170,7 @@ export function Shell({
             />
             {ETIQUETA_FUENTE[modo]}
           </span>
+          <SelectorTema />
         </header>
 
         <main className={estilos.main}>{children}</main>

@@ -1,0 +1,46 @@
+/* Control segmentado del mismo alto y material que el indicador de la fuente. */
+.grupo {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-3);
+  background: var(--surface-2);
+}
+
+.opcion {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radio-3);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-corta) var(--ease),
+    color var(--dur-corta) var(--ease);
+}
+
+.opcion:hover {
+  color: var(--ink);
+}
+
+.opcion[aria-checked="true"] {
+  background: var(--segmento-activo);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
