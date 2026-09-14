@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cambiarEstado, tomarSeguimiento, type Resultado } from "@/app/seguimiento";
 import { EditorReporte } from "./EditorReporte";
 import { enlaceViaje } from "@/lib/enlaces";
 import { duracion, numero } from "@/lib/formato";
+import { aliasDeCorreo, tramosConMenciones } from "@/lib/menciones";
 import {
   ETAPAS,
   ETIQUETA_ETAPA,
@@ -42,6 +43,7 @@ export function TableroSeguimiento({
   urls,
   yo,
   admin,
+  foco = null,
 }: {
   reportes: Seguimiento[];
   /**
@@ -52,6 +54,8 @@ export function TableroSeguimiento({
   /** Correo de quien mira, para marcar lo suyo. */
   yo: string | null;
   admin: boolean;
+  /** Id del reporte a mostrar abierto y resaltado, al llegar desde una notificación. */
+  foco?: string | null;
 }) {
   const [agrupacion, setAgrupacion] = useState<Agrupacion>("semana");
   const [busqueda, setBusqueda] = useState("");
@@ -210,12 +214,15 @@ export function TableroSeguimiento({
             <Carril
               key={grupo.clave}
               grupo={grupo}
-              plegado={plegados[grupo.clave] ?? !abrePorDefecto(grupo, indice)}
+              plegado={plegados[grupo.clave] ?? !abrePorDefecto(grupo, indice, foco)}
               alternar={(plegado) => setPlegados((previo) => ({ ...previo, [grupo.clave]: plegado }))}
             >
               {(reporte) => (
                 <Tarjeta
-                  key={reporte.id}
+                  // Cambiar la clave al enfocarla la vuelve a montar desplegada,
+                  // aunque la notificación llegue con la pantalla ya abierta.
+                  key={foco === reporte.id ? `${reporte.id}:foco` : reporte.id}
+                  enfocada={foco === reporte.id}
                   reporte={reporte}
                   urls={urls}
                   yo={yo}
@@ -237,9 +244,15 @@ export function TableroSeguimiento({
   );
 }
 
-/** El período más reciente y cualquiera con algo pendiente arrancan abiertos. */
-function abrePorDefecto(grupo: GrupoSeguimiento, indice: number): boolean {
-  return indice === 0 || grupo.reportes.some((reporte) => reporte.estado === "abierto");
+/**
+ * El período más reciente, cualquiera con algo pendiente y el que tiene el
+ * reporte enfocado arrancan abiertos.
+ */
+function abrePorDefecto(grupo: GrupoSeguimiento, indice: number, foco: string | null): boolean {
+  return (
+    indice === 0 ||
+    grupo.reportes.some((reporte) => reporte.estado === "abierto" || reporte.id === foco)
+  );
 }
 
 function Resumen({
@@ -406,6 +419,7 @@ function ordenarColumna(reportes: Seguimiento[], etapa: EtapaSeguimiento): Segui
 }
 
 function Tarjeta({
+  enfocada,
   reporte,
   urls,
   yo,
@@ -416,6 +430,7 @@ function Tarjeta({
   alCambiarEstado,
   alEditar,
 }: {
+  enfocada: boolean;
   reporte: Seguimiento;
   urls: Record<string, string>;
   yo: string | null;
@@ -426,8 +441,13 @@ function Tarjeta({
   alCambiarEstado: (estado: EstadoSeguimiento) => void;
   alEditar: () => void;
 }) {
-  const [desplegada, setDesplegada] = useState(false);
+  const [desplegada, setDesplegada] = useState(enfocada);
+  const articulo = useRef<HTMLElement>(null);
   const etapa = etapaDe(reporte);
+
+  useEffect(() => {
+    if (enfocada) articulo.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [enfocada]);
   const tomado = etapa === "tomado";
   const mio = Boolean(yo) && reporte.tomadoPor === yo;
   const puedeSoltar = mio || admin;
@@ -436,7 +456,11 @@ function Tarjeta({
   const texto = desplegada ? reporte.comentario : (reporte.resumen ?? reporte.comentario);
 
   return (
-    <article className={`${estilos.tarjeta} ${estilos[etapa]}`} aria-busy={ocupado}>
+    <article
+      ref={articulo}
+      className={`${estilos.tarjeta} ${estilos[etapa]} ${enfocada ? estilos.enfocada : ""}`}
+      aria-busy={ocupado}
+    >
       <div className={estilos.tarjetaCabeza}>
         <a
           className={estilos.caso}
@@ -463,7 +487,9 @@ function Tarjeta({
         ) : null}
       </div>
 
-      <p className={`${estilos.texto} ${desplegada ? "" : estilos.textoRecortado}`}>{texto}</p>
+      <p className={`${estilos.texto} ${desplegada ? "" : estilos.textoRecortado}`}>
+        <TextoConMenciones texto={texto} yo={yo} />
+      </p>
 
       {reporte.driver || reporte.seller ? (
         <p className={estilos.responsables}>
@@ -608,6 +634,27 @@ function Detalle({ reporte, urls }: { reporte: Seguimiento; urls: Record<string,
         </div>
       ) : null}
     </dl>
+  );
+}
+
+/** Resalta cada `@alias`; la mención a quien mira va más marcada. */
+function TextoConMenciones({ texto, yo }: { texto: string; yo: string | null }) {
+  const miAlias = yo ? aliasDeCorreo(yo) : null;
+  return (
+    <>
+      {tramosConMenciones(texto).map((tramo, indice) =>
+        tramo.alias ? (
+          <mark
+            key={indice}
+            className={`${estilos.mencion} ${tramo.alias === miAlias ? estilos.mencionMia : ""}`}
+          >
+            {tramo.texto}
+          </mark>
+        ) : (
+          tramo.texto
+        ),
+      )}
+    </>
   );
 }
 

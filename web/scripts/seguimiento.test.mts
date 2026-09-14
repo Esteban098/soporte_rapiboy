@@ -10,6 +10,13 @@ import {
   type FilaSeguimiento,
   type Seguimiento,
 } from "../src/lib/seguimiento";
+import {
+  aliasMencionados,
+  armarDirectorio,
+  consultaEnCurso,
+  correosMencionados,
+  tramosConMenciones,
+} from "../src/lib/menciones";
 
 function fila(cambios: Partial<FilaSeguimiento> = {}): FilaSeguimiento {
   return {
@@ -109,4 +116,39 @@ assert.deepEqual(
   ],
 );
 
-console.log("Seguimiento: etapas, totales y agrupación semanal y mensual correctos.");
+// Menciones: alias = parte local del correo; los alias ambiguos no resuelven.
+const directorio = armarDirectorio([
+  { email: "Esteban.Larcher@rapiboy.com", nombre: "Esteban" },
+  { email: "ana@rapiboy.com" },
+  { email: "ana@otra.com" },
+  { email: "luis@rapiboy.com" },
+  { email: "luis@rapiboy.com", nombre: "Luis" },
+  { email: "local" },
+]);
+assert.deepEqual(
+  directorio.map((persona) => [persona.alias, persona.email, persona.nombre]),
+  [
+    ["esteban.larcher", "esteban.larcher@rapiboy.com", "Esteban"],
+    ["luis", "luis@rapiboy.com", "Luis"],
+  ],
+);
+
+const texto = "Avisale a @Esteban.Larcher y a @luis. Copia a @ana, no a soporte@rapiboy.com ni @nadie";
+assert.deepEqual(aliasMencionados(texto), ["esteban.larcher", "luis", "ana", "nadie"]);
+assert.deepEqual(correosMencionados(texto, directorio), [
+  "esteban.larcher@rapiboy.com",
+  "luis@rapiboy.com",
+]);
+
+assert.deepEqual(tramosConMenciones("hola @luis, ¿lo ves?"), [
+  { texto: "hola ", alias: null },
+  { texto: "@luis", alias: "luis" },
+  { texto: ", ¿lo ves?", alias: null },
+]);
+
+assert.deepEqual(consultaEnCurso("pasale a @es", 12), { inicio: 9, consulta: "es" });
+assert.deepEqual(consultaEnCurso("@", 1), { inicio: 0, consulta: "" });
+assert.equal(consultaEnCurso("correo@rap", 10), null);
+assert.equal(consultaEnCurso("@luis listo", 11), null);
+
+console.log("Seguimiento: etapas, totales, agrupación y menciones correctos.");

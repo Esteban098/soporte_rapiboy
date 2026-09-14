@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { crearSeguimiento, prepararAdjuntos, reportesDelCaso, type Previo } from "@/app/seguimiento";
 import { ETIQUETA_ETAPA } from "@/lib/seguimiento";
+import { AreaMenciones } from "./AreaMenciones";
 import estilos from "./seguimiento-widget.module.css";
 
 /**
@@ -23,6 +24,8 @@ export function SeguimientoWidget() {
   const [listo, setListo] = useState(false);
   const [paso, setPaso] = useState<"subiendo" | "guardando" | null>(null);
   const [previo, setPrevio] = useState<Previo | null>(null);
+  // Controlado para que el autocompletado de menciones pueda insertar texto.
+  const [comentario, setComentario] = useState("");
   const [enviando, iniciar] = useTransition();
   const formulario = useRef<HTMLFormElement>(null);
   const router = useRouter();
@@ -118,6 +121,7 @@ export function SeguimientoWidget() {
       }
 
       formulario.current?.reset();
+      setComentario("");
       setPrevio(null);
       setListo(true);
       // Si quien reporta está parado en la pantalla de seguimiento, ve su
@@ -217,14 +221,17 @@ export function SeguimientoWidget() {
 
         <label className={estilos.campo}>
           <span className={estilos.etiqueta}>Comentario</span>
-          <textarea
+          <AreaMenciones
             name="comentario"
             className={`${estilos.entrada} ${estilos.area}`}
             rows={4}
             placeholder="Qué pasó y qué hace falta hacer."
             required
             disabled={enviando}
+            value={comentario}
+            onValueChange={setComentario}
           />
+          <span className={estilos.ayuda}>Escribí @ para avisarle a alguien del equipo.</span>
         </label>
 
         <label className={estilos.campo}>

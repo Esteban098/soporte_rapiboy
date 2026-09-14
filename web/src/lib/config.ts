@@ -102,6 +102,10 @@ export const TABLA_PERFILES = process.env.SUPABASE_TABLA_PERFILES?.trim() || "pe
 /** Tabla de la base con los reportes que carga el equipo desde el tablero. */
 export const TABLA_SEGUIMIENTO = process.env.SUPABASE_TABLA_SEGUIMIENTO?.trim() || "seguimiento";
 
+/** Avisos por persona: por ahora, menciones con arroba en los reportes. */
+export const TABLA_NOTIFICACIONES =
+  process.env.SUPABASE_TABLA_NOTIFICACIONES?.trim() || "notificaciones";
+
 /** Tabla con quién colecta habitualmente cada comercio. */
 export const TABLA_COLECTAS_ASIGNACION =
   process.env.SUPABASE_TABLA_COLECTAS_ASIGNACION?.trim() || "colectas_asignacion";

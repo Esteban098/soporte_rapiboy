@@ -7,6 +7,7 @@ import {
   TABLA_MENSUAL_HISTORICO,
   TABLA_SEGUIMIENTO,
 } from "@/lib/config";
+import { notificarMenciones } from "@/lib/notificaciones";
 import { resumirComentario } from "@/lib/resumen";
 import { operadorActual, usuarioActual } from "@/lib/sesion";
 import {
@@ -201,7 +202,11 @@ export async function crearSeguimiento(datos: DatosReporte): Promise<Resultado> 
     seller: seller || encontrados.seller,
   };
 
+  // El id se genera acá y no en la base para poder colgarle las menciones
+  // sin pedirle a PostgREST que devuelva la fila.
+  const id = crypto.randomUUID();
   const falla = await insertarFila(TABLA_SEGUIMIENTO, {
+    id,
     caso_id: casoId,
     comentario_original: comentario,
     resumen_llm: resumen,
@@ -211,6 +216,8 @@ export async function crearSeguimiento(datos: DatosReporte): Promise<Resultado> 
     ...responsables,
   });
   if (falla) return { ok: false, error: falla };
+
+  await notificarMenciones({ autor: quien, seguimientoId: id, casoId, texto: comentario });
 
   updateTag("seguimiento");
   return { ok: true };
@@ -281,9 +288,11 @@ export async function editarSeguimiento(id: string, datos: DatosReporte): Promis
     return { ok: false, error: "Driver o seller es demasiado largo." };
   }
 
-  const [resumen, encontrados] = await Promise.all([
+  // El comentario anterior hace falta para avisar solo a las menciones nuevas.
+  const [resumen, encontrados, anterior] = await Promise.all([
     resumirComentario(comentario),
     responsablesDelCaso(casoId),
+    leerFila<FilaSeguimiento>(TABLA_SEGUIMIENTO, id),
   ]);
   const responsables = {
     driver: driver || encontrados.driver,
@@ -297,6 +306,14 @@ export async function editarSeguimiento(id: string, datos: DatosReporte): Promis
     ...responsables,
   });
   if (falla) return { ok: false, error: falla };
+
+  await notificarMenciones({
+    autor: quien,
+    seguimientoId: id,
+    casoId,
+    texto: comentario,
+    previo: anterior?.comentario_original ?? null,
+  });
 
   updateTag("seguimiento");
   return { ok: true };

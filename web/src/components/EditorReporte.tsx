@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { borrarSeguimiento, editarSeguimiento } from "@/app/seguimiento";
 import type { Seguimiento } from "@/lib/seguimiento";
+import { AreaMenciones } from "./AreaMenciones";
 import estilos from "./editor-caso.module.css";
 
 /**
@@ -118,13 +119,16 @@ export function EditorReporte({
 
         <label className={estilos.campo}>
           <span className={estilos.etiqueta}>Comentario</span>
-          <textarea
+          <AreaMenciones
             className={`${estilos.entrada} ${estilos.area}`}
             value={comentario}
-            onChange={(e) => setComentario(e.target.value)}
+            onValueChange={setComentario}
             rows={6}
             disabled={guardando}
           />
+          <span className={estilos.nota}>
+            Escribí @ para avisarle a alguien. Solo se notifica a las menciones nuevas.
+          </span>
         </label>
 
         {reporte.archivos.length > 0 ? (

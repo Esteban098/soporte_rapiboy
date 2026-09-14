@@ -365,6 +365,27 @@
   box-shadow: var(--shadow-alta);
 }
 
+/* Llegó desde una notificación. */
+.enfocada,
+.enfocada:hover {
+  box-shadow:
+    0 0 0 2px var(--accent),
+    var(--shadow-alta);
+}
+
+.mencion {
+  padding: 0 1px;
+  border-radius: 4px;
+  background: none;
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+.mencionMia {
+  padding: 0 3px;
+  background: var(--accent-soft);
+}
+
 .tarjeta[aria-busy="true"] {
   opacity: 0.55;
 }

@@ -62,6 +62,14 @@ export async function insertarFila(
   tabla: string,
   fila: Record<string, unknown>,
 ): Promise<string | null> {
+  return insertarFilas(tabla, [fila]);
+}
+
+/** Inserta varias filas en un solo pedido, todas o ninguna. */
+export async function insertarFilas(
+  tabla: string,
+  fila: Record<string, unknown>[],
+): Promise<string | null> {
   const respuesta = await pedir(encodeURIComponent(tabla), {
     method: "POST",
     body: JSON.stringify(fila),
@@ -83,6 +91,27 @@ export async function actualizarFila(
   cambios: Record<string, unknown>,
 ): Promise<string | null> {
   const respuesta = await pedir(`${encodeURIComponent(tabla)}?id=eq.${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(cambios),
+    headers: { prefer: "return=minimal" },
+    cache: "no-store",
+  });
+  return respuesta.ok ? null : motivoDeFalla(respuesta);
+}
+
+/**
+ * Modifica todas las filas que cumplen `filtros`. Devuelve `null` si salió bien.
+ *
+ * Exige al menos un filtro: un PATCH sin condiciones reescribiría la tabla
+ * entera, y eso no puede pasar por un objeto vacío.
+ */
+export async function actualizarFilas(
+  tabla: string,
+  filtros: Record<string, string>,
+  cambios: Record<string, unknown>,
+): Promise<string | null> {
+  if (Object.keys(filtros).length === 0) return "Falta indicar qué filas cambiar.";
+  const respuesta = await pedir(`${encodeURIComponent(tabla)}?${new URLSearchParams(filtros)}`, {
     method: "PATCH",
     body: JSON.stringify(cambios),
     headers: { prefer: "return=minimal" },

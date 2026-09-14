@@ -9,11 +9,18 @@ import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Seguimiento" };
 
-export default async function Seguimiento() {
-  const [{ reportes, sinTabla }, operador] = await Promise.all([
+export default async function Seguimiento({
+  searchParams,
+}: {
+  /** `?reporte=<id>`: lo usa la campana para abrir el reporte que te menciona. */
+  searchParams: Promise<{ reporte?: string | string[] }>;
+}) {
+  const [{ reportes, sinTabla }, operador, parametros] = await Promise.all([
     cargarSeguimientos(),
     operadorActual(),
+    searchParams,
   ]);
+  const foco = typeof parametros.reporte === "string" ? parametros.reporte : null;
 
   // Todos los adjuntos de la página se firman de una sola vez, antes de pintar:
   // el bucket es privado y cada URL vale una hora.
@@ -50,7 +57,15 @@ export default async function Seguimiento() {
           urls={Object.fromEntries(firmadas)}
           yo={operador?.email ?? null}
           admin={operador?.rol === "admin"}
+          foco={foco}
         />
+
+        {foco && !reportes.some((reporte) => reporte.id === foco) ? (
+          <Callout titulo="Ese reporte ya no está">
+            La notificación apunta a un reporte que fue borrado o que quedó fuera de los últimos
+            500.
+          </Callout>
+        ) : null}
       </div>
     </>
   );

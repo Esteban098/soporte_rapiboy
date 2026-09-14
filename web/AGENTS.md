@@ -44,7 +44,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   totales y tiempo de resolución, se toma y suelta con un PATCH condicional
   (solo quien lo tomó o un admin lo suelta) y se limpia al reabrir. El tablero
   lo muestra como una tercera columna de tarjetas y agrupa por semana o mes.
-  Instalar `supabase/migracion-11-seguimiento-tomado.sql`. Cada reporte conserva `driver` y `seller`
+  Instalar `supabase/migracion-11-seguimiento-tomado.sql`.
+  Los comentarios aceptan menciones `@alias` —la parte local del correo en
+  minúsculas, `src/lib/menciones.ts`, compartido por servidor y navegador—.
+  Al crear un reporte se notifica a cada mencionado; al editarlo, solo a las
+  menciones nuevas; nunca a quien escribe. Los alias repetidos entre dominios
+  quedan fuera del directorio. Los avisos van a `notificaciones`
+  (`supabase/migracion-12-notificaciones.sql`), se leen sin caché filtrando por
+  el correo de la sesión, y un fallo al notificar nunca hace fallar el
+  guardado del reporte. La campana está en la barra, junto al selector de tema.
+  Cada reporte conserva `driver` y `seller`
   como foto del pedido al momento del alta; se pueden cargar manualmente y, si
   quedan vacíos, se buscan en Mensual o Histórico. `abierto_en` se reinicia al
   reabrir y el tiempo de resolución es la diferencia hasta `atendido_en`.

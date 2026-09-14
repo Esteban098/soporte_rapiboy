@@ -829,6 +829,30 @@ cada tarjeta tiene acciones que escriben en la base, adjuntos que abrir y un
 comentario que se despliega, y meter eso en la tabla común la llenaría de casos
 especiales de una sola pantalla.
 
+### Menciones y notificaciones
+
+En el comentario de un reporte —al cargarlo o al editarlo— se puede arrobar a
+alguien del equipo: al escribir `@` aparece una lista con autocompletado
+(flechas y Enter o Tab para elegir, Escape para cerrarla). El alias es la parte
+del correo antes de la arroba, en minúsculas: `@esteban.larcher`. En las
+tarjetas, las menciones se ven resaltadas, y más marcadas si son a vos.
+
+- **A quién se puede arrobar:** perfiles activos, correos de `ALLOWED_EMAILS` y
+  quien ya aparece en algún reporte. Si dos correos comparten la parte local en
+  dominios distintos, ese alias no se ofrece ni notifica: avisarle a la persona
+  equivocada es peor que no avisar.
+- **Cuándo se avisa:** al crear el reporte, a cada persona mencionada; al
+  editarlo, solo a las menciones nuevas, para que corregir una coma no vuelva a
+  notificar a todos. Nadie recibe aviso por arrobarse a sí mismo. Si falla el
+  aviso, el reporte se guarda igual y el error queda en el log.
+- **La campana** está en la barra superior, al lado del selector de tema, con
+  la cantidad sin leer. Pregunta cada minuto mientras la pestaña está a la vista
+  y al volver a ella. Tocar un aviso lo marca como leído y abre Seguimiento con
+  ese reporte desplegado y resaltado (`/seguimiento?reporte=<id>`).
+- **Instalación:** ejecutar `supabase/migracion-12-notificaciones.sql` en
+  Supabase. Hasta entonces la campana no aparece y los reportes se guardan sin
+  avisar. Los avisos se borran junto con su reporte.
+
 Si la página muestra «No se pudieron cargar los datos» con `fetch failed`, casi
 siempre es `SUPABASE_URL` mal copiado: tiene que ser
 `https://<id-del-proyecto>.supabase.co`, con el id que aparece en la dirección
