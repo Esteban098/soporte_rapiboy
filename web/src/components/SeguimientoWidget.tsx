@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { crearSeguimiento, prepararAdjuntos, reportesDelCaso, type Previo } from "@/app/seguimiento";
-import { ETIQUETA_ESTADO } from "@/lib/seguimiento";
+import { ETIQUETA_ETAPA } from "@/lib/seguimiento";
 import estilos from "./seguimiento-widget.module.css";
 
 /**
@@ -177,7 +177,7 @@ export function SeguimientoWidget() {
             </strong>
             {previo.ultimo ? (
               <p className={estilos.previoTexto}>
-                Último ({ETIQUETA_ESTADO[previo.ultimo.estado].toLowerCase()}
+                Último ({ETIQUETA_ETAPA[previo.ultimo.estado].toLowerCase()}
                 {previo.ultimo.cuando ? `, ${cuando(previo.ultimo.cuando)}` : ""}):{" "}
                 {recortar(previo.ultimo.texto)}
               </p>

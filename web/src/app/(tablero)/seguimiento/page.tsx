@@ -1,18 +1,19 @@
 import { BUCKET_SEGUIMIENTO, FIRMA_SEGUNDOS, modoDatos } from "@/lib/config";
 import { cargarSeguimientos } from "@/lib/datos";
-import { resumirSeguimientos } from "@/lib/seguimiento";
+import { operadorActual } from "@/lib/sesion";
 import { firmarArchivos } from "@/lib/supabase";
-import { duracion, numero } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
-import { Callout, Card, Kpi } from "@/components/Card";
-import { TablaSeguimiento } from "@/components/TablaSeguimiento";
+import { Callout } from "@/components/Card";
+import { TableroSeguimiento } from "@/components/TableroSeguimiento";
 import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Seguimiento" };
 
 export default async function Seguimiento() {
-  const { reportes, sinTabla } = await cargarSeguimientos();
-  const datos = resumirSeguimientos(reportes);
+  const [{ reportes, sinTabla }, operador] = await Promise.all([
+    cargarSeguimientos(),
+    operadorActual(),
+  ]);
 
   // Todos los adjuntos de la página se firman de una sola vez, antes de pintar:
   // el bucket es privado y cada URL vale una hora.
@@ -24,35 +25,8 @@ export default async function Seguimiento() {
       <PageHead
         eyebrow="Reportes del equipo"
         titulo="Seguimiento"
-        dek="Lo que el equipo reporta sobre un caso mientras lo trabaja. La cola abre con los pendientes y los separa por semana para que sea fácil ver qué quedó atrás."
+        dek="Tomá un caso para que se sepa quién lo está trabajando. Un tomado sigue contando como abierto hasta que alguien lo cierra."
       />
-
-      <div className={estilos.kpis}>
-        <Kpi
-          etiqueta="Reportes"
-          valor={numero(datos.total)}
-          nota="cargados desde el tablero"
-        />
-        <Kpi
-          etiqueta="Abiertos"
-          valor={numero(datos.abiertos)}
-          tono="bad"
-          relleno
-          nota="pendientes en la cola"
-        />
-        <Kpi
-          etiqueta="Cerrados"
-          valor={numero(datos.cerrados)}
-          tono="good"
-          relleno
-          nota="resueltos y fuera de la cola"
-        />
-        <Kpi
-          etiqueta="Resolución promedio"
-          valor={duracion(datos.resolucionPromedioMinutos)}
-          nota="desde la última apertura al cierre"
-        />
-      </div>
 
       <div className={estilos.stack}>
         {sinTabla ? (
@@ -71,12 +45,12 @@ export default async function Seguimiento() {
           </Callout>
         ) : null}
 
-        <Card
-          titulo="Cola de reportes"
-          nota="Abre mostrando los casos abiertos y los agrupa de lunes a domingo. El estado se cambia acá mismo; al cerrarlo queda registrado quién fue."
-        >
-          <TablaSeguimiento reportes={reportes} urls={Object.fromEntries(firmadas)} />
-        </Card>
+        <TableroSeguimiento
+          reportes={reportes}
+          urls={Object.fromEntries(firmadas)}
+          yo={operador?.email ?? null}
+          admin={operador?.rol === "admin"}
+        />
       </div>
     </>
   );

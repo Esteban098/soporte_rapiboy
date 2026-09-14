@@ -55,6 +55,11 @@ create table if not exists public.seguimiento (
   -- tiempo de resolución no sume un cierre anterior.
   abierto_en          timestamptz not null default now(),
 
+  -- Quién está trabajando el reporte. No es un estado: un tomado sigue
+  -- `abierto`, así que cuenta como pendiente sin tocar el resto de la lógica.
+  tomado_por          text,
+  tomado_en           timestamptz,
+
   -- Quién reportó y quién lo cerró, por correo.
   --
   -- El proyecto autentica con Google vía next-auth y lee la base con la service
@@ -73,9 +78,16 @@ alter table public.seguimiento add column if not exists abierto_en timestamptz;
 update public.seguimiento set abierto_en = created_at where abierto_en is null;
 alter table public.seguimiento alter column abierto_en set default now();
 alter table public.seguimiento alter column abierto_en set not null;
+alter table public.seguimiento add column if not exists tomado_por text;
+alter table public.seguimiento add column if not exists tomado_en timestamptz;
 
--- `tomado` era un paso intermedio que ya no existe. Un caso tomado pero no
--- cerrado sigue pendiente, por eso vuelve a abierto y entra en la cola.
+alter table public.seguimiento drop constraint if exists seguimiento_tomado_check;
+alter table public.seguimiento
+  add constraint seguimiento_tomado_check
+  check ((tomado_por is null) = (tomado_en is null));
+
+-- `tomado` fue un valor del enum. Hoy se marca con `tomado_por` sobre un
+-- reporte abierto, así que las filas con el valor viejo vuelven a abierto.
 update public.seguimiento
    set estado = 'abierto',
        atendido_por = null,
@@ -111,6 +123,7 @@ create index if not exists seguimiento_created_at_idx   on public.seguimiento (c
 create index if not exists seguimiento_estado_idx       on public.seguimiento (estado);
 create index if not exists seguimiento_caso_id_idx      on public.seguimiento (caso_id);
 create index if not exists seguimiento_atendido_por_idx on public.seguimiento (atendido_por);
+create index if not exists seguimiento_tomado_por_idx   on public.seguimiento (tomado_por);
 
 -- ---------------------------------------------------------------------------
 -- Acceso

@@ -8,10 +8,19 @@ import {
   TABLA_SEGUIMIENTO,
 } from "@/lib/config";
 import { resumirComentario } from "@/lib/resumen";
-import { usuarioActual } from "@/lib/sesion";
-import { ESTADOS, type EstadoSeguimiento } from "@/lib/seguimiento";
+import { operadorActual, usuarioActual } from "@/lib/sesion";
+import {
+  ESTADOS,
+  etapaDe,
+  nombreDePersona,
+  parsearSeguimiento,
+  type EstadoSeguimiento,
+  type EtapaSeguimiento,
+  type FilaSeguimiento,
+} from "@/lib/seguimiento";
 import {
   actualizarFila,
+  actualizarFilaSi,
   borrarArchivos,
   borrarFila,
   consultar,
@@ -19,7 +28,6 @@ import {
   insertarFila,
   leerFila,
 } from "@/lib/supabase";
-import { parsearSeguimiento, type FilaSeguimiento } from "@/lib/seguimiento";
 
 /**
  * Alta de reportes y cambio de mano, desde el tablero.
@@ -219,7 +227,7 @@ export async function crearSeguimiento(datos: DatosReporte): Promise<Resultado> 
 export type Previo = {
   total: number;
   /** El más reciente, para poder decidir si vale la pena cargar otro. */
-  ultimo: { texto: string; estado: EstadoSeguimiento; cuando: string | null } | null;
+  ultimo: { texto: string; estado: EtapaSeguimiento; cuando: string | null } | null;
 };
 
 export async function reportesDelCaso(casoId: string): Promise<Previo> {
@@ -240,7 +248,7 @@ export async function reportesDelCaso(casoId: string): Promise<Previo> {
     total: filas.length,
     ultimo: {
       texto: ultimo.resumen ?? ultimo.comentario,
-      estado: ultimo.estado,
+      estado: etapaDe(ultimo),
       cuando: ultimo.creado?.toISOString() ?? null,
     },
   };
@@ -324,8 +332,61 @@ export async function borrarSeguimiento(id: string): Promise<Resultado> {
 }
 
 /**
- * Abre o cierra un reporte. Al cerrarlo queda registrado quién lo resolvió;
- * volverlo a abrir limpia esa firma porque el caso regresó a la cola.
+ * Toma o suelta un reporte abierto.
+ *
+ * La condición va dentro del PATCH y no en una lectura previa: si dos personas
+ * marcan el mismo caso casi a la vez, la base deja pasar a una sola y la otra
+ * se entera de quién lo tiene. Soltarlo puede quien lo tomó o un admin, para
+ * destrabar el caso de alguien que no está.
+ */
+export async function tomarSeguimiento(id: string, tomar: boolean): Promise<Resultado> {
+  const operador = await operadorActual();
+  if (!operador) return { ok: false, error: "No tenés permiso para tomar reportes." };
+  if (!id.trim()) return { ok: false, error: "Falta el reporte." };
+
+  const quien = operador.email;
+  const cambio = tomar
+    ? await actualizarFilaSi(
+        TABLA_SEGUIMIENTO,
+        id,
+        { estado: "eq.abierto", tomado_por: "is.null" },
+        { tomado_por: quien, tomado_en: new Date().toISOString() },
+      )
+    : await actualizarFilaSi(
+        TABLA_SEGUIMIENTO,
+        id,
+        {
+          estado: "eq.abierto",
+          tomado_por: operador.rol === "admin" ? "not.is.null" : `eq.${quien}`,
+        },
+        { tomado_por: null, tomado_en: null },
+      );
+
+  if ("error" in cambio) return { ok: false, error: cambio.error };
+
+  if (cambio.filas === 0) {
+    const fila = await leerFila<FilaSeguimiento>(TABLA_SEGUIMIENTO, id);
+    if (!fila) return { ok: false, error: "Ese reporte ya no está." };
+
+    const actual = parsearSeguimiento(fila);
+    const etapa = etapaDe(actual);
+    // Ya quedó como se pidió: un doble clic u otra pestaña llegó antes.
+    if (tomar && etapa === "tomado" && actual.tomadoPor === quien) return { ok: true };
+    if (!tomar && etapa === "abierto") return { ok: true };
+
+    if (etapa === "cerrado") return { ok: false, error: "El reporte ya está cerrado." };
+    if (tomar) return { ok: false, error: `Ya lo tomó ${nombreDePersona(actual.tomadoPor)}.` };
+    return { ok: false, error: "Solo quien lo tomó o un admin puede soltarlo." };
+  }
+
+  updateTag("seguimiento");
+  return { ok: true };
+}
+
+/**
+ * Abre o cierra un reporte. Al cerrarlo queda registrado quién lo resolvió y
+ * se conserva quién lo había tomado. Volverlo a abrir limpia las dos firmas
+ * porque el caso regresó a la cola.
  */
 export async function cambiarEstado(id: string, estado: EstadoSeguimiento): Promise<Resultado> {
   const quien = await usuarioActual();
@@ -344,7 +405,7 @@ export async function cambiarEstado(id: string, estado: EstadoSeguimiento): Prom
     estado,
     atendido_por: libera ? null : quien,
     atendido_en: libera ? null : momento,
-    ...(libera ? { abierto_en: momento } : {}),
+    ...(libera ? { abierto_en: momento, tomado_por: null, tomado_en: null } : {}),
   });
   if (falla) return { ok: false, error: falla };
 

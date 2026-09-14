@@ -91,6 +91,32 @@ export async function actualizarFila(
   return respuesta.ok ? null : motivoDeFalla(respuesta);
 }
 
+/**
+ * Modifica una fila solo si todavía cumple `condiciones` (filtros de PostgREST).
+ * Devuelve cuántas filas cambió, o el motivo de la falla.
+ *
+ * Para las escrituras a las que pueden llegar dos personas a la vez: la
+ * condición viaja en el mismo PATCH, así que decide la base quién llegó primero
+ * y no una lectura previa que ya puede estar vieja.
+ */
+export async function actualizarFilaSi(
+  tabla: string,
+  id: string | number,
+  condiciones: Record<string, string>,
+  cambios: Record<string, unknown>,
+): Promise<{ filas: number } | { error: string }> {
+  const filtro = new URLSearchParams({ ...condiciones, id: `eq.${id}`, select: "id" });
+  const respuesta = await pedir(`${encodeURIComponent(tabla)}?${filtro}`, {
+    method: "PATCH",
+    body: JSON.stringify(cambios),
+    headers: { prefer: "return=representation" },
+    cache: "no-store",
+  });
+  if (!respuesta.ok) return { error: await motivoDeFalla(respuesta) };
+  const filas = (await respuesta.json()) as unknown[];
+  return { filas: filas.length };
+}
+
 /** Actualiza solo siniestros y confirma que la fila no fue movida durante la edición. */
 export async function actualizarCobroSiniestrado(
   tabla: string,

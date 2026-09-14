@@ -760,10 +760,27 @@ se encuentra algo raro mirando Demorados o el mes en curso.
 
 Se carga el id del caso, driver, seller, un comentario y, si hace falta, fotos o archivos. El
 reporte queda **abierto** hasta que alguien lo cierra; al cerrarlo se registra
-quién fue. La pantalla abre con los pendientes y los agrupa por semana de lunes
-a domingo, usando el calendario de Ciudad de México.
+quién fue.
 
-Tres cosas que conviene saber:
+La pantalla es un tablero de tarjetas. Cada período —semana de lunes a domingo
+o mes calendario, a elección, con el calendario de Ciudad de México— es un
+carril plegable con tres columnas de color: **Abierto** (rojo), **Tomado**
+(índigo) y **Cerrado** (verde). Arriba hay un resumen con la proporción por
+etapa, y filtros por texto y por responsable (míos, sin tomar o una persona).
+Cada tarjeta muestra el caso, el resumen, driver y seller, cuánto lleva abierto
+—ámbar desde 24 h, rojo desde 3 días— y un avatar de color por persona.
+
+Lo que conviene saber:
+
+- **Tomado no es un estado de la base.** Es `tomado_por` / `tomado_en` sobre un
+  reporte `abierto`, así que un tomado cuenta como abierto en los totales y en
+  el tiempo de resolución. Se toma con el checkbox de la tarjeta; la condición
+  viaja dentro del mismo PATCH, y si dos personas lo marcan a la vez gana una
+  y la otra ve quién lo tiene. Soltarlo puede quien lo tomó o un admin. Al
+  cerrar se conserva quién lo tomó; al reabrir se limpia. En una base
+  existente, ejecutar `supabase/migracion-11-seguimiento-tomado.sql`.
+- **Las tarjetas no se arrastran.** Tomar y cerrar escriben en la base y dejan
+  firmado quién lo hizo; un arrastre accidental no debería poder hacer eso.
 
 - **El resumen es opcional.** Con `OPENAI_API_KEY` cargada, cada comentario
   largo pasa por el modelo (`OPENAI_MODEL`, por defecto `gpt-4o-mini`) y se
@@ -793,15 +810,22 @@ Tres cosas que conviene saber:
   pedido en `mensual` y `mensual_historico` y lo completa.
   Así no desaparecen cuando el pedido rota al histórico. En una base existente,
   ejecutar `supabase/migracion-04-seguimiento-semanal.sql`: también devuelve los
-  estados `tomado` antiguos a `abierto` y bloquea nuevas cargas con ese estado.
+  valores `tomado` antiguos de la columna `estado` a `abierto` y bloquea nuevas
+  cargas con ese valor (hoy se toma con `tomado_por`, ver arriba).
 - **La resolución se mide desde la última apertura.** `abierto_en` se crea con
   el reporte y se reinicia si alguien lo reabre; al cerrarlo, `atendido_en`
   marca el final. Así un segundo ciclo abierto/cerrado no suma el tiempo de un
   cierre anterior.
 
-Esta sección no usa el componente `Tabla`: cada fila tiene un selector que
-escribe en la base, adjuntos que abrir y un comentario que se despliega, y meter
-eso en la tabla común la llenaría de casos especiales de una sola pantalla.
+Esta sección no usa el componente `Tabla`: vive en `TableroSeguimiento`, porque
+cada tarjeta tiene acciones que escriben en la base, adjuntos que abrir y un
+comentario que se despliega, y meter eso en la tabla común la llenaría de casos
+especiales de una sola pantalla.
+
+Si la página muestra «No se pudieron cargar los datos» con `fetch failed`, casi
+siempre es `SUPABASE_URL` mal copiado: tiene que ser
+`https://<id-del-proyecto>.supabase.co`, con el id que aparece en la dirección
+del panel (`supabase.com/dashboard/project/<id>`).
 
 ## Gráficos atados a la tabla
 

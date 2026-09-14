@@ -38,8 +38,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `cobrado` es booleano, empieza en `false` y solo lo modifica el equipo desde
   las vistas de Siniestrados. Ambos viven en Mensual e Histórico, sin nuevas
   tablas. Instalar `supabase/migracion-03-cobros-siniestrados.sql` para agregarlos.
-- `seguimiento` usa solamente los estados `abierto` y `cerrado`; cualquier
-  `tomado` legado se migra a abierto. Cada reporte conserva `driver` y `seller`
+- `seguimiento` usa solamente los estados `abierto` y `cerrado` en la columna
+  `estado`; cualquier `tomado` legado ahí se migra a abierto. **Tomado** es
+  `tomado_por` / `tomado_en` sobre un reporte abierto: cuenta como abierto en
+  totales y tiempo de resolución, se toma y suelta con un PATCH condicional
+  (solo quien lo tomó o un admin lo suelta) y se limpia al reabrir. El tablero
+  lo muestra como una tercera columna de tarjetas y agrupa por semana o mes.
+  Instalar `supabase/migracion-11-seguimiento-tomado.sql`. Cada reporte conserva `driver` y `seller`
   como foto del pedido al momento del alta; se pueden cargar manualmente y, si
   quedan vacíos, se buscan en Mensual o Histórico. `abierto_en` se reinicia al
   reabrir y el tiempo de resolución es la diferencia hasta `atendido_en`.
