@@ -1,19 +1,21 @@
 -- ---------------------------------------------------------------------------
 -- Live tracker
 --
--- Tres tablas y una vista. Guardan la foto de la jornada: qué repartidores
+-- Cuatro tablas y una vista. Guardan la foto de la jornada: qué repartidores
 -- salieron, dónde se los vio por última vez y qué paquetes lleva cada uno.
 --
 --   tracker_drivers          una fila por repartidor con operación del día
 --   tracker_paquetes         una fila por viaje de las rutas del día
 --   tracker_sincronizaciones una fila por corrida de n8n
+--   tracker_demoras          inconvenientes confirmados que detienen la ruta
 --
--- La fuente es SQL Server, siempre de solo lectura, y el único que escribe acá
--- es n8n con la credencial Postgres de servicio. La web lee.
+-- La foto viene de SQL Server, siempre de solo lectura, y la escribe n8n con
+-- su credencial Postgres. La web solo agrega el motivo humano en
+-- tracker_demoras, después de volver a validar que la demora siga activa.
 --
--- Por qué tres tablas y no una: posiciones y paquetes se actualizan por
+-- Por qué tablas separadas: posiciones, paquetes y motivos se actualizan por
 -- separado —son dos botones distintos y dos consultas distintas— y mezclarlos
--- obligaría a releer todo para mover un punto en el mapa. La tercera existe
+-- obligaría a releer todo para mover un punto en el mapa. La de sincronizaciones existe
 -- porque sin registro de corridas no hay forma de distinguir «no hay paquetes»
 -- de «la consulta falló», y esa diferencia decide si se desactiva o no.
 --
@@ -104,6 +106,11 @@ create table if not exists public.tracker_drivers (
   longitud               double precision,
   fecha_ultima_posicion  timestamptz,
 
+  -- Instante del último desplazamiento de al menos 50 metros. A diferencia de
+  -- `fecha_ultima_posicion`, no avanza si el dispositivo vuelve a reportar el
+  -- mismo lugar. El trigger la mantiene sin depender del mapeo de n8n.
+  ultima_movimiento_en   timestamptz not null default now(),
+
   -- `Motoboy.UltimaInfo`, tal como viene. Es lo que el sistema sabe del último
   -- reporte del dispositivo.
   ultima_info            text,
@@ -136,6 +143,29 @@ create table if not exists public.tracker_drivers (
 create index if not exists tracker_drivers_dia_idx
   on public.tracker_drivers (fecha_operacion, activo);
 create index if not exists tracker_drivers_sync_idx   on public.tracker_drivers (sync_id);
+
+-- ---------------------------------------------------------------------------
+-- Inconvenientes confirmados durante la ruta
+--
+-- Una fila silencia la alerta de ese driver solamente durante esa jornada.
+-- No es un botón de descartar: el texto significa que operaciones habló con
+-- la persona y confirmó que no seguirá por rotura, robo, choque u otro motivo.
+-- ---------------------------------------------------------------------------
+create table if not exists public.tracker_demoras (
+  id                       uuid primary key default gen_random_uuid(),
+  fecha_operacion          date not null,
+  id_motoboy               bigint not null references public.tracker_drivers (id_motoboy),
+  nombre_driver            text not null,
+  motivo                   text not null check (length(btrim(motivo)) between 5 and 1000),
+  ultima_movimiento_en     timestamptz not null,
+  paquetes_sin_visitar    integer not null check (paquetes_sin_visitar > 0),
+  registrado_por           text not null,
+  registrado_en            timestamptz not null default now(),
+  unique (fecha_operacion, id_motoboy)
+);
+
+create index if not exists tracker_demoras_fecha_idx
+  on public.tracker_demoras (fecha_operacion, registrado_en desc);
 
 -- ---------------------------------------------------------------------------
 -- Paquetes de las rutas del día
@@ -257,6 +287,35 @@ begin
     new.primera_deteccion := old.primera_deteccion;
   end if;
 
+  /*
+   * Movimiento real del repartidor.
+   *
+   * Un reporte nuevo en el mismo punto mantiene la marca anterior. Se toma un
+   * piso de 50 m para que el ruido normal del GPS no reinicie el reloj. Al
+   * cambiar la jornada se abre una ventana nueva aunque empiece en el mismo
+   * lugar, y un driver sin GPS recibe igualmente treinta minutos de gracia.
+   */
+  if tg_table_name = 'tracker_drivers' then
+    if tg_op = 'INSERT' then
+      new.ultima_movimiento_en := coalesce(new.fecha_ultima_posicion, now());
+    elsif new.fecha_operacion is distinct from old.fecha_operacion then
+      new.ultima_movimiento_en := coalesce(new.fecha_ultima_posicion, now());
+    elsif new.latitud is not null and new.longitud is not null and (
+      old.latitud is null or old.longitud is null or
+      sqrt(
+        power((new.latitud - old.latitud) * 111320, 2) +
+        power(
+          (new.longitud - old.longitud) * 111320 * cos(radians(new.latitud)),
+          2
+        )
+      ) >= 50
+    ) then
+      new.ultima_movimiento_en := coalesce(new.fecha_ultima_posicion, now());
+    else
+      new.ultima_movimiento_en := old.ultima_movimiento_en;
+    end if;
+  end if;
+
   -- `retirado_de_ruta_en` acompaña al booleano en vez de escribirse aparte. Un
   -- paquete que vuelve a la ruta —se reasigna, se reprograma— tiene que perder
   -- la marca de retiro, o quedaría a la vez activo y retirado.
@@ -309,6 +368,8 @@ select
     when d.fecha_ultima_posicion is null then null
     else floor(extract(epoch from (now() - d.fecha_ultima_posicion)) / 60)::integer
   end as minutos_sin_actualizar,
+  floor(extract(epoch from (now() - d.ultima_movimiento_en)) / 60)::integer
+    as minutos_sin_movimiento,
   case
     when d.latitud is null or d.longitud is null      then 'SIN_POSICION'
     when d.fecha_ultima_posicion is null              then 'SIN_FECHA'
@@ -640,6 +701,7 @@ $$;
 alter table public.tracker_drivers          enable row level security;
 alter table public.tracker_paquetes         enable row level security;
 alter table public.tracker_sincronizaciones enable row level security;
+alter table public.tracker_demoras          enable row level security;
 
 -- De `public` y no solo de `anon`: PostgreSQL le concede EXECUTE a PUBLIC en
 -- cada función nueva, así que revocar rol por rol deja la puerta abierta para

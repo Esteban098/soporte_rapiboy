@@ -62,6 +62,20 @@ la del sábado porque el domingo no hay operación. Desde las 15:00 muestra la
 ruta de hoy. Un repartidor que tenga posición o reserva pero ningún paquete
 activo no aparece en esta pantalla.
 
+Entre las 15:00 y las 00:00 de México, una fila recibe contorno rojo si el
+driver lleva 30 minutos sin moverse y todavía tiene paquetes sin visitar. El
+selector **Ordenar por** permite llevar esos demorados arriba. La coordenada
+debe desplazarse al menos 50 metros para contar como movimiento y no reaccionar
+al ruido normal del GPS.
+
+La web revisa la jornada cada 10 minutos. Si detecta una demora, pide contactar
+al driver y permite volver a recordar en 10 minutos. El motivo se registra
+únicamente cuando el driver confirmó un inconveniente por el que no seguirá la
+ruta —por ejemplo rotura, robo o choque—; una casilla obliga a confirmar esa
+condición. Al guardarlo persisten su ID, nombre, texto, operador y contexto de
+la demora, y no se vuelve a notificar durante esa jornada. El contorno rojo se
+mantiene mientras siga detenido y con paquetes pendientes.
+
 La pantalla lee la jornada desde sus tablas propias de Supabase. Es una copia
 operativa que n8n arma directamente desde RapiboyData; no cruza ni consulta
 `mensual` o `mensual_historico` para los viajes, sus estados o su evidencia.
@@ -73,6 +87,14 @@ repartidores y todas sus paradas encima, el mapa completo no dice nada. La
 pantalla empieza a servir cuando alguien elige a quién quiere mirar, con las
 casillas del panel, el buscador por repartidor, dirección o **ID de viaje** de
 paquete, o **Seleccionar todos**.
+
+Cuando la búsqueda identifica un único paquete, el tablero selecciona a su
+repartidor, resalta la parada y centra el mapa en su destino. La ficha se abre
+al tocar el marcador, para no interrumpir mientras se escribe. Además
+del ID y el domicilio, busca por tracking, referencia auxiliar, teléfono,
+ciudad, colonia, código postal, tienda, destinatario, estado y polígono. Una
+coincidencia compartida por varios paquetes filtra la lista, pero no elige uno
+a ciegas.
 
 El identificador visible del paquete es siempre `Viaje.Id` (`id_viaje`), por
 ejemplo `30448011`. `ReferenciaExterna` se conserva como `tracking_id` para
@@ -212,9 +234,9 @@ quedaría corrido durante medio año sin que nada avise.
 
 `diaDeOperacion()` resuelve hoy en México y `diaDePaquetes()` aplica el corte
 de las 15:00 y omite el domingo al retroceder un lunes. Ambos días viajan como
-texto a n8n. El flujo de paquetes corre a las 07:15 para actualizar los
-estados de la última ruta operativa y a las 15:00 para cargar la ruta nueva;
-el de posiciones corre a las 06:45 y nuevamente a las 15:00. Al arrancar por
+texto a n8n. El flujo de paquetes corre a las 07:15 y el de posiciones a las
+06:45. Además, ambos corren cada 30 minutos entre las 15:00 y las 23:30, de
+lunes a sábado, para refrescar la ruta y detectar movimiento. Al arrancar por
 horario calculan la misma regla con la misma zona.
 
 ### Si una sincronización queda trabada
@@ -248,7 +270,8 @@ en vez de nodo por nodo.
 3. En una base que ya tenía el tracker, correr también
    `supabase/migracion-07-tracker-detalle-sistema.sql` y
    `supabase/migracion-08-tracker-destino-laboral.sql` y
-   `supabase/migracion-09-tracker-snapshot-pendientes.sql` antes de importar el
+   `supabase/migracion-09-tracker-snapshot-pendientes.sql` y
+   `supabase/migracion-10-tracker-demoras.sql` antes de importar el
    flujo de paquetes actualizado.
 4. Importar `../n8n/08-tracker-drivers.json` y `../n8n/09-tracker-paquetes.json`,
    elegir la credencial Postgres en los nodos morados y activarlos.
@@ -505,7 +528,7 @@ permite cambiar de origen con variables de entorno y comparar los dos en
 paralelo: con los mismos datos, los tres dan exactamente los mismos números.
 
 El **Live tracker** es la excepción a todo esto: solo funciona con Supabase, no
-pasa por el normalizador y no tiene caché. Lee sus tres tablas propias en cada
+pasa por el normalizador y no tiene caché. Lee sus cuatro tablas propias en cada
 pedido, porque el sentido de la pantalla es ver dónde está la gente ahora y una
 copia de hace una hora sería el mapa de la mañana. Con el origen en `sheet` o
 `fixture`, la pantalla lo explica en vez de mostrar un error.
@@ -709,16 +732,19 @@ Son otros dos, con su propio endpoint cada uno, y no pasan por
 POST /api/live-tracker/sync/drivers     -> N8N_WEBHOOKS_TRACKER_POSICIONES
 POST /api/live-tracker/sync/shipments   -> N8N_WEBHOOKS_TRACKER_PAQUETES
 GET  /api/live-tracker/datos            -> vuelve a leer la jornada
+POST /api/live-tracker/demoras          -> registra un inconveniente confirmado
 ```
 
-Los tres piden sesión y, además, están detrás del proxy. Se comprueba en los dos
+Los cuatro piden sesión y, además, están detrás del proxy. Se comprueba en los dos
 lados porque un endpoint se puede invocar por HTTP directo y porque el matcher
 del proxy es una línea de configuración.
 
-Ninguno escribe en Supabase. Disparan el flujo, esperan a que **termine de
+Los dos endpoints `sync` no escriben en Supabase. Disparan el flujo, esperan a que **termine de
 verdad** —`Response Mode: Last Node`— y devuelven el resumen que dejó la corrida
 en `tracker_sincronizaciones`: leídos, insertados, actualizados, desactivados,
 omitidos. Quien escribe es n8n, con su credencial y dentro de su transacción.
+`POST /demoras` es la excepción acotada: revalida la demora en el servidor y
+escribe solo el motivo confirmado en `tracker_demoras`.
 
 Dos corridas del mismo tipo no pueden solaparse: `tracker_abrir_sync()` toma un
 lock en la base, y la segunda recibe un 409 con un mensaje que se entiende, no

@@ -1,6 +1,7 @@
 import "server-only";
 import {
   TABLA_TRACKER_CHOFERES,
+  TABLA_TRACKER_DEMORAS,
   TABLA_TRACKER_PAQUETES,
   TABLA_TRACKER_SYNC,
   VISTA_TRACKER_DRIVERS,
@@ -19,6 +20,7 @@ import {
   secuenciaConfiable,
   type Clasificacion,
   type DriverFila,
+  type MotivoDemoraFila,
   type PaqueteFila,
   type Parada,
   type Propuesta,
@@ -46,6 +48,8 @@ export type DriverDelTracker = {
   fechaPosicion: string | null;
   estadoPosicion: DriverFila["estado_posicion"];
   minutosSinActualizar: number | null;
+  fechaUltimoMovimiento: string | null;
+  minutosSinMovimiento: number | null;
   ultimaInfo: string | null;
   idReserva: number | null;
 
@@ -70,6 +74,8 @@ export type DriverDelTracker = {
 
   paquetes: PaqueteDelTracker[];
   resumen: Resumen;
+  /** Motivo confirmado que silencia nuevas alertas durante esta jornada. */
+  demoraInformada: MotivoDemoraFila | null;
 
   /** El próximo destino, cuando el orden alcanza para decidirlo. */
   proximo: PaqueteDelTracker | null;
@@ -148,9 +154,13 @@ export async function leerTracker(diaForzado?: string, momento = new Date()): Pr
    * cuál falta y qué correr.
    */
   const faltan: string[] = [];
-  const opcional = async <T>(tabla: string, orden: string): Promise<T[]> => {
+  const opcional = async <T>(
+    tabla: string,
+    parametros: Record<string, string>,
+    orden: string,
+  ): Promise<T[]> => {
     try {
-      return await consultarTodo<T>(tabla, {}, orden);
+      return await consultarTodo<T>(tabla, parametros, orden);
     } catch (error) {
       if (error instanceof TablaFaltante) {
         faltan.push(tabla);
@@ -160,7 +170,7 @@ export async function leerTracker(diaForzado?: string, momento = new Date()): Pr
     }
   };
 
-  const [drivers, paquetes, sincronizaciones, choferes] = await Promise.all([
+  const [drivers, paquetes, sincronizaciones, choferes, demoras] = await Promise.all([
     consultarTodo<DriverFila>(
       VISTA_TRACKER_DRIVERS,
       { activo: "is.true" },
@@ -189,7 +199,16 @@ export async function leerTracker(diaForzado?: string, momento = new Date()): Pr
      * Si todavía no existe -la migración 06 no se corrió-, la pantalla funciona
      * igual y lo dice. Un dato accesorio no puede tirar abajo el mapa entero.
      */
-    opcional<DomicilioFila>(TABLA_TRACKER_CHOFERES, "id_motoboy.asc"),
+    opcional<DomicilioFila>(TABLA_TRACKER_CHOFERES, {}, "id_motoboy.asc"),
+
+    // Es opcional durante el despliegue para que instalar primero la web no
+    // tire abajo el mapa; la pantalla avisa qué migración falta y no permite
+    // silenciar alertas hasta que exista.
+    opcional<MotivoDemoraFila>(
+      TABLA_TRACKER_DEMORAS,
+      { fecha_operacion: `eq.${dia}` },
+      "id_motoboy.asc",
+    ),
   ]);
 
   /*
@@ -201,6 +220,7 @@ export async function leerTracker(diaForzado?: string, momento = new Date()): Pr
   const paquetesVisibles = paquetes;
 
   const domicilios = new Map(choferes.map((c) => [c.id_motoboy, c]));
+  const demoraPorDriver = new Map(demoras.map((demora) => [demora.id_motoboy, demora]));
 
   const paquetesConDetalle: PaqueteDelTracker[] = paquetesVisibles;
 
@@ -217,7 +237,12 @@ export async function leerTracker(diaForzado?: string, momento = new Date()): Pr
   }
 
   const armados = drivers.map((fila) =>
-    armarDriver(fila, porDriver.get(fila.id_motoboy) ?? [], domicilios.get(fila.id_motoboy)),
+    armarDriver(
+      fila,
+      porDriver.get(fila.id_motoboy) ?? [],
+      domicilios.get(fila.id_motoboy),
+      demoraPorDriver.get(fila.id_motoboy),
+    ),
   );
 
   return {
@@ -251,6 +276,7 @@ function armarDriver(
   fila: DriverFila,
   suyos: PaqueteDelTracker[],
   casa: DomicilioFila | undefined,
+  demora: MotivoDemoraFila | undefined,
 ): DriverDelTracker {
   /*
    * La clasificación se recalcula al leer aunque n8n ya la haya guardado.
@@ -292,6 +318,8 @@ function armarDriver(
     fechaPosicion: fila.fecha_ultima_posicion,
     estadoPosicion: posicion ? fila.estado_posicion : "SIN_POSICION",
     minutosSinActualizar: fila.minutos_sin_actualizar,
+    fechaUltimoMovimiento: fila.ultima_movimiento_en,
+    minutosSinMovimiento: fila.minutos_sin_movimiento,
     ultimaInfo: fila.ultima_info,
     idReserva: fila.id_reserva,
 
@@ -310,6 +338,7 @@ function armarDriver(
 
     paquetes: clasificados,
     resumen: resumirRuta(clasificados),
+    demoraInformada: demora ?? null,
     proximo: clasificados.find((p) => p.clasificacion === "PROXIMO") ?? null,
     recorrido,
     secuencia: secuenciaConfiable(clasificados),

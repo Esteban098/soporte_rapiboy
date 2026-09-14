@@ -71,6 +71,19 @@ export function MapaTracker({
 
   /** Todo lo que hay que dejar dentro del cuadro para la selección actual. */
   const encuadrar = useCallback(() => {
+    const paqueteEnfocado = visibles
+      .flatMap((driver) => driver.paquetes)
+      .find((paquete) => paquete.id_viaje === paqueteActivo);
+    if (
+      paqueteEnfocado?.latitud_destino != null &&
+      paqueteEnfocado.longitud_destino != null
+    ) {
+      return encuadreDe(
+        [proyectar(paqueteEnfocado.latitud_destino, paqueteEnfocado.longitud_destino)],
+        ventana,
+      );
+    }
+
     const puntos: { x: number; y: number }[] = [];
 
     // Con la propuesta prendida la línea arranca en la bodega, así que la
@@ -93,13 +106,13 @@ export function MapaTracker({
     }
 
     return encuadreDe(puntos, ventana);
-  }, [visibles, mostrarInactivos, mostrarPropuesta, proyectar, ventana]);
+  }, [visibles, paqueteActivo, mostrarInactivos, mostrarPropuesta, proyectar, ventana]);
 
   return (
     <>
       <LienzoMapa
         ventana={ventana}
-        clave={`${seleccionados.join(",")}|${mostrarInactivos}|${mostrarPropuesta}`}
+        clave={`${seleccionados.join(",")}|${mostrarInactivos}|${mostrarPropuesta}|${paqueteActivo ?? ""}`}
         encuadrar={encuadrar}
         etiqueta={
           visibles.length === 0
@@ -168,7 +181,7 @@ function RutaDeDriver({
     (p) =>
       p.latitud_destino != null &&
       p.longitud_destino != null &&
-      (mostrarInactivos || !ocultable(p.clasificacion)),
+      (mostrarInactivos || !ocultable(p.clasificacion) || p.id_viaje === paqueteActivo),
   );
 
   /*

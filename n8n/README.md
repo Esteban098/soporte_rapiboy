@@ -14,8 +14,8 @@ File**.
 | `05-refresco-cancelados-historico.json` | Ídem para las cancelaciones | Solo a pedido, desde **Cancelados históricos** |
 | `06-colectas.json` | Calcula quién colecta cada comercio y trae las colectas de 30 días | 12:00 de lunes a viernes, y desde **Colectas** |
 | `07-firefox-gestiones.json` | Interpreta el ID y los datos aportados por la tienda, y actualiza solo las columnas de soporte de `mensual` | Al enviar una selección desde la extensión de Firefox |
-| `08-tracker-drivers.json` | Repartidores de la ruta visible y su última posición conocida | 6:45 y 15:00, y desde **Actualizar posiciones** del Live tracker |
-| `09-tracker-paquetes.json` | Actualiza la última ruta operativa —el sábado si es lunes— o reconcilia la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 7:15 y 15:00, y desde **Actualizar paquetes** del Live tracker |
+| `08-tracker-drivers.json` | Repartidores de la ruta visible y su última posición conocida | 6:45; cada 30 min de 15:00 a 23:30, lunes a sábado; y desde **Actualizar posiciones** |
+| `09-tracker-paquetes.json` | Actualiza la última ruta operativa —el sábado si es lunes— o reconcilia la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 7:15; cada 30 min de 15:00 a 23:30, lunes a sábado; y desde **Actualizar paquetes** |
 
 ## Antes de importar
 
@@ -223,10 +223,11 @@ select '{{ $json.sync_id }}'::uuid as sync_id, '{{ $json.dia }}'::date as dia;
 
 Cada flujo tiene entradas independientes que comparten la misma cadena de
 nodos: uno o más horarios y un webhook, que es el botón del tablero. El flujo
-de posiciones corre a las 06:45 y a las 15:00. El de paquetes corre a las
-07:15 para actualizar los estados de la ruta guardada de ayer y a las 15:00
-para cargar la ruta de hoy. Las entregas de ayer se conservan en la foto de la
-ruta; la actualización cambia su estado, no el total.
+de posiciones corre a las 06:45 y el de paquetes a las 07:15 para actualizar
+la ruta guardada. Entre las 15:00 y las 23:30, de lunes a sábado, ambos corren
+cada 30 minutos para refrescar posiciones y paquetes de la ruta actual. Las
+entregas de ayer se conservan en la foto de la ruta; la actualización cambia
+su estado, no el total.
 Los dos workflows fijan `America/Mexico_City` en sus ajustes para que esos
 horarios no dependan de la zona configurada en el servidor de n8n.
 

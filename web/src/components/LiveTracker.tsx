@@ -5,9 +5,14 @@ import {
   colorDeDriver,
   entregadosPorHora,
   enlaceAlOperador,
+  estadoDemoraDriver,
   estadosDelSistemaSinCategoria,
+  normalizarBusqueda,
+  paqueteCoincideConBusqueda,
+  paqueteUnicoDeBusqueda,
   porcentajeEntregado,
   type Sincronizacion,
+  type EstadoDemora,
   type Ventana,
 } from "@/lib/tracker";
 import type {
@@ -35,7 +40,7 @@ import estilos from "./live-tracker.module.css";
 type Sync = "posiciones" | "paquetes";
 
 type Aviso = { tono: "ok" | "error"; texto: string };
-type OrdenLista = "porcentaje" | "total" | "entregados" | "actualizacion";
+type OrdenLista = "porcentaje" | "total" | "entregados" | "actualizacion" | "demora";
 type DireccionOrden = "desc" | "asc";
 
 export function LiveTracker({
@@ -69,9 +74,12 @@ export function LiveTracker({
    */
   const [mostrarPropuesta, setMostrarPropuesta] = useState(false);
   const [paqueteActivo, setPaqueteActivo] = useState<number | null>(null);
+  const [paqueteBuscado, setPaqueteBuscado] = useState<number | null>(null);
   const [poligonoActivo, setPoligonoActivo] = useState<{ nombre: string; zona: string } | null>(null);
   const [corriendo, setCorriendo] = useState<Sync | null>(null);
   const [aviso, setAviso] = useState<Aviso | null>(null);
+  const [ahora, setAhora] = useState(() => Date.now());
+  const [recordatorios, setRecordatorios] = useState<Record<number, number>>({});
 
   /*
    * El candado del doble clic.
@@ -82,29 +90,54 @@ export function LiveTracker({
    */
   const enVuelo = useRef(false);
 
+  const demoras = useMemo(
+    () =>
+      new Map(
+        datos.drivers.map((driver) => [
+          driver.id,
+          estadoDemoraDriver(driver, new Date(ahora)),
+        ]),
+      ),
+    [datos.drivers, ahora],
+  );
+
   const filtrados = useMemo(() => {
-    const texto = busqueda.trim().toLowerCase();
+    const texto = normalizarBusqueda(busqueda);
     const coinciden = texto
       ? datos.drivers.filter(
           (d) =>
-            d.nombre.toLowerCase().includes(texto) ||
+            normalizarBusqueda(d.nombre).includes(texto) ||
             String(d.id).includes(texto) ||
-            d.paquetes.some(
-              (p) =>
-                p.direccion?.toLowerCase().includes(texto) ||
-                String(p.id_viaje).includes(texto),
-            ),
+            d.paquetes.some((p) => paqueteCoincideConBusqueda(p, texto)),
         )
       : datos.drivers;
-    return [...coinciden].sort((a, b) => compararDrivers(a, b, orden, direccionOrden));
-  }, [datos.drivers, busqueda, orden, direccionOrden]);
+    return [...coinciden].sort((a, b) =>
+      compararDrivers(a, b, orden, direccionOrden, ahora),
+    );
+  }, [datos.drivers, busqueda, orden, direccionOrden, ahora]);
 
   const elegidos = useMemo(
     () =>
       datos.drivers
         .filter((d) => seleccion.includes(d.id))
-        .sort((a, b) => compararDrivers(a, b, orden, direccionOrden)),
-    [datos.drivers, seleccion, orden, direccionOrden],
+        .sort((a, b) => compararDrivers(a, b, orden, direccionOrden, ahora)),
+    [datos.drivers, seleccion, orden, direccionOrden, ahora],
+  );
+
+  const demoraParaNotificar = useMemo(
+    () =>
+      datos.drivers
+        .map((driver) => ({ driver, estado: demoras.get(driver.id) }))
+        .filter(
+          (item): item is { driver: DriverDelTracker; estado: EstadoDemora } =>
+            item.estado?.notificar === true && (recordatorios[item.driver.id] ?? 0) <= ahora,
+        )
+        .sort(
+          (a, b) =>
+            b.estado.minutosSinMovimiento - a.estado.minutosSinMovimiento ||
+            a.driver.nombre.localeCompare(b.driver.nombre, "es"),
+        )[0] ?? null,
+    [datos.drivers, demoras, recordatorios, ahora],
   );
 
   const paqueteSeleccionado = useMemo(
@@ -116,6 +149,13 @@ export function LiveTracker({
             .find(({ paquete }) => paquete.id_viaje === paqueteActivo) ?? null,
     [datos.drivers, paqueteActivo],
   );
+
+  const paqueteEnMapa = paqueteActivo ?? paqueteBuscado;
+
+  const seleccionarPaquete = useCallback((id: number | null) => {
+    setPaqueteBuscado(null);
+    setPaqueteActivo(id);
+  }, []);
 
   const horas = useMemo(
     () => entregadosPorHora((elegidos.length > 0 ? elegidos : datos.drivers).flatMap((d) => d.paquetes)),
@@ -135,6 +175,23 @@ export function LiveTracker({
      */
     setDatos(cuerpo.datos as DatosDelTracker);
   }, []);
+
+  // La pantalla abierta envejece con el reloj y relee la base cada diez
+  // minutos. n8n actualiza la foto cada treinta; este pulso hace que la alerta
+  // aparezca sin exigir una recarga manual y que un recordatorio vuelva a hora.
+  useEffect(() => {
+    const reloj = window.setInterval(() => setAhora(Date.now()), 60_000);
+    return () => window.clearInterval(reloj);
+  }, []);
+
+  useEffect(() => {
+    const refresco = window.setInterval(() => {
+      releer()
+        .then(() => setAhora(Date.now()))
+        .catch(() => {});
+    }, 10 * 60_000);
+    return () => window.clearInterval(refresco);
+  }, [releer]);
 
   async function sincronizar(cual: Sync) {
     if (enVuelo.current) return;
@@ -174,12 +231,50 @@ export function LiveTracker({
 
   return (
     <div className={estilos.pantalla}>
+      {demoraParaNotificar ? (
+        <AlertaDemora
+          key={demoraParaNotificar.driver.id}
+          driver={demoraParaNotificar.driver}
+          estado={demoraParaNotificar.estado}
+          puedeRegistrar={!datos.tablasFaltantes.includes("tracker_demoras")}
+          onRecordar={() =>
+            setRecordatorios((actuales) => ({
+              ...actuales,
+              [demoraParaNotificar.driver.id]: Date.now() + 10 * 60_000,
+            }))
+          }
+          onGuardado={async () => {
+            await releer();
+            setAhora(Date.now());
+          }}
+        />
+      ) : null}
+
       <aside className={estilos.panel} aria-label="Repartidores del día">
         <div className={estilos.panelBarra}>
           <input
             className={estilos.buscador}
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => {
+              const valor = e.target.value;
+              setBusqueda(valor);
+              setPaqueteBuscado(null);
+
+              const texto = normalizarBusqueda(valor);
+              const coincideConDriver = datos.drivers.some(
+                (driver) =>
+                  normalizarBusqueda(driver.nombre).includes(texto) ||
+                  String(driver.id).includes(texto),
+              );
+              if (!texto || coincideConDriver) return;
+
+              const encontrado = paqueteUnicoDeBusqueda(datos.drivers, valor);
+              setPaqueteBuscado(encontrado?.paquete.id_viaje ?? null);
+              if (!encontrado) return;
+              setSeleccion([encontrado.driver.id]);
+              setPaqueteActivo(null);
+              setPoligonoActivo(null);
+            }}
             placeholder="Buscar repartidor, dirección o ID de viaje"
             aria-label="Buscar por repartidor, dirección o ID de viaje"
             type="search"
@@ -194,6 +289,7 @@ export function LiveTracker({
               <option value="total">Paquetes totales</option>
               <option value="entregados">Paquetes entregados</option>
               <option value="actualizacion">Última actualización</option>
+              <option value="demora">Demorados sin movimiento</option>
             </select>
             <button
               type="button"
@@ -222,6 +318,7 @@ export function LiveTracker({
             onClick={() => {
               setSeleccion([]);
               setPaqueteActivo(null);
+              setPaqueteBuscado(null);
             }}
             disabled={seleccion.length === 0}
           >
@@ -297,7 +394,7 @@ export function LiveTracker({
           Ver ruta propuesta por cercanía
         </label>
 
-        {datos.tablasFaltantes.length > 0 ? (
+        {datos.tablasFaltantes.includes("tracker_choferes") ? (
           /*
            * Decir qué falta y qué correr, en vez de dejar la pantalla a medias
            * sin explicación. Sin esto, un mapa sin domicilios se lee como «no
@@ -305,8 +402,15 @@ export function LiveTracker({
            */
           <p className={estilos.aviso} role="status">
             Falta correr <code>supabase/migracion-06-lugares.sql</code>: no existe{" "}
-            {datos.tablasFaltantes.join(" ni ")}. El mapa funciona igual, pero sin los
-            domicilios de los repartidores.
+            tracker_choferes. El mapa funciona igual, pero sin los domicilios de los
+            repartidores.
+          </p>
+        ) : null}
+
+        {datos.tablasFaltantes.includes("tracker_demoras") ? (
+          <p className={`${estilos.aviso} ${estilos.avisoError}`} role="status">
+            Falta correr <code>supabase/migracion-10-tracker-demoras.sql</code>. Las alertas se
+            muestran, pero no se puede registrar el motivo hasta instalarla.
           </p>
         ) : null}
 
@@ -323,6 +427,7 @@ export function LiveTracker({
                 key={driver.id}
                 driver={driver}
                 elegido={seleccion.includes(driver.id)}
+                demora={demoras.get(driver.id)?.demorado === true}
                 onAlternar={() =>
                   setSeleccion((antes) =>
                     antes.includes(driver.id)
@@ -350,10 +455,11 @@ export function LiveTracker({
           seleccionados={seleccion}
           mostrarInactivos={mostrarInactivos}
           mostrarPropuesta={mostrarPropuesta}
-          paqueteActivo={paqueteActivo}
-          onPaquete={setPaqueteActivo}
+          paqueteActivo={paqueteEnMapa}
+          onPaquete={seleccionarPaquete}
           onPoligono={(poligono) => {
             setPaqueteActivo(null);
+            setPaqueteBuscado(null);
             setPoligonoActivo(poligono);
           }}
         >
@@ -370,8 +476,8 @@ export function LiveTracker({
                 driver={driver}
                 mostrarInactivos={mostrarInactivos}
                 mostrarPropuesta={mostrarPropuesta}
-                paqueteActivo={paqueteActivo}
-                onPaquete={setPaqueteActivo}
+                paqueteActivo={paqueteEnMapa}
+                onPaquete={seleccionarPaquete}
               />
             ))}
           </div>
@@ -397,10 +503,12 @@ export function LiveTracker({
 function FilaDriver({
   driver,
   elegido,
+  demora,
   onAlternar,
 }: {
   driver: DriverDelTracker;
   elegido: boolean;
+  demora: boolean;
   onAlternar: () => void;
 }) {
   const color = colorDeDriver(driver.id);
@@ -408,7 +516,9 @@ function FilaDriver({
 
   return (
     <li>
-      <label className={`${estilos.fila} ${elegido ? estilos.filaElegida : ""}`}>
+      <label
+        className={`${estilos.fila} ${elegido ? estilos.filaElegida : ""} ${demora ? estilos.filaDemorada : ""}`}
+      >
         <input type="checkbox" checked={elegido} onChange={onAlternar} />
         <span className={estilos.chip} style={{ background: color }} aria-hidden="true" />
         <span className={estilos.filaTexto}>
@@ -436,6 +546,7 @@ function compararDrivers(
   b: DriverDelTracker,
   orden: OrdenLista,
   direccion: DireccionOrden,
+  ahora: number,
 ): number {
   let diferencia = 0;
   if (orden === "porcentaje") {
@@ -444,6 +555,12 @@ function compararDrivers(
     diferencia = b.resumen.enRuta - a.resumen.enRuta;
   } else if (orden === "entregados") {
     diferencia = b.resumen.entregados - a.resumen.entregados;
+  } else if (orden === "demora") {
+    const demoraA = estadoDemoraDriver(a, new Date(ahora));
+    const demoraB = estadoDemoraDriver(b, new Date(ahora));
+    diferencia =
+      Number(demoraB.demorado) - Number(demoraA.demorado) ||
+      demoraB.minutosSinMovimiento - demoraA.minutosSinMovimiento;
   } else {
     diferencia = fechaNumero(b.fechaPosicion) - fechaNumero(a.fechaPosicion);
   }
@@ -454,6 +571,122 @@ function fechaNumero(fecha: string | null): number {
   if (!fecha) return -1;
   const numero = new Date(fecha).getTime();
   return Number.isFinite(numero) ? numero : -1;
+}
+
+function AlertaDemora({
+  driver,
+  estado,
+  puedeRegistrar,
+  onRecordar,
+  onGuardado,
+}: {
+  driver: DriverDelTracker;
+  estado: EstadoDemora;
+  puedeRegistrar: boolean;
+  onRecordar: () => void;
+  onGuardado: () => Promise<void>;
+}) {
+  const [motivo, setMotivo] = useState("");
+  const [confirmado, setConfirmado] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function guardar(evento: React.FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    if (!confirmado) {
+      setError("Confirmá que el driver informó que no continuará la ruta.");
+      return;
+    }
+
+    setGuardando(true);
+    setError(null);
+    try {
+      const respuesta = await fetch("/api/live-tracker/demoras", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          idDriver: driver.id,
+          motivo,
+          confirmaQueNoContinua: confirmado,
+        }),
+      });
+      const cuerpo = await respuesta.json().catch(() => null);
+      if (!respuesta.ok || !cuerpo?.ok) {
+        setError(cuerpo?.error ?? "No se pudo guardar el motivo.");
+        return;
+      }
+      await onGuardado();
+    } catch {
+      setError("No se pudo guardar el motivo.");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <section
+      className={estilos.alertaDemora}
+      role="alertdialog"
+      aria-labelledby={`alerta-demora-${driver.id}`}
+      aria-describedby={`detalle-demora-${driver.id}`}
+    >
+      <div className={estilos.alertaDemoraCabecera}>
+        <div>
+          <span className={estilos.alertaDemoraEyebrow}>Driver sin movimiento</span>
+          <h2 id={`alerta-demora-${driver.id}`}>{driver.nombre}</h2>
+        </div>
+        <button type="button" onClick={onRecordar} disabled={guardando}>
+          Recordar en 10 min
+        </button>
+      </div>
+
+      <p id={`detalle-demora-${driver.id}`}>
+        Lleva {estado.minutosSinMovimiento} min sin desplazarse y conserva {estado.paquetesSinVisitar}{" "}
+        paquete{estado.paquetesSinVisitar === 1 ? "" : "s"} sin visitar. Comunicate con el driver.
+      </p>
+
+      <form onSubmit={guardar}>
+        <label>
+          <span>Motivo confirmado</span>
+          <textarea
+            value={motivo}
+            onChange={(evento) => setMotivo(evento.target.value)}
+            rows={3}
+            minLength={5}
+            maxLength={1000}
+            required
+            disabled={guardando || !puedeRegistrar}
+            placeholder="Ej.: rotura de la moto, robo o choque. No completar si todavía puede continuar."
+          />
+        </label>
+
+        <label className={estilos.confirmacionDemora}>
+          <input
+            type="checkbox"
+            checked={confirmado}
+            onChange={(evento) => setConfirmado(evento.target.checked)}
+            disabled={guardando || !puedeRegistrar}
+          />
+          Confirmo que el driver informó un inconveniente y no continuará la ruta.
+        </label>
+
+        {!puedeRegistrar ? (
+          <p className={estilos.alertaDemoraError}>
+            Falta instalar <code>web/supabase/migracion-10-tracker-demoras.sql</code>.
+          </p>
+        ) : null}
+        {error ? <p className={estilos.alertaDemoraError}>{error}</p> : null}
+
+        <button
+          type="submit"
+          className={estilos.guardarDemora}
+          disabled={guardando || !puedeRegistrar || !confirmado || motivo.trim().length < 5}
+        >
+          {guardando ? "Guardando…" : "Registrar inconveniente y dejar de notificar"}
+        </button>
+      </form>
+    </section>
+  );
 }
 
 function EntregasPorHora({
@@ -515,6 +748,7 @@ function DetalleDriver({
   const visibles = driver.paquetes.filter(
     (p) =>
       mostrarInactivos ||
+      p.id_viaje === paqueteActivo ||
       (p.clasificacion !== "CANCELADO" && p.clasificacion !== "RETIRADO_DE_RUTA"),
   );
 
@@ -542,6 +776,15 @@ function DetalleDriver({
           ? "Su domicilio está marcado en el mapa con una casita."
           : "Sin domicilio cargado en el mapa de choferes."}
       </p>
+
+      {driver.demoraInformada ? (
+        <p className={estilos.demoraInformada}>
+          <strong>Inconveniente registrado:</strong> {driver.demoraInformada.motivo}
+          <span>
+            {` · ${driver.demoraInformada.registrado_por} · ${fechaHoraMexico(driver.demoraInformada.registrado_en)}`}
+          </span>
+        </p>
+      ) : null}
 
       <div className={estilos.cifras}>
         <Cifra etiqueta="Paquetes" valor={resumen.enRuta} />
@@ -917,6 +1160,18 @@ function textoAntiguedad(driver: DriverDelTracker): string {
   });
   if (minutos == null) return hora;
   return minutos < 60 ? `${hora} (hace ${minutos} min)` : `${hora} (hace ${Math.floor(minutos / 60)} h)`;
+}
+
+function fechaHoraMexico(fecha: string): string {
+  const instante = new Date(fecha);
+  if (!Number.isFinite(instante.getTime())) return "fecha no disponible";
+  return new Intl.DateTimeFormat("es-MX", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Mexico_City",
+  }).format(instante);
 }
 
 function textoCorto(driver: DriverDelTracker): string {

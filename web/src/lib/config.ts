@@ -126,6 +126,10 @@ export const VISTA_TRACKER_DRIVERS =
 export const TABLA_TRACKER_PAQUETES =
   process.env.SUPABASE_TABLA_TRACKER_PAQUETES?.trim() || "tracker_paquetes";
 
+/** Motivos confirmados que silencian una alerta de detención para esa jornada. */
+export const TABLA_TRACKER_DEMORAS =
+  process.env.SUPABASE_TABLA_TRACKER_DEMORAS?.trim() || "tracker_demoras";
+
 /**
  * Tiendas, dropoff y la bodega, con su punto en el mapa.
  *

@@ -44,8 +44,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   quedan vacíos, se buscan en Mensual o Histórico. `abierto_en` se reinicia al
   reabrir y el tiempo de resolución es la diferencia hasta `atendido_en`.
   Instalar `supabase/migracion-04-seguimiento-semanal.sql` en bases existentes.
-- El **live tracker** vive en tres tablas propias —`tracker_drivers`,
-  `tracker_paquetes`, `tracker_sincronizaciones`— y no toca ninguna de las
+- El **live tracker** vive en cuatro tablas propias —`tracker_drivers`,
+  `tracker_paquetes`, `tracker_sincronizaciones`, `tracker_demoras`— y no toca ninguna de las
   anteriores. Es la foto de la jornada en curso, no un histórico: la clave de
   repartidores es `id_motoboy` y la de paquetes `id_viaje`, así que una
   reasignación mueve la fila en vez de duplicarla. Se instala con
@@ -59,10 +59,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   cada repartidor visible y no retroceden junto con la fecha de la ruta. Los
   días viajan como texto a n8n porque la web, n8n y SQL Server pueden estar en
   zonas distintas. Nunca restar horas a mano.
-- `minutos_sin_actualizar` y `estado_posicion` **no se guardan**: los calcula
+- `minutos_sin_actualizar`, `minutos_sin_movimiento` y `estado_posicion` **no se guardan**: los calcula
   la vista `tracker_drivers_vista` al leer, y el navegador los vuelve a
   calcular contra su propio reloj. Una antigüedad guardada envejece mal —diría
   «hace 2 minutos» para siempre— y pintaría de verde a un teléfono apagado.
+  Sí se guarda `ultima_movimiento_en`: el trigger la cambia solo cuando la
+  coordenada se desplazó al menos 50 metros, para absorber el ruido del GPS.
 - En los flujos del tracker, **ningún nodo lee a través del grafo**: nada de
   `$('Otro nodo')` dentro de `{{ }}`. Esa lectura se rompe sola cuando se corta
   la cadena de items y n8n la reporta como «el nodo no se ejecutó», culpando a
@@ -115,10 +117,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `WHERE V.Id IN (...)`: el universo lo definen las reservas del día. Es lo
   único que hace que un paquete agregado a media mañana aparezca solo, y hay
   una prueba que falla si alguien vuelve a meter la lista de ids.
-- Los endpoints del tracker no escriben en Supabase. Quien escribe es n8n, con
-  su credencial y dentro de su transacción; la web dispara y vuelve a leer. Dos
-  caminos de escritura harían que `sync_id` dejara de contar la historia
-  completa.
+- Los endpoints de sincronización del tracker no escriben en Supabase. Quien
+  escribe posiciones y paquetes es n8n, con su credencial y dentro de su
+  transacción; la web dispara y vuelve a leer. La única escritura directa es
+  el motivo humano confirmado en `tracker_demoras`, separado de las fotos que
+  cuentan los `sync_id`.
 
 ## Trabajo seguro
 
@@ -196,6 +199,17 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   `tracking_id` (`ReferenciaExterna`) se conserva para trazabilidad. La fila
   no es un botón con el enlace adentro —sería HTML inválido—: el botón va
   estirado por detrás y el enlace por encima.
+- El buscador enfoca automáticamente un paquete solo cuando hay una
+  coincidencia única, o cuando `id_viaje` coincide exactamente. En ese caso
+  selecciona a su repartidor, resalta también paquetes fuera de ruta y centra
+  el mapa en `LatitudDestino` / `LongitudDestino`, sin abrir el modal mientras
+  se escribe; nunca elige arbitrariamente entre varias coincidencias.
+- Entre las 15:00 y las 00:00 de México, un driver con paquetes `PROXIMO` o
+  `PENDIENTE_NO_VISITADO` queda demorado tras 30 minutos sin desplazarse al
+  menos 50 metros. La fila conserva el contorno rojo aunque se informe el
+  inconveniente; el registro solo silencia los avisos. La alerta se puede
+  recordar 10 minutos y solo acepta un motivo si el usuario confirma que el
+  driver no continuará la ruta. No usarla para pausas normales.
 - La **ruta propuesta** sale siempre de la bodega (`BODEGA` en `lib/tracker.ts`)
   y encadena la parada más cercana a la anterior. Es vecino más cercano puro y
   tiene que seguir siéndolo: hay una prueba de propiedad que falla si alguien

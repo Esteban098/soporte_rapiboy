@@ -18,7 +18,10 @@ import {
   enlaceAlOperador,
   estadosDelSistemaSinCategoria,
   estadoPosicion,
+  estadoDemoraDriver,
   largoDeRuta,
+  paqueteCoincideConBusqueda,
+  paqueteUnicoDeBusqueda,
   proponerRuta,
   proyectarEn,
   porcentajeEntregado,
@@ -32,7 +35,11 @@ import {
 } from "../src/lib/tracker";
 import { proyectar, ventanaProyeccion } from "../src/lib/cobertura";
 import { leerTracker } from "../src/lib/tracker-datos";
-import { ejecutarSync, responderJornada } from "../src/app/api/live-tracker/nucleo";
+import {
+  ejecutarSync,
+  registrarMotivoDemora,
+  responderJornada,
+} from "../src/app/api/live-tracker/nucleo";
 import type { Operador } from "../src/lib/sesion";
 
 /**
@@ -99,6 +106,7 @@ function driver(over: Record<string, unknown> = {}) {
     latitud: 19.43,
     longitud: -99.13,
     fecha_ultima_posicion: new Date().toISOString(),
+    ultima_movimiento_en: new Date().toISOString(),
     ultima_info: null,
     id_reserva: 100,
     id_localidad: 9,
@@ -110,6 +118,7 @@ function driver(over: Record<string, unknown> = {}) {
     sincronizado_en: "2026-09-10T12:00:00Z",
     sync_id: "s1",
     minutos_sin_actualizar: 2,
+    minutos_sin_movimiento: 2,
     estado_posicion: "RECIENTE",
     ...over,
   };
@@ -180,7 +189,7 @@ function baseSimulada(
     pedidos.push({ metodo: init?.method ?? "GET", ruta: url.pathname });
 
     const offset = Number(url.searchParams.get("offset") ?? 0);
-    const filas = tablas[tabla];
+    const filas = tablas[tabla] ?? (tabla === "tracker_demoras" ? [] : undefined);
     if (filas === undefined) {
       return new Response(`{"code":"PGRST205"}`, { status: 404 });
     }
@@ -460,6 +469,39 @@ test("la tarjeta desglosa con los nombres de estado que informa el sistema", () 
   );
 });
 
+test("el buscador identifica una parada por sus datos y solo la enfoca si es única", () => {
+  const primera = paquete({
+    id_viaje: 30448011,
+    tracking_id: "RAP-ABC-01",
+    referencia_auxiliar: "PEDIDO-TIENDA-77",
+    direccion: "Av. División del Norte 123",
+    telefono: "5512345678",
+    barrio: "Narvarte Poniente",
+    codigo_postal: "03020",
+    tienda: "Farmacia Central",
+    nombre_recibe: "María López",
+    nombre_estado: "Pedido no entregado",
+    poligono: "Iztapalapa Norte B",
+  });
+  const segunda = paquete({
+    id_viaje: 30448012,
+    tracking_id: "RAP-ABC-02",
+    direccion: "Av. División del Norte 900",
+    telefono: "30448011",
+  });
+  const drivers = [
+    { id: 7, paquetes: [primera] },
+    { id: 8, paquetes: [segunda] },
+  ];
+
+  for (const texto of ["#30448011", "rap-abc-01", "pedido-tienda-77", "division del norte 123", "5512345678", "maria lopez", "03020", "farmacia central", "pedido no entregado", "iztapalapa norte b"]) {
+    assert.equal(paqueteCoincideConBusqueda(primera, texto), true, texto);
+    assert.equal(paqueteUnicoDeBusqueda(drivers, texto)?.paquete.id_viaje, 30448011, texto);
+  }
+  assert.equal(paqueteUnicoDeBusqueda(drivers, "division del norte"), null, "no elige entre dos domicilios");
+  assert.equal(paqueteUnicoDeBusqueda(drivers, "30448011")?.driver.id, 7, "el IdViaje exacto gana sobre otro campo");
+});
+
 /* ---------------------------------------------------------------------------
  * 9-11. Reconciliación
  * ------------------------------------------------------------------------- */
@@ -708,11 +750,70 @@ test("22. sin sesión no se lee la jornada ni se dispara ningún flujo", async (
   assert.equal(simulado.mock.callCount(), 0);
 });
 
+test("el motivo de una demora guarda datos verificados por el servidor", async () => {
+  let insercion: { tabla: string; fila: Record<string, unknown> } | null = null;
+  const respuesta = await registrarMotivoDemora(
+    OPERADOR,
+    {
+      idDriver: 7,
+      motivo: "Rotura de la moto; no continuará la ruta",
+      confirmaQueNoContinua: true,
+    },
+    new Date("2026-09-10T22:00:00Z"), // 16:00 MX
+    {
+      leer: async () => ({
+        dia: "2026-09-10",
+        tablasFaltantes: [],
+        drivers: [{
+          id: 7,
+          nombre: "Ana Ruiz",
+          fechaUltimoMovimiento: "2026-09-10T21:00:00Z",
+          paquetes: [{ clasificacion: "PENDIENTE_NO_VISITADO", activo_en_ruta: true }],
+          demoraInformada: null,
+        }],
+      }) as unknown as Awaited<ReturnType<typeof leerTracker>>,
+      insertar: async (tabla, fila) => {
+        insercion = { tabla, fila };
+        return null;
+      },
+    },
+  );
+
+  assert.equal(respuesta.status, 200);
+  assert.deepEqual(insercion, {
+    tabla: "tracker_demoras",
+    fila: {
+      fecha_operacion: "2026-09-10",
+      id_motoboy: 7,
+      nombre_driver: "Ana Ruiz",
+      motivo: "Rotura de la moto; no continuará la ruta",
+      ultima_movimiento_en: "2026-09-10T21:00:00Z",
+      paquetes_sin_visitar: 1,
+      registrado_por: OPERADOR.email,
+    },
+  });
+});
+
+test("no se puede silenciar una demora sin confirmar que el driver deja la ruta", async () => {
+  const respuesta = await registrarMotivoDemora(OPERADOR, {
+    idDriver: 7,
+    motivo: "Está cargando combustible",
+    confirmaQueNoContinua: false,
+  });
+  assert.equal(respuesta.status, 400);
+  assert.match((await respuesta.json()).error, /Confirmá/);
+});
+
 test("22b. el esquema deja RLS prendido, sin políticas y con la vista en security_invoker", () => {
   const sql = sinComentarios(
     readFileSync(fileURLToPath(new URL("../supabase/live-tracker.sql", import.meta.url)), "utf8"));
 
-  for (const tabla of ["tracker_drivers", "tracker_paquetes", "tracker_sincronizaciones"]) {
+  for (const tabla of [
+    "tracker_drivers",
+    "tracker_paquetes",
+    "tracker_sincronizaciones",
+    "tracker_demoras",
+  ]) {
     assert.match(sql, new RegExp(`alter table public\\.${tabla}\\s+enable row level security`),
       `${tabla} tiene que quedar con RLS`);
   }
@@ -1248,6 +1349,55 @@ test("el lunes conserva los pendientes del sábado y no busca una ruta del domin
   assert.equal(diaDePaquetes(new Date("2026-01-05T12:00:00Z")), "2026-01-03");
 });
 
+test("la demora aparece recién tras un ciclo sin movimiento durante la ruta", () => {
+  const detenido = {
+    fechaUltimoMovimiento: "2026-09-10T20:00:00Z", // antes de las 15:00 MX
+    paquetes: [{ clasificacion: "PENDIENTE_NO_VISITADO" as const, activo_en_ruta: true }],
+    demoraInformada: null,
+  };
+
+  assert.equal(
+    estadoDemoraDriver(detenido, new Date("2026-09-10T21:29:00Z")).demorado,
+    false,
+    "a las 15:29 todavía no completó el ciclo de gracia",
+  );
+  const aLasQuinceTreinta = estadoDemoraDriver(
+    detenido,
+    new Date("2026-09-10T21:30:00Z"),
+  );
+  assert.equal(aLasQuinceTreinta.demorado, true);
+  assert.equal(aLasQuinceTreinta.notificar, true);
+  assert.equal(aLasQuinceTreinta.minutosSinMovimiento, 30);
+  assert.equal(aLasQuinceTreinta.paquetesSinVisitar, 1);
+
+  assert.equal(
+    estadoDemoraDriver(detenido, new Date("2026-09-11T06:00:00Z")).demorado,
+    false,
+    "a medianoche de México termina la ventana de alertas",
+  );
+});
+
+test("sin paquetes por visitar o con motivo informado no se vuelve a notificar", () => {
+  const momento = new Date("2026-09-10T22:00:00Z");
+  const base = {
+    fechaUltimoMovimiento: "2026-09-10T21:00:00Z",
+    paquetes: [{ clasificacion: "VISITADO_ENTREGADO" as const, activo_en_ruta: true }],
+    demoraInformada: null,
+  };
+  assert.equal(estadoDemoraDriver(base, momento).demorado, false);
+
+  const conMotivo = estadoDemoraDriver(
+    {
+      ...base,
+      paquetes: [{ clasificacion: "PROXIMO" as const, activo_en_ruta: true }],
+      demoraInformada: { motivo: "Choque confirmado" },
+    },
+    momento,
+  );
+  assert.equal(conMotivo.demorado, true, "el contorno rojo conserva la señal operativa");
+  assert.equal(conMotivo.notificar, false, "el motivo confirmado silencia el aviso");
+});
+
 test("la jornada conserva posiciones de hoy y la ruta completa de ayer antes de las 15", async (t) => {
   conEntorno(t, BASE);
   const base = baseSimulada(t, {
@@ -1303,11 +1453,11 @@ test("el corte de paquetes no reintroduce un desplazamiento configurable", () =>
     .find((n: { type: string }) => n.type.includes("scheduleTrigger")).parameters.rule.interval;
   assert.deepEqual(horariosDrivers, [
     { triggerAtHour: 6, triggerAtMinute: 45 },
-    { triggerAtHour: 15, triggerAtMinute: 0 },
+    { field: "cronExpression", expression: "0,30 15-23 * * 1-6" },
   ]);
   assert.deepEqual(horariosPaquetes, [
     { triggerAtHour: 7, triggerAtMinute: 15 },
-    { triggerAtHour: 15, triggerAtMinute: 0 },
+    { field: "cronExpression", expression: "0,30 15-23 * * 1-6" },
   ]);
 });
 

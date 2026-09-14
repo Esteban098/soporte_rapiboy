@@ -21,6 +21,8 @@ export type DriverFila = {
   latitud: number | null;
   longitud: number | null;
   fecha_ultima_posicion: string | null;
+  /** Última vez que cambió al menos 50 m, mantenida por el trigger de Supabase. */
+  ultima_movimiento_en: string | null;
   ultima_info: string | null;
   id_reserva: number | null;
   id_localidad: number | null;
@@ -33,7 +35,20 @@ export type DriverFila = {
   sync_id: string | null;
   /** Las calcula la vista al leer, no están guardadas. */
   minutos_sin_actualizar: number | null;
+  minutos_sin_movimiento: number | null;
   estado_posicion: EstadoPosicion;
+};
+
+export type MotivoDemoraFila = {
+  id: string;
+  fecha_operacion: string;
+  id_motoboy: number;
+  nombre_driver: string;
+  motivo: string;
+  ultima_movimiento_en: string;
+  paquetes_sin_visitar: number;
+  registrado_por: string;
+  registrado_en: string;
 };
 
 export type PaqueteFila = {
@@ -82,6 +97,82 @@ export type PaqueteFila = {
   sincronizado_en: string;
   sync_id: string | null;
 };
+
+export type PaqueteBuscable = Pick<
+  PaqueteFila,
+  | "id_viaje"
+  | "tracking_id"
+  | "referencia_auxiliar"
+  | "direccion"
+  | "telefono"
+  | "ciudad"
+  | "barrio"
+  | "codigo_postal"
+  | "tienda"
+  | "nombre_recibe"
+  | "nombre_estado"
+  | "poligono"
+>;
+
+/** Texto comparable para el buscador: sin diferencias de mayúsculas ni acentos. */
+export function normalizarBusqueda(valor: string): string {
+  return valor
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+/** Si el texto aparece en alguno de los datos visibles y operativos del paquete. */
+export function paqueteCoincideConBusqueda(
+  paquete: PaqueteBuscable,
+  busqueda: string,
+): boolean {
+  const texto = normalizarBusqueda(busqueda);
+  if (!texto) return false;
+
+  const campos = [
+    String(paquete.id_viaje),
+    `#${paquete.id_viaje}`,
+    paquete.tracking_id,
+    paquete.referencia_auxiliar,
+    paquete.direccion,
+    paquete.telefono,
+    paquete.ciudad,
+    paquete.barrio,
+    paquete.codigo_postal,
+    paquete.tienda,
+    paquete.nombre_recibe,
+    paquete.nombre_estado,
+    paquete.poligono,
+  ];
+
+  return campos.some((campo) => campo != null && normalizarBusqueda(campo).includes(texto));
+}
+
+/**
+ * Devuelve una parada solamente cuando la búsqueda la identifica sin
+ * ambigüedad. Un IdViaje exacto gana aunque el mismo número aparezca dentro de
+ * otro campo; para el resto de los datos se exige una única coincidencia.
+ */
+export function paqueteUnicoDeBusqueda<
+  TPaquete extends PaqueteBuscable,
+  TDriver extends { paquetes: TPaquete[] },
+>(drivers: TDriver[], busqueda: string): { driver: TDriver; paquete: TPaquete } | null {
+  const texto = normalizarBusqueda(busqueda);
+  if (!texto) return null;
+
+  const coincidencias = drivers.flatMap((driver) =>
+    driver.paquetes
+      .filter((paquete) => paqueteCoincideConBusqueda(paquete, texto))
+      .map((paquete) => ({ driver, paquete })),
+  );
+  const idBuscado = texto.replace(/^#/, "");
+  const porId = coincidencias.filter(({ paquete }) => String(paquete.id_viaje) === idBuscado);
+
+  if (porId.length === 1) return porId[0];
+  return coincidencias.length === 1 ? coincidencias[0] : null;
+}
 
 export type Sincronizacion = {
   id: string;
@@ -562,6 +653,65 @@ export function diaDeOperacion(momento: Date = new Date()): string {
 
 /** Hora de Ciudad de México en la que la pantalla pasa a la ruta nueva. */
 export const HORA_INICIO_RUTA = 15;
+export const MINUTOS_SIN_MOVIMIENTO_PARA_ALERTA = 30;
+
+export type EstadoDemora = {
+  demorado: boolean;
+  notificar: boolean;
+  minutosSinMovimiento: number;
+  paquetesSinVisitar: number;
+};
+
+/**
+ * Detecta una detención operativa, no solamente un teléfono viejo.
+ *
+ * El reloj empieza a las 15:00 de México aunque la última coordenada sea de
+ * antes: eso da un ciclo completo de gracia al comienzo de la ruta. Después
+ * de medianoche deja de alertar. Un motivo registrado silencia la jornada
+ * completa porque significa que el driver confirmó que no seguirá la ruta.
+ */
+export function estadoDemoraDriver(
+  driver: {
+    fechaUltimoMovimiento: string | null;
+    paquetes: Pick<PaqueteFila, "clasificacion" | "activo_en_ruta">[];
+    demoraInformada: unknown | null;
+  },
+  momento = new Date(),
+): EstadoDemora {
+  const paquetesSinVisitar = driver.paquetes.filter(
+    (paquete) =>
+      paquete.activo_en_ruta &&
+      (paquete.clasificacion === "PROXIMO" ||
+        paquete.clasificacion === "PENDIENTE_NO_VISITADO"),
+  ).length;
+
+  const partes = new Intl.DateTimeFormat("en-US", {
+    timeZone: ZONA_OPERACION,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(momento);
+  const hora = Number(partes.find((parte) => parte.type === "hour")?.value);
+  const minuto = Number(partes.find((parte) => parte.type === "minute")?.value);
+  const minutosDesdeInicio = hora * 60 + minuto - HORA_INICIO_RUTA * 60;
+  const marca = driver.fechaUltimoMovimiento ? Date.parse(driver.fechaUltimoMovimiento) : NaN;
+  const desdeMovimiento = Number.isFinite(marca)
+    ? Math.max(0, Math.floor((momento.getTime() - marca) / 60_000))
+    : 0;
+  const minutosSinMovimiento = Math.max(0, Math.min(desdeMovimiento, minutosDesdeInicio));
+
+  const demorado =
+    minutosDesdeInicio >= MINUTOS_SIN_MOVIMIENTO_PARA_ALERTA &&
+    minutosSinMovimiento >= MINUTOS_SIN_MOVIMIENTO_PARA_ALERTA &&
+    paquetesSinVisitar > 0;
+
+  return {
+    demorado,
+    notificar: demorado && driver.demoraInformada == null,
+    minutosSinMovimiento,
+    paquetesSinVisitar,
+  };
+}
 
 /**
  * Día cuyos paquetes debe mostrar el tracker.

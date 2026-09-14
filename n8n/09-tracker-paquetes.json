@@ -10,14 +10,14 @@
               "triggerAtMinute": 15
             },
             {
-              "triggerAtHour": 15,
-              "triggerAtMinute": 0
+              "field": "cronExpression",
+              "expression": "0,30 15-23 * * 1-6"
             }
           ]
         }
       },
       "id": "b64f55d1-5f30-5f7b-adfb-3eeb850e6f8e",
-      "name": "Actualización 07:15 y 15:00",
+      "name": "Actualización 07:15 y cada 30 min en ruta",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
       "position": [
@@ -313,7 +313,7 @@
     }
   ],
   "connections": {
-    "Actualización 07:15 y 15:00": {
+    "Actualización 07:15 y cada 30 min en ruta": {
       "main": [
         [
           {

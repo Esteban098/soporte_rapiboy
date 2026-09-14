@@ -1,14 +1,15 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import {
+  TABLA_TRACKER_DEMORAS,
   TIMEOUT_FLUJO_MS,
   flujosDe,
   variableDeFlujo,
   type ClaveFlujo,
 } from "@/lib/config";
 import type { Operador } from "@/lib/sesion";
-import { TablaFaltante } from "@/lib/supabase";
-import { ZONA_OPERACION, diaDePaquetes } from "@/lib/tracker";
+import { insertarFila, TablaFaltante } from "@/lib/supabase";
+import { ZONA_OPERACION, diaDePaquetes, estadoDemoraDriver } from "@/lib/tracker";
 import { leerTracker } from "@/lib/tracker-datos";
 
 /**
@@ -25,10 +26,10 @@ import { leerTracker } from "@/lib/tracker-datos";
  * la lógica vive una sola vez: autenticar, disparar el flujo, esperar el
  * resultado de verdad y traducirlo a algo que la pantalla pueda mostrar.
  *
- * Lo que NO hace es tocar la base. Quien escribe es n8n, con su credencial de
- * servicio; el tablero solo pide que corra y después vuelve a leer. Si este
- * endpoint escribiera, habría dos caminos de escritura y el `sync_id` dejaría
- * de ser el registro completo de quién tocó qué.
+ * Los endpoints de sincronización no tocan la base. Quien escribe esas fotos
+ * es n8n, con su credencial de servicio; el tablero solo pide que corra y
+ * después vuelve a leer. La única escritura directa de este módulo es el
+ * motivo humano de una demora confirmada, en su tabla separada.
  */
 
 export type ResumenSync = {
@@ -235,6 +236,123 @@ export async function responderJornada(operador: Operador | null): Promise<NextR
     console.error("[live-tracker] no se pudo leer la jornada", error);
     return NextResponse.json(
       { ok: false, error: "No se pudo leer la jornada desde la base." },
+      { status: 502 },
+    );
+  }
+}
+
+export type EntradaMotivoDemora = {
+  idDriver?: unknown;
+  motivo?: unknown;
+  confirmaQueNoContinua?: unknown;
+};
+
+type DependenciasMotivo = {
+  leer: typeof leerTracker;
+  insertar: typeof insertarFila;
+};
+
+const DEPENDENCIAS_MOTIVO: DependenciasMotivo = {
+  leer: leerTracker,
+  insertar: insertarFila,
+};
+
+/**
+ * Registra solamente inconvenientes confirmados que detienen la ruta.
+ *
+ * El nombre, el día, la última posición y la cantidad pendiente salen de la
+ * lectura del servidor: el navegador manda únicamente el id, el texto y la
+ * confirmación. Así un cliente modificado no puede inventar a quién pertenece
+ * el registro ni silenciar a alguien que ya volvió a moverse.
+ */
+export async function registrarMotivoDemora(
+  operador: Operador | null,
+  entrada: EntradaMotivoDemora,
+  momento = new Date(),
+  dependencias: DependenciasMotivo = DEPENDENCIAS_MOTIVO,
+): Promise<NextResponse> {
+  if (!operador) {
+    return NextResponse.json({ ok: false, error: "Sin permiso." }, { status: 401 });
+  }
+
+  const idDriver = Number(entrada.idDriver);
+  const motivo = typeof entrada.motivo === "string" ? entrada.motivo.trim() : "";
+  if (!Number.isSafeInteger(idDriver) || idDriver <= 0) {
+    return NextResponse.json({ ok: false, error: "El driver no es válido." }, { status: 400 });
+  }
+  if (entrada.confirmaQueNoContinua !== true) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Confirmá que el driver informó un inconveniente y no continuará la ruta.",
+      },
+      { status: 400 },
+    );
+  }
+  if (motivo.length < 5 || motivo.length > 1000) {
+    return NextResponse.json(
+      { ok: false, error: "El motivo debe tener entre 5 y 1000 caracteres." },
+      { status: 400 },
+    );
+  }
+
+  try {
+    const datos = await dependencias.leer(undefined, momento);
+    if (datos.tablasFaltantes.includes(TABLA_TRACKER_DEMORAS)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Falta instalar web/supabase/migracion-10-tracker-demoras.sql.",
+        },
+        { status: 503 },
+      );
+    }
+
+    const driver = datos.drivers.find((candidato) => candidato.id === idDriver);
+    if (!driver) {
+      return NextResponse.json(
+        { ok: false, error: "El driver ya no pertenece a la ruta visible." },
+        { status: 404 },
+      );
+    }
+
+    const demora = estadoDemoraDriver(driver, momento);
+    if (!demora.notificar || !driver.fechaUltimoMovimiento) {
+      return NextResponse.json(
+        { ok: false, error: "La demora ya no está activa. Actualizá el tracker." },
+        { status: 409 },
+      );
+    }
+
+    const error = await dependencias.insertar(TABLA_TRACKER_DEMORAS, {
+      fecha_operacion: datos.dia,
+      id_motoboy: driver.id,
+      nombre_driver: driver.nombre,
+      motivo,
+      ultima_movimiento_en: driver.fechaUltimoMovimiento,
+      paquetes_sin_visitar: demora.paquetesSinVisitar,
+      registrado_por: operador.email,
+    });
+    if (error) {
+      const duplicado =
+        /ya est[aá] cargado|duplicate key|tracker_demoras_fecha_operacion_id_motoboy_key|23505/i
+          .test(error);
+      return NextResponse.json(
+        {
+          ok: false,
+          error: duplicado
+            ? "Otro usuario ya registró un motivo para este driver. Actualizá el tracker."
+            : error,
+        },
+        { status: duplicado ? 409 : 502 },
+      );
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("[live-tracker] no se pudo registrar el motivo de demora", error);
+    return NextResponse.json(
+      { ok: false, error: "No se pudo registrar el motivo." },
       { status: 502 },
     );
   }
