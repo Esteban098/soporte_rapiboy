@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { personasMencionables } from "@/app/notificaciones";
 import { consultaEnCurso, type Mencionable } from "@/lib/menciones";
 import { colorDePersona, inicialesDePersona } from "@/lib/seguimiento";
@@ -49,6 +50,36 @@ export function AreaMenciones({ value, onValueChange, onKeyDown, onBlur, ...rest
     : [];
   const abierta = sugerencias.length > 0;
   const indice = Math.min(activa, Math.max(0, sugerencias.length - 1));
+
+  /*
+   * La lista va a `document.body` con posición fija, medida contra el
+   * textarea. Dentro del campo quedaba recortada: la pestaña «Añadir
+   * seguimiento» es un panel con scroll propio, y lo que asoma por debajo de
+   * su borde no se ve. Si abajo no hay lugar, se abre hacia arriba.
+   */
+  const [lugar, setLugar] = useState<React.CSSProperties | null>(null);
+  useLayoutEffect(() => {
+    if (!abierta) return;
+    const medir = () => {
+      const caja = area.current?.getBoundingClientRect();
+      if (!caja) return;
+      const alto = Math.min(240, 44 * sugerencias.length + 10);
+      const arriba = window.innerHeight - caja.bottom < alto + 12 && caja.top > alto + 12;
+      setLugar({
+        left: caja.left,
+        width: caja.width,
+        ...(arriba ? { bottom: window.innerHeight - caja.top + 4 } : { top: caja.bottom + 4 }),
+      });
+    };
+    medir();
+    window.addEventListener("resize", medir);
+    // En captura: también cuenta el scroll del panel que contiene el campo.
+    window.addEventListener("scroll", medir, true);
+    return () => {
+      window.removeEventListener("resize", medir);
+      window.removeEventListener("scroll", medir, true);
+    };
+  }, [abierta, sugerencias.length]);
 
   function revisar(texto: string, cursor: number) {
     const encontrada = consultaEnCurso(texto, cursor);
@@ -119,8 +150,14 @@ export function AreaMenciones({ value, onValueChange, onKeyDown, onBlur, ...rest
         }}
       />
 
-      {abierta ? (
-        <ul id={idLista} role="listbox" className={estilos.lista} aria-label="Personas para mencionar">
+      {abierta && lugar ? createPortal(
+        <ul
+          id={idLista}
+          role="listbox"
+          className={estilos.lista}
+          style={lugar}
+          aria-label="Personas para mencionar"
+        >
           {sugerencias.map((persona, posicion) => (
             <li
               key={persona.email}
@@ -145,7 +182,8 @@ export function AreaMenciones({ value, onValueChange, onKeyDown, onBlur, ...rest
               {persona.nombre ? <span className={estilos.nombre}>{persona.nombre}</span> : null}
             </li>
           ))}
-        </ul>
+        </ul>,
+        document.body,
       ) : null}
     </div>
   );
