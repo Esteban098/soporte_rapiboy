@@ -87,9 +87,12 @@ y menor a mayor.
 
 Al elegir a alguien aparecen su última posición conocida, sus destinos y la
 línea del recorrido que le queda, y abajo una ficha con paquetes, entregados,
-no entregados, pendientes, avance y próximo destino. Con varios elegidos, cada
-uno tiene su color y ese color es el mismo en el marcador, en la línea, en los
-destinos y en el casillero del panel.
+no entregados, pendientes, avance y próximo destino. Si algún paquete no
+encaja de forma segura en esas categorías, la ficha no lo agrupa bajo una
+etiqueta genérica: desglosa la cantidad con el estado que informa
+`EstadoViaje.NombreCompleto`. Con varios elegidos, cada uno tiene su color y
+ese color es el mismo en el marcador, en la línea, en los destinos y en el
+casillero del panel.
 
 Los marcadores dicen en qué quedó cada parada: número de orden si está
 pendiente, un aro alrededor si es la próxima, un tilde si se entregó, un signo
@@ -141,8 +144,10 @@ perdería todo lo que el operador acomodó a mano.
   puede señalarlo y explica por qué. Elegir uno sería inventar la secuencia, y
   se leería como un dato del sistema.
 - Un paquete cuyo estado dice que no se entregó pero del que no hay ninguna
-  visita registrada queda **sin clasificar**, a la vista. Es una contradicción
-  y conviene que se note, en vez de contarla como un intento fallido real.
+  visita registrada conserva internamente la categoría de control
+  `SIN_CLASIFICAR`. En la tarjeta y en su ficha se muestra el estado real de
+  sistema —por ejemplo, **Pedido no entregado**—, no el nombre de esa categoría
+  interna. La contradicción sigue sin contarse como un intento fallido real.
 - El avance no cuenta cancelados ni retirados de ruta: no son paradas que el
   repartidor tenga que resolver, y contarlas haría bajar el porcentaje justo
   cuando le aligeran el día.

@@ -303,6 +303,32 @@ export function resumirRuta(paquetes: { clasificacion: Clasificacion }[]): Resum
   };
 }
 
+export type ConteoEstadoSistema = {
+  estado: string;
+  cantidad: number;
+};
+
+/**
+ * Desglosa por su nombre real los paquetes cuya categoría operativa no alcanza
+ * para resumir el desenlace. La categoría sigue siendo útil para calcular el
+ * avance, pero en pantalla debe verse lo que informa EstadoViaje.
+ */
+export function estadosDelSistemaSinCategoria(
+  paquetes: Pick<PaqueteFila, "clasificacion" | "nombre_estado">[],
+): ConteoEstadoSistema[] {
+  const conteos = new Map<string, number>();
+
+  for (const paquete of paquetes) {
+    if (paquete.clasificacion !== "SIN_CLASIFICAR") continue;
+    const estado = paquete.nombre_estado?.trim() || "Estado no informado";
+    conteos.set(estado, (conteos.get(estado) ?? 0) + 1);
+  }
+
+  return [...conteos.entries()]
+    .map(([estado, cantidad]) => ({ estado, cantidad }))
+    .sort((a, b) => b.cantidad - a.cantidad || a.estado.localeCompare(b.estado, "es"));
+}
+
 /** Porcentaje entregado sobre los paquetes que siguen formando parte de la ruta. */
 export function porcentajeEntregado(resumen: Pick<Resumen, "entregados" | "enRuta">): number | null {
   return resumen.enRuta === 0 ? null : (resumen.entregados / resumen.enRuta) * 100;

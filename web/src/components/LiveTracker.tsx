@@ -5,6 +5,7 @@ import {
   colorDeDriver,
   entregadosPorHora,
   enlaceAlOperador,
+  estadosDelSistemaSinCategoria,
   porcentajeEntregado,
   type Sincronizacion,
   type Ventana,
@@ -509,6 +510,7 @@ function DetalleDriver({
 }) {
   const color = colorDeDriver(driver.id);
   const { resumen } = driver;
+  const estadosDelSistema = estadosDelSistemaSinCategoria(driver.paquetes);
 
   const visibles = driver.paquetes.filter(
     (p) =>
@@ -550,9 +552,9 @@ function DetalleDriver({
           etiqueta="Avance"
           valor={resumen.avance == null ? "—" : `${Math.round(resumen.avance)}%`}
         />
-        {resumen.sinClasificar > 0 ? (
-          <Cifra etiqueta="Sin clasificar" valor={resumen.sinClasificar} />
-        ) : null}
+        {estadosDelSistema.map(({ estado, cantidad }) => (
+          <Cifra key={estado} etiqueta={estado} valor={cantidad} />
+        ))}
         {resumen.cancelados + resumen.retirados > 0 ? (
           <Cifra etiqueta="Fuera de ruta" valor={resumen.cancelados + resumen.retirados} />
         ) : null}

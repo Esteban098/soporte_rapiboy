@@ -16,6 +16,7 @@ import {
   distanciaKm,
   entregadosPorHora,
   enlaceAlOperador,
+  estadosDelSistemaSinCategoria,
   estadoPosicion,
   largoDeRuta,
   proponerRuta,
@@ -439,6 +440,23 @@ test("13. no entregado exige evidencia de visita; sin ella queda sin clasificar"
   assert.equal(
     clasificarPaquete({ nombre_estado: "Pedido no entregado", visitado: false, activo_en_ruta: true }),
     "SIN_CLASIFICAR",
+  );
+});
+
+test("la tarjeta desglosa con los nombres de estado que informa el sistema", () => {
+  assert.deepEqual(
+    estadosDelSistemaSinCategoria([
+      { clasificacion: "SIN_CLASIFICAR", nombre_estado: "Pedido no entregado" },
+      { clasificacion: "SIN_CLASIFICAR", nombre_estado: "Pedido no entregado" },
+      { clasificacion: "SIN_CLASIFICAR", nombre_estado: "En camino" },
+      { clasificacion: "SIN_CLASIFICAR", nombre_estado: "  " },
+      { clasificacion: "PENDIENTE_NO_VISITADO", nombre_estado: "Para retirar" },
+    ]),
+    [
+      { estado: "Pedido no entregado", cantidad: 2 },
+      { estado: "En camino", cantidad: 1 },
+      { estado: "Estado no informado", cantidad: 1 },
+    ],
   );
 });
 

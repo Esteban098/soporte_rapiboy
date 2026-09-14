@@ -551,7 +551,7 @@ export const ETIQUETA: Record<Clasificacion, string> = {
   VISITADO_NO_ENTREGADO: "Visitado sin entregar",
   CANCELADO: "Cancelado",
   RETIRADO_DE_RUTA: "Retirado de la ruta",
-  SIN_CLASIFICAR: "Sin clasificar",
+  SIN_CLASIFICAR: "Estado no informado",
 };
 
 /** Muestra el estado textual del sistema cuando no hay una categoría segura. */

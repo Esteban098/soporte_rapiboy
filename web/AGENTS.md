@@ -87,6 +87,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   dos veces —en la web y en el nodo Code del flujo 09—, así que
   `npm run test:tracker` compara las dos implementaciones sobre todas las
   combinaciones para que no se separen en silencio.
+- `SIN_CLASIFICAR` es una categoría interna para los cálculos, no una etiqueta
+  operativa. En la tarjeta y el detalle de cada paquete se muestra y se agrupa
+  por `EstadoViaje.NombreCompleto`; si el nombre falta, se indica «Estado no
+  informado».
 
 ## Límites entre flujos
 
