@@ -15,7 +15,7 @@ File**.
 | `06-colectas.json` | Calcula quién colecta cada comercio y trae las colectas de 30 días | 12:00 de lunes a viernes, y desde **Colectas** |
 | `07-firefox-gestiones.json` | Interpreta el ID y los datos aportados por la tienda, y actualiza solo las columnas de soporte de `mensual` | Al enviar una selección desde la extensión de Firefox |
 | `08-tracker-drivers.json` | Repartidores de la ruta visible y su última posición conocida | 6:45 y 15:00, y desde **Actualizar posiciones** del Live tracker |
-| `09-tracker-paquetes.json` | Actualiza la ruta guardada de ayer o reconcilia la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 7:15 y 15:00, y desde **Actualizar paquetes** del Live tracker |
+| `09-tracker-paquetes.json` | Actualiza la última ruta operativa —el sábado si es lunes— o reconcilia la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 7:15 y 15:00, y desde **Actualizar paquetes** del Live tracker |
 
 ## Antes de importar
 
@@ -233,9 +233,10 @@ horarios no dependan de la zona configurada en el servidor de n8n.
 ### Cómo funciona una corrida
 
 1. **Día de operación.** Se toma el `dia` que manda el tablero, ya resuelto en
-   hora de Ciudad de México. En paquetes, antes de las 15:00 es ayer y desde
-   las 15:00 es hoy. Si el flujo arrancó por horario, se calcula la misma regla
-   con `Intl`, sin restar una cantidad fija de horas.
+   hora de Ciudad de México. En paquetes, antes de las 15:00 es la última
+   jornada operativa —los lunes toma el sábado porque el domingo no hay
+   operación— y desde las 15:00 es hoy. Si el flujo arrancó por horario, se
+   calcula la misma regla con `Intl`, sin restar una cantidad fija de horas.
 2. **Abrir sincronización.** `tracker_abrir_sync()` toma el lock del tipo y
    devuelve un `sync_id`. Si ya hay otra corrida del mismo tipo en curso, falla
    acá y no se toca ni una fila. El lock es por tipo: posiciones y paquetes
@@ -306,7 +307,8 @@ que se supo, que es viejo pero cierto.
   las dos implementaciones sobre todas las combinaciones.
 - **No hay una variable para correr la jornada a mano.** La web manda el día
   que muestra y ese valor gana en el webhook. En la entrada por horario, el
-  flujo de paquetes calcula ayer antes de las 15:00 y hoy a partir de esa hora.
+  flujo de paquetes calcula la última jornada operativa antes de las 15:00
+  —sábado cuando corre un lunes— y hoy a partir de esa hora.
 - Los dos se importan **apagados**, como todos.
 
 ## Lo que está apagado

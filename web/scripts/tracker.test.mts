@@ -1219,6 +1219,17 @@ test("los paquetes cambian de ayer a hoy a las 15:00 de México", () => {
   assert.equal(diaDePaquetes(new Date("2026-01-01T12:00:00Z")), "2025-12-31");
 });
 
+test("el lunes conserva los pendientes del sábado y no busca una ruta del domingo", () => {
+  // 20:59 UTC son las 14:59 del lunes en Ciudad de México.
+  assert.equal(diaDePaquetes(new Date("2026-09-14T20:59:00Z")), "2026-09-12");
+
+  // Al comenzar la operación del lunes cambia directamente a la ruta de hoy.
+  assert.equal(diaDePaquetes(new Date("2026-09-14T21:00:00Z")), "2026-09-14");
+
+  // También cruza correctamente el cambio de mes y año.
+  assert.equal(diaDePaquetes(new Date("2026-01-05T12:00:00Z")), "2026-01-03");
+});
+
 test("la jornada conserva posiciones de hoy y la ruta completa de ayer antes de las 15", async (t) => {
   conEntorno(t, BASE);
   const base = baseSimulada(t, {
@@ -1261,8 +1272,10 @@ test("el corte de paquetes no reintroduce un desplazamiento configurable", () =>
     .parameters.jsCode;
   assert.doesNotMatch(JSON.stringify(drivers), /DIAS_ATRAS/);
   assert.doesNotMatch(JSON.stringify(paquetes), /DIAS_ATRAS/);
-  assert.match(codigoDrivers, /hora < 15 \? ayer : hoy/);
-  assert.match(codigoPaquetes, /hora < 15 \? ayer : hoy/);
+  assert.match(codigoDrivers, /diaSemana === 1 \? 2 : 1/);
+  assert.match(codigoPaquetes, /diaSemana === 1 \? 2 : 1/);
+  assert.match(codigoDrivers, /hora < 15 \? anterior : hoy/);
+  assert.match(codigoPaquetes, /hora < 15 \? anterior : hoy/);
   assert.equal(drivers.settings.timezone, "America/Mexico_City");
   assert.equal(paquetes.settings.timezone, "America/Mexico_City");
 
@@ -1289,7 +1302,8 @@ test("el flujo usa el día que manda el tablero y no vuelve a calcularlo", () =>
     // ver lo que la pantalla le dijo que iba a ver.
     assert.match(codigo, /const dia = pedido \?\?/, archivo);
 
-    assert.match(codigo, /hora < 15 \? ayer : hoy/, archivo);
+    assert.match(codigo, /diaSemana === 1 \? 2 : 1/, archivo);
+    assert.match(codigo, /hora < 15 \? anterior : hoy/, archivo);
   }
 });
 

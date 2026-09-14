@@ -56,8 +56,10 @@ Tres decisiones que vale la pena tener presentes:
 
 La jornada que corresponde al horario operativo: quiénes tienen una ruta
 visible, dónde se los vio por última vez y qué paquetes lleva cada uno. Antes
-de las 15:00 de México conserva la ruta completa de ayer y actualiza sus
-estados sin cambiar su total; desde las 15:00 muestra la ruta de hoy. Un repartidor que tenga posición o reserva pero ningún paquete
+de las 15:00 de México conserva la última ruta operativa y actualiza sus
+estados sin cambiar su total: normalmente es la de ayer, pero los lunes toma
+la del sábado porque el domingo no hay operación. Desde las 15:00 muestra la
+ruta de hoy. Un repartidor que tenga posición o reserva pero ningún paquete
 activo no aparece en esta pantalla.
 
 La pantalla lee la jornada desde sus tablas propias de Supabase. Es una copia
@@ -109,9 +111,9 @@ que la otra:
   sus pendientes. No toca los paquetes ni cambia la fecha visible.
 - **Actualizar paquetes** vuelve a preguntar cuáles son los paquetes de las
   rutas que corresponden al corte operativo y los compara con los guardados.
-  Antes de las 15:00 actualiza los estados de la ruta guardada de ayer; desde
-  las 15:00 reconcilia la ruta de hoy. Una entrega de ayer cambia a verde, pero
-  no sale del total de esa ruta.
+  Antes de las 15:00 actualiza los estados de la última ruta operativa —el
+  sábado cuando es lunes—; desde las 15:00 reconcilia la ruta de hoy. Una
+  entrega de esa jornada cambia a verde, pero no sale del total de la ruta.
 
 Lo importante del segundo: **no parte de los paquetes que ya tiene**. Vuelve a
 descubrir el universo del día desde las reservas. Por eso, si a un repartidor
@@ -204,10 +206,11 @@ de usar en 2022 y podría volver. Con una constante de −3, el corte del día
 quedaría corrido durante medio año sin que nada avise.
 
 `diaDeOperacion()` resuelve hoy en México y `diaDePaquetes()` aplica el corte
-de las 15:00. Ambos días viajan como texto a n8n. El flujo de paquetes corre a
-las 07:15 para actualizar los estados de la ruta de ayer y a las 15:00 para
-cargar la ruta nueva; el de posiciones corre a las 06:45 y nuevamente a las 15:00. Al
-arrancar por horario calculan la misma regla con la misma zona.
+de las 15:00 y omite el domingo al retroceder un lunes. Ambos días viajan como
+texto a n8n. El flujo de paquetes corre a las 07:15 para actualizar los
+estados de la última ruta operativa y a las 15:00 para cargar la ruta nueva;
+el de posiciones corre a las 06:45 y nuevamente a las 15:00. Al arrancar por
+horario calculan la misma regla con la misma zona.
 
 ### Si una sincronización queda trabada
 

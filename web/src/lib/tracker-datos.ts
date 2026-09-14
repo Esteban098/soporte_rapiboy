@@ -130,8 +130,9 @@ export function diaVigente(): string {
  * Los datos de cada viaje ya llegan con el paquete, desde RapiboyData.
  *
  * Las posiciones son siempre las últimas disponibles. Los paquetes cambian de
- * jornada a las 15:00 de México: antes se conservan los pendientes de ayer y
- * después entra exclusivamente la ruta de hoy.
+ * jornada a las 15:00 de México: antes se conservan los pendientes de la
+ * última jornada operativa —el sábado cuando hoy es lunes— y después entra
+ * exclusivamente la ruta de hoy.
  */
 export async function leerTracker(diaForzado?: string, momento = new Date()): Promise<DatosDelTracker> {
   const diaPosiciones = diaForzado ?? diaDeOperacion(momento);

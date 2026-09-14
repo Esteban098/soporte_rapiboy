@@ -540,10 +540,11 @@ export const HORA_INICIO_RUTA = 15;
 /**
  * Día cuyos paquetes debe mostrar el tracker.
  *
- * Antes de las 15:00 la ruta nueva todavía no salió y se conserva la del día
- * anterior para terminar sus pendientes. Desde las 15:00 se muestra
- * exclusivamente la ruta del día. La posición nunca usa esta fecha: siempre
- * se toma la última disponible del repartidor.
+ * Antes de las 15:00 la ruta nueva todavía no salió y se conserva la última
+ * jornada operativa para terminar sus pendientes. Normalmente es ayer; los
+ * lunes es el sábado porque el domingo no hay operación. Desde las 15:00 se
+ * muestra exclusivamente la ruta del día. La posición nunca usa esta fecha:
+ * siempre se toma la última disponible del repartidor.
  */
 export function diaDePaquetes(momento: Date = new Date()): string {
   const hoy = diaDeOperacion(momento);
@@ -556,12 +557,16 @@ export function diaDePaquetes(momento: Date = new Date()): string {
       .formatToParts(momento)
       .find((parte) => parte.type === "hour")?.value,
   );
-  return hora < HORA_INICIO_RUTA ? diaAnterior(hoy) : hoy;
+  return hora < HORA_INICIO_RUTA ? diaOperativoAnterior(hoy) : hoy;
 }
 
-function diaAnterior(dia: string): string {
+/** Jornada previa, omitiendo el domingo no operativo al retroceder un lunes. */
+function diaOperativoAnterior(dia: string): string {
   const [anio, mes, fecha] = dia.split("-").map(Number);
-  return new Date(Date.UTC(anio, mes - 1, fecha - 1)).toISOString().slice(0, 10);
+  const hoy = new Date(Date.UTC(anio, mes - 1, fecha));
+  const retroceso = hoy.getUTCDay() === 1 ? 2 : 1;
+  hoy.setUTCDate(hoy.getUTCDate() - retroceso);
+  return hoy.toISOString().slice(0, 10);
 }
 
 /* ---------- Proyección en el navegador ---------- */

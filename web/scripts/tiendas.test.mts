@@ -296,7 +296,7 @@ test("la tabla vacía no es lo mismo que la tabla que falta", async (t) => {
   assert.match(pagina, /La tabla está vacía/);
 });
 
-test("las tiendas no entraron de vuelta al live tracker", () => {
+test("las tiendas no entraron al mapa del tracker, pero el paquete conserva su comercio", () => {
   /*
    * Se pidió expresamente que esta pantalla fuera independiente. El tracker no
    * tiene por qué leer la tabla de tiendas ni dibujar comercios, y esta prueba
@@ -312,15 +312,15 @@ test("las tiendas no entraron de vuelta al live tracker", () => {
   }
 
   /*
-   * Y la consulta de paquetes no devuelve el comercio: se agregó para atarlo
-   * al mapa de tiendas y esa razón dejó de existir.
-   *
-   * El `JOIN ... ON U.Id = V.IdUsuario` sí tiene que seguir: es lo que acota
-   * el universo a `IdModalidad = 5` e `IdLocalidad = 9`, y no tiene nada que
-   * ver con las tiendas. Por eso se busca la columna en la salida y no el
-   * nombre suelto en el archivo.
+   * El comercio sí queda como contexto de la ficha del paquete. Eso no vuelve
+   * a meter tiendas en el mapa: no se consulta `tracker_tiendas`, no se dibuja
+   * su ubicación y el alias llega en la misma instantánea del viaje.
    */
   const flujo = readFileSync(new URL("../../n8n/09-tracker-paquetes.json", import.meta.url), "utf8");
-  assert.doesNotMatch(flujo, /AS IdUsuario|AS Seller|id_usuario:|seller:/);
+  assert.match(flujo, /V\.IdUsuario/);
+  assert.match(flujo, /U\.Alias AS Tienda/);
+  assert.match(flujo, /id_usuario:/);
+  assert.match(flujo, /tienda:/);
+  assert.doesNotMatch(flujo, /AS Seller|seller:/);
   assert.match(flujo, /ON U\.Id = V\.IdUsuario/, "el join que acota por comercio tiene que seguir");
 });

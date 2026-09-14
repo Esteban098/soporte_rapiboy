@@ -51,9 +51,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   reasignación mueve la fila en vez de duplicarla. Se instala con
   `supabase/live-tracker.sql`.
 - `tracker_drivers.fecha_operacion` y `tracker_paquetes.fecha_ruta` acotan cada
-  jornada y permiten leer ayer sin mezclarlo con hoy. `diaDeOperacion()`
-  resuelve hoy con `America/Mexico_City`; `diaDePaquetes()` muestra ayer antes
-  de las 15:00 y hoy desde esa hora. En la vista de ayer se filtran los paquetes
+  jornada y permiten leer la anterior sin mezclarla con hoy. `diaDeOperacion()`
+  resuelve hoy con `America/Mexico_City`; `diaDePaquetes()` muestra la última
+  jornada operativa antes de las 15:00 —los lunes salta al sábado— y hoy desde
+  esa hora. En la vista anterior se filtran los paquetes
   inactivos y los entregados. Las posiciones se leen como la última foto de
   cada repartidor visible y no retroceden junto con la fecha de la ruta. Los
   días viajan como texto a n8n porque la web, n8n y SQL Server pueden estar en
