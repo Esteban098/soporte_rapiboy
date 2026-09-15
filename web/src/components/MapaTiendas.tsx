@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { proyectarEn, type Ventana } from "@/lib/tracker";
+import { COLOR_DRIVER, estadoPosicion, proyectarEn, type Ventana } from "@/lib/tracker";
+import { REFRESCO_TRAFICO_MS } from "@/lib/trafico";
+import type { PosicionDriver } from "@/lib/posiciones-datos";
 import {
   COLOR_TIPO,
   ETIQUETA_TIPO,
@@ -12,6 +14,8 @@ import {
 import { responsableDe } from "@/lib/responsables";
 import { encuadreDe, LienzoMapa } from "./LienzoMapa";
 import { useIndiceTiendas } from "./ColorTiendas";
+import { CapaLluvia, ControlLluvia, useLluvia } from "./Lluvia";
+import { AtribucionTomTom, CapaTomTom, ControlesTomTom, useCiclo } from "./Trafico";
 import estilos from "./live-tracker.module.css";
 
 /**
@@ -45,16 +49,37 @@ function grupoDe(lugar: Lugar, indice: Record<string, string>): string {
 export function MapaTiendas({
   lugares,
   ventana,
+  claveTomTom,
+  posiciones,
   children,
 }: {
   lugares: Lugar[];
   ventana: Ventana;
+  /** Sin clave no se ofrecen calles ni tráfico. */
+  claveTomTom: string | null;
+  /**
+   * Las posiciones de los repartidores, o `null` si quien mira no tiene
+   * permiso —el rol comercial no ve el live tracker— o no se pudieron leer.
+   */
+  posiciones: PosicionDriver[] | null;
   /** Los polígonos de cobertura, dibujados en el servidor. */
   children: React.ReactNode;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [elegido, setElegido] = useState<string | null>(null);
   const indice = useIndiceTiendas();
+
+  /*
+   * Las cuatro capas arrancan apagadas. Tres salen a internet —lluvia, calles,
+   * tráfico— y la pantalla tiene que servir sin pedirle nada a nadie; la de
+   * repartidores no, pero encendida por defecto llenaría de pines un mapa cuya
+   * pregunta es «dónde queda este comercio».
+   */
+  const lluvia = useLluvia(ventana);
+  const [verCalles, setVerCalles] = useState(false);
+  const [verTrafico, setVerTrafico] = useState(false);
+  const cicloTrafico = useCiclo(verTrafico, REFRESCO_TRAFICO_MS);
+  const [verDrivers, setVerDrivers] = useState(false);
 
   const visibles = useMemo(() => filtrarLugares(lugares, busqueda), [lugares, busqueda]);
 
@@ -161,27 +186,109 @@ export function MapaTiendas({
       </aside>
 
       <div className={estilos.derecha}>
+        {/*
+          Las casillas van arriba del mapa y no en el panel: dicen qué se ve en
+          el mapa, y el panel queda para buscar comercios.
+        */}
+        <div className={estilos.barraMapa}>
+          <div className={estilos.barraMapaCasillas} role="group" aria-label="Capas del mapa">
+            <label className={estilos.filtro}>
+              <input
+                type="checkbox"
+                checked={lluvia.activa}
+                onChange={(e) => lluvia.prender(e.target.checked)}
+              />
+              Lluvia
+            </label>
+
+            {claveTomTom ? (
+              <ControlesTomTom
+                calles={verCalles}
+                trafico={verTrafico}
+                onCalles={setVerCalles}
+                onTrafico={setVerTrafico}
+              />
+            ) : null}
+
+            {posiciones ? (
+              <label className={estilos.filtro}>
+                <input
+                  type="checkbox"
+                  checked={verDrivers}
+                  onChange={(e) => setVerDrivers(e.target.checked)}
+                />
+                Repartidores ({posiciones.length})
+              </label>
+            ) : null}
+          </div>
+
+          {lluvia.activa || (claveTomTom && (verCalles || verTrafico)) ? (
+            <div className={estilos.barraMapaDetalle}>
+              {lluvia.activa ? <ControlLluvia estado={lluvia} /> : null}
+              {claveTomTom && (verCalles || verTrafico) ? (
+                <AtribucionTomTom trafico={verTrafico} />
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
         <LienzoMapa
           ventana={ventana}
           clave={`${busqueda}|${elegido ?? ""}`}
           encuadrar={encuadrar}
           etiqueta={`Mapa con ${visibles.length} punto${visibles.length === 1 ? "" : "s"} de entrega y colecta`}
           fondo={children}
-        >
-          {(k) =>
-            visibles.map((lugar) => (
-              <MarcaLugar
-                key={lugar.clave}
-                lugar={lugar}
-                punto={proyectar(lugar.lat, lugar.lon)}
-                color={colorDe(lugar, indice)}
-                grupo={grupoDe(lugar, indice)}
-                k={k}
-                elegido={elegido === lugar.clave}
-                onElegir={() => setElegido(elegido === lugar.clave ? null : lugar.clave)}
-              />
-            ))
+          fondoSobreMapa={Boolean(claveTomTom && verCalles)}
+          debajo={
+            claveTomTom && verCalles
+              ? (lienzo) => (
+                  <CapaTomTom capa="calles" clave={claveTomTom} ventana={ventana} lienzo={lienzo} />
+                )
+              : undefined
           }
+        >
+          {(k, lienzo) => (
+            <>
+              {/* Mismo orden que el live tracker: lluvia y tráfico por debajo
+                  de los puntos, que son lo que se toca. */}
+              {lluvia.activa ? <CapaLluvia estado={lluvia} ventana={ventana} /> : null}
+              {claveTomTom && verTrafico ? (
+                <CapaTomTom
+                  capa="trafico"
+                  clave={claveTomTom}
+                  ventana={ventana}
+                  lienzo={lienzo}
+                  ciclo={cicloTrafico}
+                />
+              ) : null}
+
+              {visibles.map((lugar) => (
+                <MarcaLugar
+                  key={lugar.clave}
+                  lugar={lugar}
+                  punto={proyectar(lugar.lat, lugar.lon)}
+                  color={colorDe(lugar, indice)}
+                  grupo={grupoDe(lugar, indice)}
+                  k={k}
+                  elegido={elegido === lugar.clave}
+                  onElegir={() => setElegido(elegido === lugar.clave ? null : lugar.clave)}
+                />
+              ))}
+
+              {/* Los repartidores al final: son lo que se mueve, y un pin
+                  tapado por una tienda no se encuentra. */}
+              {posiciones && verDrivers
+                ? posiciones.map((driver) => (
+                    <PinRepartidor
+                      key={driver.id}
+                      driver={driver}
+                      punto={proyectar(driver.lat, driver.lon)}
+                      k={k}
+                    />
+                  ))
+                : null}
+            </>
+          )}
         </LienzoMapa>
       </div>
     </div>
@@ -249,6 +356,65 @@ function MarcaLugar({
           strokeWidth={2.2 * k}
         />
       )}
+    </g>
+  );
+}
+
+/**
+ * Un repartidor sobre el mapa de tiendas: el mismo pin negro con moto del live
+ * tracker, sin el color de identidad —acá no hay rutas que distinguir— y
+ * lavado cuando la posición es vieja.
+ */
+function PinRepartidor({
+  driver,
+  punto,
+  k,
+}: {
+  driver: PosicionDriver;
+  punto: { x: number; y: number };
+  k: number;
+}) {
+  const r = 12 * k;
+
+  /*
+   * La antigüedad se recalcula contra el reloj de quien mira, no se toma la
+   * que calculó la base al cargar la página. Con tiendas abierta una hora, el
+   * número de la carga seguiría diciendo «hace 3 min».
+   *
+   * Llamar al reloj durante el render es seguro acá: los pines solo existen
+   * después de prender la casilla, así que nunca forman parte del HTML del
+   * servidor y no pueden desencontrarse con él al hidratar.
+   */
+  const { estado, minutos } = estadoPosicion(driver.lat, driver.lon, driver.fecha);
+  const antiguedad =
+    minutos == null
+      ? "posición sin fecha"
+      : minutos < 60
+        ? `hace ${minutos} min`
+        : `hace ${Math.floor(minutos / 60)} h`;
+
+  return (
+    <g
+      transform={`translate(${punto.x} ${punto.y})`}
+      opacity={estado === "VIEJA" || estado === "SIN_FECHA" ? 0.45 : 1}
+      pointerEvents="none"
+    >
+      <title>{`${driver.nombre} · #${driver.id} · última posición conocida ${antiguedad}`}</title>
+      <circle r={r + 2.5 * k} fill="var(--surface, #fff)" />
+      <circle r={r} fill={COLOR_DRIVER} />
+      <g
+        transform={`scale(${k * 0.72}) translate(-12 -12)`}
+        fill="none"
+        stroke="var(--surface, #fff)"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="6.5" cy="15.5" r="3.4" />
+        <circle cx="17.5" cy="15.5" r="3.4" />
+        <path d="M6.5 15.5h4l3-5h4" />
+        <path d="M13 8.5h3l1.5 7" />
+      </g>
     </g>
   );
 }

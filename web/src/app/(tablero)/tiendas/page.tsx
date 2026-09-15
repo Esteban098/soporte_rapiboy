@@ -3,7 +3,10 @@ import { Callout, Kpi } from "@/components/Card";
 import { MapaTiendas } from "@/components/MapaTiendas";
 import { FondoCobertura } from "@/components/FondoCobertura";
 import { PanelResponsables } from "@/components/PanelResponsables";
-import { modoDatos } from "@/lib/config";
+import { claveTomTom, modoDatos } from "@/lib/config";
+import { sesionActual } from "@/lib/sesion";
+import { esComercial } from "@/lib/permisos";
+import { leerPosiciones, type PosicionDriver } from "@/lib/posiciones-datos";
 import { ventanaProyeccion } from "@/lib/cobertura";
 import { TablaFaltante } from "@/lib/supabase";
 import { leerLugares } from "@/lib/tiendas-datos";
@@ -38,11 +41,23 @@ export default async function Tiendas() {
   }
 
   /*
-   * El mapa y la distribución se leen por separado y cada uno falla solo: son
-   * dos tablas de migraciones distintas, y que falte una no tiene por qué
-   * esconder la otra.
+   * El mapa, la distribución y las posiciones se leen por separado y cada uno
+   * falla solo: que falte una tabla no tiene por qué esconder las otras. Sin
+   * posiciones, el mapa de tiendas sale igual, sin esa capa.
+   *
+   * Las posiciones de los repartidores son del live tracker, y el rol
+   * comercial está afuera del live tracker a propósito. Por eso ni se leen
+   * para él: no alcanza con esconder la casilla, porque lo que llega al
+   * navegador se puede mirar.
    */
-  const [lugares, responsables] = await Promise.allSettled([leerLugares(), leerResponsables()]);
+  const sesion = await sesionActual();
+  const puedeVerPosiciones = sesion !== null && !esComercial(sesion.rol);
+
+  const [lugares, responsables, posiciones] = await Promise.allSettled([
+    leerLugares(),
+    leerResponsables(),
+    puedeVerPosiciones ? leerPosiciones() : Promise.resolve(null),
+  ]);
 
   return (
     <>
@@ -63,7 +78,10 @@ export default async function Tiendas() {
               : "La base no respondió. Volvé a intentar en un momento."}
           </Callout>
         ) : (
-          <Mapa lugares={lugares.value} />
+          <Mapa
+            lugares={lugares.value}
+            posiciones={posiciones.status === "fulfilled" ? posiciones.value : null}
+          />
         )}
 
         {responsables.status === "rejected" ? (
@@ -87,7 +105,13 @@ export default async function Tiendas() {
   );
 }
 
-function Mapa({ lugares }: { lugares: Lugar[] }) {
+function Mapa({
+  lugares,
+  posiciones,
+}: {
+  lugares: Lugar[];
+  posiciones: PosicionDriver[] | null;
+}) {
   const cuenta = (tipo: Lugar["tipo"]) => lugares.filter((l) => l.tipo === tipo).length;
   const sinId = lugares.filter((l) => l.id == null).length;
   const compartidos = new Set(lugares.filter((l) => l.compartido).map((l) => l.id)).size;
@@ -116,7 +140,12 @@ function Mapa({ lugares }: { lugares: Lugar[] }) {
           <code>supabase/migracion-06-lugares.sql</code>.
         </Callout>
       ) : (
-        <MapaTiendas lugares={lugares} ventana={ventanaProyeccion()}>
+        <MapaTiendas
+          lugares={lugares}
+          ventana={ventanaProyeccion()}
+          claveTomTom={claveTomTom()}
+          posiciones={posiciones}
+        >
           {/* El contorno de las zonas, dibujado en el servidor: son ~3.500
               puntos que no cambian nunca y no tienen por qué viajar como
               datos ni volver a pintarse al mover el mapa. */}

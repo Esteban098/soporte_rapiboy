@@ -324,3 +324,88 @@ test("las tiendas no entraron al mapa del tracker, pero el paquete conserva su c
   assert.doesNotMatch(flujo, /AS Seller|seller:/);
   assert.match(flujo, /ON U\.Id = V\.IdUsuario/, "el join que acota por comercio tiene que seguir");
 });
+
+/* ---------------------------------------------------------------------------
+ * Capas y repartidores sobre el mapa de tiendas
+ * ------------------------------------------------------------------------- */
+
+test("el rol comercial no recibe las posiciones de los repartidores", () => {
+  /*
+   * Las posiciones son del live tracker, y el comercial está afuera del live
+   * tracker a propósito. No alcanza con esconder la casilla: lo que llega al
+   * navegador se puede mirar. La página ni las lee para ese rol.
+   */
+  const pagina = readFileSync(
+    new URL("../src/app/(tablero)/tiendas/page.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(pagina, /const puedeVerPosiciones = sesion !== null && !esComercial\(sesion\.rol\)/);
+  assert.match(pagina, /puedeVerPosiciones \? leerPosiciones\(\) : Promise\.resolve\(null\)/);
+
+  // Y no hay otro camino por el que se lean.
+  assert.equal(pagina.match(/leerPosiciones\(\)/g)?.length, 1);
+});
+
+test("las posiciones viajan sin domicilio ni paquetes, y sin coordenadas imposibles", async () => {
+  const { aPosiciones } = await import("../src/lib/posiciones-datos");
+
+  const fila = (over: Record<string, unknown>) => ({
+    id_motoboy: 7,
+    nombre: "Ana",
+    apellido: "Ruiz",
+    latitud: 19.43,
+    longitud: -99.13,
+    fecha_ultima_posicion: "2026-09-15T15:00:00Z",
+    ultima_movimiento_en: null,
+    ultima_info: "calle privada 123",
+    id_reserva: 100,
+    id_localidad: 9,
+    id_modalidad: 5,
+    fecha_operacion: "2026-09-15",
+    activo: true,
+    primera_deteccion: "2026-09-15T12:00:00Z",
+    ultima_deteccion: "2026-09-15T15:00:00Z",
+    sincronizado_en: "2026-09-15T15:00:00Z",
+    sync_id: "s1",
+    minutos_sin_actualizar: 4,
+    minutos_sin_movimiento: 4,
+    estado_posicion: "RECIENTE",
+    ...over,
+  });
+
+  const posiciones = aPosiciones([
+    fila({}),
+    fila({ id_motoboy: 8, latitud: 0, longitud: 0 }),
+    fila({ id_motoboy: 9, latitud: null, longitud: null }),
+  ] as never);
+
+  // El (0, 0) y la fila sin GPS no se dibujan.
+  assert.deepEqual(posiciones.map((p) => p.id), [7]);
+
+  // Solo lo necesario para poner un pin: nada de reserva, info ni sincronización.
+  assert.deepEqual(Object.keys(posiciones[0]).sort(), [
+    "estado",
+    "fecha",
+    "id",
+    "lat",
+    "lon",
+    "minutos",
+    "nombre",
+  ]);
+  assert.equal(posiciones[0].nombre, "Ana Ruiz");
+});
+
+test("en tiendas todas las capas arrancan apagadas", () => {
+  const mapa = readFileSync(new URL("../src/components/MapaTiendas.tsx", import.meta.url), "utf8");
+
+  assert.match(mapa, /const \[verCalles, setVerCalles\] = useState\(false\)/);
+  assert.match(mapa, /const \[verTrafico, setVerTrafico\] = useState\(false\)/);
+  assert.match(mapa, /const \[verDrivers, setVerDrivers\] = useState\(false\)/);
+
+  // La lluvia es el mismo hook del tracker, que arranca apagado.
+  assert.match(mapa, /useLluvia\(ventana\)/);
+
+  // Sin clave no hay casillas de TomTom, y sin permiso no hay repartidores.
+  assert.match(mapa, /claveTomTom \? \(\s*<ControlesTomTom/);
+  assert.match(mapa, /posiciones \? \(\s*<label/);
+});

@@ -163,7 +163,7 @@ test("la atribución de TomTom vive en un solo lugar y la usan las dos pantallas
   const controles = fuente("../src/components/Trafico.tsx");
   assert.match(controles, /© TomTom/);
 
-  for (const pantalla of ["../src/components/LiveTracker.tsx"]) {
+  for (const pantalla of ["../src/components/LiveTracker.tsx", "../src/components/MapaTiendas.tsx"]) {
     const codigo = fuente(pantalla);
     assert.match(codigo, /<ControlesTomTom/, pantalla);
     assert.doesNotMatch(codigo, /© TomTom/, `${pantalla} tiene su propia copia de la atribución`);
