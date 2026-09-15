@@ -1,5 +1,6 @@
 import "server-only";
 import { auth, authDeshabilitada, tieneAcceso } from "@/auth";
+import { esComercial } from "./permisos";
 import type { RolPerfil } from "./perfiles";
 
 /**
@@ -15,7 +16,13 @@ import type { RolPerfil } from "./perfiles";
  */
 export type Operador = { email: string; rol: RolPerfil };
 
-export async function operadorActual(): Promise<Operador | null> {
+/**
+ * Cualquier sesión habilitada, comercial incluido.
+ *
+ * Solo para lo poco que un comercial puede tocar —la distribución de tiendas y
+ * el refresco de colectas—. Todo lo demás pasa por `operadorActual`.
+ */
+export async function sesionActual(): Promise<Operador | null> {
   // Con el bypass de desarrollo prendido no hay sesión que mirar. Queda como
   // admin para poder trabajar sobre la pantalla de perfiles, y con un correo
   // que se distingue a simple vista de uno real en la base.
@@ -29,6 +36,19 @@ export async function operadorActual(): Promise<Operador | null> {
   // Quien entró por la lista blanca de Google no tiene perfil en la base, así
   // que no es admin: administrar perfiles pide tener uno.
   return { email, rol: rol ?? "operador" };
+}
+
+/**
+ * Quien opera el tablero: admin u operador.
+ *
+ * Un comercial queda afuera a propósito. Es lo que chequean casi todas las
+ * acciones y los endpoints —casos, seguimiento, cobros, notificaciones, el
+ * tracker—, así que dejarlo afuera acá los cierra a todos de una vez, incluidos
+ * los que se agreguen mañana. Donde sí corresponde se usa `sesionActual`.
+ */
+export async function operadorActual(): Promise<Operador | null> {
+  const operador = await sesionActual();
+  return operador && !esComercial(operador.rol) ? operador : null;
 }
 
 /** El correo de quien opera, que es lo único que necesita casi todo el código. */

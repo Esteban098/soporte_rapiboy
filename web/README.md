@@ -530,12 +530,25 @@ más adelante sin invalidar las contraseñas que ya existen. Se usa scrypt y no
 bcrypt porque viene en Node: una dependencia menos en un proyecto que ya habla
 con Supabase y con OpenAI por `fetch` pelado.
 
-Dos roles:
+Tres roles:
 
 | Rol | Puede |
 |---|---|
 | `admin` | todo el tablero, más crear perfiles, desactivarlos y resetear contraseñas |
 | `operador` | todo el tablero y cambiar su propia contraseña |
+| `comercial` | solo **Tiendas** (`/tiendas`) y **Colectas** (`/colectas` y `/colectas/historial`) |
+
+El **comercial** es para el equipo comercial y lo crea el administrador eligiendo
+ese rol. Ve el menú recortado a esas tres pantallas; si pide otra, el proxy lo
+devuelve a Tiendas, y los endpoints le responden 403. Puede editar la
+distribución de tiendas y actualizar colectas, y nada más: no carga reportes, no
+tiene campana ni puede entrar a *Mi perfil*, así que su contraseña la resetea el
+administrador. Antes de crear el primero, volver a correr `supabase/perfiles.sql`:
+en una base existente agrega el valor `comercial` al enum `rol_perfil`, sin tocar
+los perfiles ni las contraseñas.
+
+El rol viaja en la sesión. Si a alguien se le cambia el rol, el cambio corre
+desde su próximo ingreso; para cortarle el acceso ya, desactivarlo.
 
 El administrador edita cualquier perfil —correo, nombre y rol—, resetea
 contraseñas y activa o desactiva. Cualquiera, administre o no, entra a la misma

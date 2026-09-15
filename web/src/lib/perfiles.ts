@@ -3,6 +3,7 @@ import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { TABLA_PERFILES } from "./config";
 import { actualizarFila, consultarFresco, insertarFila, TablaFaltante } from "./supabase";
+import { aRol, type RolPerfil } from "./permisos";
 
 const derivar = promisify(scrypt) as (
   clave: string,
@@ -19,7 +20,9 @@ const derivar = promisify(scrypt) as (
  * en `editado_por`, `creado_por` y `atendido_por`.
  */
 
-export type RolPerfil = "admin" | "operador";
+// Los roles y lo que ve cada uno viven en `permisos.ts`, que no arrastra nada
+// de servidor y lo puede usar también el proxy.
+export type { RolPerfil };
 
 export type Perfil = {
   id: string;
@@ -100,7 +103,7 @@ function parsear(fila: FilaPerfil): Perfil {
     id: fila.id,
     email: fila.email,
     nombre: fila.nombre?.trim() || null,
-    rol: fila.rol === "admin" ? "admin" : "operador",
+    rol: aRol(fila.rol),
     activo: fila.activo !== false,
     creado: fila.created_at ? new Date(fila.created_at) : null,
     creadoPor: fila.creado_por?.trim() || null,

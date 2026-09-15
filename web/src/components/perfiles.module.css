@@ -107,6 +107,11 @@
   color: var(--ink-2);
 }
 
+.rolComercial {
+  color: var(--tienda-candelaria);
+  font-weight: 600;
+}
+
 .activo {
   color: var(--good);
 }

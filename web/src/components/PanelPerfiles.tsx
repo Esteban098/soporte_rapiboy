@@ -9,6 +9,7 @@ import {
   editarMiNombre,
   resetearPassword,
 } from "@/app/perfiles";
+import { ETIQUETA_ROL, aRol } from "@/lib/permisos";
 import { EditorPerfil } from "./EditorPerfil";
 import estilos from "./ui.module.css";
 import tabla from "./tabla.module.css";
@@ -76,7 +77,7 @@ export function PanelPerfiles({
 
   function alta() {
     correr(
-      () => crearPerfil({ email, nombre, password, rol: rol === "admin" ? "admin" : "operador" }),
+      () => crearPerfil({ email, nombre, password, rol: aRol(rol) }),
       `Perfil creado. Pasale la contraseña a ${email.trim()} y pedile que la cambie desde su sesión.`,
     );
     setPassword("");
@@ -155,6 +156,7 @@ export function PanelPerfiles({
                 disabled={trabajando}
               >
                 <option value="operador">Operador</option>
+                <option value="comercial">Comercial · solo Tiendas y Colectas</option>
                 <option value="admin">Administrador</option>
               </select>
             </label>
@@ -195,8 +197,16 @@ export function PanelPerfiles({
                   <td>{perfil.email}</td>
                   <td>{perfil.nombre || "—"}</td>
                   <td>
-                    <span className={perfil.rol === "admin" ? propio.rolAdmin : propio.rolOperador}>
-                      {perfil.rol === "admin" ? "Administrador" : "Operador"}
+                    <span
+                      className={
+                        perfil.rol === "admin"
+                          ? propio.rolAdmin
+                          : perfil.rol === "comercial"
+                            ? propio.rolComercial
+                            : propio.rolOperador
+                      }
+                    >
+                      {ETIQUETA_ROL[aRol(perfil.rol)]}
                     </span>
                   </td>
                   <td className={propio.fecha}>{perfil.ultimoIngreso || "nunca"}</td>

@@ -15,7 +15,7 @@ export default async function TableroLayout({ children }: { children: React.Reac
 
   return (
     <ProveedorTiendas indice={indice}>
-      <Shell modo={modoDatos()} usuario={usuario} esAdmin={admin}>
+      <Shell modo={modoDatos()} usuario={usuario} esAdmin={admin} rol={sesion?.user?.rol ?? null}>
         {children}
       </Shell>
     </ProveedorTiendas>

@@ -3,6 +3,8 @@
 import { updateTag } from "next/cache";
 import { TIMEOUT_FLUJO_MS, esClaveFlujo, flujosDe, type ClaveFlujo } from "@/lib/config";
 import { esMesValido } from "@/lib/periodos";
+import { esComercial } from "@/lib/permisos";
+import { sesionActual } from "@/lib/sesion";
 
 export type ResultadoActualizacion = {
   /** Cuántos flujos se dispararon y cuántos respondieron bien. */
@@ -15,12 +17,22 @@ export type ResultadoActualizacion = {
 /**
  * Ejecuta los flujos y después invalida el caché, incluso si alguno falla.
  * La clave del navegador se valida contra los alcances permitidos.
+ *
+ * Pide sesión como cualquier acción: se puede invocar por HTTP directo, y sin
+ * este control cualquiera con la URL dispararía los flujos de n8n. Un
+ * comercial solo puede refrescar colectas, que es lo único que ve.
  */
 export async function actualizarDatos(
   clave: unknown = "global",
   periodo?: unknown,
 ): Promise<ResultadoActualizacion> {
   const cual: ClaveFlujo = esClaveFlujo(clave) ? clave : "global";
+
+  const operador = await sesionActual();
+  if (!operador || (esComercial(operador.rol) && cual !== "colectas")) {
+    return { flujos: 0, exitosos: 0, fallas: ["Sin permiso para actualizar estos datos."] };
+  }
+
   const rango = rangoPedido(periodo);
   const flujos = flujosDe(cual);
   const resultados = await Promise.all(flujos.map((url) => ejecutarFlujo(url, cual, rango)));

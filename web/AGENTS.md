@@ -144,6 +144,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Antes de borrar o mover datos en Supabase, contar las filas objetivo y
   verificar su destino. Después, comprobar cantidades e intersecciones.
 - No truncar tablas ni cambiar workflows activos salvo pedido explícito.
+- El rol `comercial` ve solo `/tiendas`, `/colectas` y `/colectas/historial`.
+  La regla vive una sola vez en `src/lib/permisos.ts` y la aplican el proxy,
+  el menú y las acciones. `operadorActual()` y `usuarioActual()` devuelven
+  `null` para un comercial, así que toda acción o endpoint nuevo queda cerrado
+  para él por defecto; `sesionActual()` lo incluye y se usa solo donde
+  corresponde (guardar tiendas, refrescar colectas). Una pantalla nueva que
+  deba verla un comercial se agrega a `RUTAS_COMERCIAL`.
 - Los JSON de `../n8n/` son exportaciones importables. Conservar credenciales,
   conexiones, expresiones y columnas protegidas al modificarlos.
 - Para una publicación compatible: correr primero las migraciones aditivas,
@@ -163,6 +170,7 @@ npm run test:seguimiento
 npm run test:tracker
 npm run test:tiendas
 npm run test:responsables
+npm run test:permisos
 npm run test:lluvia
 ```
 

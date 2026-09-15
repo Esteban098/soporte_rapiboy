@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { auth, signIn, tieneAcceso } from "@/auth";
+import { inicioDe } from "@/lib/permisos";
 import estilos from "./acceso.module.css";
 
 export const metadata = { title: "Acceso" };
@@ -24,7 +25,7 @@ export default async function Acceso({
   searchParams: Promise<{ error?: string }>;
 }) {
   const sesion = await auth();
-  if (tieneAcceso(sesion?.user?.email, sesion?.user?.rol)) redirect("/");
+  if (tieneAcceso(sesion?.user?.email, sesion?.user?.rol)) redirect(inicioDe(sesion?.user?.rol));
 
   const { error } = await searchParams;
   const conGoogle = Boolean(process.env.GOOGLE_CLIENT_ID);

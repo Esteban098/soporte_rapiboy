@@ -1,6 +1,7 @@
 "use server";
 
 import { operadorActual } from "@/lib/sesion";
+import { ROLES_PERFIL } from "@/lib/permisos";
 import {
   MINIMO_PASSWORD,
   adminsActivos,
@@ -26,7 +27,7 @@ import {
 
 export type Resultado = { ok: true } | { ok: false; error: string };
 
-const ROLES: RolPerfil[] = ["admin", "operador"];
+const ROLES: readonly RolPerfil[] = ROLES_PERFIL;
 
 /** Quien administra, o `null`. Toda acción de este módulo arranca por acá. */
 async function administrador(): Promise<string | null> {

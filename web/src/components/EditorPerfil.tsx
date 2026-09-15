@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { editarPerfil } from "@/app/perfiles";
+import { aRol } from "@/lib/permisos";
 import type { FilaPerfil } from "./PanelPerfiles";
 import estilos from "./editor-caso.module.css";
 
@@ -40,7 +41,7 @@ export function EditorPerfil({
       const resultado = await editarPerfil(perfil.id, {
         email,
         nombre,
-        rol: rol === "admin" ? "admin" : "operador",
+        rol: aRol(rol),
       });
 
       if (!resultado.ok) {
@@ -92,6 +93,7 @@ export function EditorPerfil({
             disabled={guardando || esMio}
           >
             <option value="operador">Operador</option>
+            <option value="comercial">Comercial · solo Tiendas y Colectas</option>
             <option value="admin">Administrador</option>
           </select>
         </label>

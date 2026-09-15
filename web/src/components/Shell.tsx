@@ -7,6 +7,7 @@ import { SeguimientoWidget } from "./SeguimientoWidget";
 import { SelectorTema } from "./SelectorTema";
 import { CampanaNotificaciones } from "./CampanaNotificaciones";
 import { flujosDe, variableDeFlujo, type ClaveFlujo, type ModoDatos } from "@/lib/config";
+import { esComercial, inicioDe, puedeVerRuta, type RolPerfil } from "@/lib/permisos";
 import estilos from "./ui.module.css";
 
 /**
@@ -100,23 +101,45 @@ function esGrupo(entrada: Grupo | Seccion): entrada is Grupo {
   return "secciones" in entrada;
 }
 
+/**
+ * El menú de un rol: sin las secciones que no puede abrir y sin los grupos que
+ * quedan vacíos. Es la misma regla del proxy, así que el menú nunca ofrece una
+ * pantalla que después rebota.
+ */
+function navegacionDe(rol: RolPerfil | null): (Grupo | Seccion)[] {
+  return NAVEGACION.map((entrada) =>
+    esGrupo(entrada)
+      ? { ...entrada, secciones: entrada.secciones.filter((s) => puedeVerRuta(rol, s.href)) }
+      : entrada,
+  ).filter((entrada) =>
+    esGrupo(entrada) ? entrada.secciones.length > 0 : puedeVerRuta(rol, entrada.href),
+  );
+}
+
 export function Shell({
   children,
   modo,
   usuario,
   esAdmin = false,
+  rol = null,
 }: {
   children: React.ReactNode;
   modo: ModoDatos;
   usuario?: string | null;
   /** Muestra el grupo de administración. No reemplaza el control de la página. */
   esAdmin?: boolean;
+  /** Recorta el menú a lo que ese rol puede abrir. No reemplaza el proxy. */
+  rol?: RolPerfil | null;
 }) {
+  // Un comercial no tiene reportes ni menciones: la campana y el widget de
+  // seguimiento llaman a acciones que para él están cerradas.
+  const conSeguimiento = modo === "supabase" && !esComercial(rol);
+
   return (
     <div className={estilos.app}>
       <nav className={estilos.rail} aria-label="Secciones">
         <div className={estilos.railFijo}>
-          <Link href="/" className={estilos.marca}>
+          <Link href={inicioDe(rol)} className={estilos.marca}>
             <span className={estilos.marcaSigla} aria-hidden="true">
               MX
             </span>
@@ -127,7 +150,7 @@ export function Shell({
           </Link>
 
           <div className={estilos.railCuerpo}>
-            {NAVEGACION.map((entrada) =>
+            {navegacionDe(rol).map((entrada) =>
               esGrupo(entrada) ? (
                 <NavGrupo
                   key={entrada.titulo}
@@ -172,7 +195,7 @@ export function Shell({
             {ETIQUETA_FUENTE[modo]}
           </span>
           {/* Las notificaciones viven en Supabase; con otra fuente no hay campana. */}
-          {modo === "supabase" ? <CampanaNotificaciones /> : null}
+          {conSeguimiento ? <CampanaNotificaciones /> : null}
           <SelectorTema />
         </header>
 
@@ -181,7 +204,7 @@ export function Shell({
         {/* Se carga en todas las pantallas del tablero: reportar algo casi
             nunca pasa estando parado en la pantalla de reportes. Solo con la
             base activa, porque es lo único que sabe guardar un reporte. */}
-        {modo === "supabase" ? <SeguimientoWidget /> : null}
+        {conSeguimiento ? <SeguimientoWidget /> : null}
       </div>
     </div>
   );

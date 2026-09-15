@@ -2,7 +2,7 @@
 
 import { updateTag } from "next/cache";
 import { TABLA_TIENDAS_RESPONSABLES } from "@/lib/config";
-import { usuarioActual } from "@/lib/sesion";
+import { sesionActual } from "@/lib/sesion";
 import { actualizarFila, insertarFila } from "@/lib/supabase";
 import { ETIQUETA_RESPONSABLES, leerResponsables } from "@/lib/responsables-datos";
 import { claveTienda, limpiarAlias, revisarTienda, type DatosTienda } from "@/lib/responsables";
@@ -12,13 +12,14 @@ import { claveTienda, limpiarAlias, revisarTienda, type DatosTienda } from "@/li
  *
  * No hay baja: una tienda que cambia de manos se reasigna, y una que se quiere
  * dejar sin color se corrige en la base. Lo puede hacer cualquiera con sesión,
- * igual que editar un caso, y queda firmado en `editado_por`.
+ * comercial incluido —Tiendas es una de sus pantallas—, y queda firmado en
+ * `editado_por`.
  */
 
 export type Resultado = { ok: true } | { ok: false; error: string };
 
 export async function guardarTienda(id: string | null, datos: DatosTienda): Promise<Resultado> {
-  const quien = await usuarioActual();
+  const quien = (await sesionActual())?.email ?? null;
   if (!quien) return { ok: false, error: "No tenés permiso para editar." };
 
   let existentes;

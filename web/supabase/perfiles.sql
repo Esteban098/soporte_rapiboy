@@ -9,16 +9,22 @@
 -- habilitado sigue entrando con Google. Los dos caminos terminan en la misma
 -- sesión.
 --
--- Correr una vez en el SQL Editor de Supabase.
+-- Correr en el SQL Editor de Supabase. Se puede volver a correr: no pisa
+-- perfiles ni contraseñas, y en una base que ya lo tenía agrega los roles que
+-- falten.
 -- ---------------------------------------------------------------------------
 
 do $$
 begin
-  create type public.rol_perfil as enum ('admin', 'operador');
+  create type public.rol_perfil as enum ('admin', 'operador', 'comercial');
 exception
   when duplicate_object then null;
 end
 $$;
+
+-- En una base creada antes de que existiera el rol comercial, el tipo ya está
+-- y el bloque de arriba no lo toca. Esta línea es la que lo agrega ahí.
+alter type public.rol_perfil add value if not exists 'comercial';
 
 create table if not exists public.perfiles (
   id             uuid primary key default gen_random_uuid(),
@@ -44,6 +50,7 @@ create table if not exists public.perfiles (
   /*
    * `admin` es el único que puede crear, desactivar y resetear perfiles.
    * `operador` usa el tablero y cambia su propia contraseña, nada más.
+   * `comercial` ve solo Tiendas y Colectas (`src/lib/permisos.ts`).
    */
   rol            public.rol_perfil not null default 'operador',
 
