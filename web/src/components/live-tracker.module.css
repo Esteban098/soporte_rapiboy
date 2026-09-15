@@ -189,6 +189,91 @@
   color: var(--muted);
 }
 
+/* ---------- Radar de lluvia ---------- */
+
+/*
+ * La lluvia va translúcida y apenas saturada: es contexto detrás de los
+ * marcadores, no el tema del mapa. En tema oscuro se aclara un poco porque el
+ * azul del radar se pierde contra un fondo oscuro.
+ */
+.lluvia {
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+
+  /*
+   * El desenfoque es del tamaño de un cuarto de píxel del radar y va en
+   * unidades del `viewBox`, así que acompaña al zoom. La API pública corta en
+   * zoom 7: sin esto, la lluvia sobre la ciudad se ve como un damero de
+   * cuadrados duros y se lee como un error de dibujo en vez de como el borde
+   * difuso que de verdad tiene una tormenta.
+   */
+  filter: blur(3px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme="light"])) .lluvia {
+    opacity: 0.75;
+    mix-blend-mode: screen;
+  }
+}
+
+:global(:root[data-theme="dark"]) .lluvia {
+  opacity: 0.75;
+  mix-blend-mode: screen;
+}
+
+.radar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.radarBarra {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.radarBarra button {
+  width: 26px;
+  height: 22px;
+  font-size: 10px;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.radarBarra button:disabled {
+  cursor: progress;
+  opacity: 0.5;
+}
+
+.radarBarra input {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+
+.radarHora {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.radarPie,
+.radarAviso {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.radarPie a {
+  color: inherit;
+}
+
 /* ---------- Lista de repartidores ---------- */
 
 .lista {

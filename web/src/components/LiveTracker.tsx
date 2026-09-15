@@ -21,6 +21,7 @@ import type {
   PaqueteDelTracker,
 } from "@/lib/tracker-datos";
 import { etiquetaPaquete, MapaTracker } from "./MapaTracker";
+import { ControlLluvia, useLluvia } from "./Lluvia";
 import estilos from "./live-tracker.module.css";
 
 /**
@@ -73,6 +74,7 @@ export function LiveTracker({
    * en el orden equivocado. Prendida a mano, se sabe lo que se está mirando.
    */
   const [mostrarPropuesta, setMostrarPropuesta] = useState(false);
+  const lluvia = useLluvia(ventana);
   const [paqueteActivo, setPaqueteActivo] = useState<number | null>(null);
   const [paqueteBuscado, setPaqueteBuscado] = useState<number | null>(null);
   const [poligonoActivo, setPoligonoActivo] = useState<{ nombre: string; zona: string } | null>(null);
@@ -394,6 +396,17 @@ export function LiveTracker({
           Ver ruta propuesta por cercanía
         </label>
 
+        <label className={estilos.filtro}>
+          <input
+            type="checkbox"
+            checked={lluvia.activa}
+            onChange={(e) => lluvia.prender(e.target.checked)}
+          />
+          Ver la lluvia sobre el mapa
+        </label>
+
+        {lluvia.activa ? <ControlLluvia estado={lluvia} /> : null}
+
         {datos.tablasFaltantes.includes("tracker_choferes") ? (
           /*
            * Decir qué falta y qué correr, en vez de dejar la pantalla a medias
@@ -455,6 +468,7 @@ export function LiveTracker({
           seleccionados={seleccion}
           mostrarInactivos={mostrarInactivos}
           mostrarPropuesta={mostrarPropuesta}
+          lluvia={lluvia}
           paqueteActivo={paqueteEnMapa}
           onPaquete={seleccionarPaquete}
           onPoligono={(poligono) => {

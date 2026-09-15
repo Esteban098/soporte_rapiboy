@@ -14,6 +14,7 @@ import {
 import { colorEstado, type ColorEstado } from "@/lib/estados";
 import type { DriverDelTracker, PaqueteDelTracker } from "@/lib/tracker-datos";
 import { encuadreDe, LienzoMapa } from "./LienzoMapa";
+import { CapaLluvia, type EstadoLluvia } from "./Lluvia";
 import estilos from "./live-tracker.module.css";
 
 /** El relleno comunica el desenlace que informa el sistema. */
@@ -41,6 +42,7 @@ export function MapaTracker({
   seleccionados,
   mostrarInactivos,
   mostrarPropuesta,
+  lluvia,
   paqueteActivo,
   onPaquete,
   onPoligono,
@@ -53,6 +55,8 @@ export function MapaTracker({
   mostrarInactivos: boolean;
   /** La ruta alternativa por cercanía. Apagada salvo que se pida. */
   mostrarPropuesta: boolean;
+  /** El radar de lluvia. Apagado salvo que se pida; ver `Lluvia.tsx`. */
+  lluvia: EstadoLluvia;
   paqueteActivo: number | null;
   onPaquete: (idViaje: number | null) => void;
   onPoligono: (poligono: { nombre: string; zona: string }) => void;
@@ -124,6 +128,10 @@ export function MapaTracker({
       >
         {(k) => (
           <>
+            {/* La lluvia va primero: es fondo, como los polígonos, y no tiene
+                que taparle un marcador a nadie. */}
+            {lluvia.activa ? <CapaLluvia estado={lluvia} ventana={ventana} /> : null}
+
             {/* La bodega va una sola vez, no una por repartidor: es el mismo
                 punto para todos y superponer diez copias solo engorda el SVG. */}
             {mostrarPropuesta && visibles.length > 0 ? (

@@ -161,6 +161,7 @@ npm run test:siniestrados
 npm run test:cobros
 npm run test:seguimiento
 npm run test:tracker
+npm run test:lluvia
 ```
 
 Además, validar los workflows con `jq empty ../n8n/*.json`. El build no sale a
@@ -194,10 +195,25 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   hay próximo y la pantalla dice por qué. No completar la secuencia es
   deliberado: el equipo leería un orden inventado como un dato del sistema.
 - El mapa reutiliza la proyección y los polígonos de Cobertura. No hay librería
-  de mapas ni tiles, así que la pantalla no le pide nada a ningún servidor
-  externo. `proyectarEn()` y `proyectar()` tienen que dar el mismo resultado o
+  de mapas ni tiles propios, así que la pantalla no le pide nada a ningún
+  servidor externo mientras la capa de lluvia esté apagada. `proyectarEn()` y `proyectar()` tienen que dar el mismo resultado o
   los marcadores quedan corridos respecto del fondo; hay una prueba que lo
   compara.
+- La **capa de lluvia** es radar de RainViewer (`src/lib/lluvia.ts`,
+  `src/components/Lluvia.tsx`) y es la única parte del tablero que sale a
+  internet. Va apagada por default y no pide nada hasta que se la prende: con
+  la capa apagada, o con RainViewer caído, la pantalla es la de siempre. La API
+  es pública y sin clave; pide atribución visible, que va debajo del control.
+  Las teselas son Web Mercator y el mapa no lo es: en longitud las dos
+  proyecciones coinciden exacto y en latitud queda un corrimiento máximo de
+  352 m sobre esta ventana, menos que los 572 m que mide un píxel del radar.
+  Hay una prueba que falla si crece. Para una ventana de varios grados de alto
+  no alcanzaría: habría que partir cada tesela en franjas. El zoom del mosaico es fijo y está topeado en 7: arriba de
+  ese zoom la API pública no da error, da una imagen gris que dice «Zoom Level
+  Not Supported» y quedaría pegada sobre la ciudad. Por eso las teselas se
+  piden de 512 px y la capa va con un desenfoque suave. Los cuadros se
+  precargan antes de animar para que el primer ciclo no parpadee.
+
 - Los marcadores se dibujan en píxeles, midiendo la caja del SVG con un
   `ResizeObserver`. Escalarlos con el `viewBox` los volvería gigantes al
   acercar e invisibles al alejar.

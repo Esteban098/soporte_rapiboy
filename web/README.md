@@ -134,6 +134,17 @@ pendiente, un aro alrededor si es la próxima, un tilde si se entregó, un signo
 de admiración si se visitó y no se entregó. Los cancelados y los que salieron
 de la ruta están ocultos y se muestran con la casilla del panel.
 
+La casilla **Ver la lluvia sobre el mapa** pone el radar de RainViewer debajo
+de los marcadores, para distinguir una ruta lenta por el driver de una ruta
+lenta porque está diluviando. Aparece una barra con la hora del cuadro —hora de
+México, como todo el tablero— que se puede animar o mover a mano; los cuadros
+futuros se marcan como pronóstico. Es lo único de la pantalla que sale a
+internet, así que va apagada y no pide nada hasta que se la prende: con la
+casilla sin marcar, o con RainViewer caído, el mapa es exactamente el de
+siempre. La imagen del radar es gruesa a propósito —la API pública sirve hasta
+zoom 7, unos 570 metros por píxel—: sirve para ver dónde está la tormenta, no
+para mirar una cuadra.
+
 Debajo del mapa, **Entregados por hora** agrupa por la hora de Ciudad de México
 de `fecha_visita`; si esa marca falta en un entregado, usa
 `fecha_cambio_estado`. Con repartidores seleccionados muestra solamente los de
