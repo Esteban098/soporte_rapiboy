@@ -15,6 +15,7 @@ import { colorEstado, type ColorEstado } from "@/lib/estados";
 import type { DriverDelTracker, PaqueteDelTracker } from "@/lib/tracker-datos";
 import { encuadreDe, LienzoMapa } from "./LienzoMapa";
 import { CapaLluvia, type EstadoLluvia } from "./Lluvia";
+import { CapaTomTom, type EstadoTomTom } from "./Trafico";
 import estilos from "./live-tracker.module.css";
 
 /** El relleno comunica el desenlace que informa el sistema. */
@@ -43,6 +44,7 @@ export function MapaTracker({
   mostrarInactivos,
   mostrarPropuesta,
   lluvia,
+  tomtom,
   paqueteActivo,
   onPaquete,
   onPoligono,
@@ -57,6 +59,8 @@ export function MapaTracker({
   mostrarPropuesta: boolean;
   /** El radar de lluvia. Apagado salvo que se pida; ver `Lluvia.tsx`. */
   lluvia: EstadoLluvia;
+  /** Calles y tráfico de TomTom. `null` si no hay clave o están apagados. */
+  tomtom: EstadoTomTom | null;
   paqueteActivo: number | null;
   onPaquete: (idViaje: number | null) => void;
   onPoligono: (poligono: { nombre: string; zona: string }) => void;
@@ -112,6 +116,9 @@ export function MapaTracker({
     return encuadreDe(puntos, ventana);
   }, [visibles, paqueteActivo, mostrarInactivos, mostrarPropuesta, proyectar, ventana]);
 
+  const calles = tomtom?.calles ? tomtom : null;
+  const trafico = tomtom?.trafico ? tomtom : null;
+
   return (
     <>
       <LienzoMapa
@@ -124,13 +131,33 @@ export function MapaTracker({
             : `Mapa con ${visibles.length} repartidor${visibles.length === 1 ? "" : "es"} en pantalla`
         }
         fondo={children}
+        fondoSobreMapa={calles !== null}
+        debajo={
+          calles
+            ? (lienzo) => (
+                <CapaTomTom capa="calles" clave={calles.clave} ventana={ventana} lienzo={lienzo} />
+              )
+            : undefined
+        }
         onPoligono={onPoligono}
       >
-        {(k) => (
+        {(k, lienzo) => (
           <>
             {/* La lluvia va primero: es fondo, como los polígonos, y no tiene
                 que taparle un marcador a nadie. */}
             {lluvia.activa ? <CapaLluvia estado={lluvia} ventana={ventana} /> : null}
+
+            {/* El tráfico va encima de la lluvia —una línea roja bajo el radar
+                se lee marrón— y debajo de los marcadores. */}
+            {trafico ? (
+              <CapaTomTom
+                capa="trafico"
+                clave={trafico.clave}
+                ventana={ventana}
+                lienzo={lienzo}
+                ciclo={trafico.ciclo}
+              />
+            ) : null}
 
             {/* La bodega va una sola vez, no una por repartidor: es el mismo
                 punto para todos y superponer diez copias solo engorda el SVG. */}

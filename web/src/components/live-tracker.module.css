@@ -222,6 +222,20 @@
   mix-blend-mode: screen;
 }
 
+/*
+ * El mapa de calles va un poco lavado: es el marco para ubicarse, y a color
+ * pleno les compite a los marcadores de estado, que son el tema.
+ */
+.calles {
+  opacity: 0.85;
+  filter: saturate(0.55);
+}
+
+/* El tráfico va opaco: una línea de color tenue no se distingue de la calle. */
+.trafico {
+  opacity: 0.95;
+}
+
 .radar {
   display: flex;
   flex-direction: column;
@@ -381,6 +395,64 @@
 
 /* ---------- Mapa ---------- */
 
+/*
+ * La barra de capas, arriba del mapa y a la derecha.
+ *
+ * Las casillas dicen qué se ve en el mapa, así que van pegadas a él; el panel
+ * de la izquierda queda para elegir a quién o qué mirar. Van en fila y bajan de
+ * línea si no entran. Lo que depende de una capa prendida -la barra de tiempo
+ * del radar, la atribución de TomTom- va en una segunda línea, así la fila de
+ * casillas no salta de lugar cuando se prende algo.
+ */
+.barraMapa {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.barraMapaCasillas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 18px;
+}
+
+.barraMapaCasillas .filtro {
+  white-space: nowrap;
+}
+
+.barraMapaDetalle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  max-width: min(520px, 100%);
+  text-align: right;
+}
+
+.barraMapaDetalle .radar {
+  width: min(420px, 100%);
+}
+
+/* En un teléfono la barra ocupa todo el ancho: alineada a la derecha, la
+   primera casilla quedaría lejos del pulgar y del resto del texto. */
+@media (max-width: 560px) {
+  .barraMapa,
+  .barraMapaDetalle {
+    align-items: stretch;
+    text-align: left;
+  }
+
+  .barraMapaCasillas {
+    justify-content: flex-start;
+  }
+
+  .barraMapaDetalle .radar {
+    width: 100%;
+  }
+}
+
 .derecha {
   display: flex;
   flex-direction: column;
@@ -416,6 +488,23 @@
   stroke-width: 1.2;
   cursor: pointer;
   transition: fill var(--dur-corta) var(--ease);
+}
+
+/*
+ * Con el mapa de calles debajo, las zonas quedan como contorno. El trazo se
+ * refuerza porque ahora compite con el dibujo de las calles.
+ */
+.fondoSobreMapa path {
+  fill: transparent;
+  stroke: color-mix(in srgb, var(--accent) 60%, var(--ink));
+
+  /*
+   * En píxeles de pantalla y no en unidades del mapa. Sin esto el trazo crece
+   * con el zoom: a zoom de calle el contorno pasa a medir ocho píxeles y tapa
+   * justamente las calles que se prendieron para ver.
+   */
+  stroke-width: 1.6px;
+  vector-effect: non-scaling-stroke;
 }
 
 .fondo path:hover,

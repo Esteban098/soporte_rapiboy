@@ -2,7 +2,7 @@ import { PageHead } from "@/components/Shell";
 import { Callout } from "@/components/Card";
 import { LiveTracker } from "@/components/LiveTracker";
 import { FondoCobertura } from "@/components/FondoCobertura";
-import { flujosDe, modoDatos } from "@/lib/config";
+import { claveTomTom, flujosDe, modoDatos } from "@/lib/config";
 import { ventanaProyeccion } from "@/lib/cobertura";
 import { diaDePaquetes } from "@/lib/tracker";
 import { TablaFaltante } from "@/lib/supabase";
@@ -68,6 +68,7 @@ export default async function LiveTrackerPage() {
         ventana={ventanaProyeccion()}
         hayFlujoPosiciones={flujosDe("trackerPosiciones").length > 0}
         hayFlujoPaquetes={flujosDe("trackerPaquetes").length > 0}
+        claveTomTom={claveTomTom()}
       >
         {/* El contorno de las zonas, dibujado en el servidor: son ~3.500
             puntos que no cambian nunca y no tienen por qué viajar como datos

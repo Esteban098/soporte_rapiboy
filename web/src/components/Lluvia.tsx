@@ -22,10 +22,10 @@ import estilos from "./live-tracker.module.css";
  * Antes había que abrir otra pestaña y comparar a ojo dos mapas distintos;
  * acá la lluvia queda debajo de los mismos puntos.
  *
- * Va apagada y no pide nada hasta que alguien la prende. El resto del tablero
- * no habla con ningún servidor de mapas —los polígonos son un archivo del
- * repo— y esa propiedad se conserva: con la capa apagada, o con RainViewer
- * caído, la pantalla es exactamente la de siempre.
+ * Va apagada y no pide nada hasta que alguien la prende. El mapa base no habla
+ * con ningún servidor de mapas —los polígonos son un archivo del repo— y esa
+ * propiedad se conserva: con esta capa y las de TomTom apagadas, o con
+ * RainViewer caído, la pantalla es exactamente la de siempre.
  *
  * Tres piezas: `useLluvia` maneja el estado y la descarga, `ControlLluvia` es
  * lo que se toca y `CapaLluvia` son las imágenes dentro del SVG.
@@ -184,7 +184,7 @@ export function useLluvia(ventana: Ventana) {
   };
 }
 
-/** El control del radar, debajo de los filtros del panel. */
+/** El control del radar, debajo de la fila de capas de arriba del mapa. */
 export function ControlLluvia({ estado }: { estado: EstadoLluvia }) {
   const { indice, cuadro, error, cargando, precargado } = estado;
 
@@ -240,7 +240,7 @@ export function ControlLluvia({ estado }: { estado: EstadoLluvia }) {
         <a href="https://www.rainviewer.com/" target="_blank" rel="noreferrer noopener">
           RainViewer
         </a>
-        . Es lo único de esta pantalla que sale a internet.
+        .
       </p>
     </div>
   );

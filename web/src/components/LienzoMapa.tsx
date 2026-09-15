@@ -8,12 +8,13 @@ import estilos from "./live-tracker.module.css";
  * El lienzo compartido de los mapas del tablero: encuadre movible sobre los
  * polígonos de cobertura.
  *
- * No hay librería de mapas ni tiles. El fondo son los polígonos del KMZ, que
- * ya están en el repo y llegan renderizados desde el servidor, así que ninguna
- * de estas pantallas le pide nada a un servidor de mapas y todas funcionan con
- * la red caída. Para una operación acotada a una ciudad, el contorno de las
- * zonas de reparto ubica mejor que un mapa de calles: es exactamente el marco
- * contra el que la operación piensa.
+ * No hay librería de mapas. El fondo son los polígonos del KMZ, que ya están
+ * en el repo y llegan renderizados desde el servidor, así que con las capas
+ * opcionales apagadas —radar, calles y tráfico, que entran por `debajo` y
+ * `children`— ninguna de estas pantallas le pide nada a un servidor de mapas y
+ * todas funcionan con la red caída. Para una operación acotada a una ciudad, el
+ * contorno de las zonas de reparto ubica mejor que un mapa de calles: es
+ * exactamente el marco contra el que la operación piensa.
  *
  * Mover y acercar cambian solamente el `viewBox`, así que los ~3.500 puntos
  * del contorno se dibujan una vez y el resto es trabajo del navegador.
@@ -26,12 +27,24 @@ import estilos from "./live-tracker.module.css";
 
 export type Vista = { x: number; y: number; w: number; h: number };
 
+/**
+ * Lo que una capa necesita saber del lienzo para dibujarse: qué parte del mapa
+ * se está mirando y cuántos píxeles reales mide la caja.
+ *
+ * Las capas de teselas lo usan para elegir el zoom. Un radar puede ir con un
+ * zoom fijo para toda la ciudad; un mapa de calles o de tráfico no, porque su
+ * detalle depende de cuánto se acercó quien mira.
+ */
+export type Lienzo = { vista: Vista; caja: { ancho: number; alto: number } };
+
 export function LienzoMapa({
   ventana,
   clave,
   encuadrar,
   etiqueta,
   fondo,
+  fondoSobreMapa = false,
+  debajo,
   onPoligono,
   children,
 }: {
@@ -55,11 +68,23 @@ export function LienzoMapa({
   /** Los polígonos de cobertura, dibujados en el servidor. */
   fondo: React.ReactNode;
 
+  /**
+   * Con un mapa de calles debajo, las zonas se dibujan solo como contorno.
+   * El relleno taparía justamente lo que se prendió para ver.
+   */
+  fondoSobreMapa?: boolean;
+
+  /** Lo que va por debajo de las zonas, como un mapa de calles. */
+  debajo?: (lienzo: Lienzo) => React.ReactNode;
+
   /** Informa el nombre original del KMZ cuando se toca un polígono. */
   onPoligono?: (poligono: { nombre: string; zona: string }) => void;
 
-  /** Lo que va encima, con `k` = cuánto mide un píxel en unidades del viewBox. */
-  children: (k: number) => React.ReactNode;
+  /**
+   * Lo que va encima, con `k` = cuánto mide un píxel en unidades del viewBox.
+   * El segundo argumento es para las capas que dependen del encuadre.
+   */
+  children: (k: number, lienzo: Lienzo) => React.ReactNode;
 }) {
   const completa = useMemo<Vista>(
     () => ({ x: 0, y: 0, w: ventana.ancho, h: ventana.alto }),
@@ -227,10 +252,14 @@ export function LienzoMapa({
           arrastre.current = null;
         }}
       >
-        {/* El fondo, dibujado en el servidor. No se vuelve a pintar nunca. */}
-        <g className={estilos.fondo}>{fondo}</g>
+        {debajo?.({ vista, caja })}
 
-        {children(k)}
+        {/* El fondo, dibujado en el servidor. No se vuelve a pintar nunca. */}
+        <g className={`${estilos.fondo} ${fondoSobreMapa ? estilos.fondoSobreMapa : ""}`}>
+          {fondo}
+        </g>
+
+        {children(k, { vista, caja })}
       </svg>
 
       <div className={estilos.controles}>

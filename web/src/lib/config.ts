@@ -166,6 +166,21 @@ export const BUCKET_SEGUIMIENTO = process.env.SUPABASE_BUCKET_SEGUIMIENTO?.trim(
 /** Vigencia en segundos de los enlaces firmados al bucket privado. */
 export const FIRMA_SEGUNDOS = Number(process.env.SUPABASE_FIRMA_SEGUNDOS ?? 3600);
 
+/**
+ * La clave de TomTom para las capas de calles y tráfico del live tracker.
+ *
+ * Sin clave, las dos casillas no aparecen y el mapa es el de siempre. Con
+ * clave, igual arrancan apagadas.
+ *
+ * Esta clave NO es secreta como las demás de este archivo: las teselas las
+ * pide el navegador de cada persona y la clave va en la URL de cada una, así
+ * que cualquiera que abra el tablero la puede ver. Por eso tiene que estar
+ * restringida a los dominios del tablero en el portal de TomTom.
+ */
+export function claveTomTom(): string | null {
+  return process.env.TOMTOM_API_KEY?.trim() || null;
+}
+
 /** Sin API key, los reportes se guardan sin resumen automático. */
 export function openaiConfig(): { clave: string; modelo: string } | null {
   const clave = process.env.OPENAI_API_KEY?.trim();

@@ -3,7 +3,7 @@ import type { Ventana } from "./tracker";
 /**
  * El radar de lluvia de RainViewer, como cuentas puras.
  *
- * Es la única parte del tablero que sale a un servidor de mapas, y por eso es
+ * Sale a un servidor externo -igual que las calles y el tráfico de TomTom-, y por eso es
  * opcional: el mapa del live tracker se dibuja igual con la red caída, y esta
  * capa se prende a mano cuando llueve y hay que explicar por qué la ruta va
  * lenta. Nada de acá corre si nadie la prende.

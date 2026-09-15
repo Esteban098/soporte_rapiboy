@@ -22,6 +22,8 @@ import type {
 } from "@/lib/tracker-datos";
 import { etiquetaPaquete, MapaTracker } from "./MapaTracker";
 import { ControlLluvia, useLluvia } from "./Lluvia";
+import { AtribucionTomTom, ControlesTomTom, useCiclo } from "./Trafico";
+import { REFRESCO_TRAFICO_MS } from "@/lib/trafico";
 import { NombreTienda } from "./ColorTiendas";
 import estilos from "./live-tracker.module.css";
 
@@ -50,12 +52,15 @@ export function LiveTracker({
   ventana,
   hayFlujoPosiciones,
   hayFlujoPaquetes,
+  claveTomTom,
   children,
 }: {
   inicial: DatosDelTracker;
   ventana: Ventana;
   hayFlujoPosiciones: boolean;
   hayFlujoPaquetes: boolean;
+  /** Sin clave no se ofrecen las capas de calles y tráfico. */
+  claveTomTom: string | null;
   /** Los polígonos de cobertura, dibujados en el servidor. */
   children: React.ReactNode;
 }) {
@@ -76,6 +81,15 @@ export function LiveTracker({
    */
   const [mostrarPropuesta, setMostrarPropuesta] = useState(false);
   const lluvia = useLluvia(ventana);
+
+  /*
+   * Calles y tráfico arrancan apagados, como la lluvia, y por lo mismo: cada
+   * capa prendida le pide imágenes a TomTom -que cobra por tesela y ve qué zona
+   * se está mirando-, y la pantalla tiene que servir sin pedirle nada a nadie.
+   */
+  const [verCalles, setVerCalles] = useState(false);
+  const [verTrafico, setVerTrafico] = useState(false);
+  const cicloTrafico = useCiclo(verTrafico, REFRESCO_TRAFICO_MS);
   const [paqueteActivo, setPaqueteActivo] = useState<number | null>(null);
   const [paqueteBuscado, setPaqueteBuscado] = useState<number | null>(null);
   const [poligonoActivo, setPoligonoActivo] = useState<{ nombre: string; zona: string } | null>(null);
@@ -379,35 +393,6 @@ export function LiveTracker({
           </p>
         ) : null}
 
-        <label className={estilos.filtro}>
-          <input
-            type="checkbox"
-            checked={mostrarInactivos}
-            onChange={(e) => setMostrarInactivos(e.target.checked)}
-          />
-          Mostrar cancelados y retirados de ruta
-        </label>
-
-        <label className={estilos.filtro}>
-          <input
-            type="checkbox"
-            checked={mostrarPropuesta}
-            onChange={(e) => setMostrarPropuesta(e.target.checked)}
-          />
-          Ver ruta propuesta por cercanía
-        </label>
-
-        <label className={estilos.filtro}>
-          <input
-            type="checkbox"
-            checked={lluvia.activa}
-            onChange={(e) => lluvia.prender(e.target.checked)}
-          />
-          Ver la lluvia sobre el mapa
-        </label>
-
-        {lluvia.activa ? <ControlLluvia estado={lluvia} /> : null}
-
         {datos.tablasFaltantes.includes("tracker_choferes") ? (
           /*
            * Decir qué falta y qué correr, en vez de dejar la pantalla a medias
@@ -463,6 +448,62 @@ export function LiveTracker({
       </aside>
 
       <div className={estilos.derecha}>
+        {/*
+          Las casillas van arriba del mapa y no en el panel: dicen qué se ve en
+          el mapa, y el panel queda para elegir a quién mirar.
+        */}
+        <div className={estilos.barraMapa}>
+          {/* Las etiquetas son cortas porque la barra está pegada al mapa: «ver… sobre
+              el mapa» se entendía en el panel y acá sobra. El grupo con nombre le
+              devuelve ese contexto a quien usa lector de pantalla. */}
+          <div className={estilos.barraMapaCasillas} role="group" aria-label="Capas del mapa">
+            <label className={estilos.filtro}>
+              <input
+                type="checkbox"
+                checked={mostrarInactivos}
+                onChange={(e) => setMostrarInactivos(e.target.checked)}
+              />
+              Cancelados y retirados
+            </label>
+
+            <label className={estilos.filtro}>
+              <input
+                type="checkbox"
+                checked={mostrarPropuesta}
+                onChange={(e) => setMostrarPropuesta(e.target.checked)}
+              />
+              Ruta por cercanía
+            </label>
+
+            <label className={estilos.filtro}>
+              <input
+                type="checkbox"
+                checked={lluvia.activa}
+                onChange={(e) => lluvia.prender(e.target.checked)}
+              />
+              Lluvia
+            </label>
+
+            {claveTomTom ? (
+              <ControlesTomTom
+                calles={verCalles}
+                trafico={verTrafico}
+                onCalles={setVerCalles}
+                onTrafico={setVerTrafico}
+              />
+            ) : null}
+          </div>
+
+          {lluvia.activa || (claveTomTom && (verCalles || verTrafico)) ? (
+            <div className={estilos.barraMapaDetalle}>
+              {lluvia.activa ? <ControlLluvia estado={lluvia} /> : null}
+              {claveTomTom && (verCalles || verTrafico) ? (
+                <AtribucionTomTom trafico={verTrafico} />
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
         <MapaTracker
           ventana={ventana}
           drivers={datos.drivers}
@@ -470,6 +511,11 @@ export function LiveTracker({
           mostrarInactivos={mostrarInactivos}
           mostrarPropuesta={mostrarPropuesta}
           lluvia={lluvia}
+          tomtom={
+            claveTomTom && (verCalles || verTrafico)
+              ? { clave: claveTomTom, calles: verCalles, trafico: verTrafico, ciclo: cicloTrafico }
+              : null
+          }
           paqueteActivo={paqueteEnMapa}
           onPaquete={seleccionarPaquete}
           onPoligono={(poligono) => {
