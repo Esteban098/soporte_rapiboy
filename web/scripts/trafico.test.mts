@@ -184,3 +184,18 @@ test("las calles van debajo de las zonas y el tráfico no tapa los clics", () =>
     "lo de `debajo` tiene que dibujarse antes que las zonas",
   );
 });
+
+test("sobre las calles, pasar el mouse por una zona no la vuelve opaca", () => {
+  /*
+   * El hover general mezcla con `--surface`, que es un color sólido. Sin la
+   * regla propia, la zona entera tapaba las calles al pasar el mouse.
+   */
+  const css = fuente("../src/components/live-tracker.module.css");
+  const general = css.indexOf(".fondo path:hover");
+  const sobreMapa = css.indexOf(".fondoSobreMapa path:hover");
+  assert.ok(sobreMapa > general && general !== -1, "la regla sobre el mapa tiene que ir después");
+
+  const bloque = css.slice(sobreMapa, css.indexOf("}", sobreMapa));
+  assert.match(bloque, /fill:[^;]*transparent/);
+  assert.doesNotMatch(bloque, /--surface/);
+});

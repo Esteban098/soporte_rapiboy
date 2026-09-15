@@ -513,6 +513,19 @@
   outline: none;
 }
 
+/*
+ * Sobre el mapa de calles, pasar el mouse no rellena la zona: la regla de
+ * arriba mezcla con `--surface`, que es opaco, y la zona entera tapaba las
+ * calles justo donde se estaba mirando. Acá la zona se marca con un tinte
+ * translúcido y el contorno más grueso. Tiene que ir después de la regla de
+ * arriba: las dos pesan lo mismo y gana la última.
+ */
+.fondoSobreMapa path:hover,
+.fondoSobreMapa path:focus-visible {
+  fill: color-mix(in srgb, var(--accent) 10%, transparent);
+  stroke-width: 2.6px;
+}
+
 .destino {
   cursor: pointer;
 }

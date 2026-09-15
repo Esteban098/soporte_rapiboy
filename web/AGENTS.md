@@ -230,7 +230,9 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   arrancan apagadas. A diferencia de la lluvia, **el zoom sigue al encuadre**:
   a zoom de calle, cubrir la ciudad entera con un zoom fijo serían cientos de
   teselas pagas, y atando el zoom a los píxeles de la pantalla quedan en unas
-  dieciséis (`MAX_TESELAS` = 30 es el tope). Las calles van debajo de las zonas —que pasan a contorno— y el
+  dieciséis (`MAX_TESELAS` = 30 es el tope). Las calles van debajo de las zonas —que pasan a contorno, y
+  al pasar el mouse se marcan con tinte translúcido y trazo grueso, nunca con
+  el relleno opaco del hover general— y el
   tráfico encima de la lluvia, con `pointerEvents="none"` para no tapar los
   clics. Cada tesela se ubica por sus esquinas como el radar: el corrimiento
   queda siempre por debajo de medio píxel de imagen —38 m a zoom 9, con la
