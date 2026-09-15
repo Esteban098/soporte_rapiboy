@@ -143,6 +143,15 @@ export const TABLA_TRACKER_DEMORAS =
 export const TABLA_TRACKER_TIENDAS =
   process.env.SUPABASE_TABLA_TRACKER_TIENDAS?.trim() || "tracker_tiendas";
 
+/**
+ * De quién es cada tienda: Grupo A de Esteban, Grupo B de Candelaria.
+ *
+ * La crea `supabase/migracion-13-tiendas-responsables.sql` y se edita desde
+ * la pantalla de Tiendas. Decide el color de cada comercio en todo el tablero.
+ */
+export const TABLA_TIENDAS_RESPONSABLES =
+  process.env.SUPABASE_TABLA_TIENDAS_RESPONSABLES?.trim() || "tiendas_responsables";
+
 /** El domicilio de cada chofer, por `IdMotoboy`. Misma procedencia. */
 export const TABLA_TRACKER_CHOFERES =
   process.env.SUPABASE_TABLA_TRACKER_CHOFERES?.trim() || "tracker_choferes";

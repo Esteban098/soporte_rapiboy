@@ -161,6 +161,8 @@ npm run test:siniestrados
 npm run test:cobros
 npm run test:seguimiento
 npm run test:tracker
+npm run test:tiendas
+npm run test:responsables
 npm run test:lluvia
 ```
 
@@ -261,6 +263,14 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   `npx tsx scripts/lugares.mts` desde los KMZ de `datos/` y no las escribe
   ningún flujo. `id_tienda` **no** es único (#55004 tiene dos sucursales) y la
   pantalla lo marca en vez de elegir uno.
+- `tiendas_responsables` dice de quién es cada comercio (Grupo A
+  `esteban@rapiboy.com`, Grupo B `candelaria@rapiboy.com`) y decide su color en
+  todo el tablero. Se cruza **por nombre** con `claveTienda()` más `alias`,
+  porque `mensual` y `cancelados` no traen id de tienda. Una columna nueva que
+  muestre un comercio va con `tipo: "tienda"` en `Tabla`, o con `NombreTienda`
+  fuera de una tabla; no pintar tiendas con colores propios. El índice se lee
+  una vez en el layout y nunca tira: sin la tabla, el tablero se ve sin colores.
+  La edita la web (`src/app/responsables.ts`) y no la escribe ningún flujo.
 - El encuadre movible y el fondo de cobertura los pone `LienzoMapa`, compartido
   entre el tracker y tiendas. Tiene tres sutilezas ya resueltas —la escala real
   en píxeles medida con `ResizeObserver`, el foco de la rueda y el re-encuadre

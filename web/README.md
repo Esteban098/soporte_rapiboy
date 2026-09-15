@@ -379,6 +379,37 @@ Detalles que el script resuelve y conviene conocer:
   nombres traen tabulación en vez de espacio. El importador los desenvuelve y
   los normaliza; sin eso el id se pierde.
 
+### Distribución de tiendas
+
+Debajo del mapa está **de quién es cada comercio**: Grupo A de Esteban y Grupo B
+de Candelaria. Esa asignación decide el color de la tienda en **todo** el
+tablero —azul Esteban, rosa Candelaria—: las columnas «Comercio» y «Tienda» de
+las tablas, los rankings de Comercios y de Ayer, Cancelados, Colectas, el
+seller de Seguimiento, la ficha del paquete en el Live tracker y los puntos del
+mapa de tiendas. Una tienda sin asignar se ve como siempre.
+
+Se agrega y se edita desde la misma pantalla, con nombre, alias, responsable y
+sección (Colecta, No colecta o Tienda nueva). Lo puede hacer cualquiera con
+sesión y queda firmado en `editado_por`. No hay baja: una tienda que cambia de
+manos se reasigna.
+
+En `mensual` y `cancelados` la tienda es solo un texto, sin id, así que el dueño
+se encuentra **por nombre**. Se compara sin acentos, sin mayúsculas y sin nada
+que no sea letra o número, así que «Mayor Bag» y «MayorBag» son la misma. Lo que
+eso no alcanza a unir va como **alias**: la lista original dice «DropOff
+MayorBag (MayorBag)», en colectas figura «dropOFF MayorBag» y en el mapa
+«Mayor Bag». Una tienda que en algún lado aparece sin color casi siempre es un
+alias que falta.
+
+Un nombre o alias no puede pertenecer a dos tiendas: si pasara, el color
+dependería de qué fila se leyó última.
+
+Instalación: correr `supabase/migracion-13-tiendas-responsables.sql`. Crea la
+tabla y carga la lista inicial —364 tiendas, 181 de Esteban y 183 de
+Candelaria— con `on conflict do nothing`, así que volver a correrla no pisa lo
+editado desde la web. Sin la migración el tablero funciona igual, sin colores,
+y la pantalla de Tiendas avisa qué falta.
+
 ## Cobertura
 
 Los polígonos los mantiene operaciones en `datos/poligonos-v10-bfv.kmz`. Ese KMZ

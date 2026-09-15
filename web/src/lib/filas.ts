@@ -25,7 +25,7 @@ const TODAS: ColumnaPedido[] = [
   { clave: "creacion", titulo: "Creación", tipo: "texto" , campo: "creacion" },
   { clave: "movimiento", titulo: "Último mov.", tipo: "texto" },
   { clave: "repartidor", titulo: "Repartidor", tipo: "texto" , campo: "repartidor" },
-  { clave: "tienda", titulo: "Tienda", tipo: "texto" , campo: "tienda" },
+  { clave: "tienda", titulo: "Tienda", tipo: "tienda" , campo: "tienda" },
   { clave: "valorProducto", titulo: "Valor producto", tipo: "decimal", campo: "valorProducto" },
   { clave: "destino", titulo: "Domicilio", tipo: "texto" , campo: "destino" },
   { clave: "zona", titulo: "Zona", tipo: "texto" , campo: "poligono" },

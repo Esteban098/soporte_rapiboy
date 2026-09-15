@@ -2,10 +2,12 @@ import { PageHead } from "@/components/Shell";
 import { Callout, Kpi } from "@/components/Card";
 import { MapaTiendas } from "@/components/MapaTiendas";
 import { FondoCobertura } from "@/components/FondoCobertura";
+import { PanelResponsables } from "@/components/PanelResponsables";
 import { modoDatos } from "@/lib/config";
 import { ventanaProyeccion } from "@/lib/cobertura";
 import { TablaFaltante } from "@/lib/supabase";
 import { leerLugares } from "@/lib/tiendas-datos";
+import { leerResponsables } from "@/lib/responsables-datos";
 import { numero } from "@/lib/formato";
 import type { Lugar } from "@/lib/tiendas";
 import estilos from "@/components/ui.module.css";
@@ -35,35 +37,63 @@ export default async function Tiendas() {
     );
   }
 
-  let lugares: Lugar[];
-  try {
-    lugares = await leerLugares();
-  } catch (error) {
-    return (
-      <>
-        <Cabecera />
-        <Callout
-          tono={error instanceof TablaFaltante ? "warning" : "critical"}
-          titulo={
-            error instanceof TablaFaltante ? "Falta cargar el mapa" : "No se pudo leer la tabla"
-          }
-        >
-          {error instanceof TablaFaltante
-            ? "La tabla «tracker_tiendas» todavía no existe. Corré web/supabase/migracion-06-lugares.sql en el SQL Editor de Supabase y volvé a entrar."
-            : "La base no respondió. Volvé a intentar en un momento."}
-        </Callout>
-      </>
-    );
-  }
+  /*
+   * El mapa y la distribución se leen por separado y cada uno falla solo: son
+   * dos tablas de migraciones distintas, y que falte una no tiene por qué
+   * esconder la otra.
+   */
+  const [lugares, responsables] = await Promise.allSettled([leerLugares(), leerResponsables()]);
 
+  return (
+    <>
+      <Cabecera />
+
+      <div className={estilos.stack}>
+        {lugares.status === "rejected" ? (
+          <Callout
+            tono={lugares.reason instanceof TablaFaltante ? "warning" : "critical"}
+            titulo={
+              lugares.reason instanceof TablaFaltante
+                ? "Falta cargar el mapa"
+                : "No se pudo leer la tabla"
+            }
+          >
+            {lugares.reason instanceof TablaFaltante
+              ? "La tabla «tracker_tiendas» todavía no existe. Corré web/supabase/migracion-06-lugares.sql en el SQL Editor de Supabase y volvé a entrar."
+              : "La base no respondió. Volvé a intentar en un momento."}
+          </Callout>
+        ) : (
+          <Mapa lugares={lugares.value} />
+        )}
+
+        {responsables.status === "rejected" ? (
+          <Callout
+            tono={responsables.reason instanceof TablaFaltante ? "warning" : "critical"}
+            titulo={
+              responsables.reason instanceof TablaFaltante
+                ? "Falta cargar la distribución de tiendas"
+                : "No se pudo leer la distribución"
+            }
+          >
+            {responsables.reason instanceof TablaFaltante
+              ? "La tabla «tiendas_responsables» todavía no existe. Corré web/supabase/migracion-13-tiendas-responsables.sql en el SQL Editor de Supabase y volvé a entrar."
+              : "La base no respondió. Volvé a intentar en un momento."}
+          </Callout>
+        ) : (
+          <PanelResponsables filas={responsables.value} />
+        )}
+      </div>
+    </>
+  );
+}
+
+function Mapa({ lugares }: { lugares: Lugar[] }) {
   const cuenta = (tipo: Lugar["tipo"]) => lugares.filter((l) => l.tipo === tipo).length;
   const sinId = lugares.filter((l) => l.id == null).length;
   const compartidos = new Set(lugares.filter((l) => l.compartido).map((l) => l.id)).size;
 
   return (
     <>
-      <Cabecera />
-
       <div className={estilos.kpis}>
         <Kpi etiqueta="Tiendas" valor={numero(cuenta("TIENDA"))} nota="comercios con punto propio" />
         <Kpi etiqueta="Dropoff" valor={numero(cuenta("DROPOFF"))} nota="puntos de colecta" />
@@ -102,7 +132,7 @@ function Cabecera() {
     <PageHead
       eyebrow="Dónde queda cada comercio"
       titulo="Tiendas"
-      dek="Las tiendas, los puntos de dropoff y la bodega, sobre las zonas de reparto. Es informativo y no depende del live tracker: los mantiene operaciones en un mapa de Google, y acá se muestran tal cual. El nombre lleva al punto en Google Maps."
+      dek="Las tiendas, los puntos de dropoff y la bodega, sobre las zonas de reparto, y de quién es cada comercio. El mapa lo mantiene operaciones en Google y acá se muestra tal cual; el nombre lleva al punto en Google Maps. La distribución se edita acá abajo y decide el color de cada tienda en todo el tablero: azul Esteban, rosa Candelaria."
     />
   );
 }

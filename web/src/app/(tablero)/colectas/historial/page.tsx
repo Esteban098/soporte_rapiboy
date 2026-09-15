@@ -96,7 +96,7 @@ export default async function ColectasHistorial({
    */
   const COLUMNAS_COLECTA = [
     { clave: "fechaCorta", titulo: "Día", tipo: "texto" as const },
-    { clave: "seller", titulo: "Comercio", tipo: "texto" as const },
+    { clave: "seller", titulo: "Comercio", tipo: "tienda" as const },
     { clave: "estado", titulo: "Estado", tipo: "texto" as const },
     { clave: "repartidor", titulo: "Repartidor", tipo: "texto" as const },
     { clave: "solicitados", titulo: "Solicitados", tipo: "numero" as const },
@@ -225,7 +225,7 @@ export default async function ColectasHistorial({
             id="colectas-dia-comercios"
             titulo={`Comercios · ${diaLargo(dia)}`}
             columnas={[
-              { clave: "seller", titulo: "Comercio", tipo: "texto" },
+              { clave: "seller", titulo: "Comercio", tipo: "tienda" },
               { clave: "estado", titulo: "Su punto", tipo: "texto" },
               { clave: "repartidor", titulo: "Pasó ese día", tipo: "texto" },
               { clave: "habitual", titulo: "Chofer habitual", tipo: "texto" },

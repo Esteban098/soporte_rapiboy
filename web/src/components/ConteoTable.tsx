@@ -11,6 +11,7 @@ export function ConteoTable({
   filas,
   etiqueta,
   vacio,
+  tiendas = false,
 }: {
   id: string;
   /** Encabezado que lleva la tabla al imprimirse. */
@@ -18,13 +19,15 @@ export function ConteoTable({
   filas: FilaConteo[];
   etiqueta: string;
   vacio?: string;
+  /** Si los nombres son comercios, para pintarlos con el color de su dueño. */
+  tiendas?: boolean;
 }) {
   return (
     <Tabla
       id={id}
       titulo={titulo}
       columnas={[
-        { clave: "nombre", titulo: etiqueta, tipo: "texto" },
+        { clave: "nombre", titulo: etiqueta, tipo: tiendas ? "tienda" : "texto" },
         { clave: "casos", titulo: "Sin entregar", tipo: "numero" },
         { clave: "porcentaje", titulo: "% del total", tipo: "porcentaje" },
       ]}

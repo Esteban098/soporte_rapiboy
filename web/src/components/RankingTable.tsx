@@ -8,6 +8,7 @@ export function RankingTable({
   filas,
   etiquetaDimension,
   mostrarVisitas = true,
+  tiendas = false,
 }: {
   /** Identifica la tabla para recordar las columnas ocultas. */
   id: string;
@@ -16,13 +17,15 @@ export function RankingTable({
   filas: FilaRanking[];
   etiquetaDimension: string;
   mostrarVisitas?: boolean;
+  /** Si los nombres son comercios, para pintarlos con el color de su dueño. */
+  tiendas?: boolean;
 }) {
   return (
     <Tabla
       id={id}
       titulo={titulo}
       columnas={[
-        { clave: "nombre", titulo: etiquetaDimension, tipo: "texto" },
+        { clave: "nombre", titulo: etiquetaDimension, tipo: tiendas ? "tienda" : "texto" },
         { clave: "casos", titulo: "Casos", tipo: "numero" },
         { clave: "devoluciones", titulo: "Devoluciones", tipo: "numero" },
         { clave: "tasa", titulo: "% devolución", tipo: "porcentaje" },

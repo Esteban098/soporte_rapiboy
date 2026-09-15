@@ -56,14 +56,14 @@ export default async function Comercios() {
             titulo="Comercios con mayor devolución"
             nota={`Solo comercios con ${MINIMO_CASOS} casos o más. Un porcentaje alto suele indicar direcciones o teléfonos incompletos en el alta.`}
           >
-            <RankingTable id="comercios-peores" titulo="Comercios con mayor devolución" filas={tiendasPeores} etiquetaDimension="Comercio" />
+            <RankingTable id="comercios-peores" titulo="Comercios con mayor devolución" filas={tiendasPeores} etiquetaDimension="Comercio" tiendas />
           </Card>
 
           <Card
             titulo="Comercios por volumen"
             nota="Los que más casos generan. Sirve para dimensionar el impacto: un punto de mejora acá vale más que en la lista de al lado."
           >
-            <RankingTable id="comercios-volumen" titulo="Comercios por volumen" filas={tiendasVolumen} etiquetaDimension="Comercio" />
+            <RankingTable id="comercios-volumen" titulo="Comercios por volumen" filas={tiendasVolumen} etiquetaDimension="Comercio" tiendas />
           </Card>
         </div>
 

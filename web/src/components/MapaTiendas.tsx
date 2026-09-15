@@ -9,8 +9,26 @@ import {
   filtrarLugares,
   type Lugar,
 } from "@/lib/tiendas";
+import { responsableDe } from "@/lib/responsables";
 import { encuadreDe, LienzoMapa } from "./LienzoMapa";
+import { useIndiceTiendas } from "./ColorTiendas";
 import estilos from "./live-tracker.module.css";
+
+/**
+ * El color de un punto: el de su dueño si la tienda está repartida, el de su
+ * tipo si no. La bodega no es de nadie y conserva el suyo. Tienda y dropoff
+ * se siguen distinguiendo por el relleno, hueco o lleno.
+ */
+function colorDe(lugar: Lugar, indice: Record<string, string>): string {
+  if (lugar.tipo === "BODEGA") return COLOR_TIPO.BODEGA;
+  return responsableDe(indice, lugar.nombre)?.color ?? COLOR_TIPO[lugar.tipo];
+}
+
+/** El grupo dicho con palabras, para que el color no sea el único portador del dato. */
+function grupoDe(lugar: Lugar, indice: Record<string, string>): string {
+  const responsable = responsableDe(indice, lugar.nombre);
+  return responsable ? ` · Grupo ${responsable.grupo} (${responsable.nombre})` : "";
+}
 
 /**
  * Dónde está cada tienda, cada dropoff y la bodega.
@@ -36,6 +54,7 @@ export function MapaTiendas({
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [elegido, setElegido] = useState<string | null>(null);
+  const indice = useIndiceTiendas();
 
   const visibles = useMemo(() => filtrarLugares(lugares, busqueda), [lugares, busqueda]);
 
@@ -112,7 +131,7 @@ export function MapaTiendas({
 
                 <span
                   className={estilos.chip}
-                  style={{ background: COLOR_TIPO[lugar.tipo] }}
+                  style={{ background: colorDe(lugar, indice) }}
                   aria-hidden="true"
                 />
 
@@ -129,6 +148,7 @@ export function MapaTiendas({
                   <span className={estilos.paqueteDir}>
                     {lugar.id != null ? `#${lugar.id}` : "sin ID en el mapa"}
                     {lugar.compartido ? " · ID compartido" : ""}
+                    {grupoDe(lugar, indice)}
                     {` · ${lugar.lat}, ${lugar.lon}`}
                   </span>
                 </span>
@@ -154,6 +174,8 @@ export function MapaTiendas({
                 key={lugar.clave}
                 lugar={lugar}
                 punto={proyectar(lugar.lat, lugar.lon)}
+                color={colorDe(lugar, indice)}
+                grupo={grupoDe(lugar, indice)}
                 k={k}
                 elegido={elegido === lugar.clave}
                 onElegir={() => setElegido(elegido === lugar.clave ? null : lugar.clave)}
@@ -176,18 +198,21 @@ export function MapaTiendas({
 function MarcaLugar({
   lugar,
   punto,
+  color,
+  grupo,
   k,
   elegido,
   onElegir,
 }: {
   lugar: Lugar;
   punto: { x: number; y: number };
+  color: string;
+  grupo: string;
   k: number;
   elegido: boolean;
   onElegir: () => void;
 }) {
   const r = (lugar.tipo === "BODEGA" ? 11 : 8) * k;
-  const color = COLOR_TIPO[lugar.tipo];
 
   return (
     <g
@@ -201,7 +226,7 @@ function MarcaLugar({
     >
       <title>
         {`${lugar.nombre}${lugar.id != null ? ` · #${lugar.id}` : ""}\n` +
-          `${ETIQUETA_TIPO[lugar.tipo]}${lugar.compartido ? " · el ID tiene otra sucursal" : ""}`}
+          `${ETIQUETA_TIPO[lugar.tipo]}${lugar.compartido ? " · el ID tiene otra sucursal" : ""}${grupo}`}
       </title>
 
       {elegido ? (

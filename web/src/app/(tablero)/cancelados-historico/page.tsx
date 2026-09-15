@@ -85,7 +85,7 @@ export default async function CanceladosHistoricos({
     { clave: "id", titulo: "Viaje", tipo: "viaje" as const },
     { clave: "idMeli", titulo: "Id Meli", tipo: "texto" as const },
     { clave: "mes", titulo: "Mes", tipo: "texto" as const },
-    { clave: "tienda", titulo: "Comercio", tipo: "texto" as const },
+    { clave: "tienda", titulo: "Comercio", tipo: "tienda" as const },
     { clave: "estadoRbp", titulo: "Estado nuestro", tipo: "estado" as const },
     { clave: "estadoMeli", titulo: "Estado Meli", tipo: "estado" as const },
     { clave: "colectado", titulo: "Colectado", tipo: "texto" as const },
@@ -203,7 +203,7 @@ export default async function CanceladosHistoricos({
             id="cancelados-historico-comercios"
             titulo={`Cancelados por comercio · ${periodo}`}
             columnas={[
-              { clave: "tienda", titulo: "Comercio", tipo: "texto" },
+              { clave: "tienda", titulo: "Comercio", tipo: "tienda" },
               { clave: "casos", titulo: "Cancelados", tipo: "numero" },
               { clave: "demoro", titulo: "Tardó (mediana)", tipo: "texto" },
               { clave: "desincronizados", titulo: "Sin reflejar en Meli", tipo: "numero" },

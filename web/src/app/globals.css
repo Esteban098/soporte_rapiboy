@@ -115,6 +115,10 @@
   --estado-cancelado: #6c6c70;
   --estado-cancelado-fondo: rgba(108, 108, 112, 0.13);
 
+  /* De quién es cada tienda: Grupo A de Esteban, Grupo B de Candelaria. */
+  --tienda-esteban: #1f5fd6;
+  --tienda-candelaria: #d6337f;
+
   /* SF Pro. Los fallbacks son el mismo diseño resuelto por el sistema: en un
      Mac o un iPhone la cara nativa entra sin descargar nada. */
   --sans: var(--fuente-sans), -apple-system, BlinkMacSystemFont, "SF Pro Text",
@@ -194,6 +198,9 @@
     --estado-noentregado-fondo: rgba(255, 69, 58, 0.16);
     --estado-cancelado: #aeaeb2;
     --estado-cancelado-fondo: rgba(174, 174, 178, 0.17);
+
+    --tienda-esteban: #6ea1ff;
+    --tienda-candelaria: #ff70b0;
   }
 }
 
@@ -264,6 +271,9 @@
   --estado-noentregado-fondo: rgba(255, 69, 58, 0.16);
   --estado-cancelado: #aeaeb2;
   --estado-cancelado-fondo: rgba(174, 174, 178, 0.17);
+
+  --tienda-esteban: #6ea1ff;
+  --tienda-candelaria: #ff70b0;
 }
 
 

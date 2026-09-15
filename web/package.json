@@ -14,6 +14,7 @@
     "test:seguimiento": "node --import tsx scripts/seguimiento.test.mts",
     "test:tracker": "node --conditions=react-server --import tsx scripts/tracker.test.mts",
     "test:tiendas": "node --conditions=react-server --import tsx scripts/tiendas.test.mts",
+    "test:responsables": "node --import tsx scripts/responsables.test.mts",
     "test:lluvia": "node --conditions=react-server --import tsx scripts/lluvia.test.mts"
   },
   "dependencies": {

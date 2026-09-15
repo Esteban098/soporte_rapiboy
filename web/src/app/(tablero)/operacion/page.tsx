@@ -99,7 +99,7 @@ export default async function Ayer() {
             </div>
             <div>
               <h3 className={estilos.subtitulo}>Por comercio</h3>
-              <ConteoTable id="ayer-ne-tienda" titulo="No entregados por comercio" filas={porTienda} etiqueta="Comercio" />
+              <ConteoTable id="ayer-ne-tienda" titulo="No entregados por comercio" filas={porTienda} etiqueta="Comercio" tiendas />
             </div>
           </div>
         </Card>

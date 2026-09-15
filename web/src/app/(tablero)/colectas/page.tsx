@@ -102,8 +102,8 @@ export default async function Colectas() {
             id="colectas-asignacion"
             titulo="Colectas · asignación"
             columnas={[
-              { clave: "seller", titulo: "Comercio", tipo: "texto" },
-              { clave: "lugar", titulo: "Punto de retiro", tipo: "texto" },
+              { clave: "seller", titulo: "Comercio", tipo: "tienda" },
+              { clave: "lugar", titulo: "Punto de retiro", tipo: "tienda" },
               { clave: "tipo", titulo: "Tipo", tipo: "texto" },
               { clave: "chofer", titulo: "Chofer más frecuente", tipo: "texto" },
               { clave: "veces", titulo: "Veces", tipo: "numero" },

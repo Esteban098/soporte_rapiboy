@@ -4,6 +4,7 @@ import { useMemo, useState, useSyncExternalStore } from "react";
 import { colorEstado } from "@/lib/estados";
 import { enlaceViaje } from "@/lib/enlaces";
 import { CeldaTexto } from "./CeldaTexto";
+import { NombreTienda } from "./ColorTiendas";
 import { CobroSiniestrado } from "./CobroSiniestrado";
 import type { OrigenCobro } from "@/lib/siniestrados";
 import {
@@ -37,7 +38,9 @@ export type TipoColumna =
   | "caso"
   | "cobrado"
   | "aviso"
-  | "dias";
+  | "dias"
+  /** Un comercio, pintado con el color de quien lo tiene asignado. */
+  | "tienda";
 
 export type Columna = {
   clave: string;
@@ -512,6 +515,14 @@ function Celda({
         </td>
       );
     }
+    case "tienda":
+      return (
+        <td className={clase}>
+          <NombreTienda nombre={String(valor)}>
+            <CeldaTexto valor={String(valor)} />
+          </NombreTienda>
+        </td>
+      );
     case "numero":
       return (
         <td className={clase}>

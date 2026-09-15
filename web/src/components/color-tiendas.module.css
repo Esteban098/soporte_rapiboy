@@ -1,0 +1,66 @@
+/* El nombre de un comercio pintado con el color de su dueño. */
+
+.tienda {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--color-tienda);
+  font-weight: 560;
+}
+
+.punto {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-tienda);
+  transform: translateY(-1px);
+}
+
+/* La distribución: una columna por dueño, que se apilan en pantallas angostas. */
+
+.columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 20px;
+  align-items: start;
+  margin-top: 8px;
+}
+
+.columna {
+  min-width: 0;
+}
+
+.columnaTitulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--rule);
+  font-size: var(--type-title-md);
+}
+
+.cuenta {
+  font-size: var(--type-label-md);
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.alias {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.soloLectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

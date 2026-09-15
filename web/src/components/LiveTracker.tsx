@@ -22,6 +22,7 @@ import type {
 } from "@/lib/tracker-datos";
 import { etiquetaPaquete, MapaTracker } from "./MapaTracker";
 import { ControlLluvia, useLluvia } from "./Lluvia";
+import { NombreTienda } from "./ColorTiendas";
 import estilos from "./live-tracker.module.css";
 
 /**
@@ -954,7 +955,14 @@ function DetallePaqueteModal({
           <DatoModal etiqueta="Código postal" valor={paquete.codigo_postal} />
           <DatoModal etiqueta="Tipo de destino" valor={paquete.es_laboral ? "Domicilio laboral" : "Domicilio particular"} />
           <DatoModal etiqueta="Polígono" valor={paquete.poligono} />
-          <DatoModal etiqueta="Tienda" valor={paquete.tienda} />
+          {paquete.tienda ? (
+            <div>
+              <dt>Tienda</dt>
+              <dd>
+                <NombreTienda nombre={paquete.tienda} />
+              </dd>
+            </div>
+          ) : null}
           <DatoModal etiqueta="Repartidor" valor={driver.nombre} />
           <DatoModal etiqueta="Aclaraciones de dirección" valor={paquete.observacion_direccion} />
           <DatoModal etiqueta="Comentario del repartidor" valor={paquete.comentario_motoboy} />
