@@ -132,18 +132,40 @@ casillero del panel.
 Los marcadores dicen en qué quedó cada parada: número de orden si está
 pendiente, un aro alrededor si es la próxima, un tilde si se entregó, un signo
 de admiración si se visitó y no se entregó. Los cancelados y los que salieron
-de la ruta están ocultos y se muestran con la casilla del panel.
+de la ruta están ocultos y se muestran con la casilla **Cancelados y retirados**.
 
-La casilla **Ver la lluvia sobre el mapa** pone el radar de RainViewer debajo
+Las casillas de capas van en una fila **arriba del mapa, a la derecha**, y no
+en el panel: el panel es para elegir a quién mirar y la fila dice qué se ve en
+el mapa. Son **Cancelados y retirados**, **Ruta por cercanía**, **Lluvia** y,
+con clave de TomTom, **Calles** y **Tráfico en vivo**. En teléfono la fila se
+parte en dos líneas. El control del radar y los créditos van en una segunda
+línea que aparece solo con esas capas prendidas.
+
+La casilla **Lluvia** pone el radar de RainViewer debajo
 de los marcadores, para distinguir una ruta lenta por el driver de una ruta
 lenta porque está diluviando. Aparece una barra con la hora del cuadro —hora de
 México, como todo el tablero— que se puede animar o mover a mano; los cuadros
-futuros se marcan como pronóstico. Es lo único de la pantalla que sale a
-internet, así que va apagada y no pide nada hasta que se la prende: con la
+futuros se marcan como pronóstico. Sale a internet, así que va apagada y no
+pide nada hasta que se la prende: con la
 casilla sin marcar, o con RainViewer caído, el mapa es exactamente el de
 siempre. La imagen del radar es gruesa a propósito —la API pública sirve hasta
 zoom 7, unos 570 metros por píxel—: sirve para ver dónde está la tormenta, no
 para mirar una cuadra.
+
+Con `TOMTOM_API_KEY` cargada aparecen dos casillas más: **Calles** pone un
+mapa de calles debajo de las zonas —que pasan a verse solo como contorno— y
+**Tráfico en vivo** dibuja la velocidad de cada calle encima: verde
+es tránsito normal para esa calle, rojo es mucho más lento que de costumbre. El
+tráfico se vuelve a pedir cada dos minutos. Las dos arrancan apagadas y sin
+clave ni aparecen. A diferencia del radar, el detalle sigue al acercamiento: de
+lejos se ven las avenidas, de cerca cada cuadra, y la pantalla pide unas
+dieciséis imágenes por capa en un monitor común (el tope es 30).
+
+La clave de TomTom **no es secreta**: va en la URL de cada imagen que pide el
+navegador, así que cualquiera que abra el tablero la puede ver. Hay que
+restringirla a los dominios del tablero en el portal de TomTom. Con las capas
+prendidas, TomTom ve la IP de quien mira y qué zona está mirando, y cobra por
+imagen pedida según el plan.
 
 Debajo del mapa, **Entregados por hora** agrupa por la hora de Ciudad de México
 de `fecha_visita`; si esa marca falta en un entregado, usa
@@ -201,11 +223,14 @@ perdería todo lo que el operador acomodó a mano.
 ### El mapa
 
 Es el mismo SVG de Cobertura con encuadre movible encima —arrastrar para mover,
-rueda o los botones para acercar—. **No hay librería de mapas ni tiles**: el
-fondo son los polígonos del KMZ, que ya están en el repo, así que la pantalla no
-le pide nada a ningún servidor de mapas y funciona con la red caída. Para una
-operación acotada a una ciudad, el contorno de las zonas de reparto ubica mejor
-que un mapa de calles: es el marco contra el que la operación piensa.
+rueda o los botones para acercar—. **No hay librería de mapas**: el fondo son
+los polígonos del KMZ, que ya están en el repo. Las únicas imágenes de afuera
+son las de las capas opcionales —radar, calles y tráfico—, así que con esas
+casillas apagadas la pantalla no le pide nada a ningún servidor de mapas y
+funciona con la red caída. Para una operación acotada a una ciudad, el contorno
+de las zonas de reparto ubica mejor que un mapa de calles: es el marco contra
+el que la operación piensa; las calles están para cuando hace falta llegar a
+una cuadra.
 
 El contorno se dibuja en el servidor y no se vuelve a pintar nunca; mover y
 acercar cambian solo el `viewBox`. Los ~3.500 puntos del polígono no viajan como
@@ -352,6 +377,15 @@ reparto, con un buscador que filtra por nombre (sin acentos) o por id. El
 nombre de cada punto abre esa ubicación en Google Maps: el mapa del tablero
 ubica contra las zonas, que es lo que sirve para decidir, y para llegar a la
 puerta hace falta un mapa de calles.
+
+El mapa tiene las mismas capas opcionales que el Live tracker —**lluvia**,
+**calles** y **tráfico en vivo**— y una más, **Repartidores**, con la
+última posición conocida de cada uno. Sirve para ver quién anda cerca de un
+comercio. Las casillas van en la misma fila arriba del mapa, a la derecha, y
+todas arrancan apagadas. Las posiciones son las del momento en que se
+abrió la página, y su antigüedad se recalcula mientras está abierta. Los
+repartidores **no se muestran al rol Comercial**, que no tiene acceso al Live
+tracker: para ese rol la página ni siquiera las lee.
 
 La fuente son los dos KMZ de `datos/`:
 

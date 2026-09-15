@@ -172,6 +172,7 @@ npm run test:tiendas
 npm run test:responsables
 npm run test:permisos
 npm run test:lluvia
+npm run test:trafico
 ```
 
 Además, validar los workflows con `jq empty ../n8n/*.json`. El build no sale a
@@ -205,13 +206,14 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   hay próximo y la pantalla dice por qué. No completar la secuencia es
   deliberado: el equipo leería un orden inventado como un dato del sistema.
 - El mapa reutiliza la proyección y los polígonos de Cobertura. No hay librería
-  de mapas ni tiles propios, así que la pantalla no le pide nada a ningún
-  servidor externo mientras la capa de lluvia esté apagada. `proyectarEn()` y `proyectar()` tienen que dar el mismo resultado o
-  los marcadores quedan corridos respecto del fondo; hay una prueba que lo
-  compara.
+  de mapas: las únicas teselas son las de las capas opcionales, así que la
+  pantalla no le pide nada a ningún servidor externo mientras lluvia, calles y
+  tráfico estén apagadas. `proyectarEn()` y `proyectar()` tienen que dar el
+  mismo resultado o los marcadores quedan corridos respecto del fondo; hay una
+  prueba que lo compara.
 - La **capa de lluvia** es radar de RainViewer (`src/lib/lluvia.ts`,
-  `src/components/Lluvia.tsx`) y es la única parte del tablero que sale a
-  internet. Va apagada por default y no pide nada hasta que se la prende: con
+  `src/components/Lluvia.tsx`) y sale a internet, igual que las capas de
+  TomTom. Va apagada por default y no pide nada hasta que se la prende: con
   la capa apagada, o con RainViewer caído, la pantalla es la de siempre. La API
   es pública y sin clave; pide atribución visible, que va debajo del control.
   Las teselas son Web Mercator y el mapa no lo es: en longitud las dos
@@ -223,6 +225,21 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   Not Supported» y quedaría pegada sobre la ciudad. Por eso las teselas se
   piden de 512 px y la capa va con un desenfoque suave. Los cuadros se
   precargan antes de animar para que el primer ciclo no parpadee.
+- Las capas de **calles y tráfico** son de TomTom (`src/lib/trafico.ts`,
+  `src/components/Trafico.tsx`). Sin `TOMTOM_API_KEY` no aparecen; con clave,
+  arrancan apagadas. A diferencia de la lluvia, **el zoom sigue al encuadre**:
+  a zoom de calle, cubrir la ciudad entera con un zoom fijo serían cientos de
+  teselas pagas, y atando el zoom a los píxeles de la pantalla quedan en unas
+  dieciséis (`MAX_TESELAS` = 30 es el tope). Las calles van debajo de las zonas —que pasan a contorno— y el
+  tráfico encima de la lluvia, con `pointerEvents="none"` para no tapar los
+  clics. Cada tesela se ubica por sus esquinas como el radar: el corrimiento
+  queda siempre por debajo de medio píxel de imagen —38 m a zoom 9, con la
+  ciudad entera en pantalla y píxeles de 144 m— y desde zoom 12 es de menos de
+  un metro. Una prueba lo mide. TomTom manda las
+  teselas con `no-store`, así que refrescar el tráfico es volver a montarlas:
+  el ciclo de 2 minutos va en la clave de React. La clave de TomTom no es
+  secreta —viaja en la URL de cada tesela—; va restringida por dominio y hay
+  que mostrar «© TomTom» mientras las capas estén prendidas.
 
 - Los marcadores se dibujan en píxeles, midiendo la caja del SVG con un
   `ResizeObserver`. Escalarlos con el `viewBox` los volvería gigantes al
@@ -264,6 +281,22 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   pidió así expresamente. El tracker no lee `tracker_tiendas` ni dibuja
   comercios; solo conserva `Viaje.IdUsuario` y `Usuario.Alias` como contexto
   del paquete en su ficha.
+- En sentido contrario, el mapa de Tiendas **sí** ofrece las capas de lluvia,
+  calles y tráfico —los mismos componentes del tracker— y la última posición
+  de los repartidores. Todo arranca apagado. Las posiciones salen de
+  `leerPosiciones()` (`src/lib/posiciones-datos.ts`), que devuelve solo
+  nombre, coordenadas y fecha: nunca domicilio ni paquetes. **El rol comercial
+  no las recibe**: está afuera del live tracker a propósito, así que la página
+  ni las lee para él, en vez de solo esconder la casilla. Si se decide
+  mostrárselas, el cambio es `puedeVerPosiciones` en la página de Tiendas.
+- Las casillas de calles y tráfico son `ControlesTomTom`, compartidas: la
+  atribución «© TomTom» es condición de uso y vive en un solo lugar.
+- En los dos mapas las casillas de capas van en `.barraMapa`, una fila arriba
+  del mapa alineada a la derecha, y no en el `<aside>`: el panel es para elegir
+  qué mirar. El control del radar y `AtribucionTomTom` van en
+  `.barraMapaDetalle`, debajo, y solo existen con esas capas prendidas, para
+  que prender una no corra las casillas. Las etiquetas son cortas a propósito
+  para que la fila del tracker entre en una línea a 1400 px.
 - Una tabla de referencia que falta se **anota y se avisa** (`tablasFaltantes`),
   no se traga con un `catch`. «No corriste la migración» y «esta persona no
   tiene domicilio» son respuestas distintas y la pantalla tiene que decir cuál.
