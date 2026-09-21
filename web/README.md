@@ -48,7 +48,6 @@ Tres decisiones que vale la pena tener presentes:
 | `/operacion` | **Ayer**: los casos de la pestaña `Ayer`, lo que quedó sin cerrar la jornada anterior. |
 | `/demorados` | **Demorados**: la cola de escalamiento, derivada de `Mensual`. Entra todo caso que lleve más de 2 días sin cambiar de estado y todavía no haya cerrado. |
 | `/reclamos` | Casos donde la tienda aportó datos, con el dato tal cual y la información del viaje. Se filtra por avisado / no avisado. |
-| `/comercios` | De dónde salen los casos y a qué zonas van. |
 | `/cobertura` | **Cobertura**: el contorno donde hay servicio y un verificador puntual —por id de viaje, dirección o coordenadas— que responde si un domicilio entra. |
 | Asistente (beta) | Pestaña en todas las pantallas: preguntas en lenguaje natural sobre paquetes, casos, seguimiento, colectas y repartidores. Ver [Asistente](#asistente-beta). |
 | `/live-tracker` | **Live tracker**: dónde está cada repartidor de la jornada y qué le queda por entregar. Panel de selección a la izquierda, mapa a la derecha. |
@@ -450,7 +449,7 @@ Detalles que el script resuelve y conviene conocer:
 Debajo del mapa está **de quién es cada comercio**: Grupo A de Esteban y Grupo B
 de Candelaria. Esa asignación decide el color de la tienda en **todo** el
 tablero —azul Esteban, rosa Candelaria—: las columnas «Comercio» y «Tienda» de
-las tablas, los rankings de Comercios y de Ayer, Cancelados, Colectas, el
+las tablas, los rankings de Ayer, Cancelados, Colectas, el
 seller de Seguimiento, la ficha del paquete en el Live tracker y los puntos del
 mapa de tiendas. Una tienda sin asignar se ve como siempre.
 
@@ -1080,9 +1079,6 @@ cambia (`src/components/useVista.ts`).
 - `Mensual` tiene que incluir los casos cerrados. Si queda filtrada solo con los
   abiertos, la tasa de recuperación se muestra en 0% porque no hay ningún
   `Entregado` con qué compararla.
-- Los nombres de zona salen tal cual están cargados en el sheet, con sus
-  variantes de acento y sufijo. Normalizarlos en la planilla mejora los
-  rankings de `/comercios`.
 - La caché es de una hora. Si el equipo actualiza el sheet y quiere verlo al
   instante, hay que bajar `SHEET_REVALIDATE`.
 

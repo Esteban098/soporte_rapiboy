@@ -25,10 +25,10 @@ import logo from "@/app/icon.png";
  * operación. El grupo es la única jerarquía; adentro la navegación es directa,
  * sin submenús.
  *
- * Comercios, Seguimiento, Cobertura y Cuentas van sueltas, sin grupo. No
- * pertenecen a una cola ni a un período: se entra a mirar una zona, a reportar
- * algo, a preguntar si un domicilio entra o a tocar la propia cuenta, viniendo
- * de cualquier pantalla. Meterlas en un grupo plegable las escondía detrás de
+ * Seguimiento, Cobertura y Cuentas van sueltas, sin grupo. No pertenecen a
+ * una cola ni a un período: se entra a reportar algo, a preguntar si un
+ * domicilio entra o a tocar la propia cuenta, viniendo de cualquier
+ * pantalla. Meterlas en un grupo plegable las escondía detrás de
  * un clic, y un grupo con una sola sección adentro es un rodeo.
  */
 type Seccion = {
@@ -66,7 +66,6 @@ const NAVEGACION: (Grupo | Seccion)[] = [
     ],
   },
 
-  { href: "/comercios", etiqueta: "Comercios y zonas", icono: Pin },
   { href: "/seguimiento", etiqueta: "Seguimiento", icono: Nota, destacado: true },
   { href: "/cobertura", etiqueta: "Cobertura", icono: Mapa },
   /* Al lado de Cobertura y no adentro del tracker: son las dos pantallas de
@@ -388,15 +387,6 @@ function Moto() {
       <circle cx="12" cy="11.5" r="2.4" />
       <path d="M4 11.5h2.6l2-3.4h2.6" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M8.6 6.2h2l1.4 5.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function Pin() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <path d="M8 14s5-4.2 5-8a5 5 0 1 0-10 0c0 3.8 5 8 5 8Z" strokeLinejoin="round" />
-      <circle cx="8" cy="6" r="1.8" />
     </svg>
   );
 }
