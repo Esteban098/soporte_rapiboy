@@ -11,7 +11,9 @@ export function SignOutButton({ nombre }: { nombre: string }) {
       onClick={() => signOut({ redirectTo: "/acceso" })}
       title={`Salir de la sesión de ${nombre}`}
     >
-      <span className={estilos.nombre}>{nombre}</span>
+      <span className={estilos.nombre} data-rail-texto>
+        {nombre}
+      </span>
       <span className={estilos.salir}>Salir</span>
     </button>
   );

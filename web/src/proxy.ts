@@ -5,7 +5,8 @@ import { inicioDe, puedeVerRuta } from "@/lib/permisos";
 /**
  * Protege todo el tablero: sin sesión habilitada, cualquier ruta redirige a la
  * pantalla de acceso. Quedan fuera los endpoints de autenticación, los assets
- * de Next y el favicon.
+ * de Next y el ícono de la pestaña (`app/icon.png`, servido en `/icon.png`):
+ * sin eso la pantalla de acceso y el rol comercial se quedarían sin él.
  *
  * Además aplica lo que ve cada rol: un comercial que pide una pantalla que no
  * le toca vuelve a Tiendas, y un endpoint le responde 403. El rol viaja en el
@@ -35,5 +36,5 @@ export const proxy = auth((request) => {
 });
 
 export const config = {
-  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico|icon.png).*)"],
 };

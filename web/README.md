@@ -59,6 +59,14 @@ selector solo pone `data-theme` en `<html>`, y «Sistema» lo saca para que mand
 navegador, no de la cuenta— y un script en `<head>` la aplica antes del primer
 pintado para que no destelle el tema equivocado.
 
+Al pie de la barra lateral, **Ocultar menú** la pliega a una columna de íconos
+para ganar ancho —pensado sobre todo para el mapa—. Funciona igual que el tema:
+pone `data-menu` en `<html>`, se recuerda en `localStorage` y un script en
+`<head>` lo aplica antes de pintar. Plegada, cada sección se nombra con su
+tooltip y todos los grupos quedan abiertos. El logo de la barra es el mismo
+`src/app/icon.png` que Next sirve como ícono de la pestaña; el proxy lo deja
+pasar sin sesión para que la pantalla de acceso también lo tenga.
+
 La identidad visual parte de `--seed` en `globals.css`. Los roles `primary`,
 `secondary`, `tertiary` y sus contenedores se derivan de esa semilla; los
 componentes compartidos consumen esos roles y la escala tipográfica

@@ -6,27 +6,57 @@
   gap: 12px;
   padding: 12px;
   min-height: 100vh;
+  transition: grid-template-columns var(--dur) var(--ease);
 }
 
 .rail {
   min-width: 0;
 }
 
-/* Panel flotante que acompaña el scroll del tablero. */
+/*
+ * Panel flotante azul marino, igual en tema claro y oscuro: la navegación es un
+ * objeto aparte del contenido y se lee como tal sin depender del fondo.
+ *
+ * Los tokens se redefinen acá adentro y no en cada regla: así lo que se monta
+ * dentro de la barra —el botón de salir, por ejemplo— toma los colores
+ * oscuros sin saber que está en ella.
+ */
 .railFijo {
-  background-color: var(--glass);
-  border: 1px solid var(--glass-edge);
-  box-shadow: var(--glass-shadow);
-  -webkit-backdrop-filter: var(--glass-filter);
-  backdrop-filter: var(--glass-filter);
+  color-scheme: dark;
+  --rail-fondo: #151b2e;
+  --rail-2: rgba(255, 255, 255, 0.08);
+  --rail-ink: rgba(255, 255, 255, 0.78);
+  --rail-ink-alta: #ffffff;
+  --rail-ink-dim: rgba(255, 255, 255, 0.5);
+  --ink: #ffffff;
+  --ink-2: rgba(255, 255, 255, 0.78);
+  --muted: rgba(255, 255, 255, 0.55);
+  --rule: rgba(255, 255, 255, 0.14);
+  --rule-soft: rgba(255, 255, 255, 0.09);
+  --surface-2: rgba(255, 255, 255, 0.08);
+  --surface-3: rgba(255, 255, 255, 0.14);
+
+  /* Dos tamaños y un solo grosor para toda la barra: texto (secciones, títulos
+     de grupo, marca, usuario), rótulo (subtítulo, «Salir») y el mismo peso en todo,
+     también en la sección activa, para que el texto no salte al elegirla. */
+  --rail-texto: 14px;
+  --rail-rotulo: 12px;
+  --rail-peso: 500;
+  --rail-tracking: -0.01em;
+
+  background-color: var(--rail-fondo);
+  border: 1px solid var(--rule-soft);
+  box-shadow: var(--shadow-alta);
+  color: var(--rail-ink);
 
   position: sticky;
   top: 12px;
   height: calc(100dvh - 24px);
-  border-radius: 28px;
+  border-radius: 20px;
   display: flex;
   flex-direction: column;
-  padding: 18px 0 16px;
+  padding: 18px 0 14px;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -36,25 +66,20 @@
   gap: 11px;
   padding: 0 16px 16px;
   margin-bottom: 4px;
-  border-bottom: 1px solid var(--rule-soft);
   text-decoration: none;
 }
 
 .marcaSigla {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   flex: none;
-  /* Esquina continua, no un radio circular: es la forma del ícono de app. */
+  /* Recuadro blanco: el logo tiene fondo transparente y trazos azul oscuro que
+     sobre el azul marino de la barra no se verían. */
   border-radius: 10px;
-  background: linear-gradient(180deg, #3d9bff, var(--accent));
-  box-shadow: 0 2px 6px -1px rgba(0, 113, 227, 0.45);
+  background: #ffffff;
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.5);
   display: grid;
   place-items: center;
-  color: #fff;
-  font-family: var(--display);
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: -0.01em;
   transition: transform var(--dur) var(--ease);
 }
 
@@ -69,18 +94,18 @@
 }
 
 .marcaNombre {
-  font-family: var(--display);
   font-weight: 600;
-  font-size: 13.5px;
-  letter-spacing: -0.015em;
+  font-size: var(--rail-texto);
+  letter-spacing: var(--rail-tracking);
   color: var(--rail-ink-alta);
   line-height: 1.25;
 }
 
 .marcaSub {
-  font-size: 11.5px;
+  font-size: var(--rail-rotulo);
+  font-weight: var(--rail-peso);
   color: var(--rail-ink-dim);
-  letter-spacing: -0.005em;
+  letter-spacing: var(--rail-tracking);
 }
 
 .railCuerpo {
@@ -91,35 +116,30 @@
 
 /*
  * Cabecera de grupo. Es un botón y no un título porque se puede plegar, pero se
- * ve como el encabezado de una lista agrupada del sistema: versalita chica y
- * gris, sin caja ni borde. La flecha es la única señal de que además se abre.
+ * lee como el encabezado de una sección del menú: texto chico y apagado, sin
+ * caja. La flecha es la única señal de que además se abre.
  */
 .railGrupoBoton {
   display: flex;
   align-items: center;
-  /* El gap y el padding izquierdo están calculados para que el icono y el
-     texto del título caigan en la misma columna que los de una entrada suelta:
-     esas son hermanas de los grupos, no hijas, y tienen que leerse así.
-     21px = los 10 del <ul> más los 11 del propio enlace. */
-  gap: 10px;
+  gap: 8px;
   width: 100%;
-  padding: 14px 21px 6px;
+  padding: 14px 20px 6px;
   margin: 0;
   background: none;
   border: 0;
   text-align: left;
   cursor: pointer;
   font-family: var(--sans);
-  font-weight: 590;
-  font-size: 11px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-weight: var(--rail-peso);
+  font-size: var(--rail-texto);
+  letter-spacing: var(--rail-tracking);
   color: var(--rail-ink-dim);
   transition: color var(--dur-corta) var(--ease);
 }
 
 .railGrupoBoton:hover:not(:disabled) {
-  color: var(--rail-ink);
+  color: var(--rail-ink-alta);
 }
 
 /* El grupo donde estás parado no se pliega: el cursor lo dice antes del clic. */
@@ -127,9 +147,10 @@
   cursor: default;
 }
 
+/* El ícono del grupo no se muestra: el título alcanza y los íconos quedan
+   para las secciones, que son lo que se toca. */
 .railGrupoIcono {
-  display: inline-flex;
-  opacity: 0.8;
+  display: none;
 }
 
 .railGrupoTexto {
@@ -140,15 +161,12 @@
 .railGrupoFlecha {
   font-size: 9px;
   opacity: 0.65;
-  transition: transform var(--dur) var(--ease);
 }
 
-/* Las secciones quedan indentadas bajo su grupo, para que se lea la
-   dependencia sin necesidad de líneas ni cajas. */
-/* Indentadas 11px respecto del título del grupo: la sangría es lo único que
-   dice que están adentro de él. */
+/* Las secciones quedan un poco indentadas bajo su grupo: la sangría es lo único
+   que dice que están adentro de él. */
 .railGrupo .railLista {
-  padding-left: 21px;
+  padding-left: 20px;
 }
 
 .railLista {
@@ -157,8 +175,14 @@
   padding: 0 10px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   animation: desplegar var(--dur) var(--ease-salida) both;
+}
+
+/* `display: flex` le gana al `hidden` del navegador: sin esto el grupo plegado
+   seguiría a la vista. */
+.railLista[hidden] {
+  display: none;
 }
 
 @keyframes desplegar {
@@ -172,26 +196,34 @@
   }
 }
 
-/*
- * La sección abierta se marca con una pastilla azul tenue, como la lista lateral
- * de las apps del sistema. Reemplaza a la franja de acento: sobre papel claro la
- * pastilla se ve de una y no depende de un detalle de 2px.
- */
 .railItem {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 11px;
-  border-radius: var(--radio-3);
+  gap: 11px;
+  width: 100%;
+  padding: 8px 11px;
+  border: 0;
+  border-radius: 9px;
+  background: none;
   color: var(--rail-ink);
   text-decoration: none;
-  font-size: var(--type-body-md);
-  letter-spacing: -0.012em;
+  text-align: left;
+  font-family: var(--sans);
+  font-size: var(--rail-texto);
+  font-weight: var(--rail-peso);
+  letter-spacing: var(--rail-tracking);
   line-height: 1.35;
+  white-space: nowrap;
+  cursor: pointer;
   transition:
     background-color var(--dur-corta) var(--ease),
     color var(--dur-corta) var(--ease),
     transform var(--dur-corta) var(--ease);
+}
+
+.railItem > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .railItem:hover {
@@ -205,14 +237,16 @@
 
 .railItem svg {
   flex: none;
-  opacity: 0.7;
+  opacity: 0.75;
   transition: opacity var(--dur-corta) var(--ease);
 }
 
-.railItemActivo {
-  background: var(--accent-soft);
-  color: var(--accent-ink);
-  font-weight: 590;
+/* La sección abierta es una pastilla blanca: sobre el azul marino es lo
+   primero que se ve y no depende del color de acento. */
+.railItemActivo,
+.railItemActivo:hover {
+  background: #ffffff;
+  color: var(--rail-fondo);
 }
 
 .railItemActivo svg {
@@ -222,8 +256,8 @@
 /* Seguimiento se destaca siempre, esté activo o no: es la cola de reportes
    sueltos, y conviene que salte a la vista incluso de paso por el menú. */
 .railItemAmarillo {
-  background: var(--warning-soft);
-  color: var(--warning-ink);
+  background: rgba(255, 230, 0, 0.14);
+  color: var(--warning);
 }
 
 .railItemAmarillo svg {
@@ -231,19 +265,86 @@
 }
 
 .railItemAmarillo:hover {
-  background: var(--warning-soft);
+  background: rgba(255, 230, 0, 0.22);
+  color: var(--warning);
+}
+
+.railItemAmarillo.railItemActivo {
+  background: var(--warning);
   color: var(--warning-ink);
 }
 
 /* Una sección suelta ocupa el lugar de un grupo, así que respira como uno. */
 .railSuelta {
-  margin: 8px 0;
+  margin: 6px 0;
 }
 
 .railPie {
   margin-top: auto;
-  padding: 14px 14px 0;
+  padding: 12px 10px 0;
   border-top: 1px solid var(--rule-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.railPlegar {
+  color: var(--rail-ink-dim);
+}
+
+/*
+ * Menú plegado a íconos (`data-menu="corto"` en <html>, lo pone `BotonMenu`).
+ * Todo lo marcado con `data-rail-texto` desaparece, las secciones de todos los
+ * grupos quedan a la vista —plegar un grupo no tiene sentido sin su título— y
+ * cada título pasa a ser una raya corta que separa los bloques.
+ * Solo en escritorio: en pantallas chicas la barra ya va arriba, en fila.
+ */
+@media (min-width: 901px) {
+  :global(html[data-menu="corto"]) .app {
+    grid-template-columns: 68px minmax(0, 1fr);
+  }
+
+  :global(html[data-menu="corto"]) .rail [data-rail-texto],
+  :global(html[data-menu="corto"]) .railGrupoFlecha {
+    display: none;
+  }
+
+  :global(html[data-menu="corto"]) .marca {
+    justify-content: center;
+    padding: 0 0 12px;
+  }
+
+  :global(html[data-menu="corto"]) .railGrupoBoton {
+    justify-content: center;
+    padding: 12px 0 8px;
+    pointer-events: none;
+  }
+
+  :global(html[data-menu="corto"]) .railGrupoBoton::before {
+    content: "";
+    width: 22px;
+    border-top: 1px solid var(--rule);
+  }
+
+  :global(html[data-menu="corto"]) .railLista,
+  :global(html[data-menu="corto"]) .railLista[hidden],
+  :global(html[data-menu="corto"]) .railGrupo .railLista {
+    display: flex;
+    padding: 0 10px;
+  }
+
+  :global(html[data-menu="corto"]) .railSuelta {
+    margin: 2px 0;
+  }
+
+  :global(html[data-menu="corto"]) .railItem {
+    justify-content: center;
+    padding: 10px 0;
+  }
+
+  :global(html[data-menu="corto"]) .railPie {
+    align-items: center;
+  }
 }
 
 /* --- lienzo --- */
@@ -488,14 +589,16 @@
      repartía todo el ancho libre entre ellas y dejaba huecos enormes en
      pantallas grandes; si el contenido no entra, el scroll queda en tableWrap. */
   width: max-content;
-  font-size: var(--type-body-md);
-  line-height: 1.45;
+  /* Chica a propósito: son tablas anchas, y entrar más columnas y filas en
+     pantalla vale más que el cuerpo de lectura del resto de la página. */
+  font-size: var(--type-label-md);
+  line-height: 1.4;
   letter-spacing: -0.01em;
 }
 
 .table th,
 .table td {
-  padding: 6px 7px;
+  padding: 5px 7px;
   text-align: left;
   border-bottom: 1px solid var(--rule-soft);
   white-space: nowrap;
@@ -504,7 +607,7 @@
 /* El encabezado dejó de ser versalita mono: la jerarquía la dan el gris y el
    peso, que es como el sistema separa una cabecera de su columna. */
 .table th {
-  font-size: var(--type-label-md);
+  font-size: 12px;
   font-weight: 590;
   letter-spacing: -0.005em;
   color: var(--muted);

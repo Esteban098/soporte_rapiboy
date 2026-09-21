@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { NavLink } from "./NavLink";
 import { NavGrupo } from "./NavGrupo";
@@ -5,10 +6,13 @@ import { SignOutButton } from "./SignOutButton";
 import { BotonActualizar } from "./BotonActualizar";
 import { SeguimientoWidget } from "./SeguimientoWidget";
 import { SelectorTema } from "./SelectorTema";
+import { BotonMenu } from "./BotonMenu";
 import { CampanaNotificaciones } from "./CampanaNotificaciones";
 import { flujosDe, variableDeFlujo, type ClaveFlujo, type ModoDatos } from "@/lib/config";
 import { esComercial, inicioDe, puedeVerRuta, type RolPerfil } from "@/lib/permisos";
 import estilos from "./ui.module.css";
+/* El mismo archivo que Next sirve como ícono de la pestaña: una sola copia del logo. */
+import logo from "@/app/icon.png";
 
 /**
  * Las secciones van agrupadas por para qué se usan, no en una lista corrida.
@@ -140,10 +144,10 @@ export function Shell({
       <nav className={estilos.rail} aria-label="Secciones">
         <div className={estilos.railFijo}>
           <Link href={inicioDe(rol)} className={estilos.marca}>
-            <span className={estilos.marcaSigla} aria-hidden="true">
-              MX
+            <span className={estilos.marcaSigla}>
+              <Image src={logo} alt="Rapiboy" width={28} height={28} priority />
             </span>
-            <span className={estilos.marcaTexto}>
+            <span className={estilos.marcaTexto} data-rail-texto>
               <span className={estilos.marcaNombre}>Operación México - Entregas Fallidas.</span>
               <span className={estilos.marcaSub}>Soporte</span>
             </span>
@@ -177,11 +181,10 @@ export function Shell({
             )}
           </div>
 
-          {usuario ? (
-            <div className={estilos.railPie}>
-              <SignOutButton nombre={usuario} />
-            </div>
-          ) : null}
+          <div className={estilos.railPie}>
+            <BotonMenu />
+            {usuario ? <SignOutButton nombre={usuario} /> : null}
+          </div>
         </div>
       </nav>
 
@@ -211,10 +214,12 @@ export function Shell({
 }
 
 function Enlace({ seccion, esAdmin }: { seccion: Seccion; esAdmin: boolean }) {
+  const etiqueta = seccion.etiqueta ?? (esAdmin ? "Perfiles" : "Mi perfil");
   return (
-    <NavLink href={seccion.href} exacto={seccion.exacto} destacado={seccion.destacado}>
+    <NavLink href={seccion.href} exacto={seccion.exacto} destacado={seccion.destacado} titulo={etiqueta}>
       <seccion.icono />
-      {seccion.etiqueta ?? (esAdmin ? "Perfiles" : "Mi perfil")}
+      {/* `data-rail-texto`: lo que desaparece con el menú plegado. */}
+      <span data-rail-texto>{etiqueta}</span>
     </NavLink>
   );
 }

@@ -9,8 +9,10 @@
   cursor: pointer;
   color: var(--ink-2);
   font-family: var(--sans);
-  font-size: 13px;
-  letter-spacing: -0.01em;
+  /* Vive en la barra lateral y toma su escala (ver `.railFijo`). */
+  font-size: var(--rail-texto);
+  font-weight: var(--rail-peso);
+  letter-spacing: var(--rail-tracking);
   line-height: 1.4;
   transition:
     background-color var(--dur-corta) var(--ease),
@@ -35,9 +37,9 @@
 }
 
 .salir {
-  font-size: 11.5px;
+  font-size: var(--rail-rotulo);
   font-weight: 500;
-  letter-spacing: -0.005em;
+  letter-spacing: var(--rail-tracking);
   background: var(--surface-3);
   border-radius: var(--radio-3);
   padding: 3px 10px;

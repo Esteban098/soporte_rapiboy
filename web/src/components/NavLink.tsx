@@ -8,6 +8,7 @@ export function NavLink({
   href,
   exacto = false,
   destacado = false,
+  titulo,
   children,
 }: {
   href: string;
@@ -21,6 +22,8 @@ export function NavLink({
   exacto?: boolean;
   /** La entrada se ve amarilla siempre, esté activa o no. Para Seguimiento. */
   destacado?: boolean;
+  /** Nombre de la sección como tooltip: con el menú plegado es lo único que la nombra. */
+  titulo?: string;
   children: React.ReactNode;
 }) {
   const ruta = usePathname();
@@ -31,6 +34,7 @@ export function NavLink({
       href={href}
       className={`${estilos.railItem} ${activo ? estilos.railItemActivo : ""} ${destacado ? estilos.railItemAmarillo : ""}`}
       aria-current={activo ? "page" : undefined}
+      title={titulo}
     >
       {children}
     </Link>
