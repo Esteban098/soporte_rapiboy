@@ -23,9 +23,18 @@ const SISTEMA =
 /** El modelo no puede tardar más que la paciencia de quien apretó Enviar. */
 const TIMEOUT_MS = 15_000;
 
+/** Sin clave se avisa una sola vez por proceso, no en cada reporte. */
+let avisoSinClave = false;
+
 export async function resumirComentario(comentario: string): Promise<string | null> {
   const config = openaiConfig();
-  if (!config) return null;
+  if (!config) {
+    if (!avisoSinClave) {
+      avisoSinClave = true;
+      console.warn("[resumen] OPENAI_API_KEY no está configurada: los reportes se guardan sin resumen.");
+    }
+    return null;
+  }
 
   const limpio = comentario.trim();
   if (!limpio) return null;
@@ -53,16 +62,27 @@ export async function resumirComentario(comentario: string): Promise<string | nu
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
 
-    if (!respuesta.ok) return null;
+    if (!respuesta.ok) {
+      // OpenAI explica el motivo en `error.message` (clave inválida, sin
+      // crédito, modelo inexistente). Sin esto, la falla es invisible.
+      const detalle = await respuesta.text().catch(() => "");
+      console.error(
+        `[resumen] OpenAI respondió ${respuesta.status} con el modelo ${config.modelo}:`,
+        detalle.slice(0, 500),
+      );
+      return null;
+    }
 
     const cuerpo = (await respuesta.json()) as {
       choices?: { message?: { content?: string | null } }[];
     };
     const texto = cuerpo.choices?.[0]?.message?.content?.trim();
+    if (!texto) console.error("[resumen] OpenAI respondió sin texto.");
     return texto ? texto : null;
-  } catch {
+  } catch (error) {
     // Timeout, red caída, JSON inesperado: todo termina igual, sin resumen y
-    // con el reporte intacto.
+    // con el reporte intacto, pero queda en el log por qué.
+    console.error("[resumen] No se pudo resumir el comentario:", error);
     return null;
   }
 }
