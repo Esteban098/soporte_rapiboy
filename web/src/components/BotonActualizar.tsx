@@ -68,7 +68,7 @@ const TEXTOS: Record<ClaveFlujo, Textos> = {
       "Se está consultando el estado actual de las cancelaciones de meses cerrados. Puede tardar varios minutos.",
   },
   /*
-   * El live tracker no usa este botón: tiene los suyos, que conservan la
+   * El live tracker no usa este botón: tiene el suyo, que conserva la
    * selección y el encuadre del mapa en vez de recargar el árbol de servidor.
    * Las dos entradas están para que el mapa de claves siga siendo total —si
    * mañana alguien agrega una clave, TypeScript avisa acá— y para que el texto

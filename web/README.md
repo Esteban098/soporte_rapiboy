@@ -84,7 +84,9 @@ ruta de hoy. Un repartidor que tenga posición o reserva pero ningún paquete
 activo no aparece en esta pantalla.
 
 Entre las 15:00 y las 00:00 de México, una fila recibe contorno rojo si el
-driver lleva 30 minutos sin moverse y todavía tiene paquetes sin visitar. El
+driver lleva 30 minutos sin moverse, ya visitó su primera parada y todavía
+tiene paquetes sin visitar. Antes de la primera parada no se evalúa: un driver
+que todavía no salió de la bodega está cargando, no demorado. El
 selector **Ordenar por** permite llevar esos demorados arriba. La coordenada
 debe desplazarse al menos 50 metros para contar como movimiento y no reaccionar
 al ruido normal del GPS.
@@ -106,8 +108,8 @@ operativa que n8n arma directamente desde RapiboyData; no cruza ni consulta
 Arranca con el mapa vacío y el panel lleno. Es a propósito: con veinte
 repartidores y todas sus paradas encima, el mapa completo no dice nada. La
 pantalla empieza a servir cuando alguien elige a quién quiere mirar, con las
-casillas del panel, el buscador por repartidor, dirección o **ID de viaje** de
-paquete, o **Seleccionar todos**.
+casillas del panel o el buscador por repartidor, dirección o **ID de viaje** de
+paquete.
 
 Cuando la búsqueda identifica un único paquete, el tablero selecciona a su
 repartidor, resalta la parada y centra el mapa en su destino. La ficha se abre
@@ -180,27 +182,45 @@ de `fecha_visita`; si esa marca falta en un entregado, usa
 `fecha_cambio_estado`. Con repartidores seleccionados muestra solamente los de
 esa selección; sin selección resume todas las rutas visibles.
 
-### Los dos botones
+### Estadísticas
 
-Están separados porque son dos preguntas distintas, y una es mucho más barata
-que la otra:
+Arriba del mapa, dos pestañas: **Mapa en vivo** y **Estadísticas**. La segunda
+resume la **jornada operativa anterior** —la de antes de la que muestra el mapa,
+salteando el domingo—, porque es la que ya está cerrada y se puede comparar sin
+que los números se muevan mientras se mira. La página la lee aparte con
+`leerTracker(diaOperativoAnterior(diaDePaquetes()))`. Muestra entregados,
+paquetes en ruta, drivers y tasa global; entregas por driver y por hora de México; una tabla ordenable por
+driver con entregas por hora, primera y última entrega; las zonas más lentas
+por tiempo promedio desde `fecha_programado` hasta `fecha_visita`, y un mapa
+de calor de destinos entregados sobre la cobertura. El buscador filtra drivers
+y zonas.
 
-- **Actualizar posiciones** relee `Motoboy.Latitud` y `Motoboy.Longitud` de los
+### El botón Actualizar
+
+Un solo botón, **Actualizar**, corre las dos sincronizaciones una detrás de la
+otra —primero paquetes, después posiciones— y relee la jornada una vez al
+final. Van en ese orden porque la de posiciones conserva a quienes aparecen por
+sus pendientes: un repartidor que recién sumó paquetes sale con su posición en
+la misma pasada. Mientras corre, el botón dice cuál de las dos está en curso.
+Son flujos independientes: si uno falla, el otro corre igual y el aviso dice
+cuál falló.
+
+- **Posiciones** relee `Motoboy.Latitud` y `Motoboy.Longitud` de los
   repartidores y mantiene la última posición conocida de quienes aparecen por
   sus pendientes. No toca los paquetes ni cambia la fecha visible.
-- **Actualizar paquetes** vuelve a preguntar cuáles son los paquetes de las
+- **Paquetes** vuelve a preguntar cuáles son los paquetes de las
   rutas que corresponden al corte operativo y los compara con los guardados.
   Antes de las 15:00 actualiza los estados de la última ruta operativa —el
   sábado cuando es lunes—; desde las 15:00 reconcilia la ruta de hoy. Una
   entrega de esa jornada cambia a verde, pero no sale del total de la ruta.
 
-Lo importante del segundo: **no parte de los paquetes que ya tiene**. Vuelve a
+Lo importante de los paquetes: **no parte de los paquetes que ya tiene**. Vuelve a
 descubrir el universo del día desde las reservas. Por eso, si a un repartidor
 que arrancó con 30 paquetes le agregan uno a media mañana, el botón lo trae y
 el total pasa a 31 sin reiniciar nada. Un refresco que consultara solo los
 tracking id guardados nunca preguntaría por ese paquete.
 
-Después de apretar cualquiera de los dos, la pantalla vuelve a leer la API y
+Después de apretarlo, la pantalla vuelve a leer la API y
 reemplaza los datos, **conservando la selección, los filtros, el zoom y el
 encuadre**. No se remonta el mapa: si se recargara el árbol de servidor, se
 perdería todo lo que el operador acomodó a mano.

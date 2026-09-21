@@ -768,7 +768,10 @@ test("el motivo de una demora guarda datos verificados por el servidor", async (
           id: 7,
           nombre: "Ana Ruiz",
           fechaUltimoMovimiento: "2026-09-10T21:00:00Z",
-          paquetes: [{ clasificacion: "PENDIENTE_NO_VISITADO", activo_en_ruta: true }],
+          paquetes: [
+            { orden: 1, visitado: true, clasificacion: "VISITADO_ENTREGADO", activo_en_ruta: true },
+            { orden: 2, visitado: false, clasificacion: "PENDIENTE_NO_VISITADO", activo_en_ruta: true },
+          ],
           demoraInformada: null,
         }],
       }) as unknown as Awaited<ReturnType<typeof leerTracker>>,
@@ -1352,7 +1355,10 @@ test("el lunes conserva los pendientes del sábado y no busca una ruta del domin
 test("la demora aparece recién tras un ciclo sin movimiento durante la ruta", () => {
   const detenido = {
     fechaUltimoMovimiento: "2026-09-10T20:00:00Z", // antes de las 15:00 MX
-    paquetes: [{ clasificacion: "PENDIENTE_NO_VISITADO" as const, activo_en_ruta: true }],
+    paquetes: [
+      { orden: 1, visitado: true, clasificacion: "VISITADO_ENTREGADO" as const, activo_en_ruta: true },
+      { orden: 2, visitado: false, clasificacion: "PENDIENTE_NO_VISITADO" as const, activo_en_ruta: true },
+    ],
     demoraInformada: null,
   };
 
@@ -1381,7 +1387,7 @@ test("sin paquetes por visitar o con motivo informado no se vuelve a notificar",
   const momento = new Date("2026-09-10T22:00:00Z");
   const base = {
     fechaUltimoMovimiento: "2026-09-10T21:00:00Z",
-    paquetes: [{ clasificacion: "VISITADO_ENTREGADO" as const, activo_en_ruta: true }],
+    paquetes: [{ orden: 1, visitado: true, clasificacion: "VISITADO_ENTREGADO" as const, activo_en_ruta: true }],
     demoraInformada: null,
   };
   assert.equal(estadoDemoraDriver(base, momento).demorado, false);
@@ -1389,7 +1395,10 @@ test("sin paquetes por visitar o con motivo informado no se vuelve a notificar",
   const conMotivo = estadoDemoraDriver(
     {
       ...base,
-      paquetes: [{ clasificacion: "PROXIMO" as const, activo_en_ruta: true }],
+      paquetes: [
+        { orden: 1, visitado: true, clasificacion: "VISITADO_ENTREGADO" as const, activo_en_ruta: true },
+        { orden: 2, visitado: false, clasificacion: "PROXIMO" as const, activo_en_ruta: true },
+      ],
       demoraInformada: { motivo: "Choque confirmado" },
     },
     momento,
@@ -2014,4 +2023,19 @@ test("con las tablas cargadas no se avisa nada", async (t) => {
   // cuando de verdad hay algo que correr.
   const datos = await leerTracker("2026-09-10");
   assert.deepEqual(datos.tablasFaltantes, []);
+});
+
+test("un solo botón actualiza paquetes y después posiciones", () => {
+  const panel = readFileSync(new URL("../src/components/LiveTracker.tsx", import.meta.url), "utf8");
+
+  // Paquetes primero: la de posiciones conserva a quienes aparecen por sus
+  // pendientes, así que al revés un repartidor recién sumado quedaría sin
+  // posición hasta la próxima pasada.
+  assert.match(panel, /for \(const cual of \["paquetes", "posiciones"\] as const\)/);
+  assert.equal((panel.match(/className=\{estilos\.sync\}/g) ?? []).length, 1, "tiene que haber un solo botón");
+  assert.doesNotMatch(panel, />\s*Actualizar (posiciones|paquetes)\s*</);
+
+  // Un flujo caído no frena al otro: `sincronizar` devuelve en vez de tirar.
+  const cuerpo = panel.slice(panel.indexOf("async function sincronizar("));
+  assert.match(cuerpo.slice(0, cuerpo.indexOf("\n}\n")), /catch \{\s*return \{ ok: false/);
 });

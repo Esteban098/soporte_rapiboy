@@ -25,6 +25,7 @@ import { ControlLluvia, useLluvia } from "./Lluvia";
 import { AtribucionTomTom, ControlesTomTom, useCiclo } from "./Trafico";
 import { REFRESCO_TRAFICO_MS } from "@/lib/trafico";
 import { NombreTienda } from "./ColorTiendas";
+import { caminos } from "@/lib/cobertura";
 import estilos from "./live-tracker.module.css";
 
 /**
@@ -33,8 +34,8 @@ import estilos from "./live-tracker.module.css";
  *
  * Todo el estado de trabajo —la selección, el buscador, el filtro, el encuadre—
  * vive acá adentro y no en la URL ni en el servidor. Es lo que hace que
- * actualizar no lo pierda: los botones traen datos nuevos por `fetch` y
- * reemplazan solamente `datos`, así que el resto de la pantalla ni se entera.
+ * actualizar no lo pierda: el botón trae datos nuevos por `fetch` y
+ * reemplaza solamente `datos`, así que el resto de la pantalla ni se entera.
  *
  * Arranca sin nadie seleccionado a propósito. Con veinte repartidores y sus
  * paradas encima, el mapa completo no dice nada; la pantalla es útil desde que
@@ -46,9 +47,11 @@ type Sync = "posiciones" | "paquetes";
 type Aviso = { tono: "ok" | "error"; texto: string };
 type OrdenLista = "porcentaje" | "total" | "entregados" | "actualizacion" | "demora";
 type DireccionOrden = "desc" | "asc";
+type PestanaTracker = "mapa" | "estadisticas";
 
 export function LiveTracker({
   inicial,
+  estadisticas,
   ventana,
   hayFlujoPosiciones,
   hayFlujoPaquetes,
@@ -56,6 +59,7 @@ export function LiveTracker({
   children,
 }: {
   inicial: DatosDelTracker;
+  estadisticas?: DatosDelTracker;
   ventana: Ventana;
   hayFlujoPosiciones: boolean;
   hayFlujoPaquetes: boolean;
@@ -70,6 +74,7 @@ export function LiveTracker({
   const [orden, setOrden] = useState<OrdenLista>("porcentaje");
   const [direccionOrden, setDireccionOrden] = useState<DireccionOrden>("desc");
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
+  const [pestana, setPestana] = useState<PestanaTracker>("mapa");
 
   /*
    * La ruta propuesta arranca apagada, y no es una preferencia de estilo.
@@ -101,7 +106,7 @@ export function LiveTracker({
   /*
    * El candado del doble clic.
    *
-   * `corriendo` deshabilita los botones, pero el estado de React se aplica en
+   * `corriendo` deshabilita el botón, pero el estado de React se aplica en
    * el siguiente render: dos clics muy seguidos entran los dos antes de que el
    * botón se apague. La ref cambia en el acto y corta el segundo.
    */
@@ -210,36 +215,37 @@ export function LiveTracker({
     return () => window.clearInterval(refresco);
   }, [releer]);
 
-  async function sincronizar(cual: Sync) {
+  /*
+   * Un solo botón corre las dos sincronizaciones, una detrás de la otra.
+   *
+   * Primero los paquetes y después las posiciones: la de posiciones conserva
+   * a quienes aparecen por sus pendientes, así que un repartidor que recién
+   * sumó paquetes ya sale con su posición en la misma pasada. Son flujos
+   * independientes: si uno falla, el otro corre igual, y la jornada se relee
+   * una sola vez al final con lo que haya quedado guardado.
+   */
+  async function actualizar() {
     if (enVuelo.current) return;
     enVuelo.current = true;
-    setCorriendo(cual);
     setAviso(null);
 
-    const ruta =
-      cual === "posiciones"
-        ? "/api/live-tracker/sync/drivers"
-        : "/api/live-tracker/sync/shipments";
+    const partes: string[] = [];
+    let fallo = false;
 
     try {
-      const respuesta = await fetch(ruta, { method: "POST", cache: "no-store" });
-      const cuerpo = await respuesta.json().catch(() => null);
-
-      if (!respuesta.ok || !cuerpo?.ok) {
-        setAviso({
-          tono: "error",
-          texto: cuerpo?.error ?? `La sincronización respondió ${respuesta.status}.`,
-        });
-        // Se relee igual: el flujo pudo haber guardado parte antes de fallar, y
-        // mostrar lo que sí quedó es mejor que dejar la pantalla en el pasado.
-        await releer().catch(() => {});
-        return;
+      for (const cual of ["paquetes", "posiciones"] as const) {
+        setCorriendo(cual);
+        const resultado = await sincronizar(cual);
+        if (!resultado.ok) fallo = true;
+        partes.push(resultado.texto);
       }
 
-      await releer();
-      setAviso({ tono: "ok", texto: resumenEnPalabras(cual, cuerpo) });
-    } catch {
-      setAviso({ tono: "error", texto: "No se pudo completar la sincronización." });
+      setCorriendo(null);
+      await releer().catch(() => {
+        fallo = true;
+        partes.push("No se pudo releer la jornada.");
+      });
+      setAviso({ tono: fallo ? "error" : "ok", texto: partes.join(" ") });
     } finally {
       enVuelo.current = false;
       setCorriendo(null);
@@ -323,52 +329,16 @@ export function LiveTracker({
         <div className={estilos.acciones}>
           <button
             type="button"
-            className={estilos.accion}
-            onClick={() => setSeleccion(filtrados.map((d) => d.id))}
-            disabled={filtrados.length === 0}
-          >
-            Seleccionar todos
-          </button>
-          <button
-            type="button"
-            className={estilos.accion}
-            onClick={() => {
-              setSeleccion([]);
-              setPaqueteActivo(null);
-              setPaqueteBuscado(null);
-            }}
-            disabled={seleccion.length === 0}
-          >
-            Limpiar selección
-          </button>
-        </div>
-
-        <div className={estilos.acciones}>
-          <button
-            type="button"
             className={estilos.sync}
-            onClick={() => sincronizar("posiciones")}
+            onClick={actualizar}
             disabled={corriendo !== null}
-            title={
-              hayFlujoPosiciones
-                ? "Vuelve a leer la última posición conocida de cada repartidor. No toca los paquetes."
-                : "No hay webhook configurado en N8N_WEBHOOKS_TRACKER_POSICIONES."
-            }
+            title={tituloActualizar(hayFlujoPaquetes, hayFlujoPosiciones)}
           >
-            {corriendo === "posiciones" ? "Actualizando posiciones…" : "Actualizar posiciones"}
-          </button>
-          <button
-            type="button"
-            className={estilos.sync}
-            onClick={() => sincronizar("paquetes")}
-            disabled={corriendo !== null}
-            title={
-              hayFlujoPaquetes
-                ? "Vuelve a preguntar cuáles son los paquetes de las rutas de hoy. Descubre los que se agregaron después."
-                : "No hay webhook configurado en N8N_WEBHOOKS_TRACKER_PAQUETES."
-            }
-          >
-            {corriendo === "paquetes" ? "Actualizando paquetes…" : "Actualizar paquetes"}
+            {corriendo === "paquetes"
+              ? "Actualizando paquetes…"
+              : corriendo === "posiciones"
+                ? "Actualizando posiciones…"
+                : "Actualizar"}
           </button>
         </div>
 
@@ -417,7 +387,7 @@ export function LiveTracker({
           {filtrados.length === 0 ? (
             <li className={estilos.vacio}>
               {datos.drivers.length === 0
-                ? "No hay repartidores con una ruta activa para hoy. Probá «Actualizar paquetes»."
+                ? "No hay repartidores con una ruta activa para hoy. Probá «Actualizar»."
                 : "Ningún repartidor coincide con la búsqueda."}
             </li>
           ) : (
@@ -448,6 +418,14 @@ export function LiveTracker({
       </aside>
 
       <div className={estilos.derecha}>
+        <div className={estilos.pestanas} role="tablist" aria-label="Vista del tracker">
+          <button type="button" role="tab" aria-selected={pestana === "mapa"} className={pestana === "mapa" ? estilos.pestanaActiva : estilos.pestana} onClick={() => setPestana("mapa")}>Mapa en vivo</button>
+          <button type="button" role="tab" aria-selected={pestana === "estadisticas"} className={pestana === "estadisticas" ? estilos.pestanaActiva : estilos.pestana} onClick={() => setPestana("estadisticas")}>Estadísticas</button>
+        </div>
+        {pestana === "estadisticas" ? (
+          <EstadisticasTracker drivers={(estadisticas ?? datos).drivers} ventana={ventana} dia={estadisticas?.dia ?? datos.dia} />
+        ) : null}
+        {pestana === "mapa" ? <>
         {/*
           Las casillas van arriba del mapa y no en el panel: dicen qué se ve en
           el mapa, y el panel queda para elegir a quién mirar.
@@ -543,6 +521,7 @@ export function LiveTracker({
             ))}
           </div>
         ) : null}
+        </> : null}
       </div>
 
       {paqueteSeleccionado ? (
@@ -632,6 +611,126 @@ function fechaNumero(fecha: string | null): number {
   if (!fecha) return -1;
   const numero = new Date(fecha).getTime();
   return Number.isFinite(numero) ? numero : -1;
+}
+
+function duracion(segundos: number): string {
+  const total = Math.max(0, Math.round(segundos));
+  const horas = Math.floor(total / 3600);
+  const minutos = Math.floor((total % 3600) / 60);
+  const segundosRestantes = total % 60;
+  return `${horas} h ${String(minutos).padStart(2, "0")} m ${String(segundosRestantes).padStart(2, "0")} s`;
+}
+
+function horaMexico(marca: number): string {
+  return new Intl.DateTimeFormat("es-MX", { timeZone: "America/Mexico_City", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(new Date(marca));
+}
+
+function EstadisticasTracker({
+  drivers,
+  ventana,
+  dia,
+}: {
+  drivers: DriverDelTracker[];
+  ventana: Ventana;
+  dia: string;
+}) {
+  const [busqueda, setBusqueda] = useState("");
+  const [ordenColumna, setOrdenColumna] = useState("entregas");
+  const [ascendente, setAscendente] = useState(false);
+  const [mostrarTodo, setMostrarTodo] = useState(false);
+  const paquetes = drivers.flatMap((d) => d.paquetes);
+  const entregados = paquetes.filter((p) => p.clasificacion === "VISITADO_ENTREGADO");
+  const porDriver = drivers
+    .map((driver) => {
+      const entregas = driver.paquetes.filter((p) => p.clasificacion === "VISITADO_ENTREGADO");
+      const horas = new Set(
+        entregas.map((p) => (p.fecha_visita ?? p.fecha_cambio_estado)?.slice(0, 13)).filter(Boolean),
+      ).size;
+      const marcas = entregas.map((p) => Date.parse(p.fecha_visita ?? p.fecha_cambio_estado ?? "")).filter(Number.isFinite);
+      const inicio = marcas.length ? Math.min(...marcas) : null;
+      const fin = marcas.length ? Math.max(...marcas) : null;
+      return { driver, entregas: entregas.length, total: driver.resumen.enRuta, porcentaje: porcentajeEntregado(driver.resumen) ?? 0, porHora: horas ? entregas.length / horas : 0, inicio, fin };
+    })
+    .filter((fila) => normalizarBusqueda(fila.driver.nombre).includes(normalizarBusqueda(busqueda)));
+  porDriver.sort((a, b) => {
+    const diferencia = ordenColumna === "porHora" ? b.porHora - a.porHora : ordenColumna === "porcentaje" ? b.porcentaje - a.porcentaje : ordenColumna === "total" ? b.total - a.total : b.entregas - a.entregas;
+    return (ascendente ? -1 : 1) * (diferencia || a.driver.nombre.localeCompare(b.driver.nombre, "es"));
+  });
+
+  const zonas = new Map<string, { cantidad: number; minutos: number[] }>();
+  for (const paquete of entregados) {
+    const zona = paquete.poligono?.trim() || "Zona no informada";
+    const fila = zonas.get(zona) ?? { cantidad: 0, minutos: [] };
+    fila.cantidad += 1;
+    if (paquete.fecha_programado && paquete.fecha_visita) {
+      const minutos = Math.round((Date.parse(paquete.fecha_visita) - Date.parse(paquete.fecha_programado)) / 60000);
+      if (Number.isFinite(minutos) && minutos >= 0) fila.minutos.push(minutos);
+    }
+    zonas.set(zona, fila);
+  }
+  const zonasOrdenadas = [...zonas.entries()]
+    .map(([zona, fila]) => ({ zona, cantidad: fila.cantidad, promedio: fila.minutos.length ? Math.round(fila.minutos.reduce((a, b) => a + b, 0) / fila.minutos.length) : null }))
+    .filter((fila) => normalizarBusqueda(fila.zona).includes(normalizarBusqueda(busqueda)))
+    .sort((a, b) => (b.promedio ?? -1) - (a.promedio ?? -1) || b.cantidad - a.cantidad);
+
+  const puntos = entregados.filter((p) => p.latitud_destino != null && p.longitud_destino != null);
+  const minLat = Math.min(...puntos.map((p) => p.latitud_destino as number), ventana.sur);
+  const maxLat = Math.max(...puntos.map((p) => p.latitud_destino as number), ventana.norte);
+  const minLon = Math.min(...puntos.map((p) => p.longitud_destino as number), ventana.oeste);
+  const maxLon = Math.max(...puntos.map((p) => p.longitud_destino as number), ventana.este);
+  const celdas = Array.from({ length: 64 }, (_, indice) => {
+    const x = indice % 8;
+    const y = Math.floor(indice / 8);
+    const cantidad = puntos.filter((p) => {
+      const px = Math.min(7, Math.floor((((p.longitud_destino as number) - minLon) / Math.max(maxLon - minLon, 0.0001)) * 8));
+      const py = Math.min(7, 7 - Math.floor((((p.latitud_destino as number) - minLat) / Math.max(maxLat - minLat, 0.0001)) * 8));
+      return px === x && py === y;
+    }).length;
+    return { cantidad, x, y };
+  });
+  const maxCelda = Math.max(1, ...celdas.map((c) => c.cantidad));
+  const cambiarOrden = (columna: string) => {
+    if (ordenColumna === columna) setAscendente((valor) => !valor);
+    else { setOrdenColumna(columna); setAscendente(false); }
+  };
+  const iconoOrden = (columna: string) => ordenColumna === columna ? (ascendente ? "↑" : "↓") : "↕";
+  const visibleDrivers = mostrarTodo ? porDriver : porDriver.slice(0, 8);
+  const visibleZonas = mostrarTodo ? zonasOrdenadas : zonasOrdenadas.slice(0, 8);
+  const maxEntregasDriver = Math.max(1, ...porDriver.map((fila) => fila.entregas));
+  const entregasHora = Array.from({ length: 24 }, (_, hora) => ({ hora, cantidad: entregados.filter((p) => {
+    const fecha = p.fecha_visita ?? p.fecha_cambio_estado;
+    if (!fecha) return false;
+    return Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Mexico_City", hour: "2-digit", hourCycle: "h23" }).format(new Date(fecha))) === hora;
+  }).length }));
+  const maxEntregasHora = Math.max(1, ...entregasHora.map((fila) => fila.cantidad));
+
+  return (
+    <section className={estilos.estadisticas} aria-label="Estadísticas de la jornada">
+      <p className={estilos.subtituloEstadisticas}>Resumen operativo del {dia}</p>
+      <div className={estilos.filtrosEstadisticas}>
+        <input className={estilos.buscador} value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar driver o zona" aria-label="Buscar en estadísticas" />
+      </div>
+      <div className={estilos.kpis}>
+        <Cifra etiqueta="Paquetes entregados" valor={entregados.length} />
+        <Cifra etiqueta="Paquetes en ruta" valor={paquetes.filter((p) => p.activo_en_ruta).length} />
+        <Cifra etiqueta="Drivers visibles" valor={drivers.length} />
+        <Cifra etiqueta="Tasa global" valor={`${paquetes.length ? Math.round((entregados.length / paquetes.length) * 100) : 0}%`} />
+      </div>
+      <div className={estilos.graficosGrid}>
+        <div className={estilos.grafico}><h2>Entregas por driver</h2><div className={estilos.barras}>{porDriver.slice(0, 8).map((fila) => <div className={estilos.barraFila} key={fila.driver.id}><span>{fila.driver.nombre}</span><i style={{ width: `${(fila.entregas / maxEntregasDriver) * 100}%` }} /><b>{fila.entregas}</b></div>)}</div></div>
+        <div className={estilos.grafico}><h2>Entregas por hora</h2><div className={estilos.columnas}>{entregasHora.map((fila) => <div className={estilos.columna} key={fila.hora} title={`${fila.hora}:00 · ${fila.cantidad} entregas`}><i style={{ height: `${(fila.cantidad / maxEntregasHora) * 100}%` }} /><small>{fila.hora}</small></div>)}</div></div>
+      </div>
+      <div className={estilos.tablaBloque}>
+        <h2>Entregas por driver</h2>
+        <div className={estilos.tablaScroll}><table><thead><tr><th>Driver</th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("entregas")}>Entregados {iconoOrden("entregas")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("total")}>Total {iconoOrden("total")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("porcentaje")}>% {iconoOrden("porcentaje")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("porHora")}>Entregas/h {iconoOrden("porHora")}</button></th><th>Inicio</th><th>Fin de ruta</th></tr></thead><tbody>{visibleDrivers.map((fila) => <tr key={fila.driver.id}><td>{fila.driver.nombre}</td><td>{fila.entregas}</td><td>{fila.total}</td><td>{Math.round(fila.porcentaje)}%</td><td>{fila.porHora.toFixed(1)}</td><td>{fila.inicio == null ? "Sin datos" : horaMexico(fila.inicio)}</td><td>{fila.fin == null ? "Sin datos" : horaMexico(fila.fin)}</td></tr>)}</tbody></table></div>
+        {porDriver.length > 8 ? <button type="button" className={estilos.mostrarTodo} onClick={() => setMostrarTodo((valor) => !valor)}>{mostrarTodo ? "Mostrar menos" : "Mostrar todo"}</button> : null}
+      </div>
+      <div className={estilos.estadisticasGrid}>
+        <div className={estilos.tablaBloque}><h2>Zonas más lentas</h2><div className={estilos.tablaScroll}><table><thead><tr><th>Zona</th><th>Entregas</th><th>Promedio desde programación</th></tr></thead><tbody>{visibleZonas.map((fila) => <tr key={fila.zona}><td>{fila.zona}</td><td>{fila.cantidad}</td><td>{fila.promedio == null ? "Sin datos" : duracion(fila.promedio * 60)}</td></tr>)}</tbody></table></div>{zonasOrdenadas.length > 8 ? <button type="button" className={estilos.mostrarTodo} onClick={() => setMostrarTodo((valor) => !valor)}>{mostrarTodo ? "Mostrar menos" : "Mostrar todo"}</button> : null}</div>
+        <div className={estilos.tablaBloque}><h2>Mapa de calor de entregas</h2><svg className={estilos.calorMapa} viewBox={`0 0 ${ventana.ancho} ${ventana.alto}`} role="img" aria-label="Mapa de calor de entregas sobre cobertura"><g className={estilos.calorCobertura}>{caminos().map((poligono) => <path key={poligono.clave} d={poligono.d} />)}</g>{celdas.map((celda) => <rect key={`${celda.x}-${celda.y}`} x={(celda.x / 8) * ventana.ancho} y={(celda.y / 8) * ventana.alto} width={ventana.ancho / 8} height={ventana.alto / 8} className={estilos.calorCelda} style={{ opacity: celda.cantidad ? 0.18 + (celda.cantidad / maxCelda) * 0.82 : 0.04 }} />)}</svg><p className={estilos.ayuda}>Concentración de destinos entregados sobre las zonas de cobertura.</p></div>
+      </div>
+    </section>
+  );
 }
 
 function AlertaDemora({
@@ -1248,6 +1347,45 @@ function textoCorto(driver: DriverDelTracker): string {
   if (minutos == null) return "s/f";
   if (minutos < 60) return `${minutos}m`;
   return `${Math.floor(minutos / 60)}h`;
+}
+
+/**
+ * Corre una sincronización y la cuenta en una frase.
+ *
+ * No tira: devuelve si salió bien, para que el botón pueda seguir con la
+ * otra aunque esta haya fallado.
+ */
+async function sincronizar(cual: Sync): Promise<{ ok: boolean; texto: string }> {
+  const ruta =
+    cual === "posiciones" ? "/api/live-tracker/sync/drivers" : "/api/live-tracker/sync/shipments";
+  const nombre = cual === "posiciones" ? "Posiciones" : "Paquetes";
+
+  try {
+    const respuesta = await fetch(ruta, { method: "POST", cache: "no-store" });
+    const cuerpo = await respuesta.json().catch(() => null);
+    if (!respuesta.ok || !cuerpo?.ok) {
+      return {
+        ok: false,
+        texto: `${nombre}: ${cuerpo?.error ?? `la sincronización respondió ${respuesta.status}.`}`,
+      };
+    }
+    return { ok: true, texto: resumenEnPalabras(cual, cuerpo) };
+  } catch {
+    return { ok: false, texto: `${nombre}: no se pudo completar la sincronización.` };
+  }
+}
+
+/** Qué hace el botón, y qué parte no puede hacer si falta un webhook. */
+function tituloActualizar(hayPaquetes: boolean, hayPosiciones: boolean): string {
+  const faltan = [
+    hayPaquetes ? null : "N8N_WEBHOOKS_TRACKER_PAQUETES",
+    hayPosiciones ? null : "N8N_WEBHOOKS_TRACKER_POSICIONES",
+  ].filter(Boolean);
+  const base =
+    "Vuelve a preguntar cuáles son los paquetes de las rutas y descubre los que se agregaron; después relee la última posición conocida de cada repartidor.";
+  return faltan.length === 0
+    ? base
+    : `${base} Falta configurar ${faltan.join(" y ")}, así que esa parte va a fallar.`;
 }
 
 /**

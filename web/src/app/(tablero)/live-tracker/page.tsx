@@ -4,7 +4,7 @@ import { LiveTracker } from "@/components/LiveTracker";
 import { FondoCobertura } from "@/components/FondoCobertura";
 import { claveTomTom, flujosDe, modoDatos } from "@/lib/config";
 import { ventanaProyeccion } from "@/lib/cobertura";
-import { diaDePaquetes } from "@/lib/tracker";
+import { diaDePaquetes, diaOperativoAnterior } from "@/lib/tracker";
 import { TablaFaltante } from "@/lib/supabase";
 import { diaVigente, leerTracker, type DatosDelTracker } from "@/lib/tracker-datos";
 
@@ -37,8 +37,10 @@ export default async function LiveTrackerPage() {
   }
 
   let datos: DatosDelTracker;
+  let datosEstadisticas: DatosDelTracker | undefined;
   try {
     datos = await leerTracker();
+    datosEstadisticas = await leerTracker(diaOperativoAnterior(diaDePaquetes()));
   } catch (error) {
     return (
       <>
@@ -65,6 +67,7 @@ export default async function LiveTrackerPage() {
 
       <LiveTracker
         inicial={datos}
+        estadisticas={datosEstadisticas}
         ventana={ventanaProyeccion()}
         hayFlujoPosiciones={flujosDe("trackerPosiciones").length > 0}
         hayFlujoPaquetes={flujosDe("trackerPaquetes").length > 0}

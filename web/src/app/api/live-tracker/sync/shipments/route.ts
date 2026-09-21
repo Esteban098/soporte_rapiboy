@@ -2,7 +2,7 @@ import { operadorActual } from "@/lib/sesion";
 import { ejecutarSync } from "../../nucleo";
 
 /**
- * Actualizar paquetes.
+ * La mitad «paquetes» del botón Actualizar, que corre primero.
  *
  * Corre la reconciliación completa del día: vuelve a preguntar cuáles son los
  * paquetes de las rutas de hoy y compara contra lo guardado. No parte de los

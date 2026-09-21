@@ -126,7 +126,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Los flujos 08 y 09 escriben **solo** las tablas `tracker_*` y leen SQL Server
   en modo lectura. No comparten tablas con ningún otro flujo, así que se pueden
   importar, apagar o rehacer sin mirar el resto.
-- El botón de paquetes hace una **reconciliación completa del día**, no un
+- El live tracker tiene **un solo botón, Actualizar**: corre la sincronización
+  de paquetes y después la de posiciones —en ese orden, para que un
+  repartidor recién sumado salga con posición en la misma pasada—, sigue con
+  la segunda aunque la primera falle y relee la jornada una vez al final. Los
+  dos endpoints siguen separados.
+- La sincronización de paquetes hace una **reconciliación completa del día**, no un
   refresco de lo guardado. La consulta del flujo 09 no lleva ningún
   `WHERE V.Id IN (...)`: el universo lo definen las reservas del día. Es lo
   único que hace que un paquete agregado a media mañana aparezca solo, y hay
@@ -265,10 +270,17 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   se escribe; nunca elige arbitrariamente entre varias coincidencias.
 - Entre las 15:00 y las 00:00 de México, un driver con paquetes `PROXIMO` o
   `PENDIENTE_NO_VISITADO` queda demorado tras 30 minutos sin desplazarse al
-  menos 50 metros. La fila conserva el contorno rojo aunque se informe el
+  menos 50 metros, y solo después de visitar su primera parada
+  (`realizoPrimeraParada()`): la de menor `Viaje.Orden` o, si el mínimo está
+  empatado, todas las empatadas —elegir una sería inventar la salida real—.
+  Sin ningún paquete con orden no hay demora. La fila conserva el contorno rojo aunque se informe el
   inconveniente; el registro solo silencia los avisos. La alerta se puede
   recordar 10 minutos y solo acepta un motivo si el usuario confirma que el
   driver no continuará la ruta. No usarla para pausas normales.
+- La pestaña **Estadísticas** lee la jornada operativa anterior a la del mapa
+  (`diaOperativoAnterior(diaDePaquetes())`), no la que está en curso: es un
+  resumen cerrado y comparable. Calcula todo en el navegador sobre
+  `tracker_paquetes`, sin tablas ni flujos nuevos.
 - La **ruta propuesta** sale siempre de la bodega (`BODEGA` en `lib/tracker.ts`)
   y encadena la parada más cercana a la anterior. Es vecino más cercano puro y
   tiene que seguir siéndolo: hay una prueba de propiedad que falla si alguien

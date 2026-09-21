@@ -663,6 +663,32 @@ export type EstadoDemora = {
 };
 
 /**
+ * La demora solo se evalúa después de que la primera parada declarada de la
+ * ruta ya fue realizada. Si el primer orden está empatado, exigimos que todas
+ * esas primeras paradas estén visitadas: elegir una sola sería inventar cuál
+ * era la salida real.
+ */
+export function realizoPrimeraParada(
+  paquetes: Array<{
+    orden?: number | null;
+    visitado?: boolean;
+    clasificacion: Clasificacion;
+    activo_en_ruta: boolean;
+  }>,
+): boolean {
+  const candidatos = paquetes.filter(
+    (p) =>
+      p.activo_en_ruta &&
+      p.orden != null &&
+      p.clasificacion !== "CANCELADO" &&
+      p.clasificacion !== "RETIRADO_DE_RUTA",
+  );
+  if (candidatos.length === 0) return false;
+  const minimo = Math.min(...candidatos.map((p) => p.orden as number));
+  return candidatos.filter((p) => p.orden === minimo).every((p) => p.visitado);
+}
+
+/**
  * Detecta una detención operativa, no solamente un teléfono viejo.
  *
  * El reloj empieza a las 15:00 de México aunque la última coordenada sea de
@@ -673,7 +699,12 @@ export type EstadoDemora = {
 export function estadoDemoraDriver(
   driver: {
     fechaUltimoMovimiento: string | null;
-    paquetes: Pick<PaqueteFila, "clasificacion" | "activo_en_ruta">[];
+    paquetes: Array<{
+      orden?: number | null;
+      visitado?: boolean;
+      clasificacion: Clasificacion;
+      activo_en_ruta: boolean;
+    }>;
     demoraInformada: unknown | null;
   },
   momento = new Date(),
@@ -703,6 +734,7 @@ export function estadoDemoraDriver(
   const demorado =
     minutosDesdeInicio >= MINUTOS_SIN_MOVIMIENTO_PARA_ALERTA &&
     minutosSinMovimiento >= MINUTOS_SIN_MOVIMIENTO_PARA_ALERTA &&
+    realizoPrimeraParada(driver.paquetes) &&
     paquetesSinVisitar > 0;
 
   return {
@@ -737,7 +769,7 @@ export function diaDePaquetes(momento: Date = new Date()): string {
 }
 
 /** Jornada previa, omitiendo el domingo no operativo al retroceder un lunes. */
-function diaOperativoAnterior(dia: string): string {
+export function diaOperativoAnterior(dia: string): string {
   const [anio, mes, fecha] = dia.split("-").map(Number);
   const hoy = new Date(Date.UTC(anio, mes - 1, fecha));
   const retroceso = hoy.getUTCDay() === 1 ? 2 : 1;
