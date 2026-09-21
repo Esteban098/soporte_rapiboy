@@ -162,6 +162,65 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   desplegar la web y luego importar los workflows actualizados. El código viejo
   ignora columnas nuevas; el código nuevo no puede escribir columnas ausentes.
 
+## Asistente (beta)
+
+- Está **en beta**: la pestaña y el panel lo dicen, y el pie del chat pide
+  verificar antes de actuar. Mientras siga así, cambiar el tono, las
+  herramientas o el modelo es parte del trabajo normal; lo que no se negocia
+  son los límites de abajo —solo lectura, datos que no salen, alcance del
+  tablero—, que tienen pruebas.
+- La pestaña **Asistente** (`src/components/Asistente.tsx`) está en todas las
+  pantallas junto a Seguimiento, y con la misma condición: base Supabase y
+  rol admin u operador. `POST /api/asistente` pide `operadorActual()`.
+- El modelo **no ve la base ni escribe SQL**: recibe ocho herramientas de
+  solo lectura (`src/lib/asistente.ts`) que ejecuta `asistente-datos.ts` con
+  las mismas funciones de las pantallas, para que el chat y el tablero no
+  puedan contestar distinto. Ninguna herramienta escribe; una prueba falla si
+  la capa de datos importa una escritura. Una acción nueva —marcar cobrado,
+  cerrar un reporte— sería una herramienta aparte y con confirmación.
+- Teléfono, ubicación, domicilio del cliente, coordenadas y domicilio del
+  repartidor **no salen hacia OpenAI**: los `…ParaModelo()` eligen campos a mano
+  y una prueba lo verifica. Para esos datos está la ficha en el tablero. Las
+  personas viajan por nombre (`nombreDePersona`), nunca con su correo.
+- El chat **no puede ver más que el tablero**. El flujo 11 responde por
+  cualquier viaje de Rapiboy, pero `historialParaModelo` no detalla uno que no
+  sea modalidad 5 y localidad 9: solo dice que está fuera de alcance.
+- Lo que lee el modelo incluye texto que escribe cualquiera —comentarios de
+  reportes, del repartidor, nombres de tienda—, así que se trata como no
+  confiable: las herramientas no escriben, y el chat solo vuelve enlace una
+  ruta del tablero o una URL https de `rapiboy.com` (`enlaceExternoPermitido`).
+  Un enlace a otro sitio queda como texto.
+- Cada pregunta deja una fila en `asistente_uso`
+  (`supabase/migracion-14-asistente-uso.sql`): correo, tokens y costo
+  estimado con `PRECIOS` de `asistente-costos.ts`, sin la pregunta ni la
+  respuesta. El costo se guarda al registrar para que un cambio de precios no
+  reescriba lo gastado. Antes de llamar al modelo se revisa el tope diario por
+  persona (`ASISTENTE_TOPE_DIARIO`, 150). Sin la tabla, no registra ni frena.
+  El administrador lo ve en Perfiles; para los demás la página ni lo lee.
+- Cada herramienta devuelve como mucho `TOPE_FILAS` (50) filas y
+  `TOPE_RESULTADO` caracteres; una pregunta, como mucho cinco vueltas. Son los
+  topes que acotan el costo. El historial viaja sin los resultados de
+  herramientas anteriores.
+- `buscar_paquete` consulta **primero el sistema** —el flujo 11 de n8n contra
+  RapiboyData, fuente del estado actual y de los movimientos— y en paralelo lo
+  cruza con el tablero: caso de entrega fallida, siniestro con su 70% y cobro,
+  reclamo y aviso, seguimiento, cancelación y ruta del día. `cruzarEstados()`
+  compara los dos estados sin acentos; si difieren manda el del sistema, porque
+  el tablero lo copia recién en el próximo refresco. Si el sistema no responde,
+  contesta con el tablero y lo aclara. `historial_viaje` trae el historial
+  entero (60 movimientos) contra 15 de la búsqueda. La web no
+  habla con SQL Server: el flujo solo lee, valida que el ID sean dígitos antes
+  de interpolarlo —es lo único que entra a la consulta— y pide token
+  (`N8N_WEBHOOK_HISTORIAL_VIAJE`, `N8N_TOKEN_HISTORIAL_VIAJE`) porque, a
+  diferencia de los demás webhooks, devuelve datos. Una prueba verifica las tres
+  cosas.
+- Colectas: `asignacion_colectas` y `colectas_realizadas` leen las mismas
+  tablas que la pantalla, sin dirección, teléfono, correo ni precios.
+- Va con `fetch` a OpenAI, como el resumen de seguimiento. Modelo en
+  `OPENAI_MODELO_ASISTENTE` (por defecto `gpt-5-mini`); los modelos de
+  razonamiento no aceptan `temperature` ni `max_tokens`. Cada respuesta deja
+  en el log quién preguntó y los tokens usados.
+
 ## Validación
 
 Desde `web/` ejecutar como mínimo:
@@ -178,6 +237,7 @@ npm run test:responsables
 npm run test:permisos
 npm run test:lluvia
 npm run test:trafico
+npm run test:asistente
 ```
 
 Además, validar los workflows con `jq empty ../n8n/*.json`. El build no sale a

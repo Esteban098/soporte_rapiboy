@@ -13,7 +13,7 @@ export const COLUMNAS_COBRO: Columna[] = [
   { clave: "cobrado", titulo: "Cobrado", tipo: "cobrado" },
 ];
 
-function esSiniestrado(pedido: Pedido): boolean {
+export function esSiniestrado(pedido: Pedido): boolean {
   return pedido.estado.trim().toLowerCase() === "siniestrado";
 }
 

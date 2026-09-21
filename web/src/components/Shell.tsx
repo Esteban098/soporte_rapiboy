@@ -5,6 +5,7 @@ import { NavGrupo } from "./NavGrupo";
 import { SignOutButton } from "./SignOutButton";
 import { BotonActualizar } from "./BotonActualizar";
 import { SeguimientoWidget } from "./SeguimientoWidget";
+import { Asistente } from "./Asistente";
 import { SelectorTema } from "./SelectorTema";
 import { BotonMenu } from "./BotonMenu";
 import { CampanaNotificaciones } from "./CampanaNotificaciones";
@@ -208,6 +209,9 @@ export function Shell({
             nunca pasa estando parado en la pantalla de reportes. Solo con la
             base activa, porque es lo único que sabe guardar un reporte. */}
         {conSeguimiento ? <SeguimientoWidget /> : null}
+        {/* El asistente consulta lo mismo que ven admin y operador; al
+            comercial no le corresponde, igual que Seguimiento. */}
+        {conSeguimiento ? <Asistente /> : null}
       </div>
     </div>
   );

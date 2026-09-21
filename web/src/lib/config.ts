@@ -160,6 +160,17 @@ export const TABLA_TRACKER_CHOFERES =
 export const TABLA_TRACKER_SYNC =
   process.env.SUPABASE_TABLA_TRACKER_SYNC?.trim() || "tracker_sincronizaciones";
 
+/** Una fila por pregunta al asistente: quién, tokens y costo estimado. */
+export const TABLA_ASISTENTE_USO =
+  process.env.SUPABASE_TABLA_ASISTENTE_USO?.trim() || "asistente_uso";
+
+/**
+ * Preguntas por persona y por día de México. Un uso normal son decenas; el
+ * tope está para que un bucle, un abuso o una sesión robada no se convierta
+ * en una factura.
+ */
+export const TOPE_DIARIO_ASISTENTE = Number(process.env.ASISTENTE_TOPE_DIARIO ?? 150);
+
 /** Bucket de Storage donde van los adjuntos de esos reportes. Privado. */
 export const BUCKET_SEGUIMIENTO = process.env.SUPABASE_BUCKET_SEGUIMIENTO?.trim() || "seguimiento";
 
@@ -186,6 +197,31 @@ export function openaiConfig(): { clave: string; modelo: string } | null {
   const clave = process.env.OPENAI_API_KEY?.trim();
   if (!clave) return null;
   return { clave, modelo: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini" };
+}
+
+/**
+ * El asistente usa la misma clave pero su propio modelo: resumir dos oraciones
+ * y elegir entre cinco herramientas son trabajos distintos, y un modelo chico
+ * se equivoca de herramienta.
+ */
+export function asistenteConfig(): { clave: string; modelo: string } | null {
+  const clave = process.env.OPENAI_API_KEY?.trim();
+  if (!clave) return null;
+  return { clave, modelo: process.env.OPENAI_MODELO_ASISTENTE?.trim() || "gpt-5-mini" };
+}
+
+/**
+ * El flujo 11 de n8n, que trae el historial de un viaje desde RapiboyData.
+ *
+ * Va aparte de los `N8N_WEBHOOKS_*` porque no es un botón de refresco: no
+ * escribe nada y devuelve datos, así que lleva token (`X-Rapiboy-Token`, la
+ * credencial Header Auth del webhook). Sin URL, el asistente dice que no
+ * puede consultar el historial en vez de fallar.
+ */
+export function historialViajeConfig(): { url: string; token: string | null } | null {
+  const url = process.env.N8N_WEBHOOK_HISTORIAL_VIAJE?.trim();
+  if (!url) return null;
+  return { url, token: process.env.N8N_TOKEN_HISTORIAL_VIAJE?.trim() || null };
 }
 
 export function sheetId(): string {

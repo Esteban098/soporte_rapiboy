@@ -1,6 +1,6 @@
 # Flujos de n8n
 
-Nueve workflows. Los tres primeros reemplazan al único que escribía en el
+Once workflows. Los tres primeros reemplazan al único que escribía en el
 Google Sheet; los siguientes cubren los botones Actualizar y la carga de datos
 de tienda desde Firefox. Se importan desde n8n con **Workflows ▸ Import from
 File**.
@@ -16,6 +16,7 @@ File**.
 | `07-firefox-gestiones.json` | Interpreta el ID y los datos aportados por la tienda, y actualiza solo las columnas de soporte de `mensual` | Al enviar una selección desde la extensión de Firefox |
 | `08-tracker-drivers.json` | Repartidores de la ruta visible y su última posición conocida | 6:45; cada 30 min de 15:00 a 23:30, lunes a sábado; y desde **Actualizar** del live tracker, después de los paquetes |
 | `09-tracker-paquetes.json` | Actualiza la última ruta operativa —el sábado si es lunes— o reconcilia la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 7:15; cada 30 min de 15:00 a 23:30, lunes a sábado; y desde **Actualizar** del live tracker, antes de las posiciones |
+| `11-historial-viaje.json` | Devuelve el estado y el historial de un viaje desde RapiboyData, para el asistente del tablero. Solo lee | Cada vez que alguien pregunta por un paquete en el asistente |
 
 ## Antes de importar
 
@@ -311,6 +312,31 @@ que se supo, que es viejo pero cierto.
   flujo de paquetes calcula la última jornada operativa antes de las 15:00
   —sábado cuando corre un lunes— y hoy a partir de esa hora.
 - Los dos se importan **apagados**, como todos.
+
+## Historial de viaje para el asistente (beta)
+
+`11-historial-viaje.json` lo usa la pestaña **Asistente** del tablero, que
+está en beta, cada vez
+que alguien pregunta por un paquete: es la primera consulta, y el tablero
+cruza el resultado con lo suyo (siniestro, cobro, seguimiento). Es un webhook
+que recibe `{ "id": "30543375" }` y devuelve, en la misma respuesta
+(`Response Mode: Last Node`), el estado actual del viaje, su tienda y zona, y
+sus últimos 60 movimientos de `HistorialViaje`.
+
+- **Solo lee.** Una consulta a SQL Server con `NOLOCK`, sin escribir en
+  ningún lado. Hay una prueba en `web/scripts/asistente.test.mts` que falla si
+  aparece un `INSERT`, `UPDATE` o parecido.
+- **El ID se valida antes de tocar SQL Server.** Es lo único que se interpola
+  en la consulta, así que el nodo **Validar ID** exige de 5 a 12 dígitos y
+  corta la corrida con cualquier otra cosa.
+- **Pide token.** A diferencia de los botones Actualizar, este webhook devuelve
+  datos, así que va con una credencial **Header Auth** (`X-Rapiboy-Token` y un
+  valor largo aleatorio). El mismo valor va en `N8N_TOKEN_HISTORIAL_VIAJE` del
+  tablero, y la Production URL en `N8N_WEBHOOK_HISTORIAL_VIAJE`.
+- **Fechas.** Las del historial siguen la misma convención que los flujos 01,
+  02 y 05: se les restan tres horas y viajan como texto.
+- Se importa **apagado**. Para usarlo: elegir la credencial Header Auth en el
+  nodo **Asistente**, confirmar la de SQL Server y activarlo.
 
 ## Lo que está apagado
 

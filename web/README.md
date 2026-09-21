@@ -50,6 +50,7 @@ Tres decisiones que vale la pena tener presentes:
 | `/reclamos` | Casos donde la tienda aportó datos, con el dato tal cual y la información del viaje. Se filtra por avisado / no avisado. |
 | `/comercios` | De dónde salen los casos y a qué zonas van. |
 | `/cobertura` | **Cobertura**: el contorno donde hay servicio y un verificador puntual —por id de viaje, dirección o coordenadas— que responde si un domicilio entra. |
+| Asistente (beta) | Pestaña en todas las pantallas: preguntas en lenguaje natural sobre paquetes, casos, seguimiento, colectas y repartidores. Ver [Asistente](#asistente-beta). |
 | `/live-tracker` | **Live tracker**: dónde está cada repartidor de la jornada y qué le queda por entregar. Panel de selección a la izquierda, mapa a la derecha. |
 
 Junto al indicador de la fuente («Base en vivo») hay un selector de tema:
@@ -188,11 +189,14 @@ Arriba del mapa, dos pestañas: **Mapa en vivo** y **Estadísticas**. La segunda
 resume la **jornada operativa anterior** —la de antes de la que muestra el mapa,
 salteando el domingo—, porque es la que ya está cerrada y se puede comparar sin
 que los números se muevan mientras se mira. La página la lee aparte con
-`leerTracker(diaOperativoAnterior(diaDePaquetes()))`. Muestra entregados,
-paquetes en ruta, drivers y tasa global; entregas por driver y por hora de México; una tabla ordenable por
+`leerTracker(diaOperativoAnterior(diaDePaquetes()))`; si esa lectura falla, la
+pestaña resume la jornada visible y lo avisa, y el mapa sigue andando.
+Muestra entregados, paquetes en ruta, drivers y tasa global; entregas por driver y por hora de México; una tabla ordenable por
 driver con entregas por hora, primera y última entrega; las zonas más lentas
 por tiempo promedio desde `fecha_programado` hasta `fecha_visita`, y un mapa
-de calor de destinos entregados sobre la cobertura. El buscador filtra drivers
+de calor de destinos entregados sobre la cobertura. El mapa de calor ubica
+cada destino con `proyectar()`, igual que el mapa, y deja afuera los que caen
+fuera de la ventana para que la grilla no se corra respecto de las zonas. El buscador filtra drivers
 y zonas.
 
 ### El botón Actualizar
@@ -560,7 +564,10 @@ cada pestaña por gid del endpoint `/export`.
    | `GOOGLE_CLIENT_SECRET` | ídem |
    | `ALLOWED_EMAIL_DOMAIN` o `ALLOWED_EMAILS` | quién entra por Google (opcional si se usan perfiles) |
    | `N8N_WEBHOOKS` | la Production URL del webhook `actualizar-tablero` |
-   | `OPENAI_API_KEY` | opcional: resume los reportes de seguimiento |
+   | `OPENAI_API_KEY` | opcional: resume los reportes de seguimiento y habilita el asistente |
+   | `OPENAI_MODELO_ASISTENTE` | opcional: modelo del asistente, por defecto `gpt-5-mini` |
+   | `N8N_WEBHOOK_HISTORIAL_VIAJE` | opcional: Production URL del webhook `historial-viaje` (flujo 11) |
+   | `N8N_TOKEN_HISTORIAL_VIAJE` | opcional: el token de la credencial Header Auth de ese webhook |
 
    `SHEET_ID` ya no hace falta. Si se carga igual, queda como respaldo: con
    `ORIGEN_DATOS=sheet` el tablero vuelve al libro sin tocar código.
@@ -980,6 +987,73 @@ Si la página muestra «No se pudieron cargar los datos» con `fetch failed`, ca
 siempre es `SUPABASE_URL` mal copiado: tiene que ser
 `https://<id-del-proyecto>.supabase.co`, con el id que aparece en la dirección
 del panel (`supabase.com/dashboard/project/<id>`).
+
+## Asistente (beta)
+
+> **Beta.** Está en prueba con el equipo: puede equivocarse al interpretar una
+> pregunta o elegir una consulta que no era, y el tono de las respuestas se
+> sigue ajustando. Lo que contesta sale de los datos del tablero y del sistema,
+> pero conviene verificar antes de actuar sobre un caso. Los límites de
+> seguridad —solo lectura, qué datos salen, quién lo usa— no están en prueba.
+
+Al lado de **Añadir seguimiento**, en todas las pantallas, está la pestaña
+**Asistente**: un chat que contesta preguntas sobre los datos del tablero
+—«¿en qué estado está el 30448011?», «¿cuántos abiertos hay este mes?»,
+«reportes sin tomar», «¿cómo va tal repartidor?»—. Lo ven admin y operador,
+igual que Seguimiento. La conversación sobrevive a la navegación y se reinicia
+con **Nueva conversación**.
+
+**Solo consulta.** El modelo no tiene acceso a la base: le pide al servidor
+una de ocho consultas —paquete por ID, historial del viaje en el sistema, casos
+con filtros, métricas del mes, reportes de seguimiento, repartidor en vivo,
+asignación de colectas y colectas realizadas— y el servidor las responde con
+las mismas funciones que usan las pantallas. Por eso cuenta los casos igual que
+el tablero, y por eso no puede modificar nada.
+
+**Cómo busca un paquete.** Primero en el sistema de Rapiboy, a través del
+flujo 11 de n8n (`../n8n/11-historial-viaje.json`): estado actual, tienda, zona
+y últimos movimientos. En paralelo lo cruza con el tablero —si es un caso de
+entrega fallida, si está siniestrado y cobrado, el reclamo y aviso de la
+tienda, los reportes de seguimiento, si se canceló y la ruta del día— y avisa
+cuando el estado del tablero quedó atrás del sistema, que es lo normal entre
+un refresco y el siguiente. Si el paquete no está en el tablero, explica por
+qué: otra localidad o modalidad, o que nunca fue una entrega fallida. Para
+habilitar la consulta al sistema, importar y activar el flujo y cargar `N8N_WEBHOOK_HISTORIAL_VIAJE`
+(la Production URL) y `N8N_TOKEN_HISTORIAL_VIAJE` (el valor de su credencial
+Header Auth). Sin eso, contesta solo con el tablero y avisa que no pudo
+consultar el sistema.
+
+**Qué no le llega a OpenAI:** teléfonos, ubicaciones y domicilios de clientes,
+coordenadas y domicilios de repartidores. Si hace falta uno de esos datos, la
+respuesta remite a la ficha del caso.
+
+**Costo.** Cada pregunta hace de una a seis llamadas al modelo. Con
+`gpt-5-mini` ronda medio centavo de dólar por pregunta. Cada herramienta
+devuelve como mucho 50 filas, y el log del servidor anota por respuesta quién
+preguntó y cuántos tokens usó (`[asistente]`). Conviene fijar además un límite
+mensual en la cuenta de OpenAI (Settings ▸ Limits).
+
+Usa la misma `OPENAI_API_KEY` que el resumen de seguimiento; sin ella la
+pestaña aparece y explica que falta configurarla.
+
+**Uso y costo, para el administrador.** Al pie de *Perfiles* está **Uso del
+asistente**: por mes y por persona, cuántas preguntas hizo, cuántas fallaron,
+los tokens y el costo estimado, con navegación a meses anteriores. Se guarda
+una fila por pregunta en `asistente_uso` —sin el texto de la pregunta ni de la
+respuesta— y con eso se aplica también un **tope diario** por persona
+(`ASISTENTE_TOPE_DIARIO`, 150 por defecto), que frena un bucle, un abuso o una
+sesión robada antes de que llegue a la factura. Instalar
+`supabase/migracion-14-asistente-uso.sql`; sin la tabla el asistente funciona
+igual, pero no registra ni frena.
+
+**Qué puede y qué no puede filtrar.** Pide sesión de admin u operador, igual
+que el resto del tablero, y no muestra nada que esa persona no pueda ver ya en
+las pantallas: un viaje de otra localidad o modalidad no se detalla. Sí manda a
+OpenAI lo necesario para contestar —estados, tiendas, repartidores, zonas,
+comentarios de los reportes y el enlace a la foto de evidencia— y OpenAI, por
+su política de API, no lo usa para entrenar pero puede conservarlo hasta 30
+días para control de abuso. Los comentarios de Seguimiento son texto libre: si
+alguien escribe un teléfono ahí, ese teléfono viaja.
 
 ## Gráficos atados a la tabla
 

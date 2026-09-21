@@ -2,6 +2,10 @@ import { buscarPerfil, listarPerfiles } from "@/lib/perfiles";
 import { operadorActual } from "@/lib/sesion";
 import { PageHead } from "@/components/Shell";
 import { PanelPerfiles, type FilaPerfil } from "@/components/PanelPerfiles";
+import { UsoAsistente } from "@/components/UsoAsistente";
+import { usoPorPersona } from "@/lib/asistente-costos";
+import { leerUsoDelMes } from "@/lib/asistente-uso";
+import { esMesValido, mesAnterior, mesEnCurso } from "@/lib/periodos";
 
 export const metadata = { title: "Perfiles" };
 
@@ -18,11 +22,22 @@ function cuando(fecha: Date | null): string {
   }).format(fecha);
 }
 
-export default async function Perfiles() {
+export default async function Perfiles({
+  searchParams,
+}: {
+  searchParams: Promise<{ uso?: string }>;
+}) {
   const operador = await operadorActual();
   if (!operador) return null;
 
   const admin = operador.rol === "admin";
+
+  // El uso del asistente dice quién pregunta y cuánto: es del administrador,
+  // y para cualquier otro ni se lee. El mes se elige por la URL (`?uso=`).
+  const actual = mesEnCurso();
+  const pedido = (await searchParams).uso;
+  const mesUso = esMesValido(pedido) && pedido <= actual ? pedido : actual;
+  const uso = admin ? await leerUsoDelMes(mesUso) : null;
 
   // Quien no administra ve solo su propia fila, y no porque la pantalla la
   // esconda: la lista de los demás nunca sale del servidor. Esconder en el
@@ -57,6 +72,21 @@ export default async function Perfiles() {
           comprobar el rol en el servidor: el menú es una comodidad, no un
           permiso. */}
       <PanelPerfiles perfiles={filas} yo={operador.email} puedeAdministrar={admin} />
+      {uso ? (
+        <UsoAsistente
+          mes={mesUso}
+          anterior={mesAnterior(mesUso)}
+          siguiente={mesUso < actual ? mesSiguiente(mesUso) : null}
+          personas={usoPorPersona(uso.filas)}
+          sinTabla={uso.sinTabla}
+        />
+      ) : null}
     </>
   );
+}
+
+/** El mes que sigue a uno escrito como `AAAA-MM`. */
+function mesSiguiente(mes: string): string {
+  const [anio, numeroMes] = mes.split("-").map(Number);
+  return numeroMes === 12 ? `${anio + 1}-01` : `${anio}-${String(numeroMes + 1).padStart(2, "0")}`;
 }

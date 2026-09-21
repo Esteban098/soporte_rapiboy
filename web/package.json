@@ -17,7 +17,8 @@
     "test:responsables": "node --import tsx scripts/responsables.test.mts",
     "test:permisos": "node --import tsx scripts/permisos.test.mts",
     "test:lluvia": "node --conditions=react-server --import tsx scripts/lluvia.test.mts",
-    "test:trafico": "node --conditions=react-server --import tsx scripts/trafico.test.mts"
+    "test:trafico": "node --conditions=react-server --import tsx scripts/trafico.test.mts",
+    "test:asistente": "node --import tsx scripts/asistente.test.mts"
   },
   "dependencies": {
     "next": "16.3.3",

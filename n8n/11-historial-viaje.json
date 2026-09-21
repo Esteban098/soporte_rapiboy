@@ -1,0 +1,116 @@
+{
+  "name": "Asistente · historial de viaje",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "historial-viaje",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "8ac23cf8-a030-4ee9-afca-7da48a30f183",
+      "name": "Asistente",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        0
+      ],
+      "webhookId": "4c1593c6-7350-4877-a71c-01d557da47e7",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REEMPLAZAR",
+          "name": "Asistente - token historial"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lo único que se interpola en la consulta es el ID, así que acá se exige que\n// sea solo dígitos. Cualquier otra cosa corta la corrida sin tocar SQL Server.\nconst cuerpo = $input.first().json.body ?? {};\nconst id = String(cuerpo.id ?? '').trim();\nif (!/^\\d{5,12}$/.test(id)) {\n  throw new Error('ID de viaje inválido: tiene que ser un número de 5 a 12 dígitos.');\n}\nreturn [{ json: { id } }];\n"
+      },
+      "id": "dadb6f5a-f14d-4cc0-bef6-77b353356452",
+      "name": "Validar ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Historial de un viaje, para el asistente del tablero. Solo lee.\n--\n-- El asistente lo pide cuando un paquete no está en ninguna tabla del tablero\n-- (o cuando alguien pide el historial explícitamente). El ID llega validado\n-- como dígitos por el nodo anterior: es lo único que se interpola.\n--\n-- Devuelve siempre al menos una fila —la base es el ID consultado, no el\n-- viaje— para que «el viaje no existe» llegue como respuesta y no como una\n-- corrida sin items. Las fechas del historial siguen la misma convención que\n-- los flujos 01, 02 y 05: se les restan tres horas (ver n8n/README.md).\nSET NOCOUNT ON;\nDECLARE @Id BIGINT = {{ $json.id }};\n\nSELECT\n    B.Id AS IdConsultado,\n    V.Id AS IdViaje,\n    EV.NombreCompleto AS EstadoActual,\n    U.Alias AS Tienda,\n    U.IdModalidad,\n    U.IdLocalidad,\n    P.Nombre AS Poligono,\n    CONVERT(varchar(10), CAST(V.FechaProgramado AS DATE), 23) AS FechaProgramado,\n    V.Visitas,\n    CONVERT(varchar(16), DATEADD(HOUR, -3, H.Fecha), 120) AS Fecha,\n    EH.NombreCompleto AS Estado,\n    H.Repartidor,\n    H.VisitadoMotoboy,\n    H.Responsable,\n    H.Foto\nFROM (SELECT @Id AS Id) B\nLEFT JOIN dbo.Viaje V        WITH (NOLOCK) ON V.Id  = B.Id\nLEFT JOIN dbo.Usuario U      WITH (NOLOCK) ON U.Id  = V.IdUsuario\nLEFT JOIN dbo.EstadoViaje EV WITH (NOLOCK) ON EV.Id = V.IdEstado\nLEFT JOIN dbo.Poligono P     WITH (NOLOCK) ON P.Id  = V.IdPoligono\n-- Los últimos 60 movimientos alcanzan para contar la historia de un envío.\nOUTER APPLY (\n    SELECT TOP 60 HV.Id, HV.Fecha, HV.IdEstado, HV.Repartidor, HV.VisitadoMotoboy, HV.Responsable, HV.Foto\n    FROM dbo.HistorialViaje HV WITH (NOLOCK)\n    WHERE HV.IdViaje = V.Id\n    ORDER BY HV.Fecha DESC, HV.Id DESC\n) H\nLEFT JOIN dbo.EstadoViaje EH WITH (NOLOCK) ON EH.Id = H.IdEstado\nORDER BY H.Fecha ASC, H.Id ASC;\n"
+      },
+      "id": "f435cf34-635b-4b34-9f67-3da3ba53a921",
+      "name": "Historial del viaje",
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        0
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "microsoftSql": {
+          "id": "F5EJUfXcquXz7Rf3",
+          "name": "Microsoft SQL credencial Esteban RPBY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Una fila por movimiento, con los datos del viaje repetidos en cada una.\n// Se devuelve un solo objeto: el viaje y su historial en orden cronológico.\nconst filas = $input.all().map((item) => item.json);\nconst primera = filas[0] ?? {};\n\nif (!primera.IdViaje) {\n  return [{ json: { encontrado: false, id: String(primera.IdConsultado ?? '') } }];\n}\n\nconst visitado = (valor) => valor === true || valor === 1 || valor === '1';\n\nreturn [{\n  json: {\n    encontrado: true,\n    id: String(primera.IdViaje),\n    viaje: {\n      estado_actual: primera.EstadoActual ?? null,\n      tienda: primera.Tienda ?? null,\n      id_modalidad: primera.IdModalidad ?? null,\n      id_localidad: primera.IdLocalidad ?? null,\n      poligono: primera.Poligono ?? null,\n      fecha_programado: primera.FechaProgramado ?? null,\n      visitas: primera.Visitas ?? null,\n    },\n    historial: filas\n      .filter((fila) => fila.Fecha)\n      .map((fila) => ({\n        fecha: fila.Fecha,\n        estado: fila.Estado ?? null,\n        repartidor: fila.Repartidor ?? null,\n        visitado: visitado(fila.VisitadoMotoboy),\n        responsable: fila.Responsable ?? null,\n        foto: fila.Foto ?? null,\n      })),\n  },\n}];\n"
+      },
+      "id": "8eabdcd8-58d8-46fb-b182-579eabb3fd30",
+      "name": "Armar respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Asistente": {
+      "main": [
+        [
+          {
+            "node": "Validar ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar ID": {
+      "main": [
+        [
+          {
+            "node": "Historial del viaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Historial del viaje": {
+      "main": [
+        [
+          {
+            "node": "Armar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
