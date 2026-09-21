@@ -1,0 +1,396 @@
+/*
+ * Colectas en vivo, dentro del mapa de Tiendas.
+ *
+ * Reutiliza el panel y la lista del live tracker (`live-tracker.module.css`);
+ * acá va solo lo propio: las pestañas del panel, la ruta de cada repartidor,
+ * la ficha de una colecta y las tablas de abajo del mapa.
+ */
+
+/* ---------- Pestañas del panel ---------- */
+
+.pestanas {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--surface-2);
+  border-radius: var(--radio-3);
+}
+
+.pestana {
+  flex: 1;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--radio-3) - 2px);
+  cursor: pointer;
+}
+
+.pestana[aria-selected="true"] {
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.pestana:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ---------- Estado de la foto ---------- */
+
+.foto {
+  display: grid;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.fotoFila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fotoFila b {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* ---------- Leyenda de fases ---------- */
+
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.leyenda li {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.punto {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+/* ---------- Repartidor elegido ---------- */
+
+.detalle {
+  display: grid;
+  gap: 4px;
+  margin: 2px 0 8px 18px;
+  padding: 0 0 0 8px;
+  border-left: 2px solid var(--color-driver, var(--rule));
+}
+
+.detalleDatos {
+  margin: 0 0 4px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.grupo {
+  margin: 6px 0 2px;
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.parada {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  width: 100%;
+  padding: 5px 6px;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radio-3);
+  cursor: pointer;
+}
+
+.parada:hover {
+  background: var(--surface-2);
+}
+
+.parada:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.paradaElegida {
+  background: var(--accent-soft);
+}
+
+.numero {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 9px;
+}
+
+.numeroOscuro {
+  color: #111;
+}
+
+.paradaTexto {
+  display: grid;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.paradaTexto > span:first-child {
+  overflow: hidden;
+  font-weight: 550;
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paradaDato {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ---------- Ficha de una colecta ---------- */
+
+.ficha {
+  display: grid;
+  gap: 8px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.volver {
+  justify-self: start;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--accent-ink, var(--accent));
+  background: var(--accent-soft);
+  border: 0;
+  border-radius: var(--radio-3);
+  cursor: pointer;
+}
+
+.fichaTitulo {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.estado {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.datos {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 10px;
+  margin: 0;
+}
+
+.datos dt {
+  color: var(--muted);
+}
+
+.datos dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ink-2);
+}
+
+.hitos {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0 0 0 12px;
+  border-left: 2px solid var(--rule);
+  list-style: none;
+}
+
+.hitos li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--ink-2);
+}
+
+.hitos time {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* ---------- Debajo del mapa ---------- */
+
+.alertas {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.alerta {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 7px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-2);
+  background: var(--warning-soft);
+  border-radius: var(--radio-2);
+}
+
+.alertaCritica {
+  color: var(--ink);
+  background: var(--critical-soft);
+}
+
+.alertaNivel {
+  flex: none;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tablaScroll {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.tabla th,
+.tabla td {
+  padding: 7px 8px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tabla th {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--muted);
+}
+
+.tabla td.num,
+.tabla th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.masFilas {
+  margin-top: 10px;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-3);
+  cursor: pointer;
+}
+
+.soloLectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* La fila del repartidor es un botón con el aspecto de `.fila` del tracker. */
+.botonFila {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: transparent;
+  border: 0;
+}
+
+.botonFila:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.botonFila:hover {
+  background: var(--surface-2);
+}
+
+.botonFila[aria-pressed="true"] {
+  background: var(--accent-soft);
+}
+
+/* ---------- Selección de repartidores ---------- */
+
+.seleccion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 7px 9px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border-radius: var(--radio-2);
+}
+
+.limpiar {
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--accent-ink, var(--accent));
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-3);
+  cursor: pointer;
+}
+
+.limpiar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}

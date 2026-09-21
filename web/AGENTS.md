@@ -108,6 +108,22 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   por `EstadoViaje.NombreCompleto`; si el nombre falta, se indica «Estado no
   informado».
 
+- Las **colectas en vivo** del mapa de Tiendas viven en `colectas_vivo` (una
+  fila por `Colecta.Id`) y `colectas_vivo_drivers` (una por `Motoboy.Id`), las
+  escribe solo el flujo 12 y se instalan con
+  `supabase/migracion-15-colectas-vivo.sql`. Acumulan: la web filtra por
+  `fecha_operacion` con `diaDeOperacion()`. RapiboyData guarda las fechas en hora
+  de Argentina aunque el servidor corre en UTC: la consulta las devuelve como
+  instantes con `AT TIME ZONE 'Argentina Standard Time'` y el rango del día se
+  calcula con `Intl`, nunca restando horas. El estado sale de `Colecta.IdEstado`
+  + `FechaCancelada`, nunca de `EstadoViaje`. La ruta de cada repartidor es
+  **calculada** (`rutaPendiente` en `src/lib/colectas-vivo.ts`) y se muestra como
+  tal. Al rol comercial se le sacan las coordenadas de los repartidores en el
+  servidor (`leerColectasDelDia({ sinPosiciones })`). El mapa muestra solo a
+  los repartidores elegidos; el camino ya hecho (`recorridoHecho`) junta tiendas
+  visitadas y posiciones guardadas en orden de hora, y se pide aparte con
+  `recorridosDeRepartidores()`, que exige `operadorActual()`.
+
 ## Límites entre flujos
 
 - Los workflows 01 y 02 trabajan únicamente sobre las tablas operativas.
@@ -123,6 +139,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `valor_70` en los nodos Postgres aunque aparezca entre las columnas disponibles.
 - `ayer` se vacía solamente dentro de la ingesta diaria y después de confirmar
   que hubo jornada. Una limpieza manual es puntual y no se incorpora al flujo.
+- El flujo 12 escribe **solo** `colectas_vivo`, `colectas_vivo_drivers` y
+  `colectas_vivo_posiciones` (el recorrido, `migracion-16`; recorta ella misma lo
+  de más de 30 días) y lee
+  SQL Server en modo lectura. No toca las tablas del flujo 06 ni las del
+  tracker. La web lo dispara con `actualizarColectasEnVivo()` (sesión de
+  cualquier rol que vea Tiendas) y vuelve a leer; no escribe esas tablas.
 - Los flujos 08 y 09 escriben **solo** las tablas `tracker_*` y leen SQL Server
   en modo lectura. No comparten tablas con ningún otro flujo, así que se pueden
   importar, apagar o rehacer sin mirar el resto.
@@ -242,6 +264,7 @@ npm run test:permisos
 npm run test:lluvia
 npm run test:trafico
 npm run test:asistente
+npm run test:colectas-vivo
 ```
 
 Además, validar los workflows con `jq empty ../n8n/*.json`. El build no sale a

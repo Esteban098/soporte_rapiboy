@@ -1,0 +1,412 @@
+{
+  "name": "Tablero · colectas en vivo",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */5 7-16 * * 1-6"
+            }
+          ]
+        }
+      },
+      "id": "4174f1de-6db0-4785-9765-d47e3aa949ed",
+      "name": "Cada 5 min en horario de colecta",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -900,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "colectas-en-vivo",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "ccabeffd-861b-4366-b962-ecdb3d5e3533",
+      "name": "Botón Actualizar colectas",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -900,
+        200
+      ],
+      "webhookId": "d4ac9b6d-cd7d-49e0-883b-1abeb66a9caa"
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * El día de operación y su rango en el reloj del sistema.\n *\n * El día lo manda el tablero ('YYYY-MM-DD', ya resuelto en hora de Ciudad de\n * México). Si no viene —la corrida programada—, se calcula acá con la misma\n * zona. Nunca con el reloj del servidor de n8n ni del de SQL Server: los tres\n * pueden estar en zonas distintas.\n *\n * El rango sale en el reloj de RapiboyData, que guarda las fechas en hora de\n * Argentina: el día 21 en México va de las 03:00 del 21 a las 03:00 del 22 en\n * ese reloj. Se calcula con Intl y no restando tres horas, porque esa\n * diferencia es una circunstancia —ninguno de los dos países usa horario de\n * verano hoy— y no una regla.\n *\n * Lo único que entra a la consulta son estos tres textos, y los tres salen de\n * acá con un formato fijo: el día se valida con una expresión regular antes\n * de usarlo, así que nada que mande el navegador llega crudo a SQL Server.\n */\nconst ZONA_OPERACION = 'America/Mexico_City';\nconst ZONA_SISTEMA = 'America/Argentina/Buenos_Aires';\n\nconst cuerpo = $json?.body ?? $json ?? {};\nconst pedido = typeof cuerpo.dia === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(cuerpo.dia)\n  ? cuerpo.dia\n  : null;\n\nconst partes = (momento, zona) => Object.fromEntries(\n  new Intl.DateTimeFormat('en-CA', {\n    timeZone: zona,\n    year: 'numeric', month: '2-digit', day: '2-digit',\n    hour: '2-digit', minute: '2-digit', second: '2-digit',\n    hourCycle: 'h23',\n  }).formatToParts(momento).map((p) => [p.type, p.value]),\n);\n\n/** El reloj de pared de `zona` en ese instante, como 'YYYY-MM-DD HH:MM:SS'. */\nconst reloj = (momento, zona) => {\n  const p = partes(momento, zona);\n  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}:${p.second}`;\n};\n\n/**\n * El instante en que empieza `dia` en `zona`. Se corrige el desfase hasta que\n * el reloj de esa zona marque la medianoche: dos vueltas alcanzan, la tercera\n * es margen para un día con cambio de hora.\n */\nconst inicioDelDia = (dia, zona) => {\n  const [anio, mes, fecha] = dia.split('-').map(Number);\n  const objetivo = Date.UTC(anio, mes - 1, fecha);\n  let instante = objetivo;\n  for (let vuelta = 0; vuelta < 3; vuelta += 1) {\n    const visto = Date.parse(reloj(new Date(instante), zona).replace(' ', 'T') + 'Z');\n    instante -= visto - objetivo;\n  }\n  return new Date(instante);\n};\n\nconst diaSiguiente = (dia) => {\n  const [anio, mes, fecha] = dia.split('-').map(Number);\n  return new Date(Date.UTC(anio, mes - 1, fecha + 1)).toISOString().slice(0, 10);\n};\n\nconst hoy = (() => {\n  const p = partes(new Date(), ZONA_OPERACION);\n  return `${p.year}-${p.month}-${p.day}`;\n})();\nconst dia = pedido ?? hoy;\n\nreturn [{\n  json: {\n    dia,\n    desde: reloj(inicioDelDia(dia, ZONA_OPERACION), ZONA_SISTEMA),\n    hasta: reloj(inicioDelDia(diaSiguiente(dia), ZONA_OPERACION), ZONA_SISTEMA),\n    // Una marca para toda la corrida: cada fila que escriba la lleva igual.\n    sincronizado_en: new Date().toISOString(),\n    origen: pedido ? 'tablero' : 'horario',\n  },\n}];\n"
+      },
+      "id": "19e9e958-6f93-4f0a-a4da-1e0f44e4baa5",
+      "name": "Día de operación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Las colectas del día en México, una fila por colecta, con su tienda, su\n-- repartidor y la última posición conocida de ese repartidor.\n--\n-- El día llega resuelto desde el nodo anterior en hora de Ciudad de México y\n-- ya convertido al reloj del sistema: RapiboyData guarda las fechas en hora\n-- de Argentina (las vistas del propio sistema le restan tres horas para\n-- llevarlas a México), así que el día 21 en México va de las 03:00 del 21 a\n-- las 03:00 del 22 en ese reloj. El rango es semiabierto y contra la columna\n-- sin envolver, para que el filtro pueda usar el índice de `Fecha`.\n--\n-- Todas las fechas salen como texto ISO con su zona (`AT TIME ZONE`), así\n-- ningún driver en el medio puede reinterpretarlas: '2026-09-21T16:25:00-03:00'\n-- es un instante, no un reloj de pared.\n--\n-- NOLOCK como en el resto de los flujos: es una foto que se rehace cada pocos\n-- minutos y ninguna decisión se toma sobre una sola lectura.\nSET NOCOUNT ON;\n\nDECLARE @Desde DATETIME = '{{ $json.desde }}';\nDECLARE @Hasta DATETIME = '{{ $json.hasta }}';\nDECLARE @Zona  VARCHAR(60) = 'Argentina Standard Time';\n\n/*\n * `HistorialColecta` es un heap de millones de filas con un único índice, por\n * `Id`. Filtrar por `IdColecta` la recorrería entera en cada corrida; acotar\n * primero por los últimos `Id` usa el índice. Un día de México deja unas\n * 5.000 filas de historial, así que 50.000 es un margen de varios días. Si un\n * día pasara de ese número, las colectas más viejas saldrían sin la hora de\n * cada estado, pero con su estado actual igual: sale de `Colecta.IdEstado`.\n */\nDECLARE @DesdeHistorial INT =\n    (SELECT MAX(Id) FROM dbo.HistorialColecta WITH (NOLOCK)) - 50000;\n\nWITH Hoy AS (\n    SELECT C.*\n    FROM dbo.Colecta C WITH (NOLOCK)\n    INNER JOIN dbo.Usuario U WITH (NOLOCK) ON U.Id = C.IdUsuario\n    WHERE U.IdLocalidad = 9\n      AND U.IdModalidad IN (5, 7)\n      AND C.Fecha >= @Desde\n      AND C.Fecha <  @Hasta\n),\nHistorial AS (\n    /*\n     * Una fila por colecta: el historial se agrega antes de unirlo, nunca se\n     * une crudo, porque cada colecta tiene varios cambios y duplicaría la fila.\n     * La primera vez que la colecta entró a cada estado, y el último cambio.\n     */\n    SELECT\n        H.IdColecta,\n        MAX(H.Fecha) AS EstadoDesde,\n        MIN(CASE WHEN H.ValorNuevo = '7' THEN H.Fecha END) AS AceptadaEn,\n        MIN(CASE WHEN H.ValorNuevo = '2' THEN H.Fecha END) AS EnCaminoEn,\n        MIN(CASE WHEN H.ValorNuevo = '6' THEN H.Fecha END) AS EnLocalEn,\n        MIN(CASE WHEN H.ValorNuevo = '3' THEN H.Fecha END) AS RetiradaEn,\n        MIN(CASE WHEN H.ValorNuevo IN ('4', '5') THEN H.Fecha END) AS FinalizadaEn,\n        MIN(CASE WHEN H.ValorNuevo = '8' THEN H.Fecha END) AS EnDepositoEn\n    FROM dbo.HistorialColecta H WITH (NOLOCK)\n    WHERE H.Id > @DesdeHistorial\n      AND H.Propiedad = 'IdEstado'\n      AND H.IdColecta IN (SELECT Id FROM Hoy)\n    GROUP BY H.IdColecta\n)\nSELECT\n    '{{ $json.dia }}'             AS Dia,\n    '{{ $json.sincronizado_en }}' AS SincronizadoEn,\n\n    C.Id       AS IdColecta,\n    C.IdEstado AS IdEstado,\n\n    CONVERT(VARCHAR(33), CAST(C.Fecha              AS DATETIME2(0)) AT TIME ZONE @Zona, 127) AS CreadaEn,\n    CONVERT(VARCHAR(33), CAST(C.FechaSolicitud     AS DATETIME2(0)) AT TIME ZONE @Zona, 127) AS SolicitadaEn,\n    CONVERT(VARCHAR(33), CAST(C.FechaColecta       AS DATETIME2(0)) AT TIME ZONE @Zona, 127) AS ColectadaEn,\n    CONVERT(VARCHAR(33), CAST(C.FechaLlegoDeposito AS DATETIME2(0)) AT TIME ZONE @Zona, 127) AS LlegoDepositoEn,\n    CONVERT(VARCHAR(33), CAST(C.FechaCancelada     AS DATETIME2(0)) AT TIME ZONE @Zona, 127) AS CanceladaEn,\n\n    CONVERT(VARCHAR(33), CAST(H.EstadoDesde  AS DATETIME2(0)) AT TIME ZONE @Zona, 127) AS EstadoDesde,\n    CONVERT(VARCHAR(33), CAST(H.AceptadaEn   AS DATETIME2(0)) AT TIME ZONE @Zona, 127) AS AceptadaEn,\n    CONVERT(VARCHAR(33), CAST(H.EnCaminoEn   AS DATETIME2(0)) AT TIME ZONE @Zona, 127) AS EnCaminoEn,\n    CONVERT(VARCHAR(33), CAST(H.EnLocalEn    AS DATETIME2(0)) AT TIME ZONE @Zona, 127) AS EnLocalEn,\n    CONVERT(VARCHAR(33), CAST(H.RetiradaEn   AS DATETIME2(0)) AT TIME ZONE @Zona, 127) AS RetiradaEn,\n    CONVERT(VARCHAR(33), CAST(H.FinalizadaEn AS DATETIME2(0)) AT TIME ZONE @Zona, 127) AS FinalizadaEn,\n    CONVERT(VARCHAR(33), CAST(H.EnDepositoEn AS DATETIME2(0)) AT TIME ZONE @Zona, 127) AS EnDepositoEn,\n\n    -- La ventana es una hora del día sin fecha ni zona, y así viaja: no hay\n    -- de dónde saber contra qué reloj la cargaron.\n    CONVERT(VARCHAR(5), C.HoraDesde, 108) AS HoraDesde,\n    CONVERT(VARCHAR(5), C.HoraHasta, 108) AS HoraHasta,\n    C.IdTurno,\n\n    C.IdReserva,\n    R.Cancelada AS ReservaCancelada,\n    R.IdMotoboy AS IdMotoboyReserva,\n\n    -- El repartidor de la colecta y, si falta, el de su reserva. Los dos ids\n    -- salen igual para poder ver cuando no coinciden.\n    C.IdMotoboy,\n    M.Nombre   AS NombreRepartidor,\n    M.Apellido AS ApellidoRepartidor,\n\n    -- La posición sale de Motoboy y de ningún otro lado: es la última\n    -- conocida, no la de este instante.\n    M.Latitud  AS LatitudRepartidor,\n    M.Longitud AS LongitudRepartidor,\n    CONVERT(VARCHAR(33), CAST(M.UltimaActualizacion AS DATETIME2(0)) AT TIME ZONE @Zona, 127) AS PosicionEn,\n\n    U.Id        AS IdSeller,\n    U.Alias     AS Seller,\n    U.Direccion AS DireccionSeller,\n    -- La dirección normalizada manda cuando existe; si no, la del usuario.\n    COALESCE(D.Latitud,  U.Latitud)  AS LatitudTienda,\n    COALESCE(D.Longitud, U.Longitud) AS LongitudTienda,\n\n    C.CantidadPaquetes           AS PaquetesSolicitados,\n    C.CantidadPaquetesColectados AS PaquetesColectados,\n    C.CantidadBultos,\n    C.IdPedidos,\n    C.IdDeposito,\n    C.DepositosVisitados,\n    C.Comentario\nFROM Hoy C\nINNER JOIN dbo.Usuario U WITH (NOLOCK) ON U.Id = C.IdUsuario\nLEFT JOIN dbo.Direccion D WITH (NOLOCK) ON D.Id = U.IdDireccionOrigen\nLEFT JOIN dbo.ReservaxMotoboy R WITH (NOLOCK) ON R.Id = C.IdReserva\nLEFT JOIN dbo.Motoboy M WITH (NOLOCK) ON M.Id = COALESCE(C.IdMotoboy, R.IdMotoboy)\nLEFT JOIN Historial H ON H.IdColecta = C.Id\nORDER BY C.Id;\n"
+      },
+      "id": "80fef947-f604-49c5-a721-1c1aa3a1922e",
+      "name": "Colectas del día",
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        -420,
+        100
+      ],
+      "credentials": {
+        "microsoftSql": {
+          "id": "F5EJUfXcquXz7Rf3",
+          "name": "Microsoft SQL credencial Esteban RPBY"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Colectas a columnas de Postgres.\n *\n * Las fechas ya llegan como instantes ISO con zona —la consulta las convierte\n * con AT TIME ZONE— así que acá solo se validan. Día y marca de la corrida\n * vienen pegados a cada fila: ningún nodo va a buscarlos a otro lado.\n *\n * De Colecta.IdPedidos se guarda cuántos ids hay, no la lista: es texto libre\n * que el sistema llena con ids separados por coma, y para la pantalla alcanza\n * con el número. Se cuentan los ids distintos, así un id repetido no infla la\n * cantidad esperada.\n */\nconst texto = (v) => {\n  const t = String(v ?? '').trim();\n  return t === '' || t.toLowerCase() === 'null' ? null : t;\n};\nconst entero = (v) =>\n  v === null || v === undefined || v === '' || !Number.isFinite(Number(v))\n    ? null\n    : Math.trunc(Number(v));\nconst marca = (v) => {\n  if (!v) return null;\n  const d = new Date(v);\n  return Number.isNaN(d.getTime()) ? null : d.toISOString();\n};\nconst hora = (v) => {\n  const t = texto(v);\n  return t && /^\\d{2}:\\d{2}$/.test(t) ? t : null;\n};\nconst booleano = (v) => (v === null || v === undefined || v === '' ? null : Boolean(v));\nconst pedidos = (v) => {\n  const t = texto(v);\n  return t ? new Set(t.match(/\\d+/g) ?? []).size : null;\n};\n\n/*\n * La misma regla que `coordenadaValida` en web/src/lib/tracker.ts: fuera de\n * rango o el (0, 0) de un equipo sin señal no son una posición.\n */\nconst coordenada = (lat, lon) => {\n  const a = Number(lat);\n  const b = Number(lon);\n  if (lat === null || lon === null || lat === undefined || lon === undefined) return null;\n  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;\n  if (a < -90 || a > 90 || b < -180 || b > 180) return null;\n  if (a === 0 && b === 0) return null;\n  return { lat: a, lon: b };\n};\n\nreturn $input\n  .all()\n  .map(({ json: r }) => {\n    const tienda = coordenada(r.LatitudTienda, r.LongitudTienda);\n    return {\n      json: {\n        id_colecta: Number(r.IdColecta),\n        fecha_operacion: String(r.Dia ?? '').slice(0, 10),\n        id_estado: entero(r.IdEstado),\n        creada_en: marca(r.CreadaEn),\n        solicitada_en: marca(r.SolicitadaEn),\n        colectada_en: marca(r.ColectadaEn),\n        llego_deposito_en: marca(r.LlegoDepositoEn),\n        cancelada_en: marca(r.CanceladaEn),\n        estado_desde: marca(r.EstadoDesde),\n        aceptada_en: marca(r.AceptadaEn),\n        en_camino_en: marca(r.EnCaminoEn),\n        en_local_en: marca(r.EnLocalEn),\n        retirada_en: marca(r.RetiradaEn),\n        finalizada_en: marca(r.FinalizadaEn),\n        en_deposito_en: marca(r.EnDepositoEn),\n        hora_desde: hora(r.HoraDesde),\n        hora_hasta: hora(r.HoraHasta),\n        id_turno: entero(r.IdTurno),\n        id_reserva: entero(r.IdReserva),\n        reserva_cancelada: booleano(r.ReservaCancelada),\n        id_motoboy: entero(r.IdMotoboy),\n        id_motoboy_reserva: entero(r.IdMotoboyReserva),\n        id_seller: entero(r.IdSeller),\n        seller: texto(r.Seller),\n        direccion_seller: texto(r.DireccionSeller),\n        latitud_tienda: tienda?.lat ?? null,\n        longitud_tienda: tienda?.lon ?? null,\n        cantidad_pedidos: pedidos(r.IdPedidos),\n        paquetes_solicitados: entero(r.PaquetesSolicitados),\n        paquetes_colectados: entero(r.PaquetesColectados),\n        cantidad_bultos: entero(r.CantidadBultos),\n        id_deposito: entero(r.IdDeposito),\n        depositos_visitados: texto(r.DepositosVisitados),\n        comentario: texto(r.Comentario),\n        sincronizado_en: marca(r.SincronizadoEn) ?? new Date().toISOString(),\n      },\n    };\n  })\n  .filter(\n    (i) =>\n      Number.isFinite(i.json.id_colecta) &&\n      i.json.id_colecta > 0 &&\n      /^\\d{4}-\\d{2}-\\d{2}$/.test(i.json.fecha_operacion),\n  );\n"
+      },
+      "id": "a3c5d3b3-deae-40bf-b3c2-6a6371c3b193",
+      "name": "A columnas · colectas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -180,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "colectas_vivo"
+        },
+        "operation": "upsert",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_colecta": "={{ $json.id_colecta }}",
+            "fecha_operacion": "={{ $json.fecha_operacion }}",
+            "id_estado": "={{ $json.id_estado }}",
+            "creada_en": "={{ $json.creada_en }}",
+            "solicitada_en": "={{ $json.solicitada_en }}",
+            "colectada_en": "={{ $json.colectada_en }}",
+            "llego_deposito_en": "={{ $json.llego_deposito_en }}",
+            "cancelada_en": "={{ $json.cancelada_en }}",
+            "estado_desde": "={{ $json.estado_desde }}",
+            "aceptada_en": "={{ $json.aceptada_en }}",
+            "en_camino_en": "={{ $json.en_camino_en }}",
+            "en_local_en": "={{ $json.en_local_en }}",
+            "retirada_en": "={{ $json.retirada_en }}",
+            "finalizada_en": "={{ $json.finalizada_en }}",
+            "en_deposito_en": "={{ $json.en_deposito_en }}",
+            "hora_desde": "={{ $json.hora_desde }}",
+            "hora_hasta": "={{ $json.hora_hasta }}",
+            "id_turno": "={{ $json.id_turno }}",
+            "id_reserva": "={{ $json.id_reserva }}",
+            "reserva_cancelada": "={{ $json.reserva_cancelada }}",
+            "id_motoboy": "={{ $json.id_motoboy }}",
+            "id_motoboy_reserva": "={{ $json.id_motoboy_reserva }}",
+            "id_seller": "={{ $json.id_seller }}",
+            "seller": "={{ $json.seller }}",
+            "direccion_seller": "={{ $json.direccion_seller }}",
+            "latitud_tienda": "={{ $json.latitud_tienda }}",
+            "longitud_tienda": "={{ $json.longitud_tienda }}",
+            "cantidad_pedidos": "={{ $json.cantidad_pedidos }}",
+            "paquetes_solicitados": "={{ $json.paquetes_solicitados }}",
+            "paquetes_colectados": "={{ $json.paquetes_colectados }}",
+            "cantidad_bultos": "={{ $json.cantidad_bultos }}",
+            "id_deposito": "={{ $json.id_deposito }}",
+            "depositos_visitados": "={{ $json.depositos_visitados }}",
+            "comentario": "={{ $json.comentario }}",
+            "sincronizado_en": "={{ $json.sincronizado_en }}"
+          },
+          "matchingColumns": [
+            "id_colecta"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "e5cb7e5b-e764-43af-b8ba-c91465a9eb9f",
+      "name": "Guardar colectas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        60,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Repartidores a columnas de Postgres: uno por persona, aunque tenga diez\n * colectas. La consulta repite su posición en cada fila de colecta; acá se\n * queda la primera, que es la misma en todas.\n *\n * El repartidor es el de la colecta y, si falta, el de su reserva: el mismo\n * COALESCE con el que la consulta une Motoboy.\n *\n * Un repartidor sin coordenadas válidas se guarda igual, sin posición. Está\n * operando y tiene que aparecer en la lista: «salió y no está transmitiendo»\n * es un dato. Lo que no se hace es dibujarlo donde no está.\n */\nconst texto = (v) => {\n  const t = String(v ?? '').trim();\n  return t === '' || t.toLowerCase() === 'null' ? null : t;\n};\nconst marca = (v) => {\n  if (!v) return null;\n  const d = new Date(v);\n  return Number.isNaN(d.getTime()) ? null : d.toISOString();\n};\nconst coordenada = (lat, lon) => {\n  const a = Number(lat);\n  const b = Number(lon);\n  if (lat === null || lon === null || lat === undefined || lon === undefined) return null;\n  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;\n  if (a < -90 || a > 90 || b < -180 || b > 180) return null;\n  if (a === 0 && b === 0) return null;\n  return { lat: a, lon: b };\n};\n\nconst vistos = new Map();\n\nfor (const { json: r } of $input.all()) {\n  const id = Number(r.IdMotoboy ?? r.IdMotoboyReserva);\n  if (!Number.isFinite(id) || id <= 0 || vistos.has(id)) continue;\n\n  const dia = String(r.Dia ?? '').slice(0, 10);\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(dia)) continue;\n\n  const punto = coordenada(r.LatitudRepartidor, r.LongitudRepartidor);\n  vistos.set(id, {\n    json: {\n      id_motoboy: id,\n      fecha_operacion: dia,\n      nombre: texto(r.NombreRepartidor),\n      apellido: texto(r.ApellidoRepartidor),\n      latitud: punto?.lat ?? null,\n      longitud: punto?.lon ?? null,\n      posicion_en: punto ? marca(r.PosicionEn) : null,\n      sincronizado_en: marca(r.SincronizadoEn) ?? new Date().toISOString(),\n    },\n  });\n}\n\nreturn [...vistos.values()];\n"
+      },
+      "id": "34050efc-bce6-49a1-b510-9eb331f5d6b6",
+      "name": "A columnas · repartidores",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -180,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "colectas_vivo_drivers"
+        },
+        "operation": "upsert",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_motoboy": "={{ $json.id_motoboy }}",
+            "fecha_operacion": "={{ $json.fecha_operacion }}",
+            "nombre": "={{ $json.nombre }}",
+            "apellido": "={{ $json.apellido }}",
+            "latitud": "={{ $json.latitud }}",
+            "longitud": "={{ $json.longitud }}",
+            "posicion_en": "={{ $json.posicion_en }}",
+            "sincronizado_en": "={{ $json.sincronizado_en }}"
+          },
+          "matchingColumns": [
+            "id_motoboy"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "6834146b-98c9-4160-9fd9-d6a9b9c6119f",
+      "name": "Guardar repartidores",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        60,
+        220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/*\n * Las posiciones para el recorrido: una por repartidor y por reporte.\n *\n * RapiboyData no guarda un historial de posiciones, así que el recorrido se\n * arma guardando lo que ve cada corrida. La clave es (repartidor, momento del\n * reporte): si el teléfono no volvió a reportar desde la corrida anterior, el\n * upsert cae sobre la misma fila y no se agrega nada.\n *\n * Solo entran posiciones válidas y reportadas **ese día** en México. Un\n * teléfono que no reporta desde ayer tiene la posición de ayer, y sumarla al\n * recorrido de hoy dibujaría un tramo que no ocurrió.\n */\nconst ZONA_OPERACION = 'America/Mexico_City';\n\nconst coordenada = (lat, lon) => {\n  const a = Number(lat);\n  const b = Number(lon);\n  if (lat === null || lon === null || lat === undefined || lon === undefined) return null;\n  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;\n  if (a < -90 || a > 90 || b < -180 || b > 180) return null;\n  if (a === 0 && b === 0) return null;\n  return { lat: a, lon: b };\n};\n\nconst diaEnMexico = (instante) =>\n  new Intl.DateTimeFormat('en-CA', {\n    timeZone: ZONA_OPERACION, year: 'numeric', month: '2-digit', day: '2-digit',\n  }).format(instante);\n\nconst vistos = new Map();\n\nfor (const { json: r } of $input.all()) {\n  const id = Number(r.IdMotoboy ?? r.IdMotoboyReserva);\n  if (!Number.isFinite(id) || id <= 0 || vistos.has(id)) continue;\n\n  const dia = String(r.Dia ?? '').slice(0, 10);\n  const punto = coordenada(r.LatitudRepartidor, r.LongitudRepartidor);\n  const momento = r.PosicionEn ? new Date(r.PosicionEn) : null;\n  if (!punto || !momento || Number.isNaN(momento.getTime())) continue;\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(dia) || diaEnMexico(momento) !== dia) continue;\n\n  vistos.set(id, {\n    json: {\n      id_motoboy: id,\n      posicion_en: momento.toISOString(),\n      fecha_operacion: dia,\n      latitud: punto.lat,\n      longitud: punto.lon,\n    },\n  });\n}\n\nreturn [...vistos.values()];\n"
+      },
+      "id": "699f3578-bb7d-407f-9b7d-c9c7e9d84c5b",
+      "name": "A columnas · recorrido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -180,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "colectas_vivo_posiciones"
+        },
+        "operation": "upsert",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_motoboy": "={{ $json.id_motoboy }}",
+            "posicion_en": "={{ $json.posicion_en }}",
+            "fecha_operacion": "={{ $json.fecha_operacion }}",
+            "latitud": "={{ $json.latitud }}",
+            "longitud": "={{ $json.longitud }}"
+          },
+          "matchingColumns": [
+            "id_motoboy",
+            "posicion_en"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "a6d4d209-4d1d-47d9-a01f-4e9e9b944179",
+      "name": "Guardar recorrido",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        60,
+        440
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- El recorrido se guarda para la jornada, no para siempre: pasados 30 días\n-- no lo mira nadie y son miles de filas por día. Borra solo de su propia\n-- tabla, y solo filas viejas.\ndelete from public.colectas_vivo_posiciones\nwhere fecha_operacion < current_date - 30;",
+        "options": {}
+      },
+      "id": "d2980061-b8cc-4824-a282-15d9ea33f664",
+      "name": "Recortar recorrido viejo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        300,
+        440
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "Cada 5 min en horario de colecta": {
+      "main": [
+        [
+          {
+            "node": "Día de operación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Botón Actualizar colectas": {
+      "main": [
+        [
+          {
+            "node": "Día de operación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Día de operación": {
+      "main": [
+        [
+          {
+            "node": "Colectas del día",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Colectas del día": {
+      "main": [
+        [
+          {
+            "node": "A columnas · colectas",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "A columnas · repartidores",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "A columnas · recorrido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A columnas · colectas": {
+      "main": [
+        [
+          {
+            "node": "Guardar colectas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A columnas · repartidores": {
+      "main": [
+        [
+          {
+            "node": "Guardar repartidores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A columnas · recorrido": {
+      "main": [
+        [
+          {
+            "node": "Guardar recorrido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar recorrido": {
+      "main": [
+        [
+          {
+            "node": "Recortar recorrido viejo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City"
+  },
+  "pinData": {},
+  "tags": []
+}

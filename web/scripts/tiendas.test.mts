@@ -406,6 +406,8 @@ test("en tiendas todas las capas arrancan apagadas", () => {
   assert.match(mapa, /useLluvia\(ventana\)/);
 
   // Sin clave no hay casillas de TomTom, y sin permiso no hay repartidores.
+  // En la pestaña de colectas la casilla tampoco está: ahí los repartidores
+  // ya salen con su ruta, y dos capas de pines serían el mismo dato dos veces.
   assert.match(mapa, /claveTomTom \? \(\s*<ControlesTomTom/);
-  assert.match(mapa, /posiciones \? \(\s*<label/);
+  assert.match(mapa, /posiciones && !verColectas \? \(\s*<label/);
 });

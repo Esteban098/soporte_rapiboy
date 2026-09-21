@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { recorridosDeRepartidores } from "@/app/colectas-vivo";
 import { COLOR_DRIVER, estadoPosicion, proyectarEn, type Ventana } from "@/lib/tracker";
 import { REFRESCO_TRAFICO_MS } from "@/lib/trafico";
 import type { PosicionDriver } from "@/lib/posiciones-datos";
@@ -12,11 +13,19 @@ import {
   type Lugar,
 } from "@/lib/tiendas";
 import { responsableDe } from "@/lib/responsables";
+import {
+  resumirPorDriver,
+  ultimaSincronizacion,
+  type ColectasDelDia,
+  type PosicionRecorrido,
+} from "@/lib/colectas-vivo";
 import { encuadreDe, LienzoMapa } from "./LienzoMapa";
+import { CapaColectas, PanelColectas, puntosAEncuadrar, useReloj } from "./ColectasEnVivo";
 import { useIndiceTiendas } from "./ColorTiendas";
 import { CapaLluvia, ControlLluvia, useLluvia } from "./Lluvia";
 import { AtribucionTomTom, CapaTomTom, ControlesTomTom, useCiclo } from "./Trafico";
 import estilos from "./live-tracker.module.css";
+import vivo from "./colectas-vivo.module.css";
 
 /**
  * El color de un punto: el de su dueño si la tienda está repartida, el de su
@@ -51,6 +60,8 @@ export function MapaTiendas({
   ventana,
   claveTomTom,
   posiciones,
+  colectas,
+  hayFlujoColectas,
   children,
 }: {
   lugares: Lugar[];
@@ -62,12 +73,68 @@ export function MapaTiendas({
    * permiso —el rol comercial no ve el live tracker— o no se pudieron leer.
    */
   posiciones: PosicionDriver[] | null;
+  /**
+   * Las colectas de hoy con sus repartidores, o `null` si la tabla todavía no
+   * existe o no se pudo leer: ahí el mapa es el de siempre, sin pestaña.
+   */
+  colectas: ColectasDelDia | null;
+  /** Si hay webhook del flujo 12, para que el botón diga qué va a hacer. */
+  hayFlujoColectas: boolean;
   /** Los polígonos de cobertura, dibujados en el servidor. */
   children: React.ReactNode;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [elegido, setElegido] = useState<string | null>(null);
   const indice = useIndiceTiendas();
+
+  /*
+   * Dos modos sobre el mismo mapa. «Colectas de hoy» arranca elegido cuando
+   * hay colectas: es la pregunta del momento —dónde anda cada repartidor y qué
+   * le falta—; «Tiendas» es el directorio de siempre.
+   */
+  const hayColectas = Boolean(colectas && colectas.colectas.length > 0);
+  const [modo, setModo] = useState<"tiendas" | "colectas">(hayColectas ? "colectas" : "tiendas");
+  const verColectas = modo === "colectas" && colectas !== null;
+  /*
+   * Solo se dibujan los repartidores elegidos. Con cuarenta a la vez el mapa
+   * es una madeja de líneas y no responde nada; la pregunta real es «¿dónde
+   * anda este?», o comparar dos o tres.
+   */
+  const [seleccion, setSeleccion] = useState<string[]>([]);
+  const [colecta, setColecta] = useState<number | null>(null);
+  const ahora = useReloj();
+  const resumenes = useMemo(() => (colectas ? resumirPorDriver(colectas) : []), [colectas]);
+
+  const alternar = useCallback((clave: string) => {
+    setSeleccion((antes) => (antes.includes(clave) ? antes.filter((c) => c !== clave) : [...antes, clave]));
+    setColecta(null);
+  }, []);
+
+  /*
+   * El recorrido guardado de cada elegido se pide aparte y solo para ellos:
+   * son miles de puntos por día y no tienen por qué viajar con la página. Se
+   * vuelve a pedir cuando cambia la elección o llega una foto nueva. El rol
+   * comercial no los pide: no ve posiciones.
+   */
+  const [recorridos, setRecorridos] = useState<Record<number, PosicionRecorrido[]>>({});
+  const pedirRecorridos = colectas && !colectas.sinPosiciones
+    ? `${seleccion.filter((c) => c !== "sin").sort().join(",")}|${ultimaSincronizacion(colectas.colectas) ?? ""}`
+    : "";
+  useEffect(() => {
+    const ids = pedirRecorridos.split("|")[0].split(",").filter(Boolean).map(Number);
+    if (ids.length === 0) return;
+    let vigente = true;
+    recorridosDeRepartidores(ids)
+      .then((r) => {
+        if (vigente) setRecorridos((antes) => ({ ...antes, ...r }));
+      })
+      .catch(() => {
+        // Sin recorrido guardado el mapa dibuja igual el camino por las tiendas.
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [pedirRecorridos]);
 
   /*
    * Las cuatro capas arrancan apagadas. Tres salen a internet —lluvia, calles,
@@ -95,6 +162,10 @@ export function MapaTiendas({
    * el buscador viene a evitar.
    */
   const encuadrar = useCallback(() => {
+    if (verColectas) {
+      const puntos = puntosAEncuadrar(resumenes, seleccion, colecta).map((p) => proyectar(p.lat, p.lon));
+      if (puntos.length > 0) return encuadreDe(puntos, ventana, colecta != null ? 0.5 : 0.25);
+    }
     const uno = elegido ? visibles.find((l) => l.clave === elegido) : null;
     const puntos = (uno ? [uno] : visibles).map((l) => proyectar(l.lat, l.lon));
 
@@ -109,11 +180,54 @@ export function MapaTiendas({
      * hacer clic para mirarlo de cerca alejaba.
      */
     return encuadreDe(puntos, ventana, uno ? 0.5 : 0.25);
-  }, [visibles, elegido, proyectar, ventana]);
+    // `resumenes` queda afuera a propósito: cambia en cada relectura en vivo, y
+    // el encuadre solo se rehace cuando cambia la clave del lienzo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibles, elegido, proyectar, ventana, verColectas, seleccion, colecta]);
 
   return (
     <div className={estilos.pantalla}>
-      <aside className={estilos.panel} aria-label="Tiendas y dropoff">
+      <aside className={estilos.panel} aria-label={verColectas ? "Colectas de hoy" : "Tiendas y dropoff"}>
+        {colectas ? (
+          <div className={vivo.pestanas} role="tablist" aria-label="Qué mostrar en el mapa">
+            <button
+              type="button"
+              role="tab"
+              className={vivo.pestana}
+              aria-selected={modo === "colectas"}
+              onClick={() => setModo("colectas")}
+            >
+              Colectas de hoy ({colectas.colectas.length})
+            </button>
+            <button
+              type="button"
+              role="tab"
+              className={vivo.pestana}
+              aria-selected={modo === "tiendas"}
+              onClick={() => setModo("tiendas")}
+            >
+              Tiendas ({lugares.length})
+            </button>
+          </div>
+        ) : null}
+
+        {verColectas && colectas ? (
+          <PanelColectas
+            dia={colectas}
+            resumenes={resumenes}
+            ahora={ahora}
+            hayFlujo={hayFlujoColectas}
+            seleccion={seleccion}
+            onAlternar={alternar}
+            onLimpiar={() => {
+              setSeleccion([]);
+              setColecta(null);
+            }}
+            colecta={colecta}
+            onColecta={setColecta}
+          />
+        ) : (
+        <>
         <div className={estilos.panelBarra}>
           <input
             className={estilos.buscador}
@@ -183,6 +297,8 @@ export function MapaTiendas({
             ))
           )}
         </ul>
+        </>
+        )}
       </aside>
 
       <div className={estilos.derecha}>
@@ -210,7 +326,7 @@ export function MapaTiendas({
               />
             ) : null}
 
-            {posiciones ? (
+            {posiciones && !verColectas ? (
               <label className={estilos.filtro}>
                 <input
                   type="checkbox"
@@ -234,9 +350,15 @@ export function MapaTiendas({
 
         <LienzoMapa
           ventana={ventana}
-          clave={`${busqueda}|${elegido ?? ""}`}
+          clave={verColectas ? `colectas|${seleccion.join(",")}|${colecta ?? ""}` : `${busqueda}|${elegido ?? ""}`}
           encuadrar={encuadrar}
-          etiqueta={`Mapa con ${visibles.length} punto${visibles.length === 1 ? "" : "s"} de entrega y colecta`}
+          etiqueta={
+            verColectas && colectas
+              ? seleccion.length === 0
+                ? "Mapa de colectas: elegí un repartidor en la lista para verlo"
+                : `Mapa con ${seleccion.length} repartidor${seleccion.length === 1 ? "" : "es"} elegido${seleccion.length === 1 ? "" : "s"} y su recorrido`
+              : `Mapa con ${visibles.length} punto${visibles.length === 1 ? "" : "s"} de entrega y colecta`
+          }
           fondo={children}
           fondoSobreMapa={Boolean(claveTomTom && verCalles)}
           debajo={
@@ -262,7 +384,10 @@ export function MapaTiendas({
                 />
               ) : null}
 
-              {visibles.map((lugar) => (
+              {/* Con las colectas a la vista, de los lugares queda solo la
+                  bodega: es a donde van todas las rutas. Las tiendas salen
+                  de la colecta misma, con su estado. */}
+              {(verColectas ? lugares.filter((l) => l.tipo === "BODEGA") : visibles).map((lugar) => (
                 <MarcaLugar
                   key={lugar.clave}
                   lugar={lugar}
@@ -275,9 +400,24 @@ export function MapaTiendas({
                 />
               ))}
 
+              {verColectas ? (
+                <CapaColectas
+                  resumenes={resumenes}
+                  seleccion={seleccion}
+                  recorridos={recorridos}
+                  colecta={colecta}
+                  proyectar={proyectar}
+                  k={k}
+                  indice={indice}
+                  ahora={ahora}
+                  onDriver={alternar}
+                  onColecta={setColecta}
+                />
+              ) : null}
+
               {/* Los repartidores al final: son lo que se mueve, y un pin
                   tapado por una tienda no se encuentra. */}
-              {posiciones && verDrivers
+              {posiciones && verDrivers && !verColectas
                 ? posiciones.map((driver) => (
                     <PinRepartidor
                       key={driver.id}

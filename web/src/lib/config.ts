@@ -113,6 +113,19 @@ export const TABLA_COLECTAS_ASIGNACION =
 /** Tabla con las colectas realizadas, una fila por día, chofer y comercio. */
 export const TABLA_COLECTAS = process.env.SUPABASE_TABLA_COLECTAS?.trim() || "colectas";
 
+/**
+ * Las colectas de hoy con su repartidor y la posición de ese repartidor, para
+ * el mapa de Tiendas. Las escribe el flujo 12 y son independientes de las dos
+ * de arriba: aquellas miran días hacia atrás, estas solo la jornada en curso.
+ */
+export const TABLA_COLECTAS_VIVO =
+  process.env.SUPABASE_TABLA_COLECTAS_VIVO?.trim() || "colectas_vivo";
+export const TABLA_COLECTAS_VIVO_DRIVERS =
+  process.env.SUPABASE_TABLA_COLECTAS_VIVO_DRIVERS?.trim() || "colectas_vivo_drivers";
+/** Cada reporte de posición que vio el flujo 12: el recorrido del repartidor. */
+export const TABLA_COLECTAS_VIVO_POSICIONES =
+  process.env.SUPABASE_TABLA_COLECTAS_VIVO_POSICIONES?.trim() || "colectas_vivo_posiciones";
+
 /* ---------- Live tracker ---------- */
 
 /** Repartidores con operación del día y su última posición conocida. */
@@ -237,7 +250,8 @@ export type ClaveFlujo =
   | "canceladosHistorico"
   | "colectas"
   | "trackerPosiciones"
-  | "trackerPaquetes";
+  | "trackerPaquetes"
+  | "colectasVivo";
 
 const VARIABLE_DE_FLUJO: Record<ClaveFlujo, string> = {
   global: "N8N_WEBHOOKS",
@@ -253,6 +267,14 @@ const VARIABLE_DE_FLUJO: Record<ClaveFlujo, string> = {
    */
   trackerPosiciones: "N8N_WEBHOOKS_TRACKER_POSICIONES",
   trackerPaquetes: "N8N_WEBHOOKS_TRACKER_PAQUETES",
+
+  /*
+   * Las colectas de hoy y la posición de sus repartidores, en el mapa de
+   * Tiendas. Va aparte de `colectas` porque es otra consulta y otra ventana:
+   * aquel rehace 30 días de asignación y tarda; este relee la jornada y
+   * vuelve en segundos, que es lo que pide un botón de «dónde está ahora».
+   */
+  colectasVivo: "N8N_WEBHOOKS_COLECTAS_VIVO",
 };
 
 export function esClaveFlujo(valor: unknown): valor is ClaveFlujo {

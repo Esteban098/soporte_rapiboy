@@ -51,6 +51,7 @@ Tres decisiones que vale la pena tener presentes:
 | `/cobertura` | **Cobertura**: el contorno donde hay servicio y un verificador puntual —por id de viaje, dirección o coordenadas— que responde si un domicilio entra. |
 | Asistente (beta) | Pestaña en todas las pantallas: preguntas en lenguaje natural sobre paquetes, casos, seguimiento, colectas y repartidores. Ver [Asistente](#asistente-beta). |
 | `/live-tracker` | **Live tracker**: dónde está cada repartidor de la jornada y qué le queda por entregar. Panel de selección a la izquierda, mapa a la derecha. |
+| `/tiendas` | **Tiendas**: las **colectas de hoy** en vivo —se elige a qué repartidores ver y el mapa muestra solo esos, con el camino que ya hizo y las paradas que le faltan— y el directorio de tiendas, dropoff y bodega, con la distribución Esteban / Candelaria. Ver [Tiendas](#tiendas). |
 
 Junto al indicador de la fuente («Base en vivo») hay un selector de tema:
 **Claro**, **Oscuro** o **Sistema**. Las paletas están en `globals.css`; el
@@ -400,9 +401,9 @@ Los dos KMZ —choferes y tiendas— se convierten con el mismo script; ver
 ## Tiendas
 
 Está en el menú dentro de **Colectas**, junto a Asignación e Historial, pero
-conserva su ruta `/tiendas`. **No** es parte del live tracker: no tiene día ni
-jornada, y responde una sola pregunta —«¿dónde queda este comercio?»— que se
-hace suelta, casi siempre con un id o un nombre a mano.
+conserva su ruta `/tiendas`. El panel del mapa tiene dos pestañas: **Colectas
+de hoy**, que arranca elegida cuando hay colectas (ver abajo), y **Tiendas**, el
+directorio de siempre, que responde «¿dónde queda este comercio?».
 
 Muestra las tiendas, los puntos de dropoff y la bodega sobre las zonas de
 reparto, con un buscador que filtra por nombre (sin acentos) o por id. El
@@ -444,6 +445,76 @@ Detalles que el script resuelve y conviene conocer:
 - **`#73517 Volk's Coruña`** viene envuelto en CDATA por el apóstrofo, y dos
   nombres traen tabulación en vez de espacio. El importador los desenvuelve y
   los normaliza; sin eso el id se pierde.
+
+### Colectas de hoy
+
+La pestaña **Colectas de hoy** muestra la jornada en curso: qué repartidor va a
+qué tienda, en qué estado está cada colecta y dónde anda cada repartidor. La
+escribe el flujo 12 de n8n en `colectas_vivo` y `colectas_vivo_drivers`, cada
+cinco minutos en horario de colectas y cuando alguien aprieta **Actualizar
+posiciones y estados**. Con **En vivo** prendido la página relee lo guardado cada
+minuto mientras está a la vista.
+
+- **El mapa muestra solo a los repartidores elegidos.** Sin nadie elegido
+  queda vacío (la bodega y las zonas); se eligen tocándolos en la lista, uno o
+  varios para comparar, y **Quitar todos** vuelve a vaciarlo. De cada elegido
+  se ven sus tiendas —con el color de la fase de la colecta y el borde de su
+  dueño, como en todo el tablero—, su última posición conocida y dos líneas:
+  - **continua: el camino que ya hizo.** Las tiendas por las que pasó, en el
+    orden y a la hora en que llegó al local o retiró (✓1, ✓2…), más cada
+    posición que fue guardando el flujo 12, hasta la posición actual y la
+    bodega si ya llegó;
+  - **punteada: lo que le falta**, con las próximas paradas numeradas.
+
+  Elegir una tienda abre su ficha.
+- **Sobre el camino recorrido.** RapiboyData no guarda un historial de
+  posiciones —`Motoboy` se pisa en cada reporte y los eventos de colecta vienen
+  sin coordenadas—, así que el flujo 12 guarda cada posición nueva en
+  `colectas_vivo_posiciones` (una cada 5 minutos como mucho, 30 días de
+  historia). El camino tiene esa resolución, arranca el día en que se instala
+  la migración 16 y une los puntos en línea recta, no por calles. Sin esa tabla
+  el camino se dibuja igual, solo con las tiendas visitadas. El recorrido no
+  viaja con la página: el navegador lo pide solo para los repartidores elegidos.
+- **La ruta es calculada.** El sistema no guarda un orden de paradas para las
+  colectas, así que el número de cada parada sale de una regla, y la pantalla lo
+  dice: primero la ventana horaria que cierra antes, después las que ya están en
+  el local o en camino, y entre las demás la más cercana a la parada anterior
+  (al principio, al repartidor); desempatan la solicitud más antigua y el id.
+  Las distancias son en línea recta.
+- **La ficha** trae la hora de cada paso en hora de México (del historial de la
+  colecta), los paquetes en sus tres momentos —los ids del pedido, los que se
+  retiraron y los que llegaron a bodega—, la reserva, el dropOFF donde se
+  colecta si no es la tienda y la distancia al repartidor.
+- **Debajo del mapa**: cifras del día, **Para revisar** (colectas sin
+  repartidor, más de 20 min en el local sin retirar, reserva cancelada con la
+  colecta abierta, repartidor distinto al de la reserva, más paquetes en bodega
+  que retirados, repartidores que no reportan posición o con posición de hace más
+  de 45 min), una tabla por repartidor y otra con cada colecta.
+
+Reglas que conviene conocer:
+
+- El estado sale de `Colecta.IdEstado` (1 Asignada, 2 En camino, 3 Retirada,
+  4 Finalizada, 5 Finalizada parcial, 6 En local, 7 Aceptada, 8 En depósito) y
+  la cancelación, de `FechaCancelada`: el catálogo no tiene un estado Cancelada.
+  No se cruza con `EstadoViaje`, que es de los paquetes.
+- `CantidadPaquetes` vale 0 hasta que se retira y `CantidadPaquetesColectados`
+  hasta que llega a bodega; por eso los faltantes solo se calculan con la colecta
+  cerrada. Los dropOFF no traen `IdPedidos`.
+- `FechaColecta` se escribe al cerrar en bodega, no al retirar: en dos de cada
+  tres colectas es posterior a `FechaLlegoDeposito`. Por eso no se marca como
+  error, y la hora de retiro que se muestra es la del historial.
+- `HoraDesde`/`HoraHasta` casi nunca vienen en México, y cuando vienen como
+  «01:00–01:00» no son una ventana.
+- El rol **Comercial** ve la pestaña con los estados y los nombres, pero **sin
+  posiciones**: las coordenadas de los repartidores se sacan en el servidor, como
+  en la capa Repartidores, y la acción que entrega el recorrido le contesta
+  vacío. Su camino recorrido es solo el de las tiendas visitadas.
+
+Instalación: correr `supabase/migracion-15-colectas-vivo.sql` y
+`supabase/migracion-16-colectas-vivo-recorrido.sql`, importar
+`../n8n/12-colectas-vivo.json`, asignarle las credenciales, activarlo y cargar su
+URL de producción en `N8N_WEBHOOKS_COLECTAS_VIVO`. Sin la migración, la pantalla
+avisa qué falta y el mapa de tiendas funciona igual.
 
 ### Distribución de tiendas
 
@@ -610,7 +681,9 @@ Tres roles:
 El **comercial** es para el equipo comercial y lo crea el administrador eligiendo
 ese rol. Ve el menú recortado a esas tres pantallas; si pide otra, el proxy lo
 devuelve a Tiendas, y los endpoints le responden 403. Puede editar la
-distribución de tiendas y actualizar colectas, y nada más: no carga reportes, no
+distribución de tiendas, actualizar colectas y ver las **Colectas de hoy** con
+sus estados —pero no la posición ni el recorrido GPS de los repartidores, que se
+sacan en el servidor—, y nada más: no carga reportes, no
 tiene campana ni puede entrar a *Mi perfil*, así que su contraseña la resetea el
 administrador. Antes de crear el primero, volver a correr `supabase/perfiles.sql`:
 en una base existente agrega el valor `comercial` al enum `rol_perfil`, sin tocar
@@ -1083,15 +1156,33 @@ cambia (`src/components/useVista.ts`).
 - La caché es de una hora. Si el equipo actualiza el sheet y quiere verlo al
   instante, hay que bajar `SHEET_REVALIDATE`.
 
+### De las colectas en vivo
+
+- **La ruta que le falta a cada repartidor es calculada**, no del sistema:
+  `dbo.Colecta` no tiene orden de paradas. Se muestra como «orden calculado» y
+  las distancias son en línea recta.
+- **El camino recorrido tiene la resolución del flujo 12.** RapiboyData no guarda
+  historial de posiciones, así que el rastro es lo que guardó el flujo cada 5
+  minutos desde que se instaló la migración 16, unido en línea recta. Un
+  teléfono que no reporta deja un tramo recto entre dos puntos lejanos.
+- **La hora de paso por una tienda** es la del historial de la colecta (cuando
+  entró «En local» o, si no quedó, cuando la retiró), no una posición GPS.
+- **`FechaColecta` no es la hora de retiro**: el sistema la escribe al cerrar en
+  bodega. Por eso no se usa para el recorrido ni se marca como inconsistencia.
+- **`IdDeposito` no tiene nombre**: no hay catálogo confirmado, se guarda el
+  número tal cual.
+- **Fuera del horario del flujo** (7:00 a 16:55, lunes a sábado) la foto no se
+  renueva sola; el botón **Actualizar posiciones y estados** la rehace cuando
+  haga falta.
+
 ### Del Live tracker
 
-- **La zona horaria de `Motoboy.UltimaActualizacion` es un supuesto.** Las dos
-  consultas declaran `@ZonaOrigen = 'UTC'`, deducido de que los flujos 01, 02 y
-  05 le restan tres horas a `HistorialViaje.Fecha`. No está comprobado contra
-  producción, y de eso depende toda la antigüedad que muestra el mapa: con la
-  zona corrida, o está todo en verde o está todo en rojo. Se verifica mirando
-  `UltimaActualizacionCruda` de un repartidor que se sabe activo, y se corrige
-  en una línea de cada consulta.
+- **`Motoboy.UltimaActualizacion` está en hora de Argentina (UTC−3).** Se
+  comprobó contra la base el 2026-09-21: el servidor corre en UTC, pero esa
+  columna y `HistorialViaje.Fecha` van tres horas por detrás. Las consultas del
+  tracker declaran `@ZonaOrigen = 'UTC'` y el nodo **Corregir zona de posición**
+  del flujo 08 suma las tres horas. De eso depende toda la antigüedad que muestra
+  el mapa: con la zona corrida, o está todo en verde o está todo en rojo.
 - **El universo de paquetes se acota por comercio**: `Usuario.IdModalidad = 5`
   y `Usuario.IdLocalidad = 9`, el mismo alcance que Mensual, Ayer y Cancelados.
   Así los totales del tracker se pueden comparar con los de las otras

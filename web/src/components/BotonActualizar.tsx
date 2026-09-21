@@ -94,6 +94,20 @@ const TEXTOS: Record<ClaveFlujo, Textos> = {
     esperaTitulo: "Actualizando paquetes",
     esperaTexto: "Se está reconciliando la ruta del día contra el sistema.",
   },
+  /*
+   * Las colectas en vivo tampoco usan este botón: el mapa de Tiendas tiene el
+   * suyo, que conserva el repartidor elegido y el encuadre.
+   */
+  colectasVivo: {
+    boton: "Actualizar colectas de hoy",
+    cargando: "Actualizando…",
+    conFlujos:
+      "Vuelve a preguntarle al sistema dónde está cada repartidor y en qué estado quedó cada colecta de hoy.",
+    sinFlujos:
+      "No hay flujo de colectas en vivo configurado, así que no se consulta el sistema.",
+    esperaTitulo: "Actualizando las colectas de hoy",
+    esperaTexto: "Se está releyendo cada colecta de hoy y la posición de sus repartidores.",
+  },
   colectas: {
     boton: "Actualizar colectas",
     cargando: "Actualizando colectas…",

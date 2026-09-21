@@ -3,10 +3,13 @@ import { Callout, Kpi } from "@/components/Card";
 import { MapaTiendas } from "@/components/MapaTiendas";
 import { FondoCobertura } from "@/components/FondoCobertura";
 import { PanelResponsables } from "@/components/PanelResponsables";
-import { claveTomTom, modoDatos } from "@/lib/config";
+import { claveTomTom, flujosDe, modoDatos } from "@/lib/config";
 import { sesionActual } from "@/lib/sesion";
 import { esComercial } from "@/lib/permisos";
 import { leerPosiciones, type PosicionDriver } from "@/lib/posiciones-datos";
+import { leerColectasDelDia } from "@/lib/colectas-vivo-datos";
+import type { ColectasDelDia } from "@/lib/colectas-vivo";
+import { ResumenColectasVivo } from "@/components/ColectasEnVivo";
 import { ventanaProyeccion } from "@/lib/cobertura";
 import { TablaFaltante } from "@/lib/supabase";
 import { leerLugares } from "@/lib/tiendas-datos";
@@ -53,11 +56,18 @@ export default async function Tiendas() {
   const sesion = await sesionActual();
   const puedeVerPosiciones = sesion !== null && !esComercial(sesion.rol);
 
-  const [lugares, responsables, posiciones] = await Promise.allSettled([
+  /*
+   * Las colectas de hoy las ven todos los que entran a Tiendas, comercial
+   * incluido; las coordenadas de los repartidores se sacan en el servidor para
+   * quien no ve el live tracker.
+   */
+  const [lugares, responsables, posiciones, colectas] = await Promise.allSettled([
     leerLugares(),
     leerResponsables(),
     puedeVerPosiciones ? leerPosiciones() : Promise.resolve(null),
+    leerColectasDelDia({ sinPosiciones: !puedeVerPosiciones }),
   ]);
+  const colectasDelDia = colectas.status === "fulfilled" ? colectas.value : null;
 
   return (
     <>
@@ -81,8 +91,26 @@ export default async function Tiendas() {
           <Mapa
             lugares={lugares.value}
             posiciones={posiciones.status === "fulfilled" ? posiciones.value : null}
+            colectas={colectasDelDia}
           />
         )}
+
+        {colectas.status === "rejected" ? (
+          <Callout
+            tono={colectas.reason instanceof TablaFaltante ? "warning" : "critical"}
+            titulo={
+              colectas.reason instanceof TablaFaltante
+                ? "Falta cargar las colectas en vivo"
+                : "No se pudieron leer las colectas de hoy"
+            }
+          >
+            {colectas.reason instanceof TablaFaltante
+              ? "Las tablas «colectas_vivo» y «colectas_vivo_drivers» todavía no existen. Corré web/supabase/migracion-15-colectas-vivo.sql en el SQL Editor de Supabase e importá el flujo n8n/12-colectas-vivo.json."
+              : "La base no respondió. El mapa de tiendas sigue funcionando; volvé a intentar en un momento."}
+          </Callout>
+        ) : colectasDelDia ? (
+          <ResumenColectasVivo dia={colectasDelDia} />
+        ) : null}
 
         {responsables.status === "rejected" ? (
           <Callout
@@ -108,9 +136,11 @@ export default async function Tiendas() {
 function Mapa({
   lugares,
   posiciones,
+  colectas,
 }: {
   lugares: Lugar[];
   posiciones: PosicionDriver[] | null;
+  colectas: ColectasDelDia | null;
 }) {
   const cuenta = (tipo: Lugar["tipo"]) => lugares.filter((l) => l.tipo === tipo).length;
   const sinId = lugares.filter((l) => l.id == null).length;
@@ -145,6 +175,8 @@ function Mapa({
           ventana={ventanaProyeccion()}
           claveTomTom={claveTomTom()}
           posiciones={posiciones}
+          colectas={colectas}
+          hayFlujoColectas={flujosDe("colectasVivo").length > 0}
         >
           {/* El contorno de las zonas, dibujado en el servidor: son ~3.500
               puntos que no cambian nunca y no tienen por qué viajar como
@@ -161,7 +193,7 @@ function Cabecera() {
     <PageHead
       eyebrow="Dónde queda cada comercio"
       titulo="Tiendas"
-      dek="Las tiendas, los puntos de dropoff y la bodega, sobre las zonas de reparto, y de quién es cada comercio. El mapa lo mantiene operaciones en Google y acá se muestra tal cual; el nombre lleva al punto en Google Maps. La distribución se edita acá abajo y decide el color de cada tienda en todo el tablero: azul Esteban, rosa Candelaria."
+      dek="Las colectas de hoy en vivo —qué repartidor va a qué tienda, en qué estado está cada una y dónde anda cada repartidor— y el directorio de tiendas, dropoff y bodega sobre las zonas de reparto. La distribución se edita acá abajo y decide el color de cada tienda en todo el tablero: azul Esteban, rosa Candelaria."
     />
   );
 }

@@ -1,6 +1,6 @@
 # Flujos de n8n
 
-Once workflows. Los tres primeros reemplazan al único que escribía en el
+Doce workflows. Los tres primeros reemplazan al único que escribía en el
 Google Sheet; los siguientes cubren los botones Actualizar y la carga de datos
 de tienda desde Firefox. Se importan desde n8n con **Workflows ▸ Import from
 File**.
@@ -17,6 +17,7 @@ File**.
 | `08-tracker-drivers.json` | Repartidores de la ruta visible y su última posición conocida | 6:45; cada 30 min de 15:00 a 23:30, lunes a sábado; y desde **Actualizar** del live tracker, después de los paquetes |
 | `09-tracker-paquetes.json` | Actualiza la última ruta operativa —el sábado si es lunes— o reconcilia la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 7:15; cada 30 min de 15:00 a 23:30, lunes a sábado; y desde **Actualizar** del live tracker, antes de las posiciones |
 | `11-historial-viaje.json` | Devuelve el estado y el historial de un viaje desde RapiboyData, para el asistente del tablero. Solo lee | Cada vez que alguien pregunta por un paquete en el asistente |
+| `12-colectas-vivo.json` | Las colectas de hoy con su estado, su historial y la última posición de cada repartidor, y guarda cada posición nueva para dibujar el recorrido, para el mapa de **Tiendas**. Solo lee SQL Server | Cada 5 min de 7:00 a 16:55, lunes a sábado, y desde **Actualizar posiciones y estados** en Tiendas |
 
 ## Antes de importar
 
@@ -69,6 +70,7 @@ de hoy.
 | `N8N_WEBHOOKS_COLECTAS` | `06-colectas` | `actualizar-colectas` |
 | `N8N_WEBHOOKS_TRACKER_POSICIONES` | `08-tracker-drivers` | `tracker-posiciones` |
 | `N8N_WEBHOOKS_TRACKER_PAQUETES` | `09-tracker-paquetes` | `tracker-paquetes` |
+| `N8N_WEBHOOKS_COLECTAS_VIVO` | `12-colectas-vivo` | `colectas-en-vivo` |
 
 Las de histórico pueden quedar vacías: el botón avisa que no hay flujos y la
 pantalla sigue mostrando lo que ya está guardado.
@@ -203,6 +205,50 @@ en vez de traer cada registro suelto. Es lo que se mira —«quién fue el marte
 este comercio»— y además hace que el upsert sea idempotente sin depender de que
 `dbo.Colecta` tenga un id estable, que es algo que no pudimos verificar.
 
+## Colectas en vivo
+
+`12-colectas-vivo.json` alimenta la pestaña **Colectas de hoy** del mapa de
+Tiendas. Antes de importarlo hay que crear sus dos tablas con
+`web/supabase/migracion-15-colectas-vivo.sql` y
+`web/supabase/migracion-16-colectas-vivo-recorrido.sql`. Escribe **solo** sus
+tres tablas —`colectas_vivo`, `colectas_vivo_drivers` y
+`colectas_vivo_posiciones`— y no comparte nada con el flujo 06
+ni con el live tracker, así que se puede importar, apagar o rehacer sin mirar el
+resto.
+
+Es una sola consulta a SQL Server: las colectas del día en México
+(`Usuario.IdLocalidad = 9`, modalidades 5 y 7), con la tienda, el repartidor de
+la colecta o de su reserva, la última posición de ese repartidor
+(`Motoboy.Latitud/Longitud`) y, del historial, la primera vez que la colecta
+entró a cada estado. De ahí salen tres ramas que hacen upsert: una fila por
+colecta, una por repartidor y una por cada **reporte de posición nuevo** —clave
+(repartidor, `posicion_en`), así que si el teléfono no volvió a reportar no se
+agrega nada—. Esa última es el recorrido del mapa, porque RapiboyData no guarda
+historial de posiciones; solo entran posiciones válidas reportadas ese día en
+México. Después, **Recortar recorrido viejo** borra de esa tabla —y solo de esa—
+lo de más de 30 días.
+
+Tres cosas que conviene saber antes de tocarlo:
+
+- **La zona.** RapiboyData guarda las fechas en hora de Argentina —las vistas
+  del propio sistema les restan tres horas para llevarlas a México—, aunque el
+  servidor corre en UTC. El nodo **Día de operación** resuelve el día en
+  `America/Mexico_City` y lo convierte al reloj del sistema con `Intl` (el 21 en
+  México va de las 03:00 del 21 a las 03:00 del 22), y la consulta devuelve cada
+  fecha como instante con `AT TIME ZONE 'Argentina Standard Time'`. Si algún día
+  la base pasara a guardar otra zona, se cambia en esos dos lugares.
+- **El historial.** `HistorialColecta` es un heap de millones de filas con un
+  solo índice, por `Id`. La consulta lo acota a los últimos 50.000 ids antes de
+  filtrar por colecta —un día de México deja unas 5.000— y lo agrega antes de
+  unirlo, para no duplicar colectas.
+- **Lo que no hace.** No borra filas: la web filtra por `fecha_operacion`. No
+  guarda la lista de `IdPedidos`, solo cuántos ids distintos trae. No inventa un
+  nombre para `IdDeposito`, que no tiene catálogo confirmado.
+
+El webhook recibe `{ origen, momento, alcance: "colectasVivo", dia, zona }`; el
+día se valida con una expresión regular antes de usarlo y es lo único del
+cuerpo que llega a la consulta.
+
 ## Live tracker
 
 `08-tracker-drivers.json` y `09-tracker-paquetes.json` alimentan la pantalla
@@ -277,16 +323,15 @@ que se supo, que es viejo pero cierto.
   poner.
 - **La posición sale de `Motoboy.Latitud` / `.Longitud`.**
   `Viaje.LatitudDestino` es a dónde va el paquete. También hay prueba.
-- **Verificar `@ZonaOrigen`.** Las dos consultas declaran en qué zona creen que
-  está guardada la fecha de la última posición, y por defecto dicen `'UTC'`.
-  Es un supuesto, no un hecho comprobado: sale de que los flujos 01, 02 y 05 le
-  restan tres horas a `HistorialViaje.Fecha`. De esto depende toda la
-  antigüedad que muestra el mapa —con la zona corrida, o está todo en rojo o
-  está todo en verde—. Para confirmarlo alcanza con mirar
-  `UltimaActualizacionCruda` de un repartidor que se sabe activo. Si resultara
-  que ya viene en hora de México, el valor es
-  `'Central Standard Time (Mexico)'` y es la única línea que hay que cambiar,
-  en las dos consultas.
+- **La zona de `Motoboy.UltimaActualizacion` es la de Argentina (UTC−3).**
+  Comprobado contra la base el 2026-09-21: el servidor de SQL Server corre en
+  UTC (`GETDATE()` = `GETUTCDATE()`), pero la última actualización de
+  `Motoboy` y la de `HistorialViaje` iban tres horas por detrás del reloj UTC.
+  Las vistas del sistema hacen lo mismo: les restan tres horas para llevarlas a
+  México. Las consultas del tracker siguen declarando `@ZonaOrigen = 'UTC'` y
+  el nodo **Corregir zona de posición** del flujo 08 suma las tres horas
+  después; el resultado es el correcto. El flujo 12 lo resuelve en la misma
+  consulta con `AT TIME ZONE 'Argentina Standard Time'`.
 - **Ningún nodo lee a través del grafo.** No hay un solo `$('Otro nodo')`
   dentro de `{{ }}`, y no es casualidad: esa lectura depende de que n8n pueda
   rastrear la cadena de items hasta el nodo nombrado, y cuando la cadena se
