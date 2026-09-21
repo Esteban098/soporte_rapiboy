@@ -196,6 +196,13 @@ async function paqueteEnRuta(id: number) {
 const TIMEOUT_HISTORIAL_MS = 30_000;
 
 /**
+ * El encabezado que espera la credencial Header Auth del webhook en n8n. Es
+ * su campo «Name»: si no coincide letra por letra, n8n responde 403 con
+ * «Authorization data is wrong!» aunque el valor sea el correcto.
+ */
+const ENCABEZADO_TOKEN_HISTORIAL = "ChatBot-Rapiboy-Token";
+
+/**
  * Le pide a n8n el historial de un viaje en RapiboyData.
  *
  * La web no habla con SQL Server: igual que en el resto del tablero, quien
@@ -213,7 +220,7 @@ async function historialViaje(id: string, maxMovimientos = 60) {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        ...(config.token ? { "X-Rapiboy-Token": config.token } : {}),
+        ...(config.token ? { [ENCABEZADO_TOKEN_HISTORIAL]: config.token } : {}),
       },
       body: JSON.stringify({ origen: "asistente", id }),
       cache: "no-store",

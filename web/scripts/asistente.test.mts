@@ -198,6 +198,18 @@ test("el historial del sistema se lee campo por campo", () => {
   assert.equal(datos.movimientos[1].estado, null);
   assert.equal(datos.movimientos[1].enlace_foto, null);
 
+  // La base guarda algunas rutas con la barra de Windows: viajan con «/».
+  const conBarra = historialParaModelo({
+    encontrado: true,
+    id: "30727092",
+    viaje: { id_modalidad: 5, id_localidad: 9 },
+    historial: [{ fecha: "2026-09-17 20:10", foto: "https://files.rapiboy.com/Firma/202609\\014d2c0.jpeg" }],
+  });
+  assert.equal(
+    conBarra.encontrado && "movimientos" in conBarra ? conBarra.movimientos?.[0]?.enlace_foto : null,
+    "https://files.rapiboy.com/Firma/202609/014d2c0.jpeg",
+  );
+
   const otraLocalidad = historialParaModelo({ encontrado: true, id: "1", viaje: { id_modalidad: 5, id_localidad: 3 } });
   assert.equal(otraLocalidad.encontrado && otraLocalidad.en_alcance_del_tablero, false);
 });

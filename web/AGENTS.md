@@ -213,7 +213,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   de interpolarlo —es lo único que entra a la consulta— y pide token
   (`N8N_WEBHOOK_HISTORIAL_VIAJE`, `N8N_TOKEN_HISTORIAL_VIAJE`) porque, a
   diferencia de los demás webhooks, devuelve datos. Una prueba verifica las tres
-  cosas.
+  cosas. El encabezado es `ChatBot-Rapiboy-Token` (`ENCABEZADO_TOKEN_HISTORIAL`),
+  el *Name* de la credencial en n8n; no es el `X-Rapiboy-Token` del flujo 07.
+- Algunas fotos vienen de la base con la barra de Windows
+  (`Firma/202609\014d2c0.jpeg`). `files.rapiboy.com` las sirve igual, pero el
+  modelo escapa la barra y rompe el enlace: `enlaceFoto()` las manda con `/`.
 - Colectas: `asignacion_colectas` y `colectas_realizadas` leen las mismas
   tablas que la pantalla, sin dirección, teléfono, correo ni precios.
 - Va con `fetch` a OpenAI, como el resumen de seguimiento. Modelo en

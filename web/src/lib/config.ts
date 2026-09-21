@@ -214,7 +214,7 @@ export function asistenteConfig(): { clave: string; modelo: string } | null {
  * El flujo 11 de n8n, que trae el historial de un viaje desde RapiboyData.
  *
  * Va aparte de los `N8N_WEBHOOKS_*` porque no es un botón de refresco: no
- * escribe nada y devuelve datos, así que lleva token (`X-Rapiboy-Token`, la
+ * escribe nada y devuelve datos, así que lleva token (`ChatBot-Rapiboy-Token`, la
  * credencial Header Auth del webhook). Sin URL, el asistente dice que no
  * puede consultar el historial en vez de fallar.
  */

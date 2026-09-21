@@ -567,7 +567,7 @@ cada pestaña por gid del endpoint `/export`.
    | `OPENAI_API_KEY` | opcional: resume los reportes de seguimiento y habilita el asistente |
    | `OPENAI_MODELO_ASISTENTE` | opcional: modelo del asistente, por defecto `gpt-5-mini` |
    | `N8N_WEBHOOK_HISTORIAL_VIAJE` | opcional: Production URL del webhook `historial-viaje` (flujo 11) |
-   | `N8N_TOKEN_HISTORIAL_VIAJE` | opcional: el token de la credencial Header Auth de ese webhook |
+   | `N8N_TOKEN_HISTORIAL_VIAJE` | opcional: el token de la credencial Header Auth de ese webhook (encabezado `ChatBot-Rapiboy-Token`) |
 
    `SHEET_ID` ya no hace falta. Si se carga igual, queda como respaldo: con
    `ORIGEN_DATOS=sheet` el tablero vuelve al libro sin tocar código.
@@ -1020,8 +1020,10 @@ un refresco y el siguiente. Si el paquete no está en el tablero, explica por
 qué: otra localidad o modalidad, o que nunca fue una entrega fallida. Para
 habilitar la consulta al sistema, importar y activar el flujo y cargar `N8N_WEBHOOK_HISTORIAL_VIAJE`
 (la Production URL) y `N8N_TOKEN_HISTORIAL_VIAJE` (el valor de su credencial
-Header Auth). Sin eso, contesta solo con el tablero y avisa que no pudo
-consultar el sistema.
+Header Auth, cuyo *Name* tiene que ser exactamente `ChatBot-Rapiboy-Token`). Sin
+eso, contesta solo con el tablero y avisa que no pudo consultar el sistema. Si
+avisa «token rechazado», n8n respondió 403 («Authorization data is wrong!»):
+el nombre del encabezado o el valor no coinciden entre n8n y el tablero.
 
 **Qué no le llega a OpenAI:** teléfonos, ubicaciones y domicilios de clientes,
 coordenadas y domicilios de repartidores. Si hace falta uno de esos datos, la

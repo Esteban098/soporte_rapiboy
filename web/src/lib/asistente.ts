@@ -499,7 +499,7 @@ export function pedidoParaModelo(pedido: Pedido) {
     reclamo_tienda: pedido.reclamoTienda || null,
     tienda_aporto_datos: pedido.tieneDatosTienda,
     aviso: pedido.aviso || null,
-    enlace_evidencia: enlaceFotoEntrega(pedido.foto ?? ""),
+    enlace_evidencia: enlaceFoto(pedido.foto),
     enlace_rapiboy: enlaceViaje(pedido.id),
   };
 }
@@ -551,7 +551,7 @@ export function paqueteEnRutaParaModelo(paquete: PaqueteFila) {
     fecha_visita: momentoLegible(paquete.fecha_visita),
     motivo_no_entregado: paquete.motivo_no_entregado,
     comentario_repartidor: paquete.comentario_motoboy,
-    enlace_evidencia: enlaceFotoEntrega(paquete.evidencia_foto ?? ""),
+    enlace_evidencia: enlaceFoto(paquete.evidencia_foto),
     enlace_rapiboy: enlaceViaje(paquete.id_viaje),
     activo_en_ruta: paquete.activo_en_ruta,
     retirado_de_ruta_en: momentoLegible(paquete.retirado_de_ruta_en),
@@ -600,6 +600,16 @@ export function repartidorParaModelo(driver: DriverDelTracker) {
       : null,
     ultima_info: driver.ultimaInfo,
   };
+}
+
+/**
+ * El enlace a una foto de `files.rapiboy.com`. La base guarda algunas rutas con
+ * la barra de Windows (`Firma/202609\014d2c0.jpeg`): el servidor las sirve
+ * igual, pero el modelo la escapa al escribir el enlace y lo deja roto. Se
+ * manda ya con `/`, que abre la misma foto.
+ */
+function enlaceFoto(url: string | null | undefined): string | null {
+  return enlaceFotoEntrega((url ?? "").replace(/\\/g, "/"));
 }
 
 /**
@@ -669,7 +679,7 @@ export function historialParaModelo(crudo: unknown, maxMovimientos = 60) {
         repartidor: cadena(m.repartidor),
         hubo_visita: m.visitado === true,
         cambiado_por: persona(cadena(m.responsable)),
-        enlace_foto: enlaceFotoEntrega(cadena(m.foto) ?? ""),
+        enlace_foto: enlaceFoto(cadena(m.foto)),
       };
     }),
   };

@@ -330,7 +330,7 @@ sus últimos 60 movimientos de `HistorialViaje`.
   en la consulta, así que el nodo **Validar ID** exige de 5 a 12 dígitos y
   corta la corrida con cualquier otra cosa.
 - **Pide token.** A diferencia de los botones Actualizar, este webhook devuelve
-  datos, así que va con una credencial **Header Auth** (`X-Rapiboy-Token` y un
+  datos, así que va con una credencial **Header Auth** (`ChatBot-Rapiboy-Token` y un
   valor largo aleatorio). El mismo valor va en `N8N_TOKEN_HISTORIAL_VIAJE` del
   tablero, y la Production URL en `N8N_WEBHOOK_HISTORIAL_VIAJE`.
 - **Fechas.** Las del historial siguen la misma convención que los flujos 01,
