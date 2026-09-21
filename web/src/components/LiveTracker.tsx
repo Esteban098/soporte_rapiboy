@@ -25,7 +25,7 @@ import { ControlLluvia, useLluvia } from "./Lluvia";
 import { AtribucionTomTom, ControlesTomTom, useCiclo } from "./Trafico";
 import { REFRESCO_TRAFICO_MS } from "@/lib/trafico";
 import { NombreTienda } from "./ColorTiendas";
-import { caminos } from "@/lib/cobertura";
+import { caminos, proyectar } from "@/lib/cobertura";
 import estilos from "./live-tracker.module.css";
 
 /**
@@ -423,7 +423,7 @@ export function LiveTracker({
           <button type="button" role="tab" aria-selected={pestana === "estadisticas"} className={pestana === "estadisticas" ? estilos.pestanaActiva : estilos.pestana} onClick={() => setPestana("estadisticas")}>Estadísticas</button>
         </div>
         {pestana === "estadisticas" ? (
-          <EstadisticasTracker drivers={(estadisticas ?? datos).drivers} ventana={ventana} dia={estadisticas?.dia ?? datos.dia} />
+          <EstadisticasTracker drivers={(estadisticas ?? datos).drivers} ventana={ventana} dia={estadisticas?.dia ?? datos.dia} sinJornadaAnterior={!estadisticas} />
         ) : null}
         {pestana === "mapa" ? <>
         {/*
@@ -629,10 +629,13 @@ function EstadisticasTracker({
   drivers,
   ventana,
   dia,
+  sinJornadaAnterior,
 }: {
   drivers: DriverDelTracker[];
   ventana: Ventana;
   dia: string;
+  /** No se pudo leer la jornada anterior y se resume la visible. */
+  sinJornadaAnterior: boolean;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [ordenColumna, setOrdenColumna] = useState("entregas");
@@ -673,21 +676,20 @@ function EstadisticasTracker({
     .filter((fila) => normalizarBusqueda(fila.zona).includes(normalizarBusqueda(busqueda)))
     .sort((a, b) => (b.promedio ?? -1) - (a.promedio ?? -1) || b.cantidad - a.cantidad);
 
-  const puntos = entregados.filter((p) => p.latitud_destino != null && p.longitud_destino != null);
-  const minLat = Math.min(...puntos.map((p) => p.latitud_destino as number), ventana.sur);
-  const maxLat = Math.max(...puntos.map((p) => p.latitud_destino as number), ventana.norte);
-  const minLon = Math.min(...puntos.map((p) => p.longitud_destino as number), ventana.oeste);
-  const maxLon = Math.max(...puntos.map((p) => p.longitud_destino as number), ventana.este);
-  const celdas = Array.from({ length: 64 }, (_, indice) => {
-    const x = indice % 8;
-    const y = Math.floor(indice / 8);
-    const cantidad = puntos.filter((p) => {
-      const px = Math.min(7, Math.floor((((p.longitud_destino as number) - minLon) / Math.max(maxLon - minLon, 0.0001)) * 8));
-      const py = Math.min(7, 7 - Math.floor((((p.latitud_destino as number) - minLat) / Math.max(maxLat - minLat, 0.0001)) * 8));
-      return px === x && py === y;
-    }).length;
-    return { cantidad, x, y };
-  });
+  /*
+   * La grilla es la misma ventana que dibuja la cobertura, y cada destino se
+   * ubica con `proyectar()`, igual que en el mapa: así las celdas caen sobre
+   * las zonas correctas. Un destino fuera de la ventana no entra, en vez de
+   * estirar la grilla y correrla respecto del fondo.
+   */
+  const conteo = new Array<number>(64).fill(0);
+  for (const p of entregados) {
+    if (p.latitud_destino == null || p.longitud_destino == null) continue;
+    const { x, y } = proyectar({ lon: p.longitud_destino, lat: p.latitud_destino });
+    if (x < 0 || x >= ventana.ancho || y < 0 || y >= ventana.alto) continue;
+    conteo[Math.floor((y / ventana.alto) * 8) * 8 + Math.floor((x / ventana.ancho) * 8)] += 1;
+  }
+  const celdas = conteo.map((cantidad, indice) => ({ cantidad, x: indice % 8, y: Math.floor(indice / 8) }));
   const maxCelda = Math.max(1, ...celdas.map((c) => c.cantidad));
   const cambiarOrden = (columna: string) => {
     if (ordenColumna === columna) setAscendente((valor) => !valor);
@@ -707,6 +709,11 @@ function EstadisticasTracker({
   return (
     <section className={estilos.estadisticas} aria-label="Estadísticas de la jornada">
       <p className={estilos.subtituloEstadisticas}>Resumen operativo del {dia}</p>
+      {sinJornadaAnterior ? (
+        <p className={estilos.subtituloEstadisticas}>
+          No se pudo leer la jornada anterior; se muestra la jornada visible, que todavía puede cambiar.
+        </p>
+      ) : null}
       <div className={estilos.filtrosEstadisticas}>
         <input className={estilos.buscador} value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar driver o zona" aria-label="Buscar en estadísticas" />
       </div>

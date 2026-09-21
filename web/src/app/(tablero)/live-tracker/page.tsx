@@ -39,8 +39,17 @@ export default async function LiveTrackerPage() {
   let datos: DatosDelTracker;
   let datosEstadisticas: DatosDelTracker | undefined;
   try {
-    datos = await leerTracker();
-    datosEstadisticas = await leerTracker(diaOperativoAnterior(diaDePaquetes()));
+    /*
+     * La jornada anterior es solo para Estadísticas: si no se puede leer, la
+     * pestaña cae a la jornada visible y lo avisa, pero el mapa sigue andando.
+     */
+    [datos, datosEstadisticas] = await Promise.all([
+      leerTracker(),
+      leerTracker(diaOperativoAnterior(diaDePaquetes())).catch((error) => {
+        console.error("No se pudo leer la jornada anterior para Estadísticas", error);
+        return undefined;
+      }),
+    ]);
   } catch (error) {
     return (
       <>
