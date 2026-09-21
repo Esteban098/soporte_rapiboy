@@ -356,8 +356,9 @@ versionado y generado a mano con `scripts/cobertura.mts`.
 - El id del repartidor es `Motoboy.Id`, no `ReservaxMotoboy.IdMotoboy`: es el
   número que el mapa de choferes lleva en el nombre de cada punto.
 - **Tiendas es una pantalla aparte** (`/tiendas`) y no parte del tracker. Se
-  pidió así expresamente. El tracker no lee `tracker_tiendas` ni dibuja
-  comercios; solo conserva `Viaje.IdUsuario` y `Usuario.Alias` como contexto
+  pidió así expresamente. En el menú va dentro del grupo Colectas, pero la ruta
+  sigue siendo `/tiendas`: moverla obligaría a cambiar `RUTAS_COMERCIAL`. El
+  tracker no lee `tracker_tiendas` ni dibuja comercios; solo conserva `Viaje.IdUsuario` y `Usuario.Alias` como contexto
   del paquete en su ficha.
 - En sentido contrario, el mapa de Tiendas **sí** ofrece las capas de lluvia,
   calles y tráfico —los mismos componentes del tracker— y la última posición

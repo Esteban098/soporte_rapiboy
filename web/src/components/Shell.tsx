@@ -68,10 +68,6 @@ const NAVEGACION: (Grupo | Seccion)[] = [
 
   { href: "/seguimiento", etiqueta: "Seguimiento", icono: Nota, destacado: true },
   { href: "/cobertura", etiqueta: "Cobertura", icono: Mapa },
-  /* Al lado de Cobertura y no adentro del tracker: son las dos pantallas de
-     «dónde queda esto», sin día ni jornada. Tiendas no depende del tracker y
-     se entra a consultarla suelta. */
-  { href: "/tiendas", etiqueta: "Tiendas", icono: Local },
   /* Suelta y no en «Cola de trabajo»: no mira el mes ni el día de ayer, mira
      lo que está pasando ahora. Se entra a ver dónde está alguien, viniendo de
      cualquier pantalla, igual que a Cobertura. */
@@ -84,6 +80,11 @@ const NAVEGACION: (Grupo | Seccion)[] = [
       /* Mismo motivo que arriba: /colectas es prefijo de /colectas/historial. */
       { href: "/colectas", etiqueta: "Asignación", icono: Persona, exacto: true },
       { href: "/colectas/historial", etiqueta: "Historial", icono: Calendario },
+      /* Dentro de Colectas porque es donde se consulta: dónde queda el
+         comercio que hay que retirar y de quién es. La ruta sigue siendo
+         /tiendas, así no cambian los permisos del rol comercial ni los
+         enlaces guardados. */
+      { href: "/tiendas", etiqueta: "Tiendas", icono: Local },
     ],
   },
   {

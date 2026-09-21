@@ -399,9 +399,10 @@ Los dos KMZ —choferes y tiendas— se convierten con el mismo script; ver
 
 ## Tiendas
 
-Pantalla aparte, en `/tiendas`, y **no** parte del live tracker: no tiene día
-ni jornada, y responde una sola pregunta —«¿dónde queda este comercio?»— que
-se hace suelta, casi siempre con un id o un nombre a mano.
+Está en el menú dentro de **Colectas**, junto a Asignación e Historial, pero
+conserva su ruta `/tiendas`. **No** es parte del live tracker: no tiene día ni
+jornada, y responde una sola pregunta —«¿dónde queda este comercio?»— que se
+hace suelta, casi siempre con un id o un nombre a mano.
 
 Muestra las tiendas, los puntos de dropoff y la bodega sobre las zonas de
 reparto, con un buscador que filtra por nombre (sin acentos) o por id. El
