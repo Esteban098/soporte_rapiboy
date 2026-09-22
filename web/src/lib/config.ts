@@ -171,6 +171,10 @@ export const TABLA_TIENDAS_RESPONSABLES =
 export const TABLA_DIRECTORIO_SELLERS =
   process.env.SUPABASE_TABLA_DIRECTORIO_SELLERS?.trim() || "directorio_sellers";
 
+/** Snapshot consolidado por Usuario.Id. Se activa cuando la migración 18 está instalada. */
+export const TABLA_SELLERS_ACTIVOS =
+  process.env.SUPABASE_TABLA_SELLERS_ACTIVOS?.trim() || "sellers_activos";
+
 /** Drivers con reserva reciente sincronizados por el flujo 13. */
 export const TABLA_DIRECTORIO_DRIVERS =
   process.env.SUPABASE_TABLA_DIRECTORIO_DRIVERS?.trim() || "directorio_drivers";

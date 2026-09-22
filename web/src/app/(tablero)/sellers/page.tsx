@@ -7,8 +7,6 @@ import { leerSellersDirectorio } from "@/lib/directorio-datos";
 import { fechaCalendario, fechaHoraMexico, resumirDirectorio } from "@/lib/directorio";
 import { numero } from "@/lib/formato";
 import { TablaFaltante } from "@/lib/supabase";
-import { leerResponsables } from "@/lib/responsables-datos";
-import { PanelResponsables } from "@/components/PanelResponsables";
 
 export const metadata = { title: "Directorio · Sellers" };
 
@@ -23,14 +21,6 @@ export default async function Sellers() {
     throw error;
   }
 
-  let responsables: Awaited<ReturnType<typeof leerResponsables>> | null = null;
-  let responsablesError: unknown = null;
-  try {
-    responsables = await leerResponsables();
-  } catch (error) {
-    responsablesError = error;
-  }
-
   const resumen = resumirDirectorio(sellers);
   const filas = sellers.map((seller) => ({
     id: seller.id,
@@ -38,6 +28,9 @@ export default async function Sellers() {
     whatsapp: seller.grupoWhatsapp ? "Vinculado" : "Sin grupo",
     grupo: seller.grupoWhatsapp ?? "",
     asignacion: seller.asignacion === "MANUAL" ? "Manual" : seller.asignacion === "AUTOMATICO" ? "Automática" : "",
+    soporte: seller.soporteAsignado,
+    labels: seller.labelsWaha.map((label) => label.name).join(", "),
+    alerta: alertaSoporte(seller.soporteAsignado, seller.labelsWaha.flatMap((label) => label.name ? [label.name] : [])),
     comercial: seller.comercial,
     horaCorte: seller.horaCorte,
     bodega: seller.llevaBodega ? "Sí" : "No",
@@ -86,6 +79,9 @@ export default async function Sellers() {
               { clave: "whatsapp", titulo: "WhatsApp", tipo: "texto" },
               { clave: "grupo", titulo: "Grupo", tipo: "texto" },
               { clave: "asignacion", titulo: "Asignación", tipo: "texto" },
+              { clave: "soporte", titulo: "Soporte", tipo: "soporte" },
+              { clave: "labels", titulo: "Labels WAHA", tipo: "texto" },
+              { clave: "alerta", titulo: "Validación", tipo: "texto" },
               { clave: "comercial", titulo: "Comercial", tipo: "texto" },
               { clave: "horaCorte", titulo: "Hora corte", tipo: "texto" },
               { clave: "bodega", titulo: "Bodega", tipo: "texto" },
@@ -101,21 +97,29 @@ export default async function Sellers() {
             vacio="No hay sellers activos sincronizados."
           />
         </Card>
-        {responsables ? (
-          <PanelResponsables filas={responsables} />
-        ) : (
-          <Callout
-            tono={responsablesError instanceof TablaFaltante ? "warning" : "critical"}
-            titulo={responsablesError instanceof TablaFaltante ? "Falta cargar la distribución de tiendas" : "No se pudo leer la distribución"}
-          >
-            {responsablesError instanceof TablaFaltante
-              ? "Corré web/supabase/migracion-13-tiendas-responsables.sql en Supabase para cargar la distribución."
-              : "La base no respondió. Volvé a intentar en un momento."}
-          </Callout>
-        )}
       </div>
     </>
   );
+}
+
+function alertaSoporte(soporte: "CANDE" | "ESTEBAN" | null, labels: string[]): string {
+  if (!soporte) return labels.length ? "⚠️ Falta asignación" : "Sin asignar";
+  const esperado = soporte === "CANDE" ? "cande" : "esteban";
+  const relevantes = labelsSoporte(labels);
+  const coincide = relevantes.some((label) => normalizar(label).includes(esperado));
+  if (!relevantes.length) return "Asignado manualmente";
+  return coincide ? "Correcto" : "⚠️ No coincide";
+}
+
+function normalizar(valor: string): string {
+  return valor.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase().trim();
+}
+
+function labelsSoporte(labels: string[]): string[] {
+  return labels.filter((label) => {
+    const valor = normalizar(label);
+    return valor.includes("cande") || valor.includes("candelaria") || valor.includes("esteban");
+  });
 }
 
 function SinBase() {

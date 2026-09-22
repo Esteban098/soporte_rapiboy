@@ -2,7 +2,7 @@ import "server-only";
 
 import {
   TABLA_DIRECTORIO_DRIVERS,
-  TABLA_DIRECTORIO_SELLERS,
+  TABLA_SELLERS_ACTIVOS,
   VISTA_DIRECTORIO_CONTACTOS_WHATSAPP,
 } from "./config";
 import { consultarTodo } from "./supabase";
@@ -17,7 +17,7 @@ type ContactoFila = {
 };
 
 type SellerFila = {
-  id_seller: number | string;
+  id_seller?: number | string;
   nombre: string | null;
   hora_corte: string | null;
   direccion: string | null;
@@ -30,6 +30,13 @@ type SellerFila = {
   paga_colecta: boolean | null;
   tope_maximo: number | string | null;
   actualizado_en: string | null;
+};
+
+type SellerConsolidadoFila = SellerFila & {
+  id_usuario: number | string;
+  grupo_nombre: string | null;
+  soporte_asignado: "CANDE" | "ESTEBAN" | null;
+  labels_waha: unknown;
 };
 
 type DriverFila = {
@@ -45,27 +52,36 @@ function texto(valor: unknown): string {
   return valor == null ? "" : String(valor).trim();
 }
 
+function labelsWaha(valor: unknown): { id?: string | number; name?: string; color?: string }[] {
+  const lista = Array.isArray(valor)
+    ? valor
+    : valor && typeof valor === "object" && Array.isArray((valor as { labels?: unknown }).labels)
+      ? (valor as { labels: unknown[] }).labels
+      : [];
+  return lista.flatMap((label) => {
+    if (!label || typeof label !== "object") return [];
+    const fila = label as Record<string, unknown>;
+    const name = texto(fila.name ?? fila.nombre ?? fila.label);
+    return name ? [{ id: fila.id as string | number | undefined, name, color: texto(fila.color) || undefined }] : [];
+  });
+}
+
 function asignacionesPorId(filas: ContactoFila[]): Map<string, ContactoFila> {
   return new Map(filas.map((fila) => [String(fila.id_entidad), fila]));
 }
 
 /** Sellers activos. El JID se conserva en Supabase para los flujos, no viaja al navegador. */
 export async function leerSellersDirectorio(): Promise<SellerDirectorio[]> {
-  const [sellers, contactos] = await Promise.all([
-    consultarTodo<SellerFila>(TABLA_DIRECTORIO_SELLERS, { activo: "eq.true" }, "nombre.asc,id_seller.asc"),
-    consultarTodo<ContactoFila>(
-      VISTA_DIRECTORIO_CONTACTOS_WHATSAPP,
-      { tipo_entidad: "eq.SELLER", activo: "eq.true" },
-      "nombre.asc,id_entidad.asc",
-    ),
-  ]);
-  const grupos = asignacionesPorId(contactos);
+  const sellers = await consultarTodo<SellerConsolidadoFila>(
+    TABLA_SELLERS_ACTIVOS,
+    { activo: "eq.true" },
+    "nombre.asc,id_usuario.asc",
+  );
 
   return sellers.map((fila) => {
-    const grupo = grupos.get(String(fila.id_seller));
     const tope = fila.tope_maximo == null ? null : Number(fila.tope_maximo);
     return {
-      id: Number(fila.id_seller),
+      id: Number(fila.id_usuario),
       nombre: texto(fila.nombre),
       horaCorte: texto(fila.hora_corte).slice(0, 5),
       direccion: texto(fila.direccion),
@@ -77,8 +93,10 @@ export async function leerSellersDirectorio(): Promise<SellerDirectorio[]> {
       llevaDropoff: fila.lleva_dropoff === true,
       pagaColecta: fila.paga_colecta === true,
       topeMaximo: Number.isFinite(tope) ? tope : null,
-      grupoWhatsapp: texto(grupo?.nombre_grupo) || null,
-      asignacion: grupo?.origen ?? null,
+      grupoWhatsapp: texto(fila.grupo_nombre) || null,
+      labelsWaha: labelsWaha(fila.labels_waha),
+      asignacion: fila.grupo_nombre ? "AUTOMATICO" : null,
+      soporteAsignado: fila.soporte_asignado,
       actualizadoEn: texto(fila.actualizado_en),
     };
   });

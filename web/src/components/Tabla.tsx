@@ -17,6 +17,7 @@ import {
 import { useVista } from "./useVista";
 import { EditorCaso, type Edicion } from "./EditorCaso";
 import { numero, porcentaje, decimal } from "@/lib/formato";
+import { AsignarSoporteSeller } from "./AsignarSoporteSeller";
 import { ChipCaso, TextoEstado } from "./Card";
 import estilos from "./ui.module.css";
 import tabla from "./tabla.module.css";
@@ -40,7 +41,8 @@ export type TipoColumna =
   | "aviso"
   | "dias"
   /** Un comercio, pintado con el color de quien lo tiene asignado. */
-  | "tienda";
+  | "tienda"
+  | "soporte";
 
 export type Columna = {
   clave: string;
@@ -427,6 +429,17 @@ function Celda({
   // Sin recortes: cada celda muestra su contenido completo y la tabla scrollea
   // en horizontal si no entra.
   const clase = esNumerica(columna.tipo) ? estilos.num : undefined;
+
+  if (columna.tipo === "soporte") {
+    return (
+      <td className={clase}>
+        <AsignarSoporteSeller
+          id={Number(fila.id)}
+          valor={valor === "CANDE" || valor === "ESTEBAN" ? valor : null}
+        />
+      </td>
+    );
+  }
 
   if (valor == null || valor === "") {
     return (

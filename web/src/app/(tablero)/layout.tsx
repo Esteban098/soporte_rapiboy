@@ -1,7 +1,8 @@
 import { auth } from "@/auth";
 import { esAdmin } from "@/lib/sesion";
 import { modoDatos } from "@/lib/config";
-import { indiceResponsables } from "@/lib/responsables-datos";
+import { leerSellersDirectorio } from "@/lib/directorio-datos";
+import { claveTienda } from "@/lib/responsables";
 import { Shell } from "@/components/Shell";
 import { ProveedorTiendas } from "@/components/ColorTiendas";
 
@@ -10,8 +11,22 @@ export default async function TableroLayout({ children }: { children: React.Reac
   const usuario = sesion?.user?.name ?? sesion?.user?.email ?? null;
   const admin = await esAdmin();
 
-  // Sin base no hay distribución que leer: las tiendas se ven sin color.
-  const indice = modoDatos() === "supabase" ? await indiceResponsables() : {};
+  let indice: Record<string, string> = {};
+  if (modoDatos() === "supabase") {
+    try {
+      const sellers = await leerSellersDirectorio();
+      indice = Object.fromEntries(
+        sellers
+          .filter((seller) => seller.soporteAsignado)
+          .map((seller) => [
+            claveTienda(seller.nombre),
+            seller.soporteAsignado === "CANDE" ? "candelaria@rapiboy.com" : "esteban@rapiboy.com",
+          ]),
+      );
+    } catch {
+      indice = {};
+    }
+  }
 
   return (
     <ProveedorTiendas indice={indice}>

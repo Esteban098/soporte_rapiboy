@@ -20,7 +20,9 @@ export type SellerDirectorio = {
   pagaColecta: boolean;
   topeMaximo: number | null;
   grupoWhatsapp: string | null;
+  labelsWaha: { id?: string | number; name?: string; color?: string }[];
   asignacion: "AUTOMATICO" | "MANUAL" | null;
+  soporteAsignado: "CANDE" | "ESTEBAN" | null;
   actualizadoEn: string;
 };
 

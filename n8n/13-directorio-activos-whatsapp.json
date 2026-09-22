@@ -320,6 +320,149 @@
           "name": "Supabase - plataforma"
         }
       }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "BEGIN;\n\nINSERT INTO public.sellers_activos (id_usuario, nombre, hora_corte, direccion, fecha_activacion, celular, comercial, email, lleva_bodega, lleva_dropoff, paga_colecta, tope_maximo, grupo_jid, grupo_nombre, activo, visto_por_ultima_vez, actualizado_en, ultimo_sync_id)\nSELECT s.id_seller, s.nombre, s.hora_corte, s.direccion, s.fecha_activacion, s.celular, s.comercial, s.email, s.lleva_bodega, s.lleva_dropoff, s.paga_colecta, s.tope_maximo, a.grupo_jid, g.nombre_grupo, s.activo, s.visto_por_ultima_vez, now(), s.ultimo_sync_id\nFROM public.directorio_sellers s\nLEFT JOIN public.whatsapp_asignaciones a ON a.tipo_entidad = 'SELLER' AND a.id_entidad = s.id_seller\nLEFT JOIN public.whatsapp_grupos g ON g.grupo_jid = a.grupo_jid\nON CONFLICT (id_usuario) DO UPDATE SET nombre = EXCLUDED.nombre, hora_corte = EXCLUDED.hora_corte, direccion = EXCLUDED.direccion, fecha_activacion = EXCLUDED.fecha_activacion, celular = EXCLUDED.celular, comercial = EXCLUDED.comercial, email = EXCLUDED.email, lleva_bodega = EXCLUDED.lleva_bodega, lleva_dropoff = EXCLUDED.lleva_dropoff, paga_colecta = EXCLUDED.paga_colecta, tope_maximo = EXCLUDED.tope_maximo, grupo_jid = EXCLUDED.grupo_jid, grupo_nombre = EXCLUDED.grupo_nombre, activo = EXCLUDED.activo, visto_por_ultima_vez = EXCLUDED.visto_por_ultima_vez, actualizado_en = EXCLUDED.actualizado_en, ultimo_sync_id = EXCLUDED.ultimo_sync_id;\n\nUPDATE public.sellers_activos SET activo = false, actualizado_en = now() WHERE activo AND ultimo_sync_id <> '{{ $execution.id }}';\n\nCOMMIT;\n\nSELECT count(*) AS sellers_consolidados FROM public.sellers_activos WHERE activo;",
+        "options": {}
+      },
+      "id": "a4a7c4f7-5e9a-4a8e-a8cc-18-sellers-consolidados",
+      "name": "Consolidar sellers activos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1600,
+        200
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - plataforma"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.sellers_activos s SET labels_waha = CASE WHEN jsonb_typeof(g.labels_waha) = 'array' THEN g.labels_waha ELSE '[]'::jsonb END, actualizado_en = now() FROM public.whatsapp_asignaciones a JOIN public.whatsapp_grupos g ON g.grupo_jid = a.grupo_jid WHERE a.tipo_entidad = 'SELLER' AND a.id_entidad = s.id_usuario AND s.activo;\n\nSELECT count(*) AS sellers_con_labels FROM public.sellers_activos WHERE activo AND jsonb_typeof(labels_waha) = 'array' AND jsonb_array_length(labels_waha) > 0;",
+        "options": {}
+      },
+      "id": "c6f6e5ef-1f6e-4e89-9f0e-19-labels-sellers",
+      "name": "Copiar labels a sellers",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1820,
+        200
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - plataforma"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'http://waha:3000/api/Esteban_Larcher/labels/chats/' + encodeURIComponent($json.grupo_jid) + '/' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Api-Key", "value": "={{ $env.WAHA_API_KEY }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d2e1e9be-9d6a-4f5d-9a21-19-obtener-labels",
+      "name": "Obtener labels por grupo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        420
+      ],
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const originales = $items('Normalizar grupos WhatsApp');\nconst cande = $items('Obtener chats label Cande');\nconst esteban = $items('Obtener chats label Esteban');\n\nfunction lista(valor) {\n  if (Array.isArray(valor)) return valor.flatMap(lista);\n  if (!valor || typeof valor !== 'object') return [];\n  for (const clave of ['data', 'chats', 'items', 'results', 'body']) {\n    if (valor[clave] != null) {\n      const encontrada = lista(valor[clave]);\n      if (encontrada.length) return encontrada;\n    }\n  }\n  return [valor];\n}\n\nfunction jidDe(valor) {\n  if (typeof valor === 'string') return decodeURIComponent(valor);\n  if (!valor || typeof valor !== 'object') return '';\n  if (typeof valor._serialized === 'string') return valor._serialized;\n  if (typeof valor.serialized === 'string') return valor.serialized;\n  if (typeof valor.user === 'string' && typeof valor.server === 'string') return `${valor.user}@${valor.server}`;\n  for (const clave of ['id', 'JID', 'jid', 'chatId', 'chat_id']) {\n    const encontrado = jidDe(valor[clave]);\n    if (encontrado) return encontrado;\n  }\n  return '';\n}\n\nfunction ids(items) {\n  const salida = new Set();\n  for (const item of items) {\n    for (const chat of lista(item.json)) {\n      const id = jidDe(chat);\n      if (id) salida.add(id);\n    }\n  }\n  return salida;\n}\n\nconst idsCande = ids(cande);\nconst idsEsteban = ids(esteban);\n\nreturn originales.map((item) => {\n  const grupo = item.json;\n  const jid = String(grupo.grupo_jid);\n  const labels = [];\n  if (idsCande.has(jid)) labels.push({ id: '9', name: 'Cande' });\n  if (idsEsteban.has(jid)) labels.push({ id: '17', name: 'Esteban' });\n  return { json: { ...grupo, labels_waha: JSON.stringify(labels) } };\n});"
+      },
+      "id": "e4b8f5d0-2d08-47fb-a8cc-19-normalizar-labels",
+      "name": "Normalizar labels WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": { "__rl": true, "mode": "list", "value": "public" },
+        "table": { "__rl": true, "mode": "list", "value": "whatsapp_grupos" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": ["grupo_jid"],
+          "schema": [],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f7c0aa6a-c42b-41a6-a8a0-19-guardar-labels",
+      "name": "Guardar grupos y labels",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1240,
+        420
+      ],
+      "executeOnce": false,
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - plataforma"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://waha:3000/api/Esteban_Larcher/labels/9/chats",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "X-Api-Key", "value": "={{ $env.WAHA_API_KEY }}" }] },
+        "options": {}
+      },
+      "id": "0b1d0f8c-0f9d-4b4f-9-label-cande",
+      "name": "Obtener chats label Cande",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        620
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "url": "http://waha:3000/api/Esteban_Larcher/labels/17/chats",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "X-Api-Key", "value": "={{ $env.WAHA_API_KEY }}" }] },
+        "options": {}
+      },
+      "id": "1d4f6b1e-67fc-4e62-9-label-esteban",
+      "name": "Obtener chats label Esteban",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        620
+      ],
+      "executeOnce": true
     }
   ],
   "pinData": {},
@@ -449,7 +592,62 @@
       "main": [
         [
           {
-            "node": "Guardar grupos WhatsApp",
+            "node": "Obtener chats label Cande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener chats label Cande": {
+      "main": [
+        [
+          {
+            "node": "Obtener chats label Esteban",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener chats label Esteban": {
+      "main": [
+        [
+          {
+            "node": "Normalizar labels WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener labels por grupo": {
+      "main": [
+        [
+          {
+            "node": "Normalizar labels WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar labels WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Guardar grupos y labels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar grupos y labels": {
+      "main": [
+        [
+          {
+            "node": "Cerrar catalogos y vincular",
             "type": "main",
             "index": 0
           }
@@ -461,6 +659,28 @@
         [
           {
             "node": "Cerrar catalogos y vincular",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cerrar catalogos y vincular": {
+      "main": [
+        [
+          {
+            "node": "Consolidar sellers activos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar sellers activos": {
+      "main": [
+        [
+          {
+            "node": "Copiar labels a sellers",
             "type": "main",
             "index": 0
           }
