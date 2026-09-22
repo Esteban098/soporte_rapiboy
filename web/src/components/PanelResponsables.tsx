@@ -19,6 +19,8 @@ import propio from "./color-tiendas.module.css";
 
 type Edicion = { fila: FilaResponsable | null };
 
+const FILAS_INICIALES = 12;
+
 const ETIQUETA_SECCION = Object.fromEntries(SECCIONES.map((s) => [s.valor, s.etiqueta]));
 
 /**
@@ -32,6 +34,7 @@ export function PanelResponsables({ filas }: { filas: FilaResponsable[] }) {
   const [busqueda, setBusqueda] = useState("");
   const [seccion, setSeccion] = useState("");
   const [edicion, setEdicion] = useState<Edicion | null>(null);
+  const [todas, setTodas] = useState(false);
 
   const visibles = useMemo(() => {
     const texto = claveTienda(busqueda);
@@ -129,7 +132,7 @@ export function PanelResponsables({ filas }: { filas: FilaResponsable[] }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {suyas.map((fila) => (
+                      {(todas ? suyas : suyas.slice(0, FILAS_INICIALES)).map((fila) => (
                         <tr key={fila.id}>
                           <td>
                             <MarcaResponsable email={fila.responsable}>
@@ -161,6 +164,11 @@ export function PanelResponsables({ filas }: { filas: FilaResponsable[] }) {
                   </table>
                 </div>
               )}
+              {suyas.length > FILAS_INICIALES ? (
+                <button type="button" className={estilos.masFilas} onClick={() => setTodas(!todas)}>
+                  {todas ? "Mostrar menos" : `Mostrar las ${numero(suyas.length)}`}
+                </button>
+              ) : null}
             </div>
           );
         })}

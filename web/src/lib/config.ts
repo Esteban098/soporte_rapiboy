@@ -264,6 +264,7 @@ export type ClaveFlujo =
   | "historico"
   | "canceladosHistorico"
   | "colectas"
+  | "directorio"
   | "trackerPosiciones"
   | "trackerPaquetes"
   | "colectasVivo";
@@ -273,6 +274,7 @@ const VARIABLE_DE_FLUJO: Record<ClaveFlujo, string> = {
   historico: "N8N_WEBHOOKS_HISTORICO",
   canceladosHistorico: "N8N_WEBHOOKS_CANCELADOS_HISTORICO",
   colectas: "N8N_WEBHOOKS_COLECTAS",
+  directorio: "N8N_WEBHOOKS_DIRECTORIO",
 
   /*
    * Los dos del tracker van separados y no comparten webhook a propósito: son

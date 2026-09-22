@@ -39,6 +39,7 @@ export default async function Drivers() {
       <PageHead
         eyebrow="Directorio · México"
         titulo="Drivers"
+        flujo="directorio"
         dek="Repartidores que tomaron una reserva válida durante los últimos 14 días y su grupo asignado de WhatsApp. El grupo será el destino de los futuros mensajes predeterminados de WAHA."
       />
 
@@ -55,7 +56,7 @@ export default async function Drivers() {
             id="directorio-drivers"
             titulo="Directorio · Drivers"
             filas={filas}
-            limite={100}
+            limite={20}
             ordenInicial={{ clave: "driver", asc: true }}
             filtros={[
               { clave: "whatsapp", etiqueta: "WhatsApp" },
@@ -85,7 +86,7 @@ export default async function Drivers() {
 function SinBase() {
   return (
     <>
-      <PageHead eyebrow="Directorio · México" titulo="Drivers" />
+      <PageHead eyebrow="Directorio · México" titulo="Drivers" flujo="directorio" />
       <Callout tono="warning" titulo="La plataforma no está usando Supabase">
         El directorio operativo solo está disponible con la base de Supabase activa.
       </Callout>
@@ -96,7 +97,7 @@ function SinBase() {
 function SinTablas() {
   return (
     <>
-      <PageHead eyebrow="Directorio · México" titulo="Drivers" />
+      <PageHead eyebrow="Directorio · México" titulo="Drivers" flujo="directorio" />
       <Callout tono="warning" titulo="Falta crear el directorio">
         Corré <code>web/supabase/migracion-17-directorio-activos-whatsapp.sql</code> en Supabase y después ejecutá el flujo <code>n8n/13-directorio-activos-whatsapp.json</code>.
       </Callout>

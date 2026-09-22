@@ -2,7 +2,6 @@ import { PageHead } from "@/components/Shell";
 import { Callout, Kpi } from "@/components/Card";
 import { MapaTiendas } from "@/components/MapaTiendas";
 import { FondoCobertura } from "@/components/FondoCobertura";
-import { PanelResponsables } from "@/components/PanelResponsables";
 import { claveTomTom, flujosDe, modoDatos } from "@/lib/config";
 import { sesionActual } from "@/lib/sesion";
 import { esComercial } from "@/lib/permisos";
@@ -13,12 +12,11 @@ import { ResumenColectasVivo } from "@/components/ColectasEnVivo";
 import { ventanaProyeccion } from "@/lib/cobertura";
 import { TablaFaltante } from "@/lib/supabase";
 import { leerLugares } from "@/lib/tiendas-datos";
-import { leerResponsables } from "@/lib/responsables-datos";
 import { numero } from "@/lib/formato";
 import type { Lugar } from "@/lib/tiendas";
 import estilos from "@/components/ui.module.css";
 
-export const metadata = { title: "Tiendas" };
+export const metadata = { title: "Ruta" };
 
 /**
  * Sin caché: la tabla se recarga a mano cuando operaciones actualiza el mapa,
@@ -61,9 +59,8 @@ export default async function Tiendas() {
    * incluido; las coordenadas de los repartidores se sacan en el servidor para
    * quien no ve el live tracker.
    */
-  const [lugares, responsables, posiciones, colectas] = await Promise.allSettled([
+  const [lugares, posiciones, colectas] = await Promise.allSettled([
     leerLugares(),
-    leerResponsables(),
     puedeVerPosiciones ? leerPosiciones() : Promise.resolve(null),
     leerColectasDelDia({ sinPosiciones: !puedeVerPosiciones }),
   ]);
@@ -112,22 +109,6 @@ export default async function Tiendas() {
           <ResumenColectasVivo dia={colectasDelDia} />
         ) : null}
 
-        {responsables.status === "rejected" ? (
-          <Callout
-            tono={responsables.reason instanceof TablaFaltante ? "warning" : "critical"}
-            titulo={
-              responsables.reason instanceof TablaFaltante
-                ? "Falta cargar la distribución de tiendas"
-                : "No se pudo leer la distribución"
-            }
-          >
-            {responsables.reason instanceof TablaFaltante
-              ? "La tabla «tiendas_responsables» todavía no existe. Corré web/supabase/migracion-13-tiendas-responsables.sql en el SQL Editor de Supabase y volvé a entrar."
-              : "La base no respondió. Volvé a intentar en un momento."}
-          </Callout>
-        ) : (
-          <PanelResponsables filas={responsables.value} />
-        )}
       </div>
     </>
   );
@@ -191,9 +172,9 @@ function Mapa({
 function Cabecera() {
   return (
     <PageHead
-      eyebrow="Dónde queda cada comercio"
-      titulo="Tiendas"
-      dek="Las colectas de hoy en vivo —qué repartidor va a qué tienda, en qué estado está cada una y dónde anda cada repartidor— y el directorio de tiendas, dropoff y bodega sobre las zonas de reparto. La distribución se edita acá abajo y decide el color de cada tienda en todo el tablero: azul Esteban, rosa Candelaria."
+      eyebrow="Colectas · Ruta"
+      titulo="Ruta"
+      dek="Las colectas de hoy en vivo —qué repartidor va a qué tienda, en qué estado está cada una y dónde anda cada repartidor— sobre las zonas de reparto."
     />
   );
 }

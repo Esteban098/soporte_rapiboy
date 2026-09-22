@@ -18,7 +18,7 @@ File**.
 | `09-tracker-paquetes.json` | Actualiza la última ruta operativa —el sábado si es lunes— o reconcilia la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 7:15; cada 30 min de 15:00 a 23:30, lunes a sábado; y desde **Actualizar** del live tracker, antes de las posiciones |
 | `11-historial-viaje.json` | Devuelve el estado y el historial de un viaje desde RapiboyData, para el asistente del tablero. Solo lee | Cada vez que alguien pregunta por un paquete en el asistente |
 | `12-colectas-vivo.json` | Las colectas de hoy con su estado, su historial y la última posición de cada repartidor, y guarda cada posición nueva para dibujar el recorrido, para el mapa de **Tiendas**. Solo lee SQL Server | Cada 5 min de 7:00 a 16:55, lunes a sábado, y desde **Actualizar posiciones y estados** en Tiendas |
-| `13-directorio-activos-whatsapp.json` | Sincroniza en Supabase los sellers activos de México, los drivers con reserva válida en los últimos 14 días y sus grupos de WhatsApp | 9:00 de lunes a sábado, y manualmente desde n8n |
+| `13-directorio-activos-whatsapp.json` | Sincroniza en Supabase los sellers activos de México, los drivers con reserva válida en los últimos 14 días y sus grupos de WhatsApp | 9:00 de lunes a sábado, manualmente desde n8n y desde los botones de Sellers/Drivers |
 
 ## Antes de importar
 
@@ -102,6 +102,7 @@ de hoy.
 | `N8N_WEBHOOKS_TRACKER_POSICIONES` | `08-tracker-drivers` | `tracker-posiciones` |
 | `N8N_WEBHOOKS_TRACKER_PAQUETES` | `09-tracker-paquetes` | `tracker-paquetes` |
 | `N8N_WEBHOOKS_COLECTAS_VIVO` | `12-colectas-vivo` | `colectas-en-vivo` |
+| `N8N_WEBHOOKS_DIRECTORIO` | `13-directorio-activos-whatsapp` | `actualizar-directorio` |
 
 Las de histórico pueden quedar vacías: el botón avisa que no hay flujos y la
 pantalla sigue mostrando lo que ya está guardado.

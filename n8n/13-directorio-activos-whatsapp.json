@@ -34,6 +34,24 @@
     },
     {
       "parameters": {
+        "httpMethod": "POST",
+        "path": "actualizar-directorio",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "c3d2f1a0-9b8c-47d6-a5e4-3210fedcba98",
+      "name": "Boton Actualizar directorio",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1260,
+        500
+      ],
+      "webhookId": "f8e7d6c5-b4a3-4210-9f8e-7d6c5b4a3210",
+      "notes": "La Production URL de este nodo se configura en N8N_WEBHOOKS_DIRECTORIO. Response Mode = Last Node para que el tablero espere a que termine la sincronizacion antes de refrescar los catalogos."
+    },
+    {
+      "parameters": {
         "operation": "executeQuery",
         "query": "INSERT INTO public.directorio_sync_ejecuciones (sync_id, estado, iniciado_en)\nVALUES ('{{ $execution.id }}', 'EJECUTANDO', now())\nON CONFLICT (sync_id) DO UPDATE\nSET estado = 'EJECUTANDO', iniciado_en = now(), finalizado_en = NULL, detalle_error = NULL\nRETURNING sync_id;",
         "options": {}
@@ -318,6 +336,17 @@
       ]
     },
     "Ejecucion manual": {
+      "main": [
+        [
+          {
+            "node": "Abrir sincronizacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Boton Actualizar directorio": {
       "main": [
         [
           {

@@ -136,6 +136,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   del grupo **Directorio** del sidebar. Las lecturas pasan por
   `src/lib/directorio-datos.ts`, que es `server-only`; el JID queda en el
   servidor para los futuros flujos WAHA y no forma parte del DTO de pantalla.
+  Ambas pantallas disparan el flujo 13 con el botón Actualizar y muestran sus
+  tablas con una cantidad inicial reducida; el resto se despliega a pedido.
 
 ## Límites entre flujos
 
@@ -152,6 +154,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `valor_70` en los nodos Postgres aunque aparezca entre las columnas disponibles.
 - `ayer` se vacía solamente dentro de la ingesta diaria y después de confirmar
   que hubo jornada. Una limpieza manual es puntual y no se incorpora al flujo.
+- La pantalla `/tiendas` se presenta como **Ruta** dentro de Colectas. La
+  distribución editable de tiendas vive debajo del directorio de Sellers; no
+  se duplica en Ruta. La tabla de distribución también comienza reducida.
 - El flujo 12 escribe **solo** `colectas_vivo`, `colectas_vivo_drivers` y
   `colectas_vivo_posiciones` (el recorrido, `migracion-16`; recorta ella misma lo
   de más de 30 días) y lee
@@ -194,7 +199,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   el menú y las acciones. `operadorActual()` y `usuarioActual()` devuelven
   `null` para un comercial, así que toda acción o endpoint nuevo queda cerrado
   para él por defecto; `sesionActual()` lo incluye y se usa solo donde
-  corresponde (guardar tiendas, refrescar colectas). Una pantalla nueva que
+  corresponde (refrescar colectas). La distribución editable se movió a
+  `/sellers`, que permanece restringido a admin y operador. Una pantalla nueva que
   deba verla un comercial se agrega a `RUTAS_COMERCIAL`.
 - Los JSON de `../n8n/` son exportaciones importables. Conservar credenciales,
   conexiones, expresiones y columnas protegidas al modificarlos.

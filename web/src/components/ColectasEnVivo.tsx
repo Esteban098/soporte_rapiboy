@@ -856,7 +856,8 @@ function PinDriver({
  * Debajo del mapa
  * ------------------------------------------------------------------------- */
 
-const FILAS_INICIALES = 25;
+const FILAS_INICIALES = 12;
+const DRIVERS_INICIALES = 8;
 
 /**
  * El resumen de la jornada: cifras, lo que hay que revisar, cada repartidor y
@@ -868,6 +869,7 @@ export function ResumenColectasVivo({ dia }: { dia: ColectasDelDia }) {
   const totales = useMemo(() => totalesDelDia(dia), [dia]);
   const alertas = useMemo(() => alertasDelDia(dia, ahora), [dia, ahora]);
   const [todas, setTodas] = useState(false);
+  const [todosDrivers, setTodosDrivers] = useState(false);
   const [todasAlertas, setTodasAlertas] = useState(false);
 
   const colectas = useMemo(
@@ -965,7 +967,7 @@ export function ResumenColectasVivo({ dia }: { dia: ColectasDelDia }) {
               </tr>
             </thead>
             <tbody>
-              {resumenes.map((r) => (
+              {(todosDrivers ? resumenes : resumenes.slice(0, DRIVERS_INICIALES)).map((r) => (
                 <tr key={claveDriver(r.id)}>
                   <td>
                     <span className={lt.chip} style={{ background: r.color, display: "inline-block", marginRight: 6 }} aria-hidden="true" />
@@ -988,6 +990,11 @@ export function ResumenColectasVivo({ dia }: { dia: ColectasDelDia }) {
             </tbody>
           </table>
         </div>
+        {resumenes.length > DRIVERS_INICIALES ? (
+          <button type="button" className={estilos.masFilas} onClick={() => setTodosDrivers(!todosDrivers)}>
+            {todosDrivers ? "Mostrar menos" : `Mostrar los ${resumenes.length}`}
+          </button>
+        ) : null}
       </div>
 
       <div className={lt.tablaBloque}>

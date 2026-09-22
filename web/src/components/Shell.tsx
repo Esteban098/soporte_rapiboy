@@ -94,7 +94,7 @@ const NAVEGACION: (Grupo | Seccion)[] = [
          comercio que hay que retirar y de quién es. La ruta sigue siendo
          /tiendas, así no cambian los permisos del rol comercial ni los
          enlaces guardados. */
-      { href: "/tiendas", etiqueta: "Tiendas", icono: Local },
+      { href: "/tiendas", etiqueta: "Ruta", icono: Local },
     ],
   },
   {

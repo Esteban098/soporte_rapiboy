@@ -7,6 +7,8 @@ import { leerSellersDirectorio } from "@/lib/directorio-datos";
 import { fechaCalendario, fechaHoraMexico, resumirDirectorio } from "@/lib/directorio";
 import { numero } from "@/lib/formato";
 import { TablaFaltante } from "@/lib/supabase";
+import { leerResponsables } from "@/lib/responsables-datos";
+import { PanelResponsables } from "@/components/PanelResponsables";
 
 export const metadata = { title: "Directorio · Sellers" };
 
@@ -19,6 +21,14 @@ export default async function Sellers() {
   } catch (error) {
     if (error instanceof TablaFaltante) return <SinTablas />;
     throw error;
+  }
+
+  let responsables: Awaited<ReturnType<typeof leerResponsables>> | null = null;
+  let responsablesError: unknown = null;
+  try {
+    responsables = await leerResponsables();
+  } catch (error) {
+    responsablesError = error;
   }
 
   const resumen = resumirDirectorio(sellers);
@@ -46,6 +56,7 @@ export default async function Sellers() {
       <PageHead
         eyebrow="Directorio · México"
         titulo="Sellers"
+        flujo="directorio"
         dek="Tiendas activas sincronizadas desde Rapiboy y su grupo asignado de WhatsApp. Este directorio será la fuente de destinatarios para los mensajes predeterminados de WAHA."
       />
 
@@ -62,7 +73,7 @@ export default async function Sellers() {
             id="directorio-sellers"
             titulo="Directorio · Sellers"
             filas={filas}
-            limite={100}
+            limite={20}
             ordenInicial={{ clave: "seller", asc: true }}
             filtros={[
               { clave: "whatsapp", etiqueta: "WhatsApp" },
@@ -90,6 +101,18 @@ export default async function Sellers() {
             vacio="No hay sellers activos sincronizados."
           />
         </Card>
+        {responsables ? (
+          <PanelResponsables filas={responsables} />
+        ) : (
+          <Callout
+            tono={responsablesError instanceof TablaFaltante ? "warning" : "critical"}
+            titulo={responsablesError instanceof TablaFaltante ? "Falta cargar la distribución de tiendas" : "No se pudo leer la distribución"}
+          >
+            {responsablesError instanceof TablaFaltante
+              ? "Corré web/supabase/migracion-13-tiendas-responsables.sql en Supabase para cargar la distribución."
+              : "La base no respondió. Volvé a intentar en un momento."}
+          </Callout>
+        )}
       </div>
     </>
   );
@@ -98,7 +121,7 @@ export default async function Sellers() {
 function SinBase() {
   return (
     <>
-      <PageHead eyebrow="Directorio · México" titulo="Sellers" />
+      <PageHead eyebrow="Directorio · México" titulo="Sellers" flujo="directorio" />
       <Callout tono="warning" titulo="La plataforma no está usando Supabase">
         El directorio operativo solo está disponible con la base de Supabase activa.
       </Callout>
@@ -109,7 +132,7 @@ function SinBase() {
 function SinTablas() {
   return (
     <>
-      <PageHead eyebrow="Directorio · México" titulo="Sellers" />
+      <PageHead eyebrow="Directorio · México" titulo="Sellers" flujo="directorio" />
       <Callout tono="warning" titulo="Falta crear el directorio">
         Corré <code>web/supabase/migracion-17-directorio-activos-whatsapp.sql</code> en Supabase y después ejecutá el flujo <code>n8n/13-directorio-activos-whatsapp.json</code>.
       </Callout>

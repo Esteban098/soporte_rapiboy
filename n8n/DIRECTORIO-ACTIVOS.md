@@ -28,15 +28,24 @@ ORDEN DE INSTALACIÓN
 5. Configurar WAHA_API_KEY como variable de entorno de n8n. No colocar la
    clave directamente dentro del workflow.
 6. Ejecutar el flujo manualmente y revisar el resultado del último nodo.
-7. Verificar los grupos que requieren revisión con:
+7. Activar el workflow y copiar la **Production URL** del nodo
+   `Boton Actualizar directorio` (`actualizar-directorio`) en la variable
+   `N8N_WEBHOOKS_DIRECTORIO` de la aplicación web.
+8. Pulsar **Actualizar directorio** desde Sellers/Drivers y confirmar que la
+   respuesta termina correctamente antes de revisar los datos en la plataforma.
+9. Verificar los grupos que requieren revisión con:
 
    select *
    from public.whatsapp_grupos_diagnostico
    where estado <> 'VINCULABLE'
    order by estado, nombre_grupo;
 
-8. Cuando la prueba sea correcta, activar el workflow. Se ejecutará a las
+10. Mantener activo el workflow. Se ejecutará a las
    09:00, hora de Ciudad de México, de lunes a sábado.
+
+El webhook no necesita un cuerpo especial: la aplicación envía un `POST` vacío
+con el contexto de la acción y espera la respuesta del último nodo antes de
+actualizar sus catálogos.
 
 TABLAS DE LA PLATAFORMA
 -----------------------

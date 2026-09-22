@@ -51,7 +51,9 @@ Tres decisiones que vale la pena tener presentes:
 | `/cobertura` | **Cobertura · BETA**: el contorno donde hay servicio y un verificador puntual por dirección o coordenadas que responde si un domicilio entra. No busca por ID de viaje. |
 | Asistente (beta) | Pestaña en todas las pantallas: preguntas en lenguaje natural sobre paquetes, casos, seguimiento, colectas y repartidores. Ver [Asistente](#asistente-beta). |
 | `/live-tracker` | **Live tracker**: dónde está cada repartidor de la jornada y qué le queda por entregar. Panel de selección a la izquierda, mapa a la derecha. |
-| `/tiendas` | **Tiendas**: las **colectas de hoy** en vivo —se elige a qué repartidores ver y el mapa muestra solo esos, con el camino que ya hizo y las paradas que le faltan— y el directorio de tiendas, dropoff y bodega, con la distribución Esteban / Candelaria. Ver [Tiendas](#tiendas). |
+| `/tiendas` | **Ruta**: las **colectas de hoy** en vivo —se elige a qué repartidores ver y el mapa muestra solo esos, con el camino que ya hizo y las paradas que le faltan—. Ver [Tiendas](#tiendas). |
+| `/sellers` | **Directorio · Sellers**: sellers activos, grupos de WhatsApp y distribución editable de tiendas. La tabla comienza reducida y se puede expandir. |
+| `/drivers` | **Directorio · Drivers**: drivers activos y grupos de WhatsApp. La tabla comienza reducida y se puede expandir. |
 
 Junto al indicador de la fuente («Base en vivo») hay un selector de tema:
 **Claro**, **Oscuro** o **Sistema**. Las paletas están en `globals.css`; el
@@ -639,6 +641,7 @@ cada pestaña por gid del endpoint `/export`.
    | `GOOGLE_CLIENT_SECRET` | ídem |
    | `ALLOWED_EMAIL_DOMAIN` o `ALLOWED_EMAILS` | quién entra por Google (opcional si se usan perfiles) |
    | `N8N_WEBHOOKS` | la Production URL del webhook `actualizar-tablero` |
+   | `N8N_WEBHOOKS_DIRECTORIO` | la Production URL del webhook `actualizar-directorio` del flujo 13; la usan los botones Actualizar de Sellers y Drivers |
    | `OPENAI_API_KEY` | opcional: resume los reportes de seguimiento y habilita el asistente |
    | `OPENAI_MODELO_ASISTENTE` | opcional: modelo del asistente, por defecto `gpt-5-mini` |
    | `N8N_WEBHOOK_HISTORIAL_VIAJE` | opcional: Production URL del webhook `historial-viaje` (flujo 11) |
@@ -680,13 +683,12 @@ Tres roles:
 |---|---|
 | `admin` | todo el tablero, más crear perfiles, desactivarlos y resetear contraseñas |
 | `operador` | todo el tablero y cambiar su propia contraseña |
-| `comercial` | solo **Tiendas** (`/tiendas`) y **Colectas** (`/colectas` y `/colectas/historial`) |
+| `comercial` | solo **Ruta** (`/tiendas`) y **Colectas** (`/colectas` y `/colectas/historial`) |
 
 El **comercial** es para el equipo comercial y lo crea el administrador eligiendo
 ese rol. Ve el menú recortado a esas tres pantallas; si pide otra, el proxy lo
-devuelve a Tiendas, y los endpoints le responden 403. Puede editar la
-distribución de tiendas, actualizar colectas y ver las **Colectas de hoy** con
-sus estados —pero no la posición ni el recorrido GPS de los repartidores, que se
+devuelve a Ruta, y los endpoints le responden 403. Puede actualizar colectas y
+ver las **Colectas de hoy** con sus estados —pero no la posición ni el recorrido GPS de los repartidores, que se
 sacan en el servidor—, y nada más: no carga reportes, no
 tiene campana ni puede entrar a *Mi perfil*, así que su contraseña la resetea el
 administrador. Antes de crear el primero, volver a correr `supabase/perfiles.sql`:
