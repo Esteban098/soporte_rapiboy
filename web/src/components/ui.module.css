@@ -226,6 +226,18 @@
   text-overflow: ellipsis;
 }
 
+.railBeta {
+  flex: none;
+  padding: 2px 6px;
+  border-radius: var(--radio-3);
+  background: var(--tertiary-container);
+  color: var(--tertiary);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
 .railItem:hover {
   background: var(--rail-2);
   color: var(--rail-ink-alta);
@@ -305,7 +317,8 @@
   }
 
   :global(html[data-menu="corto"]) .rail [data-rail-texto],
-  :global(html[data-menu="corto"]) .railGrupoFlecha {
+  :global(html[data-menu="corto"]) .railGrupoFlecha,
+  :global(html[data-menu="corto"]) .railBeta {
     display: none;
   }
 

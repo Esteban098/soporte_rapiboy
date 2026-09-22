@@ -48,7 +48,7 @@ Tres decisiones que vale la pena tener presentes:
 | `/operacion` | **Ayer**: los casos de la pestaña `Ayer`, lo que quedó sin cerrar la jornada anterior. |
 | `/demorados` | **Demorados**: la cola de escalamiento, derivada de `Mensual`. Entra todo caso que lleve más de 2 días sin cambiar de estado y todavía no haya cerrado. |
 | `/reclamos` | Casos donde la tienda aportó datos, con el dato tal cual y la información del viaje. Se filtra por avisado / no avisado. |
-| `/cobertura` | **Cobertura**: el contorno donde hay servicio y un verificador puntual —por id de viaje, dirección o coordenadas— que responde si un domicilio entra. |
+| `/cobertura` | **Cobertura · BETA**: el contorno donde hay servicio y un verificador puntual por dirección o coordenadas que responde si un domicilio entra. No busca por ID de viaje. |
 | Asistente (beta) | Pestaña en todas las pantallas: preguntas en lenguaje natural sobre paquetes, casos, seguimiento, colectas y repartidores. Ver [Asistente](#asistente-beta). |
 | `/live-tracker` | **Live tracker**: dónde está cada repartidor de la jornada y qué le queda por entregar. Panel de selección a la izquierda, mapa a la derecha. |
 | `/tiendas` | **Tiendas**: las **colectas de hoy** en vivo —se elige a qué repartidores ver y el mapa muestra solo esos, con el camino que ya hizo y las paradas que le faltan— y el directorio de tiendas, dropoff y bodega, con la distribución Esteban / Candelaria. Ver [Tiendas](#tiendas). |
@@ -547,7 +547,7 @@ Candelaria— con `on conflict do nothing`, así que volver a correrla no pisa l
 editado desde la web. Sin la migración el tablero funciona igual, sin colores,
 y la pantalla de Tiendas avisa qué falta.
 
-## Cobertura
+## Cobertura · BETA
 
 Los polígonos los mantiene operaciones en `datos/poligonos-v10-bfv.kmz`. Ese KMZ
 es la fuente; la web consume `src/lib/cobertura.json`, que se genera con:
@@ -583,6 +583,10 @@ traducir una dirección escrita a coordenadas, que pasa por Nominatim
 con un User-Agent propio y **recibe la dirección del cliente**, así que se llama
 solo desde el servidor, detrás de sesión y con la respuesta cacheada un día. Un
 par `lat, lon` o un link de Google Maps pegado se resuelven sin salir.
+
+El verificador de Cobertura no recibe ni busca por ID de viaje. Para una
+consulta puntual se ingresa una dirección, un par de coordenadas o un enlace de
+Google Maps; el resultado se determina contra los polígonos locales.
 
 ## Correrlo local
 

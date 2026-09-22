@@ -39,6 +39,7 @@ type Seccion = {
   /** Para las rutas que son prefijo de otra hermana. */
   exacto?: boolean;
   destacado?: boolean;
+  beta?: boolean;
 };
 
 type Grupo = { titulo: string; icono: () => React.ReactElement; secciones: Seccion[] };
@@ -67,7 +68,7 @@ const NAVEGACION: (Grupo | Seccion)[] = [
   },
 
   { href: "/seguimiento", etiqueta: "Seguimiento", icono: Nota, destacado: true },
-  { href: "/cobertura", etiqueta: "Cobertura", icono: Mapa },
+  { href: "/cobertura", etiqueta: "Cobertura", icono: Mapa, beta: true },
   /* Suelta y no en «Cola de trabajo»: no mira el mes ni el día de ayer, mira
      lo que está pasando ahora. Se entra a ver dónde está alguien, viniendo de
      cualquier pantalla, igual que a Cobertura. */
@@ -79,7 +80,7 @@ const NAVEGACION: (Grupo | Seccion)[] = [
     secciones: [
       /* Mismo motivo que arriba: /colectas es prefijo de /colectas/historial. */
       { href: "/colectas", etiqueta: "Asignación", icono: Persona, exacto: true },
-      { href: "/colectas/historial", etiqueta: "Historial", icono: Calendario },
+      { href: "/colectas/historial", etiqueta: "Historial", icono: Calendario, beta: true },
       /* Dentro de Colectas porque es donde se consulta: dónde queda el
          comercio que hay que retirar y de quién es. La ruta sigue siendo
          /tiendas, así no cambian los permisos del rol comercial ni los
@@ -224,6 +225,7 @@ function Enlace({ seccion, esAdmin }: { seccion: Seccion; esAdmin: boolean }) {
       <seccion.icono />
       {/* `data-rail-texto`: lo que desaparece con el menú plegado. */}
       <span data-rail-texto>{etiqueta}</span>
+      {seccion.beta ? <span className={estilos.railBeta} aria-label="Beta">BETA</span> : null}
     </NavLink>
   );
 }
