@@ -1,0 +1,454 @@
+{
+  "name": "Tablero · directorio activo de sellers, drivers y WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 9 * * 1-6"
+            }
+          ]
+        }
+      },
+      "id": "7a509214-c059-43cc-9c97-f145790f538e",
+      "name": "09:00 MX lunes a sabado",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1260,
+        100
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "a9b6726c-6e62-486f-9649-d8041db15586",
+      "name": "Ejecucion manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.directorio_sync_ejecuciones (sync_id, estado, iniciado_en)\nVALUES ('{{ $execution.id }}', 'EJECUTANDO', now())\nON CONFLICT (sync_id) DO UPDATE\nSET estado = 'EJECUTANDO', iniciado_en = now(), finalizado_en = NULL, detalle_error = NULL\nRETURNING sync_id;",
+        "options": {}
+      },
+      "id": "72906449-d3fe-4d70-98dd-f3626c23973b",
+      "name": "Abrir sincronizacion",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1020,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - plataforma"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SET NOCOUNT ON;\n\nSELECT DISTINCT\n    U.Id AS id_seller,\n    COALESCE(NULLIF(LTRIM(RTRIM(U.Alias)), ''), CONCAT(U.Nombre, ' ', U.Apellido)) AS nombre,\n    CONVERT(varchar(8), U.HorarioCorte, 108) AS hora_corte,\n    U.Direccion AS direccion,\n    CONVERT(varchar(10), CAST(U.FechaActivacion AS date), 23) AS fecha_activacion,\n    U.Telefono AS celular,\n    NULLIF(LTRIM(RTRIM(CONCAT(A.Nombre, ' ', A.Apellido))), '') AS comercial,\n    U.Email AS email,\n    CAST(DU.LlevaBodega AS bit) AS lleva_bodega,\n    CAST(DU.LlevaCentroDropOff AS bit) AS lleva_dropoff,\n    CAST(U.PagaColecta AS bit) AS paga_colecta,\n    U.CuotaDiaria AS tope_maximo\nFROM Usuario U WITH (NOLOCK)\nINNER JOIN DetalleUsuario DU WITH (NOLOCK) ON DU.Id = U.IdDetalle\nLEFT JOIN Administrador A WITH (NOLOCK) ON A.Id = U.IdComercial\nWHERE U.IdLocalidad = 9\n  AND U.IdModalidad IN (5, 7)\n  AND U.FechaOffline IS NULL\n  AND U.UltimaReserva IS NOT NULL\n  AND DU.Activo = 1\nORDER BY nombre;"
+      },
+      "id": "448e103a-ccfc-433f-b774-58d586a48742",
+      "name": "Sellers activos Mexico",
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        -780,
+        200
+      ],
+      "credentials": {
+        "microsoftSql": {
+          "id": "REEMPLAZAR",
+          "name": "SQL Server - Rapiboy"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const toBool = (v) => v === true || v === 1 || v === '1';\nconst clean = (v) => v === null || v === undefined || String(v).trim() === '' ? null : String(v).trim();\nreturn $input.all().map(({ json: r }) => ({ json: {\n  id_seller: Number(r.id_seller),\n  nombre: clean(r.nombre),\n  hora_corte: clean(r.hora_corte),\n  direccion: clean(r.direccion),\n  fecha_activacion: clean(r.fecha_activacion),\n  celular: clean(r.celular),\n  comercial: clean(r.comercial),\n  email: clean(r.email),\n  lleva_bodega: toBool(r.lleva_bodega),\n  lleva_dropoff: toBool(r.lleva_dropoff),\n  paga_colecta: toBool(r.paga_colecta),\n  tope_maximo: r.tope_maximo === null || r.tope_maximo === undefined ? null : Number(r.tope_maximo),\n  activo: true,\n  visto_por_ultima_vez: new Date().toISOString(),\n  actualizado_en: new Date().toISOString(),\n  ultimo_sync_id: String($execution.id)\n} }));"
+      },
+      "id": "68e65886-bf9c-4ee1-92b0-012a2018daeb",
+      "name": "Normalizar sellers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -540,
+        200
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "directorio_sellers"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "id_seller"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "94707c28-caae-481a-9eb3-0fe65583f716",
+      "name": "Guardar sellers",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -300,
+        200
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - plataforma"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SET NOCOUNT ON;\nDECLARE @Desde date = DATEADD(day, -14, CONVERT(date, GETDATE()));\nDECLARE @Hasta date = DATEADD(day, 1, CONVERT(date, GETDATE()));\n\nWITH ReservasRecientes AS (\n    SELECT R.IdMotoboy, MAX(R.Fecha) AS ultima_reserva\n    FROM ReservaxMotoboy R WITH (NOLOCK)\n    WHERE R.IdUsuario = 4211\n      AND R.IdLocalidad = 9\n      AND R.Cancelada = 0\n      AND R.Fecha >= @Desde\n      AND R.Fecha < @Hasta\n    GROUP BY R.IdMotoboy\n)\nSELECT\n    M.Id AS id_motoboy,\n    LTRIM(RTRIM(CONCAT(M.Nombre, ' ', M.Apellido))) AS nombre,\n    CASE WHEN M.Tags LIKE '%Factura%' THEN 'Factura' ELSE 'No Factura' END AS condicion,\n    CASE\n      WHEN M.Tags LIKE '%Flotilla%' THEN SUBSTRING(\n        M.Tags,\n        CHARINDEX('Flotilla', M.Tags),\n        CHARINDEX(',', M.Tags + ',', CHARINDEX('Flotilla', M.Tags)) - CHARINDEX('Flotilla', M.Tags)\n      )\n      ELSE 'Sin Flotilla'\n    END AS flotilla,\n    CONVERT(varchar(33), RR.ultima_reserva, 126) AS ultima_reserva\nFROM ReservasRecientes RR\nINNER JOIN Motoboy M WITH (NOLOCK) ON M.Id = RR.IdMotoboy\nWHERE M.IdLocalidad = 9\n  AND M.FechaActivacion IS NOT NULL\n  AND M.FechaBaja IS NULL\nORDER BY nombre;"
+      },
+      "id": "585af279-952d-4492-a47e-09076267431d",
+      "name": "Drivers activos ultimos 14 dias",
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "position": [
+        -60,
+        200
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "microsoftSql": {
+          "id": "REEMPLAZAR",
+          "name": "SQL Server - Rapiboy"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const clean = (v) => v === null || v === undefined || String(v).trim() === '' ? null : String(v).trim();\nreturn $input.all().map(({ json: r }) => ({ json: {\n  id_motoboy: Number(r.id_motoboy),\n  nombre: clean(r.nombre),\n  condicion: clean(r.condicion),\n  flotilla: clean(r.flotilla),\n  ultima_reserva: clean(r.ultima_reserva),\n  activo: true,\n  visto_por_ultima_vez: new Date().toISOString(),\n  actualizado_en: new Date().toISOString(),\n  ultimo_sync_id: String($execution.id)\n} }));"
+      },
+      "id": "c389687d-c598-4db3-9678-75bef0e9c32d",
+      "name": "Normalizar drivers",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        180,
+        200
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "directorio_drivers"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "id_motoboy"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "10b5e06c-c9b2-4ffd-8fc2-ceae69e40902",
+      "name": "Guardar drivers",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        420,
+        200
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - plataforma"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "http://waha:3000/api/Esteban_Larcher/groups?limit=1000&offset=0&exclude=participants",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $env.WAHA_API_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "24b00cbc-c944-42df-8be9-d552cd9106dc",
+      "name": "Obtener grupos WAHA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        660,
+        200
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nlet grupos;\nif (items.length === 1 && Array.isArray(items[0].json)) grupos = items[0].json;\nelse if (items.length === 1 && Array.isArray(items[0].json.data)) grupos = items[0].json.data;\nelse if (items.length === 1 && Array.isArray(items[0].json.groups)) grupos = items[0].json.groups;\nelse grupos = items.map(i => i.json);\n\nconst validos = grupos.filter(g => String(g.JID || g.id || '').endsWith('@g.us'));\nif (validos.length === 0) throw new Error('WAHA no devolvio grupos validos; se cancela el cierre para no desactivar datos vigentes.');\n\nconst ahora = new Date().toISOString();\nreturn validos.map(g => {\n  const jid = String(g.JID || g.id).trim();\n  const nombreGrupo = String(g.Name || g.name || g.subject || '').trim();\n  const match = nombreGrupo.match(/^#?(\\d+)(?:\\s+-?\\s*|\\s+)(.*)$/);\n  return { json: {\n    grupo_jid: jid,\n    nombre_grupo: nombreGrupo || jid,\n    id_extraido: match ? Number(match[1]) : null,\n    nombre_extraido: match && match[2] ? match[2].trim() : null,\n    activo: true,\n    visto_por_ultima_vez: ahora,\n    actualizado_en: ahora,\n    ultimo_sync_id: String($execution.id)\n  } };\n});"
+      },
+      "id": "aa6c8c32-2807-43fb-b12b-98bc000b5183",
+      "name": "Normalizar grupos WhatsApp",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "whatsapp_grupos"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "grupo_jid"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "32572ae6-2363-41bd-9b99-75016283fa04",
+      "name": "Guardar grupos WhatsApp",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1140,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - plataforma"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "BEGIN;\n\nUPDATE public.directorio_sellers\nSET activo = false, actualizado_en = now()\nWHERE activo AND ultimo_sync_id <> '{{ $execution.id }}';\n\nUPDATE public.directorio_drivers\nSET activo = false, actualizado_en = now()\nWHERE activo AND ultimo_sync_id <> '{{ $execution.id }}';\n\nUPDATE public.whatsapp_grupos\nSET activo = false, actualizado_en = now()\nWHERE activo AND ultimo_sync_id <> '{{ $execution.id }}';\n\nDELETE FROM public.whatsapp_asignaciones\nWHERE origen = 'AUTOMATICO';\n\nWITH candidatos AS (\n  SELECT g.grupo_jid, 'SELLER'::text AS tipo_entidad, s.id_seller AS id_entidad\n  FROM public.whatsapp_grupos g\n  JOIN public.directorio_sellers s ON s.id_seller = g.id_extraido AND s.activo\n  WHERE g.activo\n  UNION ALL\n  SELECT g.grupo_jid, 'DRIVER'::text, d.id_motoboy\n  FROM public.whatsapp_grupos g\n  JOIN public.directorio_drivers d ON d.id_motoboy = g.id_extraido AND d.activo\n  WHERE g.activo\n), grupos_unicos AS (\n  SELECT grupo_jid, min(tipo_entidad) AS tipo_entidad, min(id_entidad) AS id_entidad\n  FROM candidatos\n  GROUP BY grupo_jid\n  HAVING count(*) = 1\n), elegibles AS (\n  SELECT u.*, row_number() OVER (PARTITION BY u.tipo_entidad, u.id_entidad ORDER BY u.grupo_jid) AS rn\n  FROM grupos_unicos u\n  WHERE NOT EXISTS (\n    SELECT 1\n    FROM public.whatsapp_asignaciones m\n    WHERE m.origen = 'MANUAL'\n      AND (m.grupo_jid = u.grupo_jid OR (m.tipo_entidad = u.tipo_entidad AND m.id_entidad = u.id_entidad))\n  )\n)\nINSERT INTO public.whatsapp_asignaciones (tipo_entidad, id_entidad, grupo_jid, origen, actualizado_en)\nSELECT tipo_entidad, id_entidad, grupo_jid, 'AUTOMATICO', now()\nFROM elegibles\nWHERE rn = 1\nON CONFLICT (tipo_entidad, id_entidad) DO UPDATE\nSET grupo_jid = EXCLUDED.grupo_jid, origen = 'AUTOMATICO', actualizado_en = now();\n\nUPDATE public.directorio_sync_ejecuciones\nSET estado = 'COMPLETADO',\n    finalizado_en = now(),\n    sellers_activos = (SELECT count(*) FROM public.directorio_sellers WHERE activo),\n    drivers_activos = (SELECT count(*) FROM public.directorio_drivers WHERE activo),\n    grupos_activos = (SELECT count(*) FROM public.whatsapp_grupos WHERE activo),\n    vinculos_automaticos = (SELECT count(*) FROM public.whatsapp_asignaciones WHERE origen = 'AUTOMATICO')\nWHERE sync_id = '{{ $execution.id }}';\n\nCOMMIT;\n\nSELECT\n  (SELECT count(*) FROM public.directorio_sellers WHERE activo) AS sellers_activos,\n  (SELECT count(*) FROM public.directorio_drivers WHERE activo) AS drivers_activos,\n  (SELECT count(*) FROM public.whatsapp_grupos WHERE activo) AS grupos_activos,\n  (SELECT count(*) FROM public.whatsapp_asignaciones WHERE origen = 'AUTOMATICO') AS vinculos_automaticos,\n  (SELECT count(*) FROM public.whatsapp_grupos_diagnostico WHERE estado <> 'VINCULABLE') AS grupos_por_revisar;",
+        "options": {}
+      },
+      "id": "e827027a-9f74-4cef-9f73-b9bf1aa0c098",
+      "name": "Cerrar catalogos y vincular",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1380,
+        200
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - plataforma"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "09:00 MX lunes a sabado": {
+      "main": [
+        [
+          {
+            "node": "Abrir sincronizacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecucion manual": {
+      "main": [
+        [
+          {
+            "node": "Abrir sincronizacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abrir sincronizacion": {
+      "main": [
+        [
+          {
+            "node": "Sellers activos Mexico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sellers activos Mexico": {
+      "main": [
+        [
+          {
+            "node": "Normalizar sellers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar sellers": {
+      "main": [
+        [
+          {
+            "node": "Guardar sellers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar sellers": {
+      "main": [
+        [
+          {
+            "node": "Drivers activos ultimos 14 dias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drivers activos ultimos 14 dias": {
+      "main": [
+        [
+          {
+            "node": "Normalizar drivers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar drivers": {
+      "main": [
+        [
+          {
+            "node": "Guardar drivers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar drivers": {
+      "main": [
+        [
+          {
+            "node": "Obtener grupos WAHA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener grupos WAHA": {
+      "main": [
+        [
+          {
+            "node": "Normalizar grupos WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar grupos WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Guardar grupos WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar grupos WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Cerrar catalogos y vincular",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "a31113f3-a973-4bd4-8a77-a72bf18f038e",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

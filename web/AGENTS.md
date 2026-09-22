@@ -124,6 +124,19 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   visitadas y posiciones guardadas en orden de hora, y se pide aparte con
   `recorridosDeRepartidores()`, que exige `operadorActual()`.
 
+- El directorio operativo de contactos vive en `directorio_sellers`,
+  `directorio_drivers`, `whatsapp_grupos` y `whatsapp_asignaciones`; se instala
+  con `supabase/migracion-17-directorio-activos-whatsapp.sql` y lo escribe solo
+  `../n8n/13-directorio-activos-whatsapp.json`. No reutiliza `tracker_tiendas`
+  ni `tracker_choferes`, que son puntos geográficos estáticos importados de
+  KMZ. Las asignaciones automáticas requieren una coincidencia única del ID
+  extraído del nombre del grupo. Las asignaciones `MANUAL` nunca se reemplazan
+  durante una sincronización.
+  Se visualiza en dos pantallas independientes, `/sellers` y `/drivers`, dentro
+  del grupo **Directorio** del sidebar. Las lecturas pasan por
+  `src/lib/directorio-datos.ts`, que es `server-only`; el JID queda en el
+  servidor para los futuros flujos WAHA y no forma parte del DTO de pantalla.
+
 ## Límites entre flujos
 
 - Los workflows 01 y 02 trabajan únicamente sobre las tablas operativas.
@@ -148,6 +161,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Los flujos 08 y 09 escriben **solo** las tablas `tracker_*` y leen SQL Server
   en modo lectura. No comparten tablas con ningún otro flujo, así que se pueden
   importar, apagar o rehacer sin mirar el resto.
+- El flujo 13 escribe **solo** `directorio_sellers`, `directorio_drivers`,
+  `whatsapp_grupos`, `whatsapp_asignaciones` y
+  `directorio_sync_ejecuciones`. No debe escribir las tablas geográficas del
+  tracker ni depender de Google Sheets. Un fallo de SQL Server o WAHA no puede
+  desactivar la última foto válida.
 - El live tracker tiene **un solo botón, Actualizar**: corre la sincronización
   de paquetes y después la de posiciones —en ese orden, para que un
   repartidor recién sumado salga con posición en la misma pasada—, sigue con
@@ -265,6 +283,7 @@ npm run test:lluvia
 npm run test:trafico
 npm run test:asistente
 npm run test:colectas-vivo
+npm run test:directorio
 ```
 
 Además, validar los workflows con `jq empty ../n8n/*.json`. El build no sale a

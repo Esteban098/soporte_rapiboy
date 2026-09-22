@@ -165,6 +165,21 @@ export const TABLA_TRACKER_TIENDAS =
 export const TABLA_TIENDAS_RESPONSABLES =
   process.env.SUPABASE_TABLA_TIENDAS_RESPONSABLES?.trim() || "tiendas_responsables";
 
+/* ---------- Directorio operativo y WhatsApp ---------- */
+
+/** Sellers activos de México sincronizados por el flujo 13. */
+export const TABLA_DIRECTORIO_SELLERS =
+  process.env.SUPABASE_TABLA_DIRECTORIO_SELLERS?.trim() || "directorio_sellers";
+
+/** Drivers con reserva reciente sincronizados por el flujo 13. */
+export const TABLA_DIRECTORIO_DRIVERS =
+  process.env.SUPABASE_TABLA_DIRECTORIO_DRIVERS?.trim() || "directorio_drivers";
+
+/** Vista que resuelve el grupo de WhatsApp de cada seller o driver. */
+export const VISTA_DIRECTORIO_CONTACTOS_WHATSAPP =
+  process.env.SUPABASE_VISTA_DIRECTORIO_CONTACTOS_WHATSAPP?.trim() ||
+  "directorio_contactos_whatsapp";
+
 /** El domicilio de cada chofer, por `IdMotoboy`. Misma procedencia. */
 export const TABLA_TRACKER_CHOFERES =
   process.env.SUPABASE_TABLA_TRACKER_CHOFERES?.trim() || "tracker_choferes";

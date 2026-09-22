@@ -75,6 +75,15 @@ const NAVEGACION: (Grupo | Seccion)[] = [
   { href: "/live-tracker", etiqueta: "Live tracker", icono: Moto },
 
   {
+    titulo: "Directorio",
+    icono: Persona,
+    secciones: [
+      { href: "/sellers", etiqueta: "Sellers", icono: Local },
+      { href: "/drivers", etiqueta: "Drivers", icono: Moto },
+    ],
+  },
+
+  {
     titulo: "Colectas",
     icono: Camion,
     secciones: [

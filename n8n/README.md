@@ -1,6 +1,6 @@
 # Flujos de n8n
 
-Doce workflows. Los tres primeros reemplazan al único que escribía en el
+Trece workflows. Los tres primeros reemplazan al único que escribía en el
 Google Sheet; los siguientes cubren los botones Actualizar y la carga de datos
 de tienda desde Firefox. Se importan desde n8n con **Workflows ▸ Import from
 File**.
@@ -18,6 +18,7 @@ File**.
 | `09-tracker-paquetes.json` | Actualiza la última ruta operativa —el sábado si es lunes— o reconcilia la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 7:15; cada 30 min de 15:00 a 23:30, lunes a sábado; y desde **Actualizar** del live tracker, antes de las posiciones |
 | `11-historial-viaje.json` | Devuelve el estado y el historial de un viaje desde RapiboyData, para el asistente del tablero. Solo lee | Cada vez que alguien pregunta por un paquete en el asistente |
 | `12-colectas-vivo.json` | Las colectas de hoy con su estado, su historial y la última posición de cada repartidor, y guarda cada posición nueva para dibujar el recorrido, para el mapa de **Tiendas**. Solo lee SQL Server | Cada 5 min de 7:00 a 16:55, lunes a sábado, y desde **Actualizar posiciones y estados** en Tiendas |
+| `13-directorio-activos-whatsapp.json` | Sincroniza en Supabase los sellers activos de México, los drivers con reserva válida en los últimos 14 días y sus grupos de WhatsApp | 9:00 de lunes a sábado, y manualmente desde n8n |
 
 ## Antes de importar
 
@@ -35,6 +36,36 @@ referencian por el id que tienen hoy, así que esas se enganchan solas. El flujo
 07 también necesita una credencial **Header Auth**: nombre
 `X-Rapiboy-Token` y un valor largo aleatorio. El mismo valor se carga en las
 opciones de la extensión; así el webhook que escribe datos no queda público.
+
+El flujo 13 se entrega sin secretos: después de importarlo hay que seleccionar
+la credencial existente de SQL Server y la credencial Postgres de Supabase en
+los nodos marcados como `REEMPLAZAR`. También requiere `WAHA_API_KEY` como
+variable de entorno de n8n. La guía completa está en
+`DIRECTORIO-ACTIVOS.md`.
+
+## Directorio activo y grupos de WhatsApp
+
+`13-directorio-activos-whatsapp.json` reemplaza las hojas del workflow
+`[MX - SM] - DB_Webhook - Esteban` por tablas propias de la plataforma. Antes
+de importarlo se ejecuta
+`web/supabase/migracion-17-directorio-activos-whatsapp.sql`.
+
+La corrida hace upsert de sellers de México y de drivers que tomaron una
+reserva válida durante los últimos 14 días. Después consulta WAHA, extrae el ID
+de nombres como `#694864 Nombre - Vehículo` y crea la asignación solo cuando el
+ID coincide con exactamente una entidad activa. Los IDs se califican por
+`SELLER` o `DRIVER`, de modo que el mismo número en ambos catálogos queda
+ambiguo y nunca se vincula automáticamente.
+
+La sincronización no borra directorios: marca como inactivos los registros que
+dejaron de aparecer. Tampoco reemplaza asignaciones con origen `MANUAL`. Si
+WAHA no devuelve ningún grupo válido, se detiene antes del cierre y conserva
+la última foto operativa.
+
+El filtro `ReservaxMotoboy.IdUsuario = 4211` se conserva del workflow fuente.
+Es una regla operativa, no el identificador de localidad; México se limita con
+`IdLocalidad = 9`. Si cambia el usuario que representa esas reservas, hay que
+ajustarlo en el nodo **Drivers activos ultimos 14 dias**.
 
 ## Carga desde Firefox
 

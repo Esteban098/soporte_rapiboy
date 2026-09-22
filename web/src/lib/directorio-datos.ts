@@ -1,0 +1,112 @@
+import "server-only";
+
+import {
+  TABLA_DIRECTORIO_DRIVERS,
+  TABLA_DIRECTORIO_SELLERS,
+  VISTA_DIRECTORIO_CONTACTOS_WHATSAPP,
+} from "./config";
+import { consultarTodo } from "./supabase";
+import type { DriverDirectorio, SellerDirectorio } from "./directorio";
+
+type ContactoFila = {
+  tipo_entidad: "SELLER" | "DRIVER";
+  id_entidad: number | string;
+  grupo_jid: string | null;
+  nombre_grupo: string | null;
+  origen: "AUTOMATICO" | "MANUAL" | null;
+};
+
+type SellerFila = {
+  id_seller: number | string;
+  nombre: string | null;
+  hora_corte: string | null;
+  direccion: string | null;
+  fecha_activacion: string | null;
+  celular: string | null;
+  comercial: string | null;
+  email: string | null;
+  lleva_bodega: boolean | null;
+  lleva_dropoff: boolean | null;
+  paga_colecta: boolean | null;
+  tope_maximo: number | string | null;
+  actualizado_en: string | null;
+};
+
+type DriverFila = {
+  id_motoboy: number | string;
+  nombre: string | null;
+  condicion: string | null;
+  flotilla: string | null;
+  ultima_reserva: string | null;
+  actualizado_en: string | null;
+};
+
+function texto(valor: unknown): string {
+  return valor == null ? "" : String(valor).trim();
+}
+
+function asignacionesPorId(filas: ContactoFila[]): Map<string, ContactoFila> {
+  return new Map(filas.map((fila) => [String(fila.id_entidad), fila]));
+}
+
+/** Sellers activos. El JID se conserva en Supabase para los flujos, no viaja al navegador. */
+export async function leerSellersDirectorio(): Promise<SellerDirectorio[]> {
+  const [sellers, contactos] = await Promise.all([
+    consultarTodo<SellerFila>(TABLA_DIRECTORIO_SELLERS, { activo: "eq.true" }, "nombre.asc,id_seller.asc"),
+    consultarTodo<ContactoFila>(
+      VISTA_DIRECTORIO_CONTACTOS_WHATSAPP,
+      { tipo_entidad: "eq.SELLER", activo: "eq.true" },
+      "nombre.asc,id_entidad.asc",
+    ),
+  ]);
+  const grupos = asignacionesPorId(contactos);
+
+  return sellers.map((fila) => {
+    const grupo = grupos.get(String(fila.id_seller));
+    const tope = fila.tope_maximo == null ? null : Number(fila.tope_maximo);
+    return {
+      id: Number(fila.id_seller),
+      nombre: texto(fila.nombre),
+      horaCorte: texto(fila.hora_corte).slice(0, 5),
+      direccion: texto(fila.direccion),
+      fechaActivacion: texto(fila.fecha_activacion),
+      celular: texto(fila.celular),
+      comercial: texto(fila.comercial),
+      email: texto(fila.email),
+      llevaBodega: fila.lleva_bodega === true,
+      llevaDropoff: fila.lleva_dropoff === true,
+      pagaColecta: fila.paga_colecta === true,
+      topeMaximo: Number.isFinite(tope) ? tope : null,
+      grupoWhatsapp: texto(grupo?.nombre_grupo) || null,
+      asignacion: grupo?.origen ?? null,
+      actualizadoEn: texto(fila.actualizado_en),
+    };
+  });
+}
+
+/** Drivers activos según la ventana de reservas del flujo 13. */
+export async function leerDriversDirectorio(): Promise<DriverDirectorio[]> {
+  const [drivers, contactos] = await Promise.all([
+    consultarTodo<DriverFila>(TABLA_DIRECTORIO_DRIVERS, { activo: "eq.true" }, "nombre.asc,id_motoboy.asc"),
+    consultarTodo<ContactoFila>(
+      VISTA_DIRECTORIO_CONTACTOS_WHATSAPP,
+      { tipo_entidad: "eq.DRIVER", activo: "eq.true" },
+      "nombre.asc,id_entidad.asc",
+    ),
+  ]);
+  const grupos = asignacionesPorId(contactos);
+
+  return drivers.map((fila) => {
+    const grupo = grupos.get(String(fila.id_motoboy));
+    return {
+      id: Number(fila.id_motoboy),
+      nombre: texto(fila.nombre),
+      condicion: texto(fila.condicion),
+      flotilla: texto(fila.flotilla),
+      ultimaReserva: texto(fila.ultima_reserva),
+      grupoWhatsapp: texto(grupo?.nombre_grupo) || null,
+      asignacion: grupo?.origen ?? null,
+      actualizadoEn: texto(fila.actualizado_en),
+    };
+  });
+}
