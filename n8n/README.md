@@ -50,6 +50,13 @@ variable de entorno de n8n. La guía completa está en
 de importarlo se ejecuta
 `web/supabase/migracion-17-directorio-activos-whatsapp.sql`.
 
+El snapshot consolidado de sellers se instala con las migraciones 18 y 19 en
+`sellers_activos`. Los labels de soporte se resuelven desde los chats de los
+labels WAHA `Cande` (id 9) y `Esteban` (id 17), no desde el endpoint inverso
+por chat, que puede devolver labels operativos como `Drivers`. La migración 21
+realiza la carga inicial de `soporte_asignado`; después la plataforma conserva
+las correcciones manuales.
+
 La corrida hace upsert de sellers de México y de drivers que tomaron una
 reserva válida durante los últimos 14 días. Después consulta WAHA, extrae el ID
 de nombres como `#694864 Nombre - Vehículo` y crea la asignación solo cuando el

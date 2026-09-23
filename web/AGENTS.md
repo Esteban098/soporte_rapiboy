@@ -124,9 +124,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   visitadas y posiciones guardadas en orden de hora, y se pide aparte con
   `recorridosDeRepartidores()`, que exige `operadorActual()`.
 
-- El directorio operativo de contactos vive en `directorio_sellers`,
-  `directorio_drivers`, `whatsapp_grupos` y `whatsapp_asignaciones`; se instala
-  con `supabase/migracion-17-directorio-activos-whatsapp.sql` y lo escribe solo
+- El directorio operativo de contactos vive en `sellers_activos` para sellers y
+  en las tablas de drivers/grupos heredadas para compatibilidad; se instala con
+  las migraciones 17-19 y lo sincroniza solo
   `../n8n/13-directorio-activos-whatsapp.json`. No reutiliza `tracker_tiendas`
   ni `tracker_choferes`, que son puntos geográficos estáticos importados de
   KMZ. Las asignaciones automáticas requieren una coincidencia única del ID
@@ -136,7 +136,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   del grupo **Directorio** del sidebar. Las lecturas pasan por
   `src/lib/directorio-datos.ts`, que es `server-only`; el JID queda en el
   servidor para los futuros flujos WAHA y no forma parte del DTO de pantalla.
-  Ambas pantallas disparan el flujo 13 con el botón Actualizar y muestran sus
+  La pantalla de Sellers permite asignar Cande o Esteban en la misma tabla;
+  ambas pantallas disparan el flujo 13 con el botón Actualizar y muestran sus
   tablas con una cantidad inicial reducida; el resto se despliega a pedido.
 
 ## Límites entre flujos
@@ -155,8 +156,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `ayer` se vacía solamente dentro de la ingesta diaria y después de confirmar
   que hubo jornada. Una limpieza manual es puntual y no se incorpora al flujo.
 - La pantalla `/tiendas` se presenta como **Ruta** dentro de Colectas. La
-  distribución editable de tiendas vive debajo del directorio de Sellers; no
-  se duplica en Ruta. La tabla de distribución también comienza reducida.
+  antigua distribución editable de tiendas fue retirada; el responsable vive
+  en `sellers_activos.soporte_asignado`.
 - El flujo 12 escribe **solo** `colectas_vivo`, `colectas_vivo_drivers` y
   `colectas_vivo_posiciones` (el recorrido, `migracion-16`; recorta ella misma lo
   de más de 30 días) y lee
