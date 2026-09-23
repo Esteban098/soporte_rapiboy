@@ -3,8 +3,8 @@
  *
  * El equipo reparte las tiendas entre dos personas —Grupo A de Esteban,
  * Grupo B de Candelaria— y el tablero pinta cada comercio con el color de su
- * dueño en todas las pantallas donde aparece. La fuente es la tabla
- * `tiendas_responsables`, que se edita desde la pantalla de Tiendas.
+ * dueño en todas las pantallas donde aparece. La fuente actual es
+ * `sellers_activos.soporte_asignado`, cargada por el directorio operativo.
  *
  * Este módulo no lee la base ni importa nada de servidor: son los tipos y las
  * reglas, para que los usen igual las acciones y los componentes de cliente.
@@ -43,7 +43,7 @@ export const SECCIONES: { valor: SeccionTienda; etiqueta: string }[] = [
   { valor: "NUEVA", etiqueta: "Tienda nueva" },
 ];
 
-/** Una fila de `tiendas_responsables`, tal como la devuelve PostgREST. */
+/** Forma normalizada usada por las reglas de color y las pruebas. */
 export type FilaResponsable = {
   id: string;
   nombre: string;

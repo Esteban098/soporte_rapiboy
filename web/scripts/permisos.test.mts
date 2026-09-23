@@ -68,7 +68,6 @@ test("el proxy aplica la regla y la sesión deja afuera al comercial por defecto
   const sesion = fuente("../src/lib/sesion.ts");
   assert.match(sesion, /esComercial\(/);
 
-  assert.match(fuente("../src/app/responsables.ts"), /sesionActual\(/);
   const actualizar = fuente("../src/app/actualizar.ts");
   assert.match(actualizar, /sesionActual\(/);
   assert.match(actualizar, /"colectas"/);

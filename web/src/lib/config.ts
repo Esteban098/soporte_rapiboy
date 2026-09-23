@@ -156,20 +156,7 @@ export const TABLA_TRACKER_DEMORAS =
 export const TABLA_TRACKER_TIENDAS =
   process.env.SUPABASE_TABLA_TRACKER_TIENDAS?.trim() || "tracker_tiendas";
 
-/**
- * De quién es cada tienda: Grupo A de Esteban, Grupo B de Candelaria.
- *
- * La crea `supabase/migracion-13-tiendas-responsables.sql` y se edita desde
- * la pantalla de Tiendas. Decide el color de cada comercio en todo el tablero.
- */
-export const TABLA_TIENDAS_RESPONSABLES =
-  process.env.SUPABASE_TABLA_TIENDAS_RESPONSABLES?.trim() || "tiendas_responsables";
-
 /* ---------- Directorio operativo y WhatsApp ---------- */
-
-/** Sellers activos de México sincronizados por el flujo 13. */
-export const TABLA_DIRECTORIO_SELLERS =
-  process.env.SUPABASE_TABLA_DIRECTORIO_SELLERS?.trim() || "directorio_sellers";
 
 /** Snapshot consolidado por Usuario.Id. Se activa cuando la migración 18 está instalada. */
 export const TABLA_SELLERS_ACTIVOS =

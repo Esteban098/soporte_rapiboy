@@ -16,14 +16,8 @@ import {
  * Pruebas de la distribución de tiendas.
  *
  * Cubren la regla que decide el color de cada comercio en todo el tablero —la
- * clave por nombre y los alias—, las validaciones antes de guardar y la carga
- * inicial de la migración.
+ * clave por nombre y los alias, además de las validaciones antes de guardar.
  */
-
-const MIGRACION = readFileSync(
-  new URL("../supabase/migracion-13-tiendas-responsables.sql", import.meta.url),
-  "utf8",
-);
 
 function fila(over: Partial<FilaResponsable> = {}): FilaResponsable {
   return {
@@ -130,64 +124,11 @@ test("sin nombre, dueño o sección válidos no se guarda", () => {
   assert.match(revisarTienda({ ...datos, seccion: "OTRA" }, [], null) ?? "", /sección/);
 });
 
-/* ---------------------------------------------------------------------------
- * La migración
- * ------------------------------------------------------------------------- */
-
-type Carga = { nombre: string; clave: string; alias: string[]; responsable: string; seccion: string };
-
-function cargaInicial(): Carga[] {
-  const texto = (t: string) => t.replace(/''/g, "'");
-  const filas: Carga[] = [];
-  const patron =
-    /^ {2}\('((?:[^']|'')*)', '((?:[^']|'')*)', (array\[(?:[^\]])*\]|'\{\}'::text\[\]), '([^']*)', '([^']*)'\)/gm;
-  for (const m of MIGRACION.matchAll(patron)) {
-    const alias = m[3].startsWith("array")
-      ? [...m[3].matchAll(/'((?:[^']|'')*)'/g)].map((a) => texto(a[1]))
-      : [];
-    filas.push({ nombre: texto(m[1]), clave: texto(m[2]), alias, responsable: m[4], seccion: m[5] });
-  }
-  return filas;
-}
-
-test("la migración es aditiva y no pisa lo editado desde la web", () => {
-  assert.match(MIGRACION, /create table if not exists public\.tiendas_responsables/);
-  assert.match(MIGRACION, /clave\s+text not null unique/);
-  assert.match(MIGRACION, /enable row level security/);
-  assert.match(MIGRACION, /on conflict \(clave\) do nothing/);
-  assert.doesNotMatch(MIGRACION, /\b(delete from|truncate|drop table if exists)\b/i);
-});
-
-test("la carga inicial trae la lista completa, repartida entre los dos", () => {
-  const carga = cargaInicial();
-  assert.equal(carga.length, 364);
-  assert.equal(carga.filter((f) => f.responsable === ESTEBAN.email).length, 181);
-  assert.equal(carga.filter((f) => f.responsable === CANDE.email).length, 183);
-
-  const porNombre = new Map(carga.map((f) => [f.nombre, f]));
-  assert.equal(porNombre.get("DropOff TERESITA EXPRESS")?.responsable, ESTEBAN.email);
-  assert.equal(porNombre.get("DropOff Powerbatt (PowerBatt)")?.responsable, CANDE.email);
-  assert.equal(porNombre.get("Altra Pisos")?.seccion, "NO_COLECTA");
-  assert.equal(porNombre.get("Salud natural")?.seccion, "NUEVA");
-});
-
-test("cada clave de la carga es la que calcula la web, y ningún alias se repite", () => {
-  const carga = cargaInicial();
-  const vistas = new Map<string, string>();
-  for (const f of carga) {
-    assert.equal(f.clave, claveTienda(f.nombre), f.nombre);
-    for (const texto of [f.nombre, ...f.alias]) {
-      const clave = claveTienda(texto);
-      const previa = vistas.get(clave);
-      assert.ok(!previa || previa === f.nombre, `«${texto}» figura en «${previa}» y en «${f.nombre}»`);
-      vistas.set(clave, f.nombre);
-    }
-  }
-
-  // Los dropoff del mapa y de colectas toman el color de su tienda.
-  const indice = indexarResponsables(
-    carga.map((f, i) => fila({ id: String(i), ...f, seccion: f.seccion as FilaResponsable["seccion"] })),
-  );
+test("las claves y alias mantienen el color de una tienda en los mapas", () => {
+  const indice = indexarResponsables([
+    fila({ nombre: "Powerbatt", clave: "powerbatt", responsable: CANDE.email }),
+    fila({ id: "2", nombre: "MiMoto", clave: "mimoto", alias: ["dropOFF MiMoto"], responsable: ESTEBAN.email }),
+  ]);
   assert.equal(responsableDe(indice, "Powerbatt")?.grupo, "B");
   assert.equal(responsableDe(indice, "dropOFF MiMoto")?.grupo, "A");
 });

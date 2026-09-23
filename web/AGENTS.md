@@ -171,7 +171,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Los flujos 08 y 09 escriben **solo** las tablas `tracker_*` y leen SQL Server
   en modo lectura. No comparten tablas con ningún otro flujo, así que se pueden
   importar, apagar o rehacer sin mirar el resto.
-- El flujo 13 escribe **solo** `directorio_sellers`, `directorio_drivers`,
+- El flujo 13 escribe directamente `sellers_activos`; también escribe `directorio_drivers`,
   `whatsapp_grupos`, `whatsapp_asignaciones` y
   `directorio_sync_ejecuciones`. No debe escribir las tablas geográficas del
   tracker ni depender de Google Sheets. Un fallo de SQL Server o WAHA no puede
@@ -436,14 +436,15 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   `npx tsx scripts/lugares.mts` desde los KMZ de `datos/` y no las escribe
   ningún flujo. `id_tienda` **no** es único (#55004 tiene dos sucursales) y la
   pantalla lo marca en vez de elegir uno.
-- `tiendas_responsables` dice de quién es cada comercio (Grupo A
+- `sellers_activos.soporte_asignado` dice de quién es cada comercio (Grupo A
   `esteban@rapiboy.com`, Grupo B `candelaria@rapiboy.com`) y decide su color en
   todo el tablero. Se cruza **por nombre** con `claveTienda()` más `alias`,
   porque `mensual` y `cancelados` no traen id de tienda. Una columna nueva que
   muestre un comercio va con `tipo: "tienda"` en `Tabla`, o con `NombreTienda`
   fuera de una tabla; no pintar tiendas con colores propios. El índice se lee
-  una vez en el layout y nunca tira: sin la tabla, el tablero se ve sin colores.
-  La edita la web (`src/app/responsables.ts`) y no la escribe ningún flujo.
+  una vez en el layout y nunca tira: sin asignación, el tablero se ve sin
+  colores. La asignación se sincroniza desde WAHA y se puede corregir desde la
+  tabla Sellers; no existe una tabla separada de distribución.
 - El encuadre movible y el fondo de cobertura los pone `LienzoMapa`, compartido
   entre el tracker y tiendas. Tiene tres sutilezas ya resueltas —la escala real
   en píxeles medida con `ResizeObserver`, el foco de la rueda y el re-encuadre
