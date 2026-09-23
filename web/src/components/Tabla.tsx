@@ -165,7 +165,11 @@ export function Tabla({
     // ("2 de septiembre de 2026, 1:46 p.m." contra "…de 2026 a las 1:46 p.m."),
     // así que el servidor y el cliente renderizaban textos distintos y React
     // tiraba un error de hidratación en cada pantalla del tablero.
-    setMomento(new Date().toLocaleString("es-MX", { dateStyle: "long", timeStyle: "short" }));
+    setMomento(new Date().toLocaleString("es-AR", {
+      timeZone: "America/Argentina/Buenos_Aires",
+      dateStyle: "long",
+      timeStyle: "short",
+    }) + " hs arg");
 
     // El papel no tiene "ver más filas": se despliegan todas antes de imprimir.
     const limitadaAntes = limite != null && !expandida;

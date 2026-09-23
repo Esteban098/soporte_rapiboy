@@ -98,8 +98,8 @@ function Cabecera({ datos }: { datos?: DatosDelTracker }) {
     <PageHead
       eyebrow={
         diaPaquetes === diaPosiciones
-          ? `Ruta del ${diaPaquetes}, hora de México`
-          : `Pendientes del ${diaPaquetes} · posiciones del ${diaPosiciones}, hora de México`
+          ? `Ruta del ${diaPaquetes}, hora argentina`
+          : `Pendientes del ${diaPaquetes} · posiciones del ${diaPosiciones}, hora argentina`
       }
       titulo="Live tracker"
       dek="Dónde está cada repartidor y qué le queda por entregar. Las posiciones y las rutas se traen con los dos botones del panel, cada uno por su lado: mover los puntos no rehace las rutas, y rehacer las rutas no espera a que todos los dispositivos reporten."

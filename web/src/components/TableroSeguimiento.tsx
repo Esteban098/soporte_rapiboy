@@ -6,7 +6,7 @@ import { cambiarEstado, tomarSeguimiento, type Resultado } from "@/app/seguimien
 import { EditorReporte } from "./EditorReporte";
 import { NombreTienda } from "./ColorTiendas";
 import { enlaceViaje } from "@/lib/enlaces";
-import { duracion, numero } from "@/lib/formato";
+import { duracion, fechaHoraArgentina, numero } from "@/lib/formato";
 import { aliasDeCorreo, tramosConMenciones } from "@/lib/menciones";
 import {
   ETAPAS,
@@ -706,16 +706,9 @@ function compacto(minutos: number): string {
   return `${Math.floor(minutos / UN_DIA)} d`;
 }
 
-/** Fecha y hora en horario de México, que es donde ocurre la operación. */
+/** Fecha y hora visible en Argentina. */
 function cuando(fecha: Date | null): string {
-  if (!fecha) return "—";
-  return new Intl.DateTimeFormat("es-MX", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Mexico_City",
-  }).format(fecha);
+  return fechaHoraArgentina(fecha);
 }
 
 function IconoChevron({ className = "" }: { className?: string }) {

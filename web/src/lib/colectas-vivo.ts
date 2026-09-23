@@ -751,16 +751,16 @@ export function alertasDelDia(dia: ColectasDelDia, ahora: number | null): Alerta
 
 /* ---------- Formato ---------- */
 
-/** Hora de Ciudad de México de un instante, 'HH:MM'. */
-export function horaMexico(fecha: string | null): string {
+/** Hora visible de operación, siempre Argentina. */
+export function horaArgentina(fecha: string | null): string {
   const t = marcaDe(fecha);
   if (!Number.isFinite(t)) return "—";
-  return new Intl.DateTimeFormat("es-MX", {
-    timeZone: ZONA_OPERACION,
+  return `${new Intl.DateTimeFormat("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
-  }).format(new Date(t));
+  }).format(new Date(t))} hs arg`;
 }
 
 /** «12 min», «2 h 05 min». */

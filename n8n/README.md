@@ -376,6 +376,11 @@ que se supo, que es viejo pero cierto.
   el nodo **Corregir zona de posición** del flujo 08 suma las tres horas
   después; el resultado es el correcto. El flujo 12 lo resuelve en la misma
   consulta con `AT TIME ZONE 'Argentina Standard Time'`.
+- **La zona de operación y la zona visible son distintas.** Los flujos y la
+  web siguen usando `America/Mexico_City` para elegir el día y los cortes de
+  ruta. Las horas que se muestran en la plataforma se convierten a
+  `America/Argentina/Buenos_Aires` y se rotulan con `hs arg`, por ejemplo
+  `13:29 hs arg`.
 - **Ningún nodo lee a través del grafo.** No hay un solo `$('Otro nodo')`
   dentro de `{{ }}`, y no es casualidad: esa lectura depende de que n8n pueda
   rastrear la cadena de items hasta el nodo nombrado, y cuando la cadena se

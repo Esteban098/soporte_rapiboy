@@ -22,3 +22,8 @@ editarla o borrarla. Esa ubicación se usa para las capas de tiendas de
 Colectas y Ruta; los paquetes del Live Tracker conservan siempre el domicilio
 de entrega de `Viaje.LatitudDestino` y `Viaje.LongitudDestino`. La dirección de
 SQL Server permanece separada y no es editable.
+
+La lógica operativa continúa usando la hora de Ciudad de México para resolver
+la jornada, los cortes y las sincronizaciones. Las fechas y horas que ve el
+usuario se presentan en horario argentino y llevan el sufijo `hs arg` (por
+ejemplo, `13:29 hs arg`) para evitar mezclar relojes en la pantalla.

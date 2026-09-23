@@ -439,7 +439,7 @@ export function contarPor<T>(filas: T[], campo: (fila: T) => string, tope = 15) 
 /**
  * Fechas ya escritas para una persona. Si le llega ISO, el modelo lo repite
  * tal cual —«2026-09-17T17:33:17.792Z»— o lo convierte de zona a ojo y se
- * equivoca; así llega hecho y en hora de México.
+ * equivoca; así llega hecho y en hora argentina para quien opera.
  */
 const DIA = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
 const MOMENTO = new Intl.DateTimeFormat("es-MX", {
@@ -448,7 +448,7 @@ const MOMENTO = new Intl.DateTimeFormat("es-MX", {
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
-  timeZone: "America/Mexico_City",
+  timeZone: "America/Argentina/Buenos_Aires",
 });
 
 /** Un día de datos (`creacion`, `ultimoMovimiento`), guardado como medianoche UTC. */
@@ -458,11 +458,11 @@ export function diaLegible(valor: Date | string | null | undefined): string | nu
   return Number.isNaN(fecha.getTime()) ? null : DIA.format(fecha);
 }
 
-/** Un instante (alta de un reporte, una visita), en hora de Ciudad de México. */
+/** Un instante (alta de un reporte, una visita), en hora argentina. */
 export function momentoLegible(valor: Date | string | null | undefined): string | null {
   if (!valor) return null;
   const fecha = typeof valor === "string" ? new Date(valor) : valor;
-  return Number.isNaN(fecha.getTime()) ? null : `${MOMENTO.format(fecha)} (hora de México)`;
+  return Number.isNaN(fecha.getTime()) ? null : `${MOMENTO.format(fecha)} hs arg`;
 }
 
 /**

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { crearSeguimiento, prepararAdjuntos, reportesDelCaso, type Previo } from "@/app/seguimiento";
 import { ETIQUETA_ETAPA } from "@/lib/seguimiento";
+import { fechaHoraArgentina } from "@/lib/formato";
 import { AreaMenciones } from "./AreaMenciones";
 import estilos from "./seguimiento-widget.module.css";
 
@@ -290,13 +291,7 @@ async function subir(archivos: File[], subidas: { ruta: string; url: string }[])
 
 /** Fecha corta en horario de México, para el aviso de reportes previos. */
 function cuando(iso: string): string {
-  return new Intl.DateTimeFormat("es-MX", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Mexico_City",
-  }).format(new Date(iso));
+  return fechaHoraArgentina(iso);
 }
 
 /** El aviso es una referencia, no el reporte: alcanza con el principio. */
