@@ -4,7 +4,6 @@ import {
   TABLA_TRACKER_DEMORAS,
   TABLA_TRACKER_PAQUETES,
   TABLA_TRACKER_SYNC,
-  TABLA_SELLERS_ACTIVOS,
   VISTA_TRACKER_DRIVERS,
 } from "./config";
 import { consultarTodo, TablaFaltante } from "./supabase";
@@ -124,13 +123,6 @@ export type DatosDelTracker = {
   leidoEn: string;
 };
 
-type UbicacionSellerFila = {
-  id_usuario: number;
-  ubicacion_manual: string | null;
-  latitud_manual: number | null;
-  longitud_manual: number | null;
-};
-
 /** El día actual de posiciones: siempre hoy, en hora de México. */
 export function diaVigente(): string {
   return diaDeOperacion();
@@ -178,7 +170,7 @@ export async function leerTracker(diaForzado?: string, momento = new Date()): Pr
     }
   };
 
-  const [drivers, paquetes, sincronizaciones, choferes, demoras, ubicaciones] = await Promise.all([
+  const [drivers, paquetes, sincronizaciones, choferes, demoras] = await Promise.all([
     consultarTodo<DriverFila>(
       VISTA_TRACKER_DRIVERS,
       { activo: "is.true" },
@@ -217,11 +209,6 @@ export async function leerTracker(diaForzado?: string, momento = new Date()): Pr
       { fecha_operacion: `eq.${dia}` },
       "id_motoboy.asc",
     ),
-    opcional<UbicacionSellerFila>(
-      TABLA_SELLERS_ACTIVOS,
-      { activo: "is.true", select: "id_usuario,ubicacion_manual,latitud_manual,longitud_manual" },
-      "id_usuario.asc",
-    ),
   ]);
 
   /*
@@ -230,27 +217,13 @@ export async function leerTracker(diaForzado?: string, momento = new Date()): Pr
    * a verde pero conserva la fila: así 18 paradas siguen siendo 18 y se ve
    * qué ocurrió con cada una. `activo_en_ruta` sigue marcando los retiros.
    */
-  const ubicacionPorSeller = new Map(
-    ubicaciones
-      .filter((u) => coordenadaValida(u.latitud_manual, u.longitud_manual))
-      .map((u) => [u.id_usuario, u]),
-  );
-  const paquetesVisibles = paquetes.map((paquete) => {
-    const ubicacion = paquete.id_usuario == null ? null : ubicacionPorSeller.get(paquete.id_usuario);
-    return ubicacion
-      ? {
-          ...paquete,
-          direccion: ubicacion.ubicacion_manual ?? paquete.direccion,
-          latitud_destino: ubicacion.latitud_manual,
-          longitud_destino: ubicacion.longitud_manual,
-        }
-      : paquete;
-  });
-
   const domicilios = new Map(choferes.map((c) => [c.id_motoboy, c]));
   const demoraPorDriver = new Map(demoras.map((demora) => [demora.id_motoboy, demora]));
 
-  const paquetesConDetalle: PaqueteDelTracker[] = paquetesVisibles;
+  // La ubicación de un paquete siempre es su domicilio de entrega, tomado de
+  // Viaje.LatitudDestino/LongitudDestino. La ubicación manual del seller sirve
+  // para capas de tiendas, pero nunca debe reemplazar la parada del viaje.
+  const paquetesConDetalle: PaqueteDelTracker[] = paquetes;
 
   const porDriver = new Map<number, PaqueteDelTracker[]>();
   const huerfanos: PaqueteDelTracker[] = [];

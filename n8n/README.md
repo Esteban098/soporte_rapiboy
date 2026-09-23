@@ -362,6 +362,11 @@ que se supo, que es viejo pero cierto.
   poner.
 - **La posición sale de `Motoboy.Latitud` / `.Longitud`.**
   `Viaje.LatitudDestino` es a dónde va el paquete. También hay prueba.
+- **El punto del paquete es siempre el domicilio de entrega del viaje.**
+  La web conserva `Viaje.LatitudDestino`, `Viaje.LongitudDestino` y `Viaje.Direccion`
+  tal como llegan desde RapiboyData. La ubicación manual de `sellers_activos`
+  solo sirve para las capas de tiendas de Colectas y Ruta y nunca reemplaza la
+  parada de un paquete en el Live Tracker.
 - **La zona de `Motoboy.UltimaActualizacion` es la de Argentina (UTC−3).**
   Comprobado contra la base el 2026-09-21: el servidor de SQL Server corre en
   UTC (`GETDATE()` = `GETUTCDATE()`), pero la última actualización de

@@ -2023,7 +2023,7 @@ test("la pantalla dice qué migración falta en vez de fingir que no hay datos",
    * cargado», que es una respuesta distinta y equivocada: no es que la persona
    * no tenga domicilio, es que la tabla no existe.
    */
-  assert.deepEqual(datos.tablasFaltantes, ["tracker_choferes", "sellers_activos"]);
+  assert.deepEqual(datos.tablasFaltantes, ["tracker_choferes"]);
   assert.equal(datos.drivers.length, 1, "el mapa tiene que seguir funcionando");
 
   const panel = readFileSync(new URL("../src/components/LiveTracker.tsx", import.meta.url), "utf8");
@@ -2037,7 +2037,6 @@ test("con las tablas cargadas no se avisa nada", async (t) => {
     tracker_paquetes: [paquete()],
     tracker_sincronizaciones: [],
     tracker_choferes: [],
-    sellers_activos: [],
   });
   t.after(base.restore);
 
