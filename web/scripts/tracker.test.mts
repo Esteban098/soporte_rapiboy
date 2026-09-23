@@ -14,6 +14,8 @@ import {
   diaDeOperacion,
   diaDePaquetes,
   distanciaKm,
+  demorasPorZona,
+  demoraDesdeProgramacion,
   entregadosPorHora,
   enlaceAlOperador,
   estadosDelSistemaSinCategoria,
@@ -1548,6 +1550,25 @@ test("las entregas por hora usan el reloj de Ciudad de México", () => {
   assert.equal(horas.reduce((suma, h) => suma + h.cantidad, 0), 2);
 });
 
+test("las zonas calculan la demora desde programación y usan cambio de estado como respaldo", () => {
+  assert.equal(
+    demoraDesdeProgramacion({ fecha_programado: "2026-09-10T14:00:00Z", fecha_visita: "2026-09-10T15:30:00Z", fecha_cambio_estado: null }),
+    90,
+  );
+  assert.equal(
+    demoraDesdeProgramacion({ fecha_programado: "2026-09-10T14:00:00Z", fecha_visita: null, fecha_cambio_estado: "2026-09-10T15:15:00Z" }),
+    75,
+  );
+  assert.deepEqual(
+    demorasPorZona([
+      { clasificacion: "VISITADO_ENTREGADO", poligono: "Norte", fecha_programado: "2026-09-10T14:00:00Z", fecha_visita: "2026-09-10T15:00:00Z", fecha_cambio_estado: null },
+      { clasificacion: "VISITADO_ENTREGADO", poligono: "Norte", fecha_programado: null, fecha_visita: "2026-09-10T15:00:00Z", fecha_cambio_estado: null },
+      { clasificacion: "VISITADO_NO_ENTREGADO", poligono: "Sur", fecha_programado: "2026-09-10T14:00:00Z", fecha_visita: "2026-09-10T15:00:00Z", fecha_cambio_estado: null },
+    ]),
+    [{ zona: "Norte", cantidad: 2, promedioMinutos: 60 }],
+  );
+});
+
 /* ---------------------------------------------------------------------------
  * Colores, enlace al operador y ruta propuesta
  * ------------------------------------------------------------------------- */
@@ -2002,7 +2023,7 @@ test("la pantalla dice qué migración falta en vez de fingir que no hay datos",
    * cargado», que es una respuesta distinta y equivocada: no es que la persona
    * no tenga domicilio, es que la tabla no existe.
    */
-  assert.deepEqual(datos.tablasFaltantes, ["tracker_choferes"]);
+  assert.deepEqual(datos.tablasFaltantes, ["tracker_choferes", "sellers_activos"]);
   assert.equal(datos.drivers.length, 1, "el mapa tiene que seguir funcionando");
 
   const panel = readFileSync(new URL("../src/components/LiveTracker.tsx", import.meta.url), "utf8");
@@ -2016,6 +2037,7 @@ test("con las tablas cargadas no se avisa nada", async (t) => {
     tracker_paquetes: [paquete()],
     tracker_sincronizaciones: [],
     tracker_choferes: [],
+    sellers_activos: [],
   });
   t.after(base.restore);
 

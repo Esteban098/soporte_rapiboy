@@ -458,6 +458,55 @@ export function entregadosPorHora(
   return horas;
 }
 
+export type DemoraZona = {
+  zona: string;
+  cantidad: number;
+  promedioMinutos: number | null;
+};
+
+/**
+ * Tiempo desde el inicio de la programación hasta la visita/entrega.
+ *
+ * `fecha_visita` es la marca preferida. Algunos viajes entregados no tienen
+ * evento de visita en el historial, pero sí tienen `fecha_cambio_estado`; se
+ * usa esa marca como respaldo para que la zona no quede sin métrica por una
+ * ausencia del evento secundario.
+ */
+export function demoraDesdeProgramacion(
+  paquete: Pick<PaqueteFila, "fecha_programado" | "fecha_visita" | "fecha_cambio_estado">,
+): number | null {
+  if (!paquete.fecha_programado) return null;
+  const final = paquete.fecha_visita ?? paquete.fecha_cambio_estado;
+  if (!final) return null;
+  const minutos = Math.round((Date.parse(final) - Date.parse(paquete.fecha_programado)) / 60000);
+  return Number.isFinite(minutos) && minutos >= 0 ? minutos : null;
+}
+
+/** Agrupa las entregas por polígono y calcula su demora media en minutos. */
+export function demorasPorZona(
+  paquetes: Array<
+    Pick<PaqueteFila, "clasificacion" | "poligono" | "fecha_programado" | "fecha_visita" | "fecha_cambio_estado">
+  >,
+): DemoraZona[] {
+  const grupos = new Map<string, { cantidad: number; minutos: number[] }>();
+  for (const paquete of paquetes) {
+    if (paquete.clasificacion !== "VISITADO_ENTREGADO") continue;
+    const zona = paquete.poligono?.trim() || "Zona no informada";
+    const grupo = grupos.get(zona) ?? { cantidad: 0, minutos: [] };
+    grupo.cantidad += 1;
+    const minutos = demoraDesdeProgramacion(paquete);
+    if (minutos != null) grupo.minutos.push(minutos);
+    grupos.set(zona, grupo);
+  }
+  return [...grupos.entries()].map(([zona, grupo]) => ({
+    zona,
+    cantidad: grupo.cantidad,
+    promedioMinutos: grupo.minutos.length
+      ? Math.round(grupo.minutos.reduce((suma, minutos) => suma + minutos, 0) / grupo.minutos.length)
+      : null,
+  }));
+}
+
 /* ---------- Coordenadas ---------- */
 
 /**

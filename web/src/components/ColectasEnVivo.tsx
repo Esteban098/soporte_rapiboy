@@ -38,6 +38,7 @@ import { NombreTienda } from "./ColorTiendas";
 import lt from "./live-tracker.module.css";
 import ui from "./ui.module.css";
 import estilos from "./colectas-vivo.module.css";
+import { TablaOrdenable } from "./TablaOrdenable";
 
 /**
  * Las colectas de hoy sobre el mapa de Tiendas: el panel con los repartidores
@@ -49,6 +50,14 @@ import estilos from "./colectas-vivo.module.css";
 
 /** Cada cuánto se vuelve a leer la foto con «En vivo» prendido. */
 export const REFRESCO_VIVO_MS = 60_000;
+
+function horaSegura(marca: string | null | undefined): string {
+  return marca ? horaMexico(marca) : "—";
+}
+
+function tiempoSeguro(marca: string | null | undefined): number | null {
+  return marca ? Date.parse(marca) : null;
+}
 
 /**
  * El reloj del navegador, o `null` durante el render del servidor.
@@ -950,45 +959,31 @@ export function ResumenColectasVivo({ dia }: { dia: ColectasDelDia }) {
       <div className={lt.tablaBloque}>
         <h2>Por repartidor</h2>
         <div className={estilos.tablaScroll}>
-          <table className={estilos.tabla}>
-            <thead>
-              <tr>
-                <th>Repartidor</th>
-                <th className={estilos.num}>Tiendas</th>
-                <th className={estilos.num}>Por colectar</th>
-                <th className={estilos.num}>En curso</th>
-                <th className={estilos.num}>A bodega</th>
-                <th className={estilos.num}>En bodega</th>
-                <th className={estilos.num}>Canceladas</th>
-                <th className={estilos.num}>Paquetes</th>
-                <th>Próxima parada</th>
-                {!dia.sinPosiciones ? <th>Última posición</th> : null}
-                <th>Último cambio</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(todosDrivers ? resumenes : resumenes.slice(0, DRIVERS_INICIALES)).map((r) => (
-                <tr key={claveDriver(r.id)}>
-                  <td>
-                    <span className={lt.chip} style={{ background: r.color, display: "inline-block", marginRight: 6 }} aria-hidden="true" />
-                    {r.nombre}
-                  </td>
-                  <td className={estilos.num}>{r.tiendas}</td>
-                  <td className={estilos.num}>{r.porFase.PENDIENTE}</td>
-                  <td className={estilos.num}>{r.porFase.EN_CURSO}</td>
-                  <td className={estilos.num}>{r.porFase.RETIRADA}</td>
-                  <td className={estilos.num}>{r.porFase.CERRADA}</td>
-                  <td className={estilos.num}>{r.porFase.CANCELADA}</td>
-                  <td className={estilos.num}>{numero(r.paquetes)}</td>
-                  <td>{r.ruta[0] ? <NombreTienda nombre={r.ruta[0].seller ?? "—"} /> : "—"}</td>
-                  {!dia.sinPosiciones ? (
-                    <td>{r.id == null ? "—" : ahora != null ? antiguedadPosicion(r.posicion, r.posicionEn, ahora).texto : horaMexico(r.posicionEn)}</td>
-                  ) : null}
-                  <td>{r.ultimoMovimiento ? horaMexico(r.ultimoMovimiento) : "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TablaOrdenable
+            filas={resumenes}
+            limite={todosDrivers ? undefined : DRIVERS_INICIALES}
+            claveFila={(r) => claveDriver(r.id)}
+            className={estilos.tabla}
+            ordenInicial={{ clave: "posicion", asc: false }}
+            columnas={[
+              {
+                clave: "driver",
+                titulo: "Repartidor",
+                valor: (r) => r.nombre,
+                render: (r) => <><span className={lt.chip} style={{ background: r.color, display: "inline-block", marginRight: 6 }} aria-hidden="true" />{r.nombre}</>,
+              },
+              { clave: "tiendas", titulo: "Tiendas", valor: (r) => r.tiendas, className: estilos.num },
+              { clave: "pendientes", titulo: "Por colectar", valor: (r) => r.porFase.PENDIENTE, className: estilos.num },
+              { clave: "curso", titulo: "En curso", valor: (r) => r.porFase.EN_CURSO, className: estilos.num },
+              { clave: "retirada", titulo: "A bodega", valor: (r) => r.porFase.RETIRADA, className: estilos.num },
+              { clave: "cerrada", titulo: "En bodega", valor: (r) => r.porFase.CERRADA, className: estilos.num },
+              { clave: "cancelada", titulo: "Canceladas", valor: (r) => r.porFase.CANCELADA, className: estilos.num },
+              { clave: "paquetes", titulo: "Paquetes", valor: (r) => r.paquetes, className: estilos.num, render: (r) => numero(r.paquetes) },
+              { clave: "proxima", titulo: "Próxima parada", valor: (r) => r.ruta[0]?.seller ?? "—", render: (r) => r.ruta[0] ? <NombreTienda nombre={r.ruta[0].seller ?? "—"} /> : "—" },
+              ...(!dia.sinPosiciones ? [{ clave: "posicion", titulo: "Última posición", valor: (r: ResumenDriver) => r.posicionEn ? Date.parse(r.posicionEn) : null, render: (r: ResumenDriver) => r.id == null ? "—" : ahora != null ? antiguedadPosicion(r.posicion, r.posicionEn, ahora).texto : horaMexico(r.posicionEn) }] : []),
+              { clave: "movimiento", titulo: "Último cambio", valor: (r) => r.ultimoMovimiento ? Date.parse(r.ultimoMovimiento) : null, render: (r) => r.ultimoMovimiento ? horaMexico(r.ultimoMovimiento) : "—" },
+            ]}
+          />
         </div>
         {resumenes.length > DRIVERS_INICIALES ? (
           <button type="button" className={estilos.masFilas} onClick={() => setTodosDrivers(!todosDrivers)}>
@@ -1000,53 +995,27 @@ export function ResumenColectasVivo({ dia }: { dia: ColectasDelDia }) {
       <div className={lt.tablaBloque}>
         <h2>Colectas de hoy</h2>
         <div className={estilos.tablaScroll}>
-          <table className={estilos.tabla}>
-            <thead>
-              <tr>
-                <th>Colecta</th>
-                <th>Tienda</th>
-                <th>Estado</th>
-                <th>Repartidor</th>
-                <th className={estilos.num}>En pedido</th>
-                <th className={estilos.num}>Retirados</th>
-                <th className={estilos.num}>En bodega</th>
-                <th>Creada</th>
-                <th>Aceptada</th>
-                <th>En local</th>
-                <th>Retirada</th>
-                <th>En bodega</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(todas ? colectas : colectas.slice(0, FILAS_INICIALES)).map(({ c, r }) => {
-                const p = paquetesDe(c);
-                return (
-                  <tr key={c.id_colecta}>
-                    <td>#{c.id_colecta}</td>
-                    <td>
-                      <NombreTienda nombre={c.seller ?? "—"} />
-                      {c.lugar ? <span className={estilos.paradaDato}> · {c.lugar}</span> : null}
-                    </td>
-                    <td>
-                      <span className={estilos.estado}>
-                        <span className={estilos.punto} style={{ background: COLOR_FASE[c.fase] }} aria-hidden="true" />
-                        {ETIQUETA_ESTADO[c.estado]}
-                      </span>
-                    </td>
-                    <td>{r.nombre}</td>
-                    <td className={estilos.num}>{p.esperados ?? "—"}</td>
-                    <td className={estilos.num}>{p.retirados}</td>
-                    <td className={estilos.num}>{p.enBodega}</td>
-                    <td>{horaMexico(c.creada_en)}</td>
-                    <td>{horaMexico(c.aceptada_en)}</td>
-                    <td>{horaMexico(c.en_local_en)}</td>
-                    <td>{horaMexico(c.retirada_en)}</td>
-                    <td>{horaMexico(c.en_deposito_en ?? c.finalizada_en ?? c.llego_deposito_en)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <TablaOrdenable
+            filas={colectas}
+            limite={todas ? undefined : FILAS_INICIALES}
+            claveFila={({ c }) => c.id_colecta}
+            className={estilos.tabla}
+            ordenInicial={{ clave: "colecta", asc: false }}
+            columnas={[
+              { clave: "colecta", titulo: "Colecta", valor: ({ c }) => c.id_colecta, render: ({ c }) => `#${c.id_colecta}` },
+              { clave: "tienda", titulo: "Tienda", valor: ({ c }) => c.seller ?? "—", render: ({ c }) => <><NombreTienda nombre={c.seller ?? "—"} />{c.lugar ? <span className={estilos.paradaDato}> · {c.lugar}</span> : null}</> },
+              { clave: "estado", titulo: "Estado", valor: ({ c }) => ETIQUETA_ESTADO[c.estado], render: ({ c }) => <span className={estilos.estado}><span className={estilos.punto} style={{ background: COLOR_FASE[c.fase] }} aria-hidden="true" />{ETIQUETA_ESTADO[c.estado]}</span> },
+              { clave: "driver", titulo: "Repartidor", valor: ({ r }) => r.nombre },
+              { clave: "esperados", titulo: "En pedido", valor: ({ c }) => paquetesDe(c).esperados, className: estilos.num },
+              { clave: "retirados", titulo: "Retirados", valor: ({ c }) => paquetesDe(c).retirados, className: estilos.num },
+              { clave: "bodega", titulo: "En bodega", valor: ({ c }) => paquetesDe(c).enBodega, className: estilos.num },
+              { clave: "creada", titulo: "Creada", valor: ({ c }) => c.creada_en ? Date.parse(c.creada_en) : null, render: ({ c }) => horaSegura(c.creada_en) },
+              { clave: "aceptada", titulo: "Aceptada", valor: ({ c }) => c.aceptada_en ? Date.parse(c.aceptada_en) : null, render: ({ c }) => c.aceptada_en ? horaMexico(c.aceptada_en) : "—" },
+              { clave: "local", titulo: "En local", valor: ({ c }) => c.en_local_en ? Date.parse(c.en_local_en) : null, render: ({ c }) => c.en_local_en ? horaMexico(c.en_local_en) : "—" },
+              { clave: "retirada", titulo: "Retirada", valor: ({ c }) => c.retirada_en ? Date.parse(c.retirada_en) : null, render: ({ c }) => c.retirada_en ? horaMexico(c.retirada_en) : "—" },
+              { clave: "finalizada", titulo: "En bodega", valor: ({ c }) => tiempoSeguro(c.en_deposito_en ?? c.finalizada_en ?? c.llego_deposito_en), render: ({ c }) => horaSegura(c.en_deposito_en ?? c.finalizada_en ?? c.llego_deposito_en) },
+            ]}
+          />
         </div>
         {colectas.length > FILAS_INICIALES ? (
           <button type="button" className={estilos.masFilas} onClick={() => setTodas(!todas)}>

@@ -14,6 +14,7 @@ import { EditorPerfil } from "./EditorPerfil";
 import estilos from "./ui.module.css";
 import tabla from "./tabla.module.css";
 import propio from "./perfiles.module.css";
+import { TablaOrdenable } from "./TablaOrdenable";
 
 /** Un perfil como lo necesita la pantalla: sin hash, con fechas ya en texto. */
 export type FilaPerfil = {
@@ -179,87 +180,72 @@ export function PanelPerfiles({
         </p>
 
         <div className={estilos.tableWrap}>
-          <table className={estilos.table}>
-            <thead>
-              <tr>
-                <th>Correo</th>
-                <th>Nombre</th>
-                <th>Rol</th>
-                <th>Último ingreso</th>
-                <th>Creado</th>
-                <th>Estado</th>
-                {puedeAdministrar ? <th data-noimprimir aria-label="Acciones" /> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {perfiles.map((perfil) => (
-                <tr key={perfil.id}>
-                  <td>{perfil.email}</td>
-                  <td>{perfil.nombre || "—"}</td>
-                  <td>
-                    <span
-                      className={
-                        perfil.rol === "admin"
-                          ? propio.rolAdmin
-                          : perfil.rol === "comercial"
-                            ? propio.rolComercial
-                            : propio.rolOperador
-                      }
-                    >
-                      {ETIQUETA_ROL[aRol(perfil.rol)]}
-                    </span>
-                  </td>
-                  <td className={propio.fecha}>{perfil.ultimoIngreso || "nunca"}</td>
-                  <td className={propio.fecha}>{perfil.creado}</td>
-                  <td>
-                    <span className={perfil.activo ? propio.activo : propio.inactivo}>
-                      {perfil.activo ? "Activo" : "Desactivado"}
-                    </span>
-                  </td>
-                  {puedeAdministrar ? (
-                    <td data-noimprimir className={tabla.celdaAccion}>
-                      <button
-                        type="button"
-                        className={tabla.editar}
-                        onClick={() => setEditando(perfil)}
-                        disabled={trabajando}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        className={tabla.editar}
-                        onClick={() => resetear(perfil)}
-                        disabled={trabajando}
-                      >
-                        Resetear clave
-                      </button>
-                      <button
-                        type="button"
-                        className={tabla.editar}
-                        onClick={() =>
-                          correr(
-                            () => cambiarActivo(perfil.id, !perfil.activo),
-                            perfil.activo
-                              ? `${perfil.email} ya no puede entrar.`
-                              : `${perfil.email} puede entrar de nuevo.`,
-                          )
-                        }
-                        disabled={trabajando || (perfil.email === yo && perfil.activo)}
-                        title={
-                          perfil.email === yo && perfil.activo
-                            ? "No podés desactivar tu propio perfil"
-                            : undefined
-                        }
-                      >
-                        {perfil.activo ? "Desactivar" : "Activar"}
-                      </button>
-                    </td>
-                  ) : null}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TablaOrdenable
+            filas={perfiles}
+            claveFila={(perfil) => perfil.id}
+            className={estilos.table}
+            ordenInicial={{ clave: "email", asc: true }}
+            columnas={[
+              { clave: "email", titulo: "Correo", valor: (perfil) => perfil.email },
+              { clave: "nombre", titulo: "Nombre", valor: (perfil) => perfil.nombre || "—" },
+              {
+                clave: "rol",
+                titulo: "Rol",
+                valor: (perfil) => ETIQUETA_ROL[aRol(perfil.rol)],
+                render: (perfil) => (
+                  <span
+                    className={
+                      perfil.rol === "admin"
+                        ? propio.rolAdmin
+                        : perfil.rol === "comercial"
+                          ? propio.rolComercial
+                          : propio.rolOperador
+                    }
+                  >
+                    {ETIQUETA_ROL[aRol(perfil.rol)]}
+                  </span>
+                ),
+              },
+              { clave: "ultimoIngreso", titulo: "Último ingreso", valor: (perfil) => perfil.ultimoIngreso || "nunca", className: propio.fecha },
+              { clave: "creado", titulo: "Creado", valor: (perfil) => perfil.creado, className: propio.fecha },
+              {
+                clave: "estado",
+                titulo: "Estado",
+                valor: (perfil) => perfil.activo,
+                render: (perfil) => (
+                  <span className={perfil.activo ? propio.activo : propio.inactivo}>
+                    {perfil.activo ? "Activo" : "Desactivado"}
+                  </span>
+                ),
+              },
+              ...(puedeAdministrar
+                ? [
+                    {
+                      clave: "acciones",
+                      titulo: "Acciones",
+                      valor: () => "",
+                      ordenable: false,
+                      className: tabla.celdaAccion,
+                      render: (perfil: FilaPerfil) => (
+                        <>
+                          <button type="button" className={tabla.editar} onClick={() => setEditando(perfil)} disabled={trabajando}>Editar</button>
+                          <button type="button" className={tabla.editar} onClick={() => resetear(perfil)} disabled={trabajando}>Resetear clave</button>
+                          <button
+                            type="button"
+                            className={tabla.editar}
+                            onClick={() => correr(() => cambiarActivo(perfil.id, !perfil.activo), perfil.activo ? `${perfil.email} ya no puede entrar.` : `${perfil.email} puede entrar de nuevo.`)}
+                            disabled={trabajando || (perfil.email === yo && perfil.activo)}
+                            title={perfil.email === yo && perfil.activo ? "No podés desactivar tu propio perfil" : undefined}
+                          >
+                            {perfil.activo ? "Desactivar" : "Activar"}
+                          </button>
+                        </>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
+          />
         </div>
       </section>
       ) : null}

@@ -195,11 +195,13 @@ que los números se muevan mientras se mira. La página la lee aparte con
 pestaña resume la jornada visible y lo avisa, y el mapa sigue andando.
 Muestra entregados, paquetes en ruta, drivers y tasa global; entregas por driver y por hora de México; una tabla ordenable por
 driver con entregas por hora, primera y última entrega; las zonas más lentas
-por tiempo promedio desde `fecha_programado` hasta `fecha_visita`, y un mapa
+por demora promedio desde `fecha_programado` hasta `fecha_visita` o, si esa
+marca no existe, hasta `fecha_cambio_estado`; y un mapa
 de calor de destinos entregados sobre la cobertura. El mapa de calor ubica
 cada destino con `proyectar()`, igual que el mapa, y deja afuera los que caen
 fuera de la ventana para que la grilla no se corra respecto de las zonas. El buscador filtra drivers
-y zonas.
+y zonas. Todos los encabezados de las tablas de estadísticas también permiten
+cambiar el orden.
 
 ### El botón Actualizar
 
@@ -491,7 +493,10 @@ minuto mientras está a la vista.
   repartidor, más de 20 min en el local sin retirar, reserva cancelada con la
   colecta abierta, repartidor distinto al de la reserva, más paquetes en bodega
   que retirados, repartidores que no reportan posición o con posición de hace más
-  de 45 min), una tabla por repartidor y otra con cada colecta.
+  de 45 min), una tabla por repartidor y otra con cada colecta. Ambas tablas
+  se pueden ordenar pulsando cualquier encabezado; en **Por repartidor**,
+  **Última posición** ordena por la fecha real del último reporte de
+  coordenadas, no por el texto de antigüedad que se muestra.
 
 Reglas que conviene conocer:
 

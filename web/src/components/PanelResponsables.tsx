@@ -16,6 +16,7 @@ import estilos from "./ui.module.css";
 import tabla from "./tabla.module.css";
 import editor from "./editor-caso.module.css";
 import propio from "./color-tiendas.module.css";
+import { TablaOrdenable } from "./TablaOrdenable";
 
 type Edicion = { fila: FilaResponsable | null };
 
@@ -123,45 +124,51 @@ export function PanelResponsables({ filas }: { filas: FilaResponsable[] }) {
                 <p className={estilos.empty}>Ninguna tienda coincide con el filtro.</p>
               ) : (
                 <div className={estilos.tableWrap}>
-                  <table className={estilos.table}>
-                    <thead>
-                      <tr>
-                        <th>Tienda</th>
-                        <th>Sección</th>
-                        <th aria-label="Acciones" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(todas ? suyas : suyas.slice(0, FILAS_INICIALES)).map((fila) => (
-                        <tr key={fila.id}>
-                          <td>
-                            <MarcaResponsable email={fila.responsable}>
-                              {fila.nombre}
-                            </MarcaResponsable>
+                  <TablaOrdenable
+                    filas={suyas}
+                    limite={todas ? undefined : FILAS_INICIALES}
+                    claveFila={(fila) => fila.id}
+                    className={estilos.table}
+                    ordenInicial={{ clave: "tienda", asc: true }}
+                    columnas={[
+                      {
+                        clave: "tienda",
+                        titulo: "Tienda",
+                        valor: (fila) => fila.nombre,
+                        render: (fila) => (
+                          <>
+                            <MarcaResponsable email={fila.responsable}>{fila.nombre}</MarcaResponsable>
                             {fila.alias?.length ? (
-                              <span className={propio.alias}>
-                                También: {fila.alias.join(" · ")}
-                              </span>
+                              <span className={propio.alias}>También: {fila.alias.join(" · ")}</span>
                             ) : null}
-                          </td>
-                          <td>{ETIQUETA_SECCION[fila.seccion] ?? fila.seccion}</td>
-                          <td className={tabla.celdaAccion}>
-                            <button
-                              type="button"
-                              className={tabla.editar}
-                              onClick={() => setEdicion({ fila })}
-                              aria-label={`Editar ${fila.nombre}`}
-                              title={
-                                fila.editado_por ? `Última edición: ${fila.editado_por}` : undefined
-                              }
-                            >
-                              Editar
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </>
+                        ),
+                      },
+                      {
+                        clave: "seccion",
+                        titulo: "Sección",
+                        valor: (fila) => ETIQUETA_SECCION[fila.seccion] ?? fila.seccion,
+                      },
+                      {
+                        clave: "acciones",
+                        titulo: "Acciones",
+                        valor: () => "",
+                        ordenable: false,
+                        className: tabla.celdaAccion,
+                        render: (fila) => (
+                          <button
+                            type="button"
+                            className={tabla.editar}
+                            onClick={() => setEdicion({ fila })}
+                            aria-label={`Editar ${fila.nombre}`}
+                            title={fila.editado_por ? `Última edición: ${fila.editado_por}` : undefined}
+                          >
+                            Editar
+                          </button>
+                        ),
+                      },
+                    ]}
+                  />
                 </div>
               )}
               {suyas.length > FILAS_INICIALES ? (

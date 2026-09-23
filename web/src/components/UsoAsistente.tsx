@@ -1,15 +1,18 @@
+"use client";
+
 import Link from "next/link";
 import type { UsoPorPersona } from "@/lib/asistente-costos";
 import { mesLargo, numero } from "@/lib/formato";
 import { Callout, Card, Kpi } from "./Card";
 import estilos from "./ui.module.css";
+import { TablaOrdenable } from "./TablaOrdenable";
 
 /**
  * Cuánto se usó el asistente en un mes, por persona. Solo lo ve el
  * administrador: la página no lo lee para nadie más.
  *
- * Es un componente de servidor y recibe los números ya agrupados; las filas
- * sueltas de cada pregunta no salen del servidor.
+ * Recibe los números ya agrupados; las filas sueltas de cada pregunta no
+ * salen del servidor. La tabla se vuelve interactiva solo para ordenar.
  */
 
 const DOLARES = new Intl.NumberFormat("es-MX", {
@@ -83,35 +86,21 @@ export function UsoAsistente({
           </div>
 
           <div className={estilos.tableWrap}>
-            <table className={estilos.table}>
-              <thead>
-                <tr>
-                  <th>Persona</th>
-                  <th className={estilos.num}>Consultas</th>
-                  <th className={estilos.num}>Fallidas</th>
-                  <th className={estilos.num}>Tokens de entrada</th>
-                  <th className={estilos.num}>Tokens de salida</th>
-                  <th className={estilos.num}>Costo estimado</th>
-                  <th>Última</th>
-                </tr>
-              </thead>
-              <tbody>
-                {personas.map((p) => (
-                  <tr key={p.email}>
-                    <td>{p.email}</td>
-                    <td className={estilos.num}>{numero(p.consultas)}</td>
-                    <td className={estilos.num}>{p.fallidas ? numero(p.fallidas) : "—"}</td>
-                    <td className={estilos.num}>{numero(p.tokensEntrada)}</td>
-                    <td className={estilos.num}>{numero(p.tokensSalida)}</td>
-                    <td className={estilos.num}>
-                      {DOLARES.format(p.costoUsd)}
-                      {p.sinPrecio ? " *" : ""}
-                    </td>
-                    <td>{p.ultima ? CUANDO.format(new Date(p.ultima)) : "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <TablaOrdenable
+              filas={personas}
+              claveFila={(persona) => persona.email}
+              className={estilos.table}
+              ordenInicial={{ clave: "consultas", asc: false }}
+              columnas={[
+                { clave: "persona", titulo: "Persona", valor: (p) => p.email },
+                { clave: "consultas", titulo: "Consultas", valor: (p) => p.consultas, className: estilos.num, render: (p) => numero(p.consultas) },
+                { clave: "fallidas", titulo: "Fallidas", valor: (p) => p.fallidas, className: estilos.num, render: (p) => p.fallidas ? numero(p.fallidas) : "—" },
+                { clave: "entrada", titulo: "Tokens de entrada", valor: (p) => p.tokensEntrada, className: estilos.num, render: (p) => numero(p.tokensEntrada) },
+                { clave: "salida", titulo: "Tokens de salida", valor: (p) => p.tokensSalida, className: estilos.num, render: (p) => numero(p.tokensSalida) },
+                { clave: "costo", titulo: "Costo estimado", valor: (p) => p.costoUsd, className: estilos.num, render: (p) => <>{DOLARES.format(p.costoUsd)}{p.sinPrecio ? " *" : ""}</> },
+                { clave: "ultima", titulo: "Última", valor: (p) => p.ultima ?? "", render: (p) => p.ultima ? CUANDO.format(new Date(p.ultima)) : "—" },
+              ]}
+            />
           </div>
           {sinPrecio ? (
             <p className={estilos.cardNote}>

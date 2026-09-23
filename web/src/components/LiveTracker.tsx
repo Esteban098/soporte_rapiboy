@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   colorDeDriver,
+  demorasPorZona,
   entregadosPorHora,
   enlaceAlOperador,
   estadoDemoraDriver,
@@ -640,6 +641,8 @@ function EstadisticasTracker({
   const [busqueda, setBusqueda] = useState("");
   const [ordenColumna, setOrdenColumna] = useState("entregas");
   const [ascendente, setAscendente] = useState(false);
+  const [ordenZona, setOrdenZona] = useState("promedio");
+  const [ascendenteZona, setAscendenteZona] = useState(false);
   const [mostrarTodo, setMostrarTodo] = useState(false);
   const paquetes = drivers.flatMap((d) => d.paquetes);
   const entregados = paquetes.filter((p) => p.clasificacion === "VISITADO_ENTREGADO");
@@ -656,25 +659,16 @@ function EstadisticasTracker({
     })
     .filter((fila) => normalizarBusqueda(fila.driver.nombre).includes(normalizarBusqueda(busqueda)));
   porDriver.sort((a, b) => {
-    const diferencia = ordenColumna === "porHora" ? b.porHora - a.porHora : ordenColumna === "porcentaje" ? b.porcentaje - a.porcentaje : ordenColumna === "total" ? b.total - a.total : b.entregas - a.entregas;
+    const diferencia = ordenColumna === "driver" ? a.driver.nombre.localeCompare(b.driver.nombre, "es-MX") : ordenColumna === "inicio" ? (a.inicio ?? Infinity) - (b.inicio ?? Infinity) : ordenColumna === "fin" ? (a.fin ?? Infinity) - (b.fin ?? Infinity) : ordenColumna === "porHora" ? b.porHora - a.porHora : ordenColumna === "porcentaje" ? b.porcentaje - a.porcentaje : ordenColumna === "total" ? b.total - a.total : b.entregas - a.entregas;
     return (ascendente ? -1 : 1) * (diferencia || a.driver.nombre.localeCompare(b.driver.nombre, "es"));
   });
 
-  const zonas = new Map<string, { cantidad: number; minutos: number[] }>();
-  for (const paquete of entregados) {
-    const zona = paquete.poligono?.trim() || "Zona no informada";
-    const fila = zonas.get(zona) ?? { cantidad: 0, minutos: [] };
-    fila.cantidad += 1;
-    if (paquete.fecha_programado && paquete.fecha_visita) {
-      const minutos = Math.round((Date.parse(paquete.fecha_visita) - Date.parse(paquete.fecha_programado)) / 60000);
-      if (Number.isFinite(minutos) && minutos >= 0) fila.minutos.push(minutos);
-    }
-    zonas.set(zona, fila);
-  }
-  const zonasOrdenadas = [...zonas.entries()]
-    .map(([zona, fila]) => ({ zona, cantidad: fila.cantidad, promedio: fila.minutos.length ? Math.round(fila.minutos.reduce((a, b) => a + b, 0) / fila.minutos.length) : null }))
+  const zonasOrdenadas = demorasPorZona(entregados)
     .filter((fila) => normalizarBusqueda(fila.zona).includes(normalizarBusqueda(busqueda)))
-    .sort((a, b) => (b.promedio ?? -1) - (a.promedio ?? -1) || b.cantidad - a.cantidad);
+    .sort((a, b) => {
+      const diferencia = ordenZona === "zona" ? a.zona.localeCompare(b.zona, "es-MX") : ordenZona === "cantidad" ? a.cantidad - b.cantidad : (a.promedioMinutos ?? Infinity) - (b.promedioMinutos ?? Infinity);
+      return (ascendenteZona ? 1 : -1) * (diferencia || a.zona.localeCompare(b.zona, "es-MX"));
+    });
 
   /*
    * La grilla es la misma ventana que dibuja la cobertura, y cada destino se
@@ -695,7 +689,12 @@ function EstadisticasTracker({
     if (ordenColumna === columna) setAscendente((valor) => !valor);
     else { setOrdenColumna(columna); setAscendente(false); }
   };
+  const cambiarOrdenZona = (columna: string) => {
+    if (ordenZona === columna) setAscendenteZona((valor) => !valor);
+    else { setOrdenZona(columna); setAscendenteZona(false); }
+  };
   const iconoOrden = (columna: string) => ordenColumna === columna ? (ascendente ? "↑" : "↓") : "↕";
+  const iconoOrdenZona = (columna: string) => ordenZona === columna ? (ascendenteZona ? "↑" : "↓") : "↕";
   const visibleDrivers = mostrarTodo ? porDriver : porDriver.slice(0, 8);
   const visibleZonas = mostrarTodo ? zonasOrdenadas : zonasOrdenadas.slice(0, 8);
   const maxEntregasDriver = Math.max(1, ...porDriver.map((fila) => fila.entregas));
@@ -729,11 +728,11 @@ function EstadisticasTracker({
       </div>
       <div className={estilos.tablaBloque}>
         <h2>Entregas por driver</h2>
-        <div className={estilos.tablaScroll}><table><thead><tr><th>Driver</th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("entregas")}>Entregados {iconoOrden("entregas")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("total")}>Total {iconoOrden("total")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("porcentaje")}>% {iconoOrden("porcentaje")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("porHora")}>Entregas/h {iconoOrden("porHora")}</button></th><th>Inicio</th><th>Fin de ruta</th></tr></thead><tbody>{visibleDrivers.map((fila) => <tr key={fila.driver.id}><td>{fila.driver.nombre}</td><td>{fila.entregas}</td><td>{fila.total}</td><td>{Math.round(fila.porcentaje)}%</td><td>{fila.porHora.toFixed(1)}</td><td>{fila.inicio == null ? "Sin datos" : horaMexico(fila.inicio)}</td><td>{fila.fin == null ? "Sin datos" : horaMexico(fila.fin)}</td></tr>)}</tbody></table></div>
+        <div className={estilos.tablaScroll}><table><thead><tr><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("driver")}>Driver {iconoOrden("driver")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("entregas")}>Entregados {iconoOrden("entregas")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("total")}>Total {iconoOrden("total")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("porcentaje")}>% {iconoOrden("porcentaje")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("porHora")}>Entregas/h {iconoOrden("porHora")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("inicio")}>Inicio {iconoOrden("inicio")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("fin")}>Fin de ruta {iconoOrden("fin")}</button></th></tr></thead><tbody>{visibleDrivers.map((fila) => <tr key={fila.driver.id}><td>{fila.driver.nombre}</td><td>{fila.entregas}</td><td>{fila.total}</td><td>{Math.round(fila.porcentaje)}%</td><td>{fila.porHora.toFixed(1)}</td><td>{fila.inicio == null ? "Sin datos" : horaMexico(fila.inicio)}</td><td>{fila.fin == null ? "Sin datos" : horaMexico(fila.fin)}</td></tr>)}</tbody></table></div>
         {porDriver.length > 8 ? <button type="button" className={estilos.mostrarTodo} onClick={() => setMostrarTodo((valor) => !valor)}>{mostrarTodo ? "Mostrar menos" : "Mostrar todo"}</button> : null}
       </div>
       <div className={estilos.estadisticasGrid}>
-        <div className={estilos.tablaBloque}><h2>Zonas más lentas</h2><div className={estilos.tablaScroll}><table><thead><tr><th>Zona</th><th>Entregas</th><th>Promedio desde programación</th></tr></thead><tbody>{visibleZonas.map((fila) => <tr key={fila.zona}><td>{fila.zona}</td><td>{fila.cantidad}</td><td>{fila.promedio == null ? "Sin datos" : duracion(fila.promedio * 60)}</td></tr>)}</tbody></table></div>{zonasOrdenadas.length > 8 ? <button type="button" className={estilos.mostrarTodo} onClick={() => setMostrarTodo((valor) => !valor)}>{mostrarTodo ? "Mostrar menos" : "Mostrar todo"}</button> : null}</div>
+        <div className={estilos.tablaBloque}><h2>Zonas más lentas</h2><p className={estilos.subtituloEstadisticas}>Demora promedio desde el inicio del horario programado hasta la visita o entrega.</p><div className={estilos.tablaScroll}><table><thead><tr><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrdenZona("zona")}>Zona {iconoOrdenZona("zona")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrdenZona("cantidad")}>Entregas {iconoOrdenZona("cantidad")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrdenZona("promedio")}>Demora promedio {iconoOrdenZona("promedio")}</button></th></tr></thead><tbody>{visibleZonas.map((fila) => <tr key={fila.zona}><td>{fila.zona}</td><td>{fila.cantidad}</td><td>{fila.promedioMinutos == null ? "Sin datos de horario" : duracion(fila.promedioMinutos * 60)}</td></tr>)}</tbody></table></div>{zonasOrdenadas.length > 8 ? <button type="button" className={estilos.mostrarTodo} onClick={() => setMostrarTodo((valor) => !valor)}>{mostrarTodo ? "Mostrar menos" : "Mostrar todo"}</button> : null}</div>
         <div className={estilos.tablaBloque}><h2>Mapa de calor de entregas</h2><svg className={estilos.calorMapa} viewBox={`0 0 ${ventana.ancho} ${ventana.alto}`} role="img" aria-label="Mapa de calor de entregas sobre cobertura"><g className={estilos.calorCobertura}>{caminos().map((poligono) => <path key={poligono.clave} d={poligono.d} />)}</g>{celdas.map((celda) => <rect key={`${celda.x}-${celda.y}`} x={(celda.x / 8) * ventana.ancho} y={(celda.y / 8) * ventana.alto} width={ventana.ancho / 8} height={ventana.alto / 8} className={estilos.calorCelda} style={{ opacity: celda.cantidad ? 0.18 + (celda.cantidad / maxCelda) * 0.82 : 0.04 }} />)}</svg><p className={estilos.ayuda}>Concentración de destinos entregados sobre las zonas de cobertura.</p></div>
       </div>
     </section>

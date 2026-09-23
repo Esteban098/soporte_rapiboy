@@ -138,7 +138,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   servidor para los futuros flujos WAHA y no forma parte del DTO de pantalla.
   La pantalla de Sellers permite asignar Cande o Esteban en la misma tabla;
   ambas pantallas disparan el flujo 13 con el botón Actualizar y muestran sus
-  tablas con una cantidad inicial reducida; el resto se despliega a pedido.
+  tablas con una cantidad inicial reducida; el resto se despliega a pedido. Las
+  tablas especiales que no usan `Tabla.tsx` pasan por `TablaOrdenable.tsx` para
+  conservar el mismo ordenamiento por encabezado que Ayer.
 
 ## Límites entre flujos
 
@@ -157,7 +159,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   que hubo jornada. Una limpieza manual es puntual y no se incorpora al flujo.
 - La pantalla `/tiendas` se presenta como **Ruta** dentro de Colectas. La
   antigua distribución editable de tiendas fue retirada; el responsable vive
-  en `sellers_activos.soporte_asignado`.
+  en `sellers_activos.soporte_asignado`. Sus tablas son ordenables y la columna
+  de última posición usa la marca temporal del último reporte, no el texto de
+  antigüedad visible.
 - El flujo 12 escribe **solo** `colectas_vivo`, `colectas_vivo_drivers` y
   `colectas_vivo_posiciones` (el recorrido, `migracion-16`; recorta ella misma lo
   de más de 30 días) y lee
