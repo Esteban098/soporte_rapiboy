@@ -646,10 +646,15 @@ function EstadisticasTracker({
   const porDriver = drivers
     .map((driver) => {
       const entregas = driver.paquetes.filter((p) => p.clasificacion === "VISITADO_ENTREGADO");
+      const visitas = driver.paquetes.filter(
+        (p) => p.clasificacion === "VISITADO_ENTREGADO" || p.clasificacion === "VISITADO_NO_ENTREGADO",
+      );
       const horas = new Set(
         entregas.map((p) => (p.fecha_visita ?? p.fecha_cambio_estado)?.slice(0, 13)).filter(Boolean),
       ).size;
-      const marcas = entregas.map((p) => Date.parse(p.fecha_visita ?? p.fecha_cambio_estado ?? "")).filter(Number.isFinite);
+      // El inicio y el fin de ruta se basan en la primera y última visita,
+      // tanto si terminó entregada como si quedó no entregada.
+      const marcas = visitas.map((p) => Date.parse(p.fecha_visita ?? p.fecha_cambio_estado ?? "")).filter(Number.isFinite);
       const inicio = marcas.length ? Math.min(...marcas) : null;
       const fin = marcas.length ? Math.max(...marcas) : null;
       return { driver, entregas: entregas.length, total: driver.resumen.enRuta, porcentaje: porcentajeEntregado(driver.resumen) ?? 0, porHora: horas ? entregas.length / horas : 0, inicio, fin };
