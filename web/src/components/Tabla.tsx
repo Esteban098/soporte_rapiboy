@@ -18,6 +18,7 @@ import { useVista } from "./useVista";
 import { EditorCaso, type Edicion } from "./EditorCaso";
 import { numero, porcentaje, decimal } from "@/lib/formato";
 import { AsignarSoporteSeller } from "./AsignarSoporteSeller";
+import { EditarUbicacionSeller } from "./EditarUbicacionSeller";
 import { ChipCaso, TextoEstado } from "./Card";
 import estilos from "./ui.module.css";
 import tabla from "./tabla.module.css";
@@ -42,7 +43,8 @@ export type TipoColumna =
   | "dias"
   /** Un comercio, pintado con el color de quien lo tiene asignado. */
   | "tienda"
-  | "soporte";
+  | "soporte"
+  | "ubicacion";
 
 export type Columna = {
   clave: string;
@@ -436,6 +438,19 @@ function Celda({
         <AsignarSoporteSeller
           id={Number(fila.id)}
           valor={valor === "CANDE" || valor === "ESTEBAN" ? valor : null}
+        />
+      </td>
+    );
+  }
+
+  if (columna.tipo === "ubicacion") {
+    return (
+      <td className={clase}>
+        <EditarUbicacionSeller
+          id={Number(fila.id)}
+          ubicacion={String(fila.ubicacionManual ?? "")}
+          latitud={fila.latitudManual == null ? null : Number(fila.latitudManual)}
+          longitud={fila.longitudManual == null ? null : Number(fila.longitudManual)}
         />
       </td>
     );

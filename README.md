@@ -14,3 +14,9 @@ reclamos y colectas.
 - `firefox-extension/`: extensión para cargar en `mensual` los datos de tienda
   seleccionados en WhatsApp Web. Se usa junto con
   `n8n/07-firefox-gestiones.json`.
+
+La ubicación manual de cada seller vive en `sellers_activos` (`ubicacion_manual`,
+`latitud_manual` y `longitud_manual`). La migración 22 la carga desde el KMZ
+cuando el `Usuario.Id` tiene una única ubicación y la pantalla Sellers permite
+editarla o borrarla. Esa ubicación tiene prioridad en Live Tracker, Colectas y
+Ruta; la dirección de SQL Server permanece separada y no es editable.

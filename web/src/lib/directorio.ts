@@ -21,6 +21,9 @@ export type SellerDirectorio = {
   topeMaximo: number | null;
   grupoWhatsapp: string | null;
   labelsWaha: { id?: string | number; name?: string; color?: string }[];
+  ubicacionManual: string;
+  latitudManual: number | null;
+  longitudManual: number | null;
   asignacion: "AUTOMATICO" | "MANUAL" | null;
   soporteAsignado: "CANDE" | "ESTEBAN" | null;
   actualizadoEn: string;

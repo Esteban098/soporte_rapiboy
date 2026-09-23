@@ -37,6 +37,9 @@ type SellerConsolidadoFila = SellerFila & {
   grupo_nombre: string | null;
   soporte_asignado: "CANDE" | "ESTEBAN" | null;
   labels_waha: unknown;
+  ubicacion_manual: string | null;
+  latitud_manual: number | string | null;
+  longitud_manual: number | string | null;
 };
 
 type DriverFila = {
@@ -95,6 +98,9 @@ export async function leerSellersDirectorio(): Promise<SellerDirectorio[]> {
       topeMaximo: Number.isFinite(tope) ? tope : null,
       grupoWhatsapp: texto(fila.grupo_nombre) || null,
       labelsWaha: labelsWaha(fila.labels_waha),
+      ubicacionManual: texto(fila.ubicacion_manual),
+      latitudManual: Number.isFinite(Number(fila.latitud_manual)) ? Number(fila.latitud_manual) : null,
+      longitudManual: Number.isFinite(Number(fila.longitud_manual)) ? Number(fila.longitud_manual) : null,
       asignacion: fila.grupo_nombre ? "AUTOMATICO" : null,
       soporteAsignado: fila.soporte_asignado,
       actualizadoEn: texto(fila.actualizado_en),

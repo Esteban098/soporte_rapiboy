@@ -4,6 +4,7 @@ import {
   TABLA_COLECTAS_VIVO,
   TABLA_COLECTAS_VIVO_DRIVERS,
   TABLA_COLECTAS_VIVO_POSICIONES,
+  TABLA_SELLERS_ACTIVOS,
 } from "./config";
 import { consultarTodo } from "./supabase";
 import { diaDeOperacion } from "./tracker";
@@ -32,7 +33,7 @@ export async function leerColectasDelDia(
   { sinPosiciones }: { sinPosiciones: boolean },
   dia = diaDeOperacion(),
 ): Promise<ColectasDelDia> {
-  const [colectas, drivers, lugares] = await Promise.all([
+  const [colectas, drivers, lugares, sellers] = await Promise.all([
     consultarTodo<ColectaVivoFila>(TABLA_COLECTAS_VIVO, { fecha_operacion: `eq.${dia}` }, "id_colecta.asc"),
     consultarTodo<DriverVivoFila>(
       TABLA_COLECTAS_VIVO_DRIVERS,
@@ -40,11 +41,33 @@ export async function leerColectasDelDia(
       "id_motoboy.asc",
     ),
     lugaresDeColecta(),
+    consultarTodo<{ id_usuario: number; ubicacion_manual: string | null; latitud_manual: number | null; longitud_manual: number | null }>(
+      TABLA_SELLERS_ACTIVOS,
+      { activo: "is.true", select: "id_usuario,ubicacion_manual,latitud_manual,longitud_manual" },
+      "id_usuario.asc",
+    ).catch(() => []),
   ]);
+
+  const ubicaciones = new Map(
+    sellers
+      .filter((seller) => Number.isFinite(seller.latitud_manual) && Number.isFinite(seller.longitud_manual))
+      .map((seller) => [seller.id_usuario, seller]),
+  );
+  const colectasConUbicacion = colectas.map((colecta) => {
+    const ubicacion = colecta.id_seller == null ? null : ubicaciones.get(colecta.id_seller);
+    return ubicacion
+      ? {
+          ...colecta,
+          direccion_seller: ubicacion.ubicacion_manual ?? colecta.direccion_seller,
+          latitud_tienda: ubicacion.latitud_manual,
+          longitud_tienda: ubicacion.longitud_manual,
+        }
+      : colecta;
+  });
 
   return {
     dia,
-    colectas,
+    colectas: colectasConUbicacion,
     drivers: sinPosiciones
       ? drivers.map((d) => ({ ...d, latitud: null, longitud: null, posicion_en: null }))
       : drivers,

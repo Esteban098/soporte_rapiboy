@@ -1,5 +1,5 @@
 import "server-only";
-import { TABLA_TRACKER_TIENDAS } from "./config";
+import { TABLA_SELLERS_ACTIVOS, TABLA_TRACKER_TIENDAS } from "./config";
 import { consultarTodo } from "./supabase";
 import { ordenarLugares, type Lugar, type LugarFila } from "./tiendas";
 
@@ -16,6 +16,25 @@ import { ordenarLugares, type Lugar, type LugarFila } from "./tiendas";
  * que el cambio quedó.
  */
 export async function leerLugares(): Promise<Lugar[]> {
-  const filas = await consultarTodo<LugarFila>(TABLA_TRACKER_TIENDAS, {}, "nombre_mapa.asc");
-  return ordenarLugares(filas);
+  const [filas, sellers] = await Promise.all([
+    consultarTodo<LugarFila>(TABLA_TRACKER_TIENDAS, {}, "nombre_mapa.asc"),
+    consultarTodo<{ id_usuario: number; latitud_manual: number | null; longitud_manual: number | null }>(
+      TABLA_SELLERS_ACTIVOS,
+      { activo: "is.true", select: "id_usuario,latitud_manual,longitud_manual" },
+      "id_usuario.asc",
+    ).catch(() => []),
+  ]);
+  const ubicaciones = new Map(
+    sellers
+      .filter((seller) => Number.isFinite(seller.latitud_manual) && Number.isFinite(seller.longitud_manual))
+      .map((seller) => [seller.id_usuario, seller]),
+  );
+  return ordenarLugares(
+    filas.map((fila) => {
+      const ubicacion = fila.id_tienda == null ? null : ubicaciones.get(fila.id_tienda);
+      return ubicacion
+        ? { ...fila, latitud: ubicacion.latitud_manual as number, longitud: ubicacion.longitud_manual as number }
+        : fila;
+    }),
+  );
 }
