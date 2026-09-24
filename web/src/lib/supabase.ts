@@ -80,6 +80,27 @@ export async function insertarFilas(
 }
 
 /**
+ * Inserta o actualiza por una clave única declarada en la base.
+ *
+ * Se usa para fotografías operativas donde una nueva respuesta reemplaza la
+ * anterior del mismo día. La unicidad la decide Postgres, no una lectura previa
+ * que podría quedar vieja entre dos webhooks.
+ */
+export async function upsertFila(
+  tabla: string,
+  fila: Record<string, unknown>,
+  conflicto: string,
+): Promise<string | null> {
+  const respuesta = await pedir(`${encodeURIComponent(tabla)}?on_conflict=${encodeURIComponent(conflicto)}`, {
+    method: "POST",
+    body: JSON.stringify(fila),
+    headers: { prefer: "resolution=merge-duplicates,return=minimal" },
+    cache: "no-store",
+  });
+  return respuesta.ok ? null : motivoDeFalla(respuesta);
+}
+
+/**
  * Modifica una fila por id. Devuelve `null` si salió bien.
  *
  * El id va como `string | number` porque no todas las tablas lo tienen

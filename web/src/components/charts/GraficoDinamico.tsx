@@ -58,6 +58,7 @@ export function GraficoDinamico({
   medidas,
   titulo = "Casos",
   tope = 12,
+  orden = "mayor",
 }: {
   id: string;
   filas: Fila[];
@@ -69,6 +70,8 @@ export function GraficoDinamico({
   titulo?: string;
   /** Cuántas barras mostrar como máximo, de mayor a menor. */
   tope?: number;
+  /** Orden de las barras: útil para comparar los mayores y menores valores. */
+  orden?: "mayor" | "menor";
 }) {
   const { filtradas, hayFiltros } = useVista({ id, filas, columnas, filtros });
   const [dimension, setDimension] = useState(dimensiones[0]?.clave ?? "");
@@ -95,9 +98,9 @@ export function GraficoDinamico({
         casos,
         valor: calcular(medidaActiva.modo, valor, casos),
       }))
-      .sort((a, b) => b.valor - a.valor)
+      .sort((a, b) => orden === "mayor" ? b.valor - a.valor : a.valor - b.valor)
       .slice(0, tope);
-  }, [filtradas, dimensionActiva, medidaActiva, tope]);
+  }, [filtradas, dimensionActiva, medidaActiva, tope, orden]);
 
   /** El mismo criterio con el que se agrupó, para rehacer el grupo al tocarlo. */
   const grupoDe = (fila: Fila) =>

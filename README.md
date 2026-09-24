@@ -5,6 +5,10 @@ reclamos y colectas.
 
 - `web/`: tablero Next.js conectado a Supabase.
 - `n8n/`: workflows importables de ingesta y automatización.
+- La asistencia de repartidores se guarda en Supabase por jornada de México e
+  `Motoboy.Id`; el webhook de votos reemplaza la escritura operativa en Google
+  Sheets. La pantalla está dentro del espacio **Colectas** y distingue Ruta y
+  colecta, Ruta, No asiste y No votó.
 - El directorio operativo se consolida por ID estable: `Usuario.Id` en
   `sellers_activos` y `Motoboy.Id` en `drivers_activos`. Se instala con las
   migraciones 17 a 25; la 26 retira los catálogos antiguos después de validar

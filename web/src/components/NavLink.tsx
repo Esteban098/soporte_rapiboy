@@ -8,6 +8,7 @@ export function NavLink({
   href,
   exacto = false,
   destacado = false,
+  nuevaVentana = false,
   titulo,
   children,
 }: {
@@ -22,6 +23,8 @@ export function NavLink({
   exacto?: boolean;
   /** La entrada se ve amarilla siempre, esté activa o no. Para Seguimiento. */
   destacado?: boolean;
+  /** Abre un espacio de trabajo independiente, sin sacar al operador del tablero actual. */
+  nuevaVentana?: boolean;
   /** Nombre de la sección como tooltip: con el menú plegado es lo único que la nombra. */
   titulo?: string;
   children: React.ReactNode;
@@ -35,6 +38,8 @@ export function NavLink({
       className={`${estilos.railItem} ${activo ? estilos.railItemActivo : ""} ${destacado ? estilos.railItemAmarillo : ""}`}
       aria-current={activo ? "page" : undefined}
       title={titulo}
+      target={nuevaVentana ? "_blank" : undefined}
+      rel={nuevaVentana ? "noreferrer" : undefined}
     >
       {children}
     </Link>

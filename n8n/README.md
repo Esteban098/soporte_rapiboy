@@ -1,6 +1,6 @@
 # Flujos de n8n
 
-Trece workflows. Los tres primeros reemplazan al único que escribía en el
+Catorce workflows. Los tres primeros reemplazan al único que escribía en el
 Google Sheet; los siguientes cubren los botones Actualizar y la carga de datos
 de tienda desde Firefox. Se importan desde n8n con **Workflows ▸ Import from
 File**.
@@ -19,6 +19,38 @@ File**.
 | `11-historial-viaje.json` | Devuelve el estado y el historial de un viaje desde RapiboyData, para el asistente del tablero. Solo lee | Cada vez que alguien pregunta por un paquete en el asistente |
 | `12-colectas-vivo.json` | Las colectas de hoy con su estado, su historial y la última posición de cada repartidor, y guarda cada posición nueva para dibujar el recorrido, para el mapa de **Tiendas**. Solo lee SQL Server | Cada 5 min de 7:00 a 16:55, lunes a sábado, y desde **Actualizar posiciones y estados** en Tiendas |
 | `13-directorio-activos-whatsapp.json` | Sincroniza en Supabase los sellers activos de México, los drivers con reserva válida en los últimos 14 días y sus grupos de WhatsApp | 9:00 de lunes a sábado, manualmente desde n8n y desde los botones de Sellers/Drivers |
+| `14-asistencia-supabase.json` | Plantilla de reemplazo: recibe el voto de la encuesta y lo registra en la plataforma; no usa Google Sheets | Webhook de votos |
+
+## Asistencia sin Google Sheets
+
+1. Ejecutar `web/supabase/migracion-27-asistencia.sql`. Si se instaló una
+   versión inicial que guardaba `SI`/`NO`, ejecutar también la migración 28.
+2. Cargar en `asistencia_contactos` la relación verificada entre cada teléfono y
+   su `id_motoboy`. Esa tabla es privada: el teléfono no viaja a la pantalla ni
+   queda duplicado en los votos.
+3. Configurar en **n8n** `ASISTENCIA_PLATAFORMA_URL` con
+   `https://TU-DOMINIO/api/asistencia/votos` y el mismo
+   `ASISTENCIA_WEBHOOK_SECRET` largo y aleatorio en n8n y en la web.
+4. La opción recomendada es editar el workflow activo **[MX-SD] - Asistencia**:
+   reemplazar su último nodo **agregar a sheets** por el HTTP Request
+   **Guardar voto en plataforma** de `14-asistencia-supabase.json`. Conserva el
+   webhook `encuestacande`, que ya recibe los votos.
+5. No activar el flujo 14 mientras el anterior siga activo: los dos usan
+   `POST /encuestacande` y n8n solo permite un workflow activo por método y
+   path. Para una transición corta se puede bifurcar desde `limpiar datos` a
+   Sheets y a la plataforma; después se elimina la rama de Sheets.
+
+El endpoint valida el secreto, normaliza el teléfono y resuelve su IdMotoboy
+en Supabase. Si el teléfono no tiene vínculo, responde 422 y no inventa una
+asistencia. Cada nuevo voto del mismo repartidor para la misma jornada actualiza
+esa respuesta de forma atómica. Los votos permitidos son **Ruta y colecta**,
+**Ruta** y **No asiste**; los drivers activos sin fila aparecen en la plataforma
+como **No votó**.
+
+Los votos históricos ya existentes en la hoja se importan una sola vez con el
+mismo endpoint, enviando `idMotoboy`, `voto`, `timestamp`, `idPoll` y la
+`fechaOperacion` correcta. El endpoint acepta el ID directo para esa migración
+controlada; la operación diaria continúa resolviendo teléfono a ID en Supabase.
 
 ## Antes de importar
 

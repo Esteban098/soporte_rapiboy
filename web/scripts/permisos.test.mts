@@ -29,6 +29,7 @@ test("un comercial ve Tiendas y Colectas, y nada más", () => {
     "/drivers",
     "/cobertura",
     "/colectas/otra",
+    "/colectas/asistencia",
     "/tiendasx",
     "/api/live-tracker/datos",
   ]) {

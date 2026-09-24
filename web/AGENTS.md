@@ -124,6 +124,18 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   visitadas y posiciones guardadas en orden de hora, y se pide aparte con
   `recorridosDeRepartidores()`, que exige `operadorActual()`.
 
+- La **asistencia** vive en `asistencia_votos`: una respuesta vigente por
+  `fecha_operacion` de México e `id_motoboy`, siempre con FK a
+  `drivers_activos`. Sus únicos votos nuevos son `RUTA_Y_COLECTA`, `RUTA` y
+  `NO_ASISTE`; la falta de fila se muestra como `No votó` y nunca se persiste
+  como ausencia. `asistencia_contactos` es el vínculo privado teléfono ->
+  `id_motoboy`, nunca forma parte del DTO del navegador ni se duplica en los
+  votos. El endpoint `/api/asistencia/votos` verifica
+  `ASISTENCIA_WEBHOOK_SECRET`; no recibe ni expone la service_role. El flujo de
+  n8n que ya escucha `encuestacande` reemplaza su escritura a Sheets por el
+  POST a la plataforma. No activar dos workflows con el mismo webhook; para
+  una transición se bifurca el mismo flujo y se retira Sheets luego de validar.
+
 - El directorio operativo de contactos vive en `sellers_activos` para sellers y
   `drivers_activos` para drivers; se instala con las migraciones 17-19, 24 y
   25 y lo sincroniza solo
@@ -180,6 +192,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `directorio_sync_ejecuciones`. No debe escribir las tablas geográficas del
   tracker ni depender de Google Sheets. Un fallo de SQL Server o WAHA no puede
   desactivar la última foto válida.
+- El flujo de asistencia escribe únicamente a través de `/api/asistencia/votos`.
+  No consulta ni mantiene Google Sheets como fuente operativa. Una importación
+  histórica controlada puede enviar `idMotoboy` y `fechaOperacion` directos;
+  la entrada diaria normal resuelve el teléfono contra `asistencia_contactos`.
 - El live tracker tiene **un solo botón, Actualizar**: corre la sincronización
   de paquetes y después la de posiciones —en ese orden, para que un
   repartidor recién sumado salga con posición en la misma pasada—, sigue con

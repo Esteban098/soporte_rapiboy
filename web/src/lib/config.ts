@@ -126,6 +126,14 @@ export const TABLA_COLECTAS_VIVO_DRIVERS =
 export const TABLA_COLECTAS_VIVO_POSICIONES =
   process.env.SUPABASE_TABLA_COLECTAS_VIVO_POSICIONES?.trim() || "colectas_vivo_posiciones";
 
+/** Votos diarios de asistencia, vinculados únicamente por Motoboy.Id. */
+export const TABLA_ASISTENCIA_VOTOS =
+  process.env.SUPABASE_TABLA_ASISTENCIA_VOTOS?.trim() || "asistencia_votos";
+
+/** Relación privada teléfono normalizado -> Motoboy.Id para el webhook de encuesta. */
+export const TABLA_ASISTENCIA_CONTACTOS =
+  process.env.SUPABASE_TABLA_ASISTENCIA_CONTACTOS?.trim() || "asistencia_contactos";
+
 /* ---------- Live tracker ---------- */
 
 /** Repartidores con operación del día y su última posición conocida. */

@@ -40,6 +40,7 @@ type Seccion = {
   exacto?: boolean;
   destacado?: boolean;
   beta?: boolean;
+  nuevaVentana?: boolean;
 };
 
 type Grupo = { titulo: string; icono: () => React.ReactElement; secciones: Seccion[] };
@@ -83,20 +84,9 @@ const NAVEGACION: (Grupo | Seccion)[] = [
     ],
   },
 
-  {
-    titulo: "Colectas",
-    icono: Camion,
-    secciones: [
-      /* Mismo motivo que arriba: /colectas es prefijo de /colectas/historial. */
-      { href: "/colectas", etiqueta: "Asignación", icono: Persona, exacto: true },
-      { href: "/colectas/historial", etiqueta: "Historial", icono: Calendario, beta: true },
-      /* Dentro de Colectas porque es donde se consulta: dónde queda el
-         comercio que hay que retirar y de quién es. La ruta sigue siendo
-         /tiendas, así no cambian los permisos del rol comercial ni los
-         enlaces guardados. */
-      { href: "/tiendas", etiqueta: "Ruta", icono: Local },
-    ],
-  },
+  /* Colectas abre su propio espacio de trabajo. El tablero que quedó atrás se
+     conserva abierto para poder contrastar una ruta con la operación general. */
+  { href: "/colectas", etiqueta: "Colectas", icono: Camion, nuevaVentana: true },
   {
     titulo: "Historial",
     icono: Archivo,
@@ -230,7 +220,13 @@ export function Shell({
 function Enlace({ seccion, esAdmin }: { seccion: Seccion; esAdmin: boolean }) {
   const etiqueta = seccion.etiqueta ?? (esAdmin ? "Perfiles" : "Mi perfil");
   return (
-    <NavLink href={seccion.href} exacto={seccion.exacto} destacado={seccion.destacado} titulo={etiqueta}>
+    <NavLink
+      href={seccion.href}
+      exacto={seccion.exacto}
+      destacado={seccion.destacado}
+      nuevaVentana={seccion.nuevaVentana}
+      titulo={seccion.nuevaVentana ? `${etiqueta} · abrir en una nueva ventana` : etiqueta}
+    >
       <seccion.icono />
       {/* `data-rail-texto`: lo que desaparece con el menú plegado. */}
       <span data-rail-texto>{etiqueta}</span>

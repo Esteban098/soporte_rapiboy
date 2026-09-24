@@ -274,7 +274,7 @@ test("sin la tabla, la pantalla dice qué migración correr", async (t) => {
   await assert.rejects(() => leerLugares(), /tracker_tiendas/);
 
   const pagina = readFileSync(
-    new URL("../src/app/(tablero)/tiendas/page.tsx", import.meta.url),
+    new URL("../src/app/(colectas)/tiendas/page.tsx", import.meta.url),
     "utf8",
   );
   assert.match(pagina, /migracion-06-lugares\.sql/);
@@ -290,7 +290,7 @@ test("la tabla vacía no es lo mismo que la tabla que falta", async (t) => {
 
   // Y la pantalla lo dice con sus palabras, en vez de mostrar un mapa pelado.
   const pagina = readFileSync(
-    new URL("../src/app/(tablero)/tiendas/page.tsx", import.meta.url),
+    new URL("../src/app/(colectas)/tiendas/page.tsx", import.meta.url),
     "utf8",
   );
   assert.match(pagina, /La tabla está vacía/);
@@ -336,7 +336,7 @@ test("el rol comercial no recibe las posiciones de los repartidores", () => {
    * navegador se puede mirar. La página ni las lee para ese rol.
    */
   const pagina = readFileSync(
-    new URL("../src/app/(tablero)/tiendas/page.tsx", import.meta.url),
+    new URL("../src/app/(colectas)/tiendas/page.tsx", import.meta.url),
     "utf8",
   );
   assert.match(pagina, /const puedeVerPosiciones = sesion !== null && !esComercial\(sesion\.rol\)/);

@@ -1,9 +1,11 @@
 import { cargarAsignaciones } from "@/lib/datos";
-import { cargaPorChofer, resumirAsignaciones } from "@/lib/colectas";
+import { resumirAsignaciones } from "@/lib/colectas";
+import { leerColectasDelDia } from "@/lib/colectas-vivo-datos";
 import { fechaHoraArgentina, numero } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { Tabla } from "@/components/Tabla";
+import { ColectasHoy } from "@/components/ColectasHoy";
 import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Colectas · asignación" };
@@ -22,7 +24,11 @@ function cuando(fecha: Date | null): string {
  * mirar cuántas veces fue: dos visitas no definen una ruta.
  */
 export default async function Colectas() {
-  const { filas: todas, sinTabla } = await cargarAsignaciones();
+  const [{ filas: todas, sinTabla }, hoy] = await Promise.all([
+    cargarAsignaciones(),
+    // Esta pantalla no necesita revelar posiciones: solo la jornada y su lógica operativa.
+    leerColectasDelDia({ sinPosiciones: true }).catch(() => null),
+  ]);
 
   /*
    * Solo los comercios que alguien está colectando.
@@ -34,7 +40,6 @@ export default async function Colectas() {
    */
   const asignaciones = todas.filter((a) => !a.sinAsignar);
   const datos = resumirAsignaciones(asignaciones);
-  const carga = cargaPorChofer(asignaciones);
 
   if (sinTabla) {
     return (
@@ -114,24 +119,11 @@ export default async function Colectas() {
           />
         </Card>
 
-        <Card
-          titulo="Carga por chofer"
-          nota="Cuántos comercios tiene cada uno y en cuántas paradas se resuelven. Casi nunca coinciden: un dropOFF junta varios comercios en una sola parada, así que doce comercios en tres puntos es menos trabajo que seis en seis."
-        >
-          <Tabla
-            id="colectas-carga"
-            titulo="Carga por chofer"
-            columnas={[
-              { clave: "chofer", titulo: "Chofer", tipo: "texto" },
-              { clave: "comercios", titulo: "Comercios", tipo: "numero" },
-              { clave: "lugares", titulo: "Paradas", tipo: "numero" },
-              { clave: "colectas", titulo: "Colectas en la ventana", tipo: "numero" },
-            ]}
-            filas={carga.map((c) => ({ ...c, id: c.chofer }))}
-            ordenInicial={{ clave: "comercios", asc: false }}
-            vacio="Todavía no hay choferes con comercios asignados."
-          />
-        </Card>
+        {hoy ? <ColectasHoy dia={hoy} /> : (
+          <Callout tono="warning" titulo="No se pudo leer la jornada de hoy">
+            La asignación histórica sigue disponible. Volvé a intentar en un momento para cargar la foto de colectas en vivo.
+          </Callout>
+        )}
       </div>
     </>
   );

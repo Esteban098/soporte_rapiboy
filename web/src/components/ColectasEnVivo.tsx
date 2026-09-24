@@ -865,7 +865,7 @@ function PinDriver({
  * Debajo del mapa
  * ------------------------------------------------------------------------- */
 
-const FILAS_INICIALES = 12;
+const FILAS_INICIALES = 10;
 const DRIVERS_INICIALES = 8;
 
 /**
@@ -961,7 +961,8 @@ export function ResumenColectasVivo({ dia }: { dia: ColectasDelDia }) {
         <div className={estilos.tablaScroll}>
           <TablaOrdenable
             filas={resumenes}
-            limite={todosDrivers ? undefined : DRIVERS_INICIALES}
+            limite={DRIVERS_INICIALES}
+            mostrarTodas={todosDrivers}
             claveFila={(r) => claveDriver(r.id)}
             className={estilos.tabla}
             ordenInicial={{ clave: "posicion", asc: false }}
@@ -997,7 +998,8 @@ export function ResumenColectasVivo({ dia }: { dia: ColectasDelDia }) {
         <div className={estilos.tablaScroll}>
           <TablaOrdenable
             filas={colectas}
-            limite={todas ? undefined : FILAS_INICIALES}
+            limite={FILAS_INICIALES}
+            mostrarTodas={todas}
             claveFila={({ c }) => c.id_colecta}
             className={estilos.tabla}
             ordenInicial={{ clave: "colecta", asc: false }}

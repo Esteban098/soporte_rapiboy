@@ -22,6 +22,7 @@ export function TablaOrdenable<T>({
   className,
   ordenInicial,
   limite,
+  mostrarTodas,
 }: {
   filas: T[];
   columnas: ColumnaOrdenable<T>[];
@@ -29,8 +30,11 @@ export function TablaOrdenable<T>({
   className?: string;
   ordenInicial?: { clave: string; asc: boolean };
   limite?: number;
+  /** Permite que una pantalla controle el despliegue sin perder el tope general de diez. */
+  mostrarTodas?: boolean;
 }) {
   const [orden, setOrden] = useState<Orden | null>(ordenInicial ?? null);
+  const [expandida, setExpandida] = useState(false);
 
   const ordenadas = useMemo(() => {
     if (!orden) return filas;
@@ -48,9 +52,12 @@ export function TablaOrdenable<T>({
     );
   }
 
-  const visibles = limite == null ? ordenadas : ordenadas.slice(0, limite);
+  const limiteInicial = Math.min(limite ?? 10, 10);
+  const mostrarTodo = mostrarTodas ?? expandida;
+  const visibles = mostrarTodo ? ordenadas : ordenadas.slice(0, limiteInicial);
 
   return (
+    <>
     <table className={className}>
       <thead>
         <tr>
@@ -90,6 +97,12 @@ export function TablaOrdenable<T>({
         ))}
       </tbody>
     </table>
+    {mostrarTodas == null && ordenadas.length > limiteInicial ? (
+      <button type="button" className={tabla.masFilas} onClick={() => setExpandida((v) => !v)}>
+        {expandida ? `Mostrar solo ${limiteInicial} filas` : `Ver las ${ordenadas.length} filas`}
+      </button>
+    ) : null}
+    </>
   );
 }
 

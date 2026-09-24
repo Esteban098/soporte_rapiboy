@@ -51,9 +51,14 @@ Tres decisiones que vale la pena tener presentes:
 | `/cobertura` | **Cobertura · BETA**: el contorno donde hay servicio y un verificador puntual por dirección o coordenadas que responde si un domicilio entra. No busca por ID de viaje. |
 | Asistente (beta) | Pestaña en todas las pantallas: preguntas en lenguaje natural sobre paquetes, casos, seguimiento, colectas y repartidores. Ver [Asistente](#asistente-beta). |
 | `/live-tracker` | **Live tracker**: dónde está cada repartidor de la jornada y qué le queda por entregar. Panel de selección a la izquierda, mapa a la derecha. |
+| `/colectas` | **Colectas**: abre un espacio de trabajo propio con Asignación, Asistencia, Historial y Ruta en vivo. |
 | `/tiendas` | **Ruta**: las **colectas de hoy** en vivo —se elige a qué repartidores ver y el mapa muestra solo esos, con el camino que ya hizo y las paradas que le faltan—. Ver [Tiendas](#tiendas). |
 | `/sellers` | **Directorio · Sellers**: sellers activos, grupos de WhatsApp y distribución editable de tiendas. La tabla comienza reducida y se puede expandir. |
 | `/drivers` | **Directorio · Drivers**: drivers activos y grupos de WhatsApp. La tabla comienza reducida y se puede expandir. |
+
+Al abrir **Colectas** desde el tablero general, se abre una nueva pestaña con
+un sidebar propio. Así el tablero de entregas fallidas queda abierto para
+contrastar la operación mientras se trabaja sobre las colectas.
 
 Junto al indicador de la fuente («Base en vivo») hay un selector de tema:
 **Claro**, **Oscuro** o **Sistema**. Las paletas están en `globals.css`; el
@@ -450,6 +455,23 @@ Detalles que el script resuelve y conviene conocer:
   nombres traen tabulación en vez de espacio. El importador los desenvuelve y
   los normaliza; sin eso el id se pierde.
 
+### Asistencia de repartidores
+
+La pestaña **Asistencia** vive dentro de Colectas y es exclusiva de admin y
+operador. Guarda una respuesta vigente por `fecha_operacion` de México e
+`id_motoboy` en `asistencia_votos`; el historial y los gráficos de mayor/menor
+asistencia salen de esa misma tabla. Los votos son **Ruta y colecta**, **Ruta**
+y **No asiste**. Cada driver activo sin fila para la jornada se muestra como
+**No votó**, nunca como una ausencia inferida.
+
+Se instala con `supabase/migracion-27-asistencia.sql`. El webhook de encuesta
+entra por `/api/asistencia/votos`, requiere `ASISTENCIA_WEBHOOK_SECRET` y
+resuelve el teléfono internamente con `asistencia_contactos`. Los teléfonos no
+se exponen en la pantalla ni se copian a los votos. La guía de importación del
+flujo sin Sheets está en `../n8n/README.md`. Para conservar el webhook ya
+activo, se reemplaza el nodo final de Sheets dentro del flujo existente; no se
+activan dos workflows con el mismo path `encuestacande`.
+
 ### Colectas de hoy
 
 La pestaña **Colectas de hoy** muestra la jornada en curso: qué repartidor va a
@@ -616,6 +638,7 @@ cada pestaña por gid del endpoint `/export`.
    | `ALLOWED_EMAIL_DOMAIN` o `ALLOWED_EMAILS` | quién entra por Google (opcional si se usan perfiles) |
    | `N8N_WEBHOOKS` | la Production URL del webhook `actualizar-tablero` |
    | `N8N_WEBHOOKS_DIRECTORIO` | la Production URL del webhook `actualizar-directorio` del flujo 13; la usan los botones Actualizar de Sellers y Drivers |
+   | `ASISTENCIA_WEBHOOK_SECRET` | secreto largo compartido solo con el flujo 14 de n8n para recibir votos de encuesta |
    | `OPENAI_API_KEY` | opcional: resume los reportes de seguimiento y habilita el asistente |
    | `OPENAI_MODELO_ASISTENTE` | opcional: modelo del asistente, por defecto `gpt-5-mini` |
    | `N8N_WEBHOOK_HISTORIAL_VIAJE` | opcional: Production URL del webhook `historial-viaje` (flujo 11) |

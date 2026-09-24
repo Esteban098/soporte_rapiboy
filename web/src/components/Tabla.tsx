@@ -146,7 +146,9 @@ export function Tabla({
     return copia;
   }, [filtradas, orden]);
 
-  const visibles = limite && !expandida ? ordenadas.slice(0, limite) : ordenadas;
+  // Ninguna tabla larga ocupa la pantalla de entrada: el detalle se despliega a pedido.
+  const limiteInicial = Math.min(limite ?? 10, 10);
+  const visibles = !expandida ? ordenadas.slice(0, limiteInicial) : ordenadas;
   const columnasVisibles = columnas.filter((c) => !ocultas.has(c.clave));
 
   /**
@@ -174,7 +176,7 @@ export function Tabla({
     }) + " hs arg");
 
     // El papel no tiene "ver más filas": se despliegan todas antes de imprimir.
-    const limitadaAntes = limite != null && !expandida;
+    const limitadaAntes = ordenadas.length > limiteInicial && !expandida;
     if (limitadaAntes) setExpandida(true);
 
     // Dos cuadros para que React pinte las filas nuevas antes de abrir el diálogo.
@@ -386,10 +388,10 @@ export function Tabla({
         </div>
       )}
 
-      {limite && ordenadas.length > limite ? (
+      {ordenadas.length > limiteInicial ? (
         <button type="button" className={tabla.masFilas} onClick={() => setExpandida((v) => !v)} data-noimprimir>
           {expandida
-            ? `Mostrar solo ${numero(limite)}`
+            ? `Mostrar solo ${numero(limiteInicial)} filas`
             : `Ver las ${numero(ordenadas.length)} filas`}
         </button>
       ) : null}

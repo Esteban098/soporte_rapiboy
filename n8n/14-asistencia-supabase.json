@@ -1,0 +1,70 @@
+{
+  "name": "[MX-SD] Asistencia · Supabase",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "encuestacande",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "b7af7b92-c7e2-4ec2-a40a-1af8ad76f091",
+      "name": "pollvote",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-520, 260],
+      "webhookId": "f2a3db9c-0dfe-4a0b-ae1f-54d2d08fcc51",
+      "notes": "Reemplaza la escritura en Google Sheets. Conservá la URL pública que recibe el proveedor de encuestas y activalo solo después de probarlo."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "f352a807-5b5c-4583-a422-cd9dc2bdb9bc", "name": "telefono", "value": "={{ $json.body.payload._data.Info.SenderAlt.split(/[ :@]/)[0].replace(/^521/, '52') }}", "type": "string" },
+            { "id": "f84919f3-d6dc-48ea-8391-85fca659f074", "name": "voto", "value": "={{ $json.body.payload.vote.selectedOptions[0] }}", "type": "string" },
+            { "id": "32e63282-763f-45db-bbbb-545178b9191a", "name": "timestamp", "value": "={{ $json.body.timestamp }}", "type": "string" },
+            { "id": "fd8c785a-14fb-4bff-b941-d59a9762b60d", "name": "idPoll", "value": "={{ $json.body.payload.poll.id }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7f1bb988-08e4-4070-b018-b42b34bbd9cf",
+      "name": "Normalizar voto",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-280, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ASISTENCIA_PLATAFORMA_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.ASISTENCIA_WEBHOOK_SECRET }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { telefono: $json.telefono, voto: $json.voto, timestamp: $json.timestamp, idPoll: $json.idPoll } }}",
+        "options": { "timeout": 15000 }
+      },
+      "id": "efea9a0c-2cb7-4a2e-96bd-56071d6d0614",
+      "name": "Guardar voto en plataforma",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-20, 260],
+      "notes": "La plataforma resuelve teléfono -> IdMotoboy dentro de Supabase y hace el upsert de la jornada. No lleva credenciales de Supabase ni escribe Sheets."
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "pollvote": { "main": [[{ "node": "Normalizar voto", "type": "main", "index": 0 }]] },
+    "Normalizar voto": { "main": [[{ "node": "Guardar voto en plataforma", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "a0d607ce-b5af-4a0c-b7f6-a772e68089dd",
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": []
+}

@@ -20,6 +20,7 @@
     "test:trafico": "node --conditions=react-server --import tsx scripts/trafico.test.mts",
     "test:asistente": "node --import tsx scripts/asistente.test.mts",
     "test:colectas-vivo": "node --conditions=react-server --import tsx scripts/colectas-vivo.test.mts",
+    "test:asistencia": "node --import tsx scripts/asistencia.test.mts",
     "test:directorio": "node --conditions=react-server --import tsx scripts/directorio.test.mts"
   },
   "dependencies": {
