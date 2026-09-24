@@ -144,8 +144,10 @@ function SinTablas() {
   return (
     <>
       <PageHead eyebrow="Directorio · México" titulo="Sellers" flujo="directorio" />
-      <Callout tono="warning" titulo="Falta crear el directorio">
-        Corré las migraciones del directorio (incluida <code>migracion-17-directorio-activos-whatsapp.sql</code> y la 25 de drivers) en Supabase y después ejecutá el flujo <code>n8n/13-directorio-activos-whatsapp.json</code>.
+      <Callout tono="warning" titulo="Falta la tabla sellers_activos">
+        Ejecutá en Supabase las migraciones del directorio hasta la 25, en orden
+        (especialmente <code>migracion-18-sellers-activos-consolidados.sql</code>),
+        y después ejecutá el flujo <code>n8n/13-directorio-activos-whatsapp.json</code>.
       </Callout>
     </>
   );

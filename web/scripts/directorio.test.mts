@@ -47,7 +47,7 @@ test("las pantallas explican cómo instalar el directorio si falta la migración
     "../src/app/(tablero)/drivers/page.tsx",
   ]) {
     const pagina = fuente(ruta);
-    assert.match(pagina, /migracion-17-directorio-activos-whatsapp\.sql/);
+    assert.match(pagina, /migracion-(17-directorio-activos-whatsapp|18-sellers-activos-consolidados)\.sql/);
     assert.match(pagina, /13-directorio-activos-whatsapp\.json/);
   }
 });
