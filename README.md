@@ -19,10 +19,16 @@ reclamos y colectas.
 La ubicación manual de cada seller vive en `sellers_activos` (`ubicacion_manual`,
 `latitud_manual` y `longitud_manual`). La migración 22 la carga desde el KMZ
 cuando el `Usuario.Id` tiene una única ubicación y la pantalla Sellers permite
-editarla o borrarla. Esa ubicación tiene prioridad en Live Tracker, Colectas y
-Ruta; la dirección de SQL Server permanece separada y no es editable.
+editarla o borrarla. Esa ubicación se usa para las capas de tiendas de
+Colectas y Ruta; los paquetes del Live Tracker conservan siempre el domicilio
+de entrega de `Viaje.LatitudDestino` y `Viaje.LongitudDestino`. La dirección de
+SQL Server permanece separada y no es editable.
 
 La ubicación manual de cada driver vive en `drivers_activos` con las mismas
 columnas y permite agregar, editar o borrar dirección, latitud y longitud desde
 la pantalla Drivers. Los datos de SQL Server permanecen separados y no son
 editables desde la plataforma.
+La lógica operativa continúa usando la hora de Ciudad de México para resolver
+la jornada, los cortes y las sincronizaciones. Las fechas y horas que ve el
+usuario se presentan en horario argentino y llevan el sufijo `hs arg` (por
+ejemplo, `13:29 hs arg`) para evitar mezclar relojes en la pantalla.

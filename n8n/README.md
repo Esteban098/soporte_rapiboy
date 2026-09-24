@@ -365,6 +365,11 @@ que se supo, que es viejo pero cierto.
   poner.
 - **La posición sale de `Motoboy.Latitud` / `.Longitud`.**
   `Viaje.LatitudDestino` es a dónde va el paquete. También hay prueba.
+- **El punto del paquete es siempre el domicilio de entrega del viaje.**
+  La web conserva `Viaje.LatitudDestino`, `Viaje.LongitudDestino` y `Viaje.Direccion`
+  tal como llegan desde RapiboyData. La ubicación manual de `sellers_activos`
+  solo sirve para las capas de tiendas de Colectas y Ruta y nunca reemplaza la
+  parada de un paquete en el Live Tracker.
 - **La zona de `Motoboy.UltimaActualizacion` es la de Argentina (UTC−3).**
   Comprobado contra la base el 2026-09-21: el servidor de SQL Server corre en
   UTC (`GETDATE()` = `GETUTCDATE()`), pero la última actualización de
@@ -374,6 +379,11 @@ que se supo, que es viejo pero cierto.
   el nodo **Corregir zona de posición** del flujo 08 suma las tres horas
   después; el resultado es el correcto. El flujo 12 lo resuelve en la misma
   consulta con `AT TIME ZONE 'Argentina Standard Time'`.
+- **La zona de operación y la zona visible son distintas.** Los flujos y la
+  web siguen usando `America/Mexico_City` para elegir el día y los cortes de
+  ruta. Las horas que se muestran en la plataforma se convierten a
+  `America/Argentina/Buenos_Aires` y se rotulan con `hs arg`, por ejemplo
+  `13:29 hs arg`.
 - **Ningún nodo lee a través del grafo.** No hay un solo `$('Otro nodo')`
   dentro de `{{ }}`, y no es casualidad: esa lectura depende de que n8n pueda
   rastrear la cadena de items hasta el nodo nombrado, y cuando la cadena se

@@ -65,19 +65,19 @@ export function resumirDirectorio(
   };
 }
 
-/** Fecha y hora para operación, siempre en el reloj de Ciudad de México. */
+/** Fecha y hora visible para operación, siempre en Argentina. */
 export function fechaHoraMexico(valor: string): string {
   if (!valor) return "";
   const fecha = new Date(valor);
   if (Number.isNaN(fecha.getTime())) return "";
-  return new Intl.DateTimeFormat("es-MX", {
+  return `${new Intl.DateTimeFormat("es-AR", {
     day: "2-digit",
     month: "short",
     year: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "America/Mexico_City",
-  }).format(fecha);
+    timeZone: "America/Argentina/Buenos_Aires",
+  }).format(fecha)} hs arg`;
 }
 
 /** Una fecha SQL `AAAA-MM-DD`, sin correrla de día por zona horaria. */

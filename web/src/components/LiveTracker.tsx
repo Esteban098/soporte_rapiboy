@@ -27,6 +27,7 @@ import { AtribucionTomTom, ControlesTomTom, useCiclo } from "./Trafico";
 import { REFRESCO_TRAFICO_MS } from "@/lib/trafico";
 import { NombreTienda } from "./ColorTiendas";
 import { caminos, proyectar } from "@/lib/cobertura";
+import { horaArgentina } from "@/lib/formato";
 import estilos from "./live-tracker.module.css";
 
 /**
@@ -622,10 +623,6 @@ function duracion(segundos: number): string {
   return `${horas} h ${String(minutos).padStart(2, "0")} m ${String(segundosRestantes).padStart(2, "0")} s`;
 }
 
-function horaMexico(marca: number): string {
-  return new Intl.DateTimeFormat("es-MX", { timeZone: "America/Mexico_City", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(new Date(marca));
-}
-
 function EstadisticasTracker({
   drivers,
   ventana,
@@ -649,10 +646,15 @@ function EstadisticasTracker({
   const porDriver = drivers
     .map((driver) => {
       const entregas = driver.paquetes.filter((p) => p.clasificacion === "VISITADO_ENTREGADO");
+      const visitas = driver.paquetes.filter(
+        (p) => p.clasificacion === "VISITADO_ENTREGADO" || p.clasificacion === "VISITADO_NO_ENTREGADO",
+      );
       const horas = new Set(
         entregas.map((p) => (p.fecha_visita ?? p.fecha_cambio_estado)?.slice(0, 13)).filter(Boolean),
       ).size;
-      const marcas = entregas.map((p) => Date.parse(p.fecha_visita ?? p.fecha_cambio_estado ?? "")).filter(Number.isFinite);
+      // El inicio y el fin de ruta se basan en la primera y última visita,
+      // tanto si terminó entregada como si quedó no entregada.
+      const marcas = visitas.map((p) => Date.parse(p.fecha_visita ?? p.fecha_cambio_estado ?? "")).filter(Number.isFinite);
       const inicio = marcas.length ? Math.min(...marcas) : null;
       const fin = marcas.length ? Math.max(...marcas) : null;
       return { driver, entregas: entregas.length, total: driver.resumen.enRuta, porcentaje: porcentajeEntregado(driver.resumen) ?? 0, porHora: horas ? entregas.length / horas : 0, inicio, fin };
@@ -728,7 +730,7 @@ function EstadisticasTracker({
       </div>
       <div className={estilos.tablaBloque}>
         <h2>Entregas por driver</h2>
-        <div className={estilos.tablaScroll}><table><thead><tr><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("driver")}>Driver {iconoOrden("driver")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("entregas")}>Entregados {iconoOrden("entregas")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("total")}>Total {iconoOrden("total")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("porcentaje")}>% {iconoOrden("porcentaje")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("porHora")}>Entregas/h {iconoOrden("porHora")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("inicio")}>Inicio {iconoOrden("inicio")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("fin")}>Fin de ruta {iconoOrden("fin")}</button></th></tr></thead><tbody>{visibleDrivers.map((fila) => <tr key={fila.driver.id}><td>{fila.driver.nombre}</td><td>{fila.entregas}</td><td>{fila.total}</td><td>{Math.round(fila.porcentaje)}%</td><td>{fila.porHora.toFixed(1)}</td><td>{fila.inicio == null ? "Sin datos" : horaMexico(fila.inicio)}</td><td>{fila.fin == null ? "Sin datos" : horaMexico(fila.fin)}</td></tr>)}</tbody></table></div>
+        <div className={estilos.tablaScroll}><table><thead><tr><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("driver")}>Driver {iconoOrden("driver")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("entregas")}>Entregados {iconoOrden("entregas")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("total")}>Total {iconoOrden("total")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("porcentaje")}>% {iconoOrden("porcentaje")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("porHora")}>Entregas/h {iconoOrden("porHora")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("inicio")}>Inicio {iconoOrden("inicio")}</button></th><th><button type="button" className={estilos.encabezadoOrden} onClick={() => cambiarOrden("fin")}>Fin de ruta {iconoOrden("fin")}</button></th></tr></thead><tbody>{visibleDrivers.map((fila) => <tr key={fila.driver.id}><td>{fila.driver.nombre}</td><td>{fila.entregas}</td><td>{fila.total}</td><td>{Math.round(fila.porcentaje)}%</td><td>{fila.porHora.toFixed(1)}</td><td>{fila.inicio == null ? "Sin datos" : horaArgentina(fila.inicio)}</td><td>{fila.fin == null ? "Sin datos" : horaArgentina(fila.fin)}</td></tr>)}</tbody></table></div>
         {porDriver.length > 8 ? <button type="button" className={estilos.mostrarTodo} onClick={() => setMostrarTodo((valor) => !valor)}>{mostrarTodo ? "Mostrar menos" : "Mostrar todo"}</button> : null}
       </div>
       <div className={estilos.estadisticasGrid}>
@@ -1204,11 +1206,11 @@ function fechaMexico(valor: string | null): string | null {
   if (!valor) return null;
   const fecha = new Date(valor);
   if (!Number.isFinite(fecha.getTime())) return valor;
-  return fecha.toLocaleString("es-MX", {
-    timeZone: "America/Mexico_City",
+  return `${fecha.toLocaleString("es-AR", {
+    timeZone: "America/Argentina/Buenos_Aires",
     dateStyle: "short",
     timeStyle: "short",
-  });
+  })} hs arg`;
 }
 
 /**
@@ -1306,10 +1308,7 @@ function Marca({ titulo, sync }: { titulo: string; sync: Sincronizacion | null }
     );
   }
 
-  const hora = new Date(sync.fecha_fin ?? sync.fecha_inicio).toLocaleTimeString("es-MX", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const hora = horaArgentina(sync.fecha_fin ?? sync.fecha_inicio);
 
   return (
     <span className={`${estilos.marca} ${sync.estado === "failed" ? estilos.marcaFalla : ""}`}>
@@ -1327,10 +1326,7 @@ function textoAntiguedad(driver: DriverDelTracker): string {
   if (!driver.posicion) return "sin posición";
   if (!driver.fechaPosicion) return "sin fecha";
   const minutos = driver.minutosSinActualizar;
-  const hora = new Date(driver.fechaPosicion).toLocaleTimeString("es-MX", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const hora = horaArgentina(driver.fechaPosicion);
   if (minutos == null) return hora;
   return minutos < 60 ? `${hora} (hace ${minutos} min)` : `${hora} (hace ${Math.floor(minutos / 60)} h)`;
 }
@@ -1338,13 +1334,13 @@ function textoAntiguedad(driver: DriverDelTracker): string {
 function fechaHoraMexico(fecha: string): string {
   const instante = new Date(fecha);
   if (!Number.isFinite(instante.getTime())) return "fecha no disponible";
-  return new Intl.DateTimeFormat("es-MX", {
+  return `${new Intl.DateTimeFormat("es-AR", {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "America/Mexico_City",
-  }).format(instante);
+    timeZone: "America/Argentina/Buenos_Aires",
+  }).format(instante)} hs arg`;
 }
 
 function textoCorto(driver: DriverDelTracker): string {

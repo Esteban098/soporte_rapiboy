@@ -224,12 +224,12 @@ export function urlTesela(indice: IndiceRadar, cuadro: CuadroRadar, t: Tesela): 
   return `${indice.host}${cuadro.path}/${TAMANO}/${t.z}/${t.x}/${t.y}/${PALETA}/${SUAVE}_${NIEVE}.png`;
 }
 
-/** La hora del cuadro en hora de México, que es la que mira la operación. */
+/** La hora visible del cuadro en Argentina. */
 export function horaDeCuadro(time: number): string {
-  return new Intl.DateTimeFormat("es-MX", {
+  return `${new Intl.DateTimeFormat("es-AR", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
-    timeZone: "America/Mexico_City",
-  }).format(new Date(time * 1000));
+    timeZone: "America/Argentina/Buenos_Aires",
+  }).format(new Date(time * 1000))} hs arg`;
 }

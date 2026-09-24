@@ -7,7 +7,7 @@ import {
   estadoColecta,
   faseDe,
   hitosDe,
-  horaMexico,
+  horaArgentina,
   paquetesDe,
   prepararColecta,
   recorridoHecho,
@@ -287,9 +287,9 @@ test("las alertas marcan lo que no cierra, y sin reloj omiten las que dependen d
   assert.ok(!comercial.includes("POSICION_VIEJA"));
 });
 
-test("las horas se muestran en Ciudad de México y los hitos salen en orden", () => {
-  assert.equal(horaMexico("2026-09-21T19:05:00.000Z"), "13:05");
-  assert.equal(horaMexico(null), "—");
+test("las horas se muestran en Argentina y los hitos salen en orden", () => {
+  assert.equal(horaArgentina("2026-09-21T19:05:00.000Z"), "16:05 hs arg");
+  assert.equal(horaArgentina(null), "—");
 
   const hitos = hitosDe(
     colecta({ creada_en: "2026-09-21T15:00:00Z", aceptada_en: "2026-09-21T16:00:00Z", retirada_en: "2026-09-21T15:30:00Z" }),

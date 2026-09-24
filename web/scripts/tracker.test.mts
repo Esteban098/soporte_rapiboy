@@ -2023,7 +2023,7 @@ test("la pantalla dice qué migración falta en vez de fingir que no hay datos",
    * cargado», que es una respuesta distinta y equivocada: no es que la persona
    * no tenga domicilio, es que la tabla no existe.
    */
-  assert.deepEqual(datos.tablasFaltantes, ["drivers_activos", "sellers_activos"]);
+  assert.deepEqual(datos.tablasFaltantes, ["drivers_activos"]);
   assert.equal(datos.drivers.length, 1, "el mapa tiene que seguir funcionando");
 
   const panel = readFileSync(new URL("../src/components/LiveTracker.tsx", import.meta.url), "utf8");

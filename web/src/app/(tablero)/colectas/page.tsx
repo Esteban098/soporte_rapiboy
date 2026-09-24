@@ -1,6 +1,6 @@
 import { cargarAsignaciones } from "@/lib/datos";
 import { cargaPorChofer, resumirAsignaciones } from "@/lib/colectas";
-import { numero } from "@/lib/formato";
+import { fechaHoraArgentina, numero } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { Tabla } from "@/components/Tabla";
@@ -8,16 +8,9 @@ import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Colectas · asignación" };
 
-/** Fecha y hora en horario de México. Vacío queda vacío. */
+/** Fecha y hora visible en Argentina. Vacío queda vacío. */
 function cuando(fecha: Date | null): string {
-  if (!fecha) return "sin datos";
-  return new Intl.DateTimeFormat("es-MX", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Mexico_City",
-  }).format(fecha);
+  return fecha ? fechaHoraArgentina(fecha) : "sin datos";
 }
 
 /**

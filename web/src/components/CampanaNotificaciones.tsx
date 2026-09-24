@@ -9,6 +9,7 @@ import {
   type Bandeja,
 } from "@/app/notificaciones";
 import { colorDePersona, inicialesDePersona, nombreDePersona } from "@/lib/seguimiento";
+import { fechaHoraArgentina } from "@/lib/formato";
 import estilos from "./notificaciones.module.css";
 
 /**
@@ -203,13 +204,7 @@ function hace(iso: string | null, ahora: number): string {
   if (minutos < 1) return "recién";
   if (minutos < 60) return `hace ${minutos} min`;
   if (minutos < 24 * 60) return `hace ${Math.floor(minutos / 60)} h`;
-  return new Intl.DateTimeFormat("es-MX", {
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Mexico_City",
-  }).format(fecha);
+  return fechaHoraArgentina(fecha);
 }
 
 function IconoCampana() {

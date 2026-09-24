@@ -24,7 +24,8 @@ test("las fechas de calendario no cambian de día y las horas usan México", () 
   const fecha = fechaHoraMexico("2026-09-22T15:00:00.000Z").toLowerCase();
   assert.match(fecha, /22/);
   assert.match(fecha, /sep/);
-  assert.match(fecha, /09:00/);
+  assert.match(fecha, /12:00/);
+  assert.match(fecha, /hs arg/);
 });
 
 test("las dos rutas están en el sidebar y leen mediante una capa server-only", () => {

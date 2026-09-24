@@ -13,7 +13,7 @@ import {
   estaActiva,
   hace,
   hitosDe,
-  horaMexico,
+  horaArgentina,
   momentoEnTienda,
   recorridoHecho,
   tiendasVisitadas,
@@ -52,7 +52,7 @@ import { TablaOrdenable } from "./TablaOrdenable";
 export const REFRESCO_VIVO_MS = 60_000;
 
 function horaSegura(marca: string | null | undefined): string {
-  return marca ? horaMexico(marca) : "—";
+  return marca ? horaArgentina(marca) : "—";
 }
 
 function tiempoSeguro(marca: string | null | undefined): number | null {
@@ -248,7 +248,7 @@ function BarraFoto({ dia, ahora, hayFlujo }: { dia: ColectasDelDia; ahora: numbe
         <span className={vieja ? lt.marcaFalla : lt.marca}>
           {totales.sincronizadoEn ? (
             <>
-              Foto de las <b>{horaMexico(totales.sincronizadoEn)}</b>
+              Foto de las <b>{horaArgentina(totales.sincronizadoEn)}</b>
               {antiguedad ? ` · ${antiguedad}` : ""}
             </>
           ) : (
@@ -393,7 +393,7 @@ function DetalleDriver({
     `${r.tiendas} tienda${r.tiendas === 1 ? "" : "s"}`,
     `${numero(r.paquetes)} paquetes`,
     r.kmRestantes != null ? `${r.kmRestantes.toFixed(1)} km en línea recta hasta bodega` : null,
-    r.ultimoMovimiento ? `último cambio ${horaMexico(r.ultimoMovimiento)}` : null,
+    r.ultimoMovimiento ? `último cambio ${horaArgentina(r.ultimoMovimiento)}` : null,
   ].filter(Boolean);
 
   return (
@@ -490,8 +490,8 @@ function FilaParada({
   const paquetes = paquetesEstimados(c);
   const paso = hecha ? momentoEnTienda(c) : null;
   const dato = [
-    paso ? `pasó ${horaMexico(paso)}` : null,
-    ETIQUETA_ESTADO[c.estado] + (desde ? ` ${desde}` : c.estado_desde ? ` desde ${horaMexico(c.estado_desde)}` : ""),
+    paso ? `pasó ${horaArgentina(paso)}` : null,
+    ETIQUETA_ESTADO[c.estado] + (desde ? ` ${desde}` : c.estado_desde ? ` desde ${horaArgentina(c.estado_desde)}` : ""),
     paquetes > 0 ? `${paquetes} paq.` : null,
     distancia != null ? `a ${distancia.toFixed(1)} km` : null,
     c.lugar ? c.lugar : null,
@@ -518,7 +518,7 @@ function FilaParada({
 
 /**
  * La ficha de una colecta: todo lo que el sistema sabe de ella, con la hora
- * de cada paso en hora de México.
+ * de cada paso en hora argentina.
  */
 function FichaColecta({
   c,
@@ -632,12 +632,12 @@ function FichaColecta({
 
       {hitos.length > 0 ? (
         <>
-          <p className={estilos.grupo}>Recorrido (hora de México)</p>
+          <p className={estilos.grupo}>Recorrido (hora argentina)</p>
           <ol className={estilos.hitos}>
             {hitos.map((h) => (
               <li key={`${h.etiqueta}-${h.fecha}`}>
                 <span>{h.etiqueta}</span>
-                <time dateTime={h.fecha}>{horaMexico(h.fecha)}</time>
+                <time dateTime={h.fecha}>{horaArgentina(h.fecha)}</time>
               </li>
             ))}
           </ol>
@@ -772,7 +772,7 @@ export function CapaColectas({
               <title>
                 {`${c.seller ?? "Tienda"} · colecta #${c.id_colecta}\n${ETIQUETA_ESTADO[c.estado]} · ${r.nombre}` +
                   (pendiente >= 0 ? ` · próxima parada ${pendiente + 1}` : "") +
-                  (pasada >= 0 && paso ? ` · pasó a las ${horaMexico(paso)}` : "") +
+                  (pasada >= 0 && paso ? ` · pasó a las ${horaArgentina(paso)}` : "") +
                   (dueno ? `\nGrupo ${dueno.grupo} (${dueno.nombre})` : "")}
               </title>
               {colecta === c.id_colecta ? <circle r={radio * 2.1} fill="none" stroke={r.color} strokeWidth={2.4 * k} /> : null}
@@ -980,8 +980,8 @@ export function ResumenColectasVivo({ dia }: { dia: ColectasDelDia }) {
               { clave: "cancelada", titulo: "Canceladas", valor: (r) => r.porFase.CANCELADA, className: estilos.num },
               { clave: "paquetes", titulo: "Paquetes", valor: (r) => r.paquetes, className: estilos.num, render: (r) => numero(r.paquetes) },
               { clave: "proxima", titulo: "Próxima parada", valor: (r) => r.ruta[0]?.seller ?? "—", render: (r) => r.ruta[0] ? <NombreTienda nombre={r.ruta[0].seller ?? "—"} /> : "—" },
-              ...(!dia.sinPosiciones ? [{ clave: "posicion", titulo: "Última posición", valor: (r: ResumenDriver) => r.posicionEn ? Date.parse(r.posicionEn) : null, render: (r: ResumenDriver) => r.id == null ? "—" : ahora != null ? antiguedadPosicion(r.posicion, r.posicionEn, ahora).texto : horaMexico(r.posicionEn) }] : []),
-              { clave: "movimiento", titulo: "Último cambio", valor: (r) => r.ultimoMovimiento ? Date.parse(r.ultimoMovimiento) : null, render: (r) => r.ultimoMovimiento ? horaMexico(r.ultimoMovimiento) : "—" },
+              ...(!dia.sinPosiciones ? [{ clave: "posicion", titulo: "Última posición", valor: (r: ResumenDriver) => r.posicionEn ? Date.parse(r.posicionEn) : null, render: (r: ResumenDriver) => r.id == null ? "—" : ahora != null ? antiguedadPosicion(r.posicion, r.posicionEn, ahora).texto : horaArgentina(r.posicionEn) }] : []),
+              { clave: "movimiento", titulo: "Último cambio", valor: (r) => r.ultimoMovimiento ? Date.parse(r.ultimoMovimiento) : null, render: (r) => r.ultimoMovimiento ? horaArgentina(r.ultimoMovimiento) : "—" },
             ]}
           />
         </div>
@@ -1010,9 +1010,9 @@ export function ResumenColectasVivo({ dia }: { dia: ColectasDelDia }) {
               { clave: "retirados", titulo: "Retirados", valor: ({ c }) => paquetesDe(c).retirados, className: estilos.num },
               { clave: "bodega", titulo: "En bodega", valor: ({ c }) => paquetesDe(c).enBodega, className: estilos.num },
               { clave: "creada", titulo: "Creada", valor: ({ c }) => c.creada_en ? Date.parse(c.creada_en) : null, render: ({ c }) => horaSegura(c.creada_en) },
-              { clave: "aceptada", titulo: "Aceptada", valor: ({ c }) => c.aceptada_en ? Date.parse(c.aceptada_en) : null, render: ({ c }) => c.aceptada_en ? horaMexico(c.aceptada_en) : "—" },
-              { clave: "local", titulo: "En local", valor: ({ c }) => c.en_local_en ? Date.parse(c.en_local_en) : null, render: ({ c }) => c.en_local_en ? horaMexico(c.en_local_en) : "—" },
-              { clave: "retirada", titulo: "Retirada", valor: ({ c }) => c.retirada_en ? Date.parse(c.retirada_en) : null, render: ({ c }) => c.retirada_en ? horaMexico(c.retirada_en) : "—" },
+              { clave: "aceptada", titulo: "Aceptada", valor: ({ c }) => c.aceptada_en ? Date.parse(c.aceptada_en) : null, render: ({ c }) => c.aceptada_en ? horaArgentina(c.aceptada_en) : "—" },
+              { clave: "local", titulo: "En local", valor: ({ c }) => c.en_local_en ? Date.parse(c.en_local_en) : null, render: ({ c }) => c.en_local_en ? horaArgentina(c.en_local_en) : "—" },
+              { clave: "retirada", titulo: "Retirada", valor: ({ c }) => c.retirada_en ? Date.parse(c.retirada_en) : null, render: ({ c }) => c.retirada_en ? horaArgentina(c.retirada_en) : "—" },
               { clave: "finalizada", titulo: "En bodega", valor: ({ c }) => tiempoSeguro(c.en_deposito_en ?? c.finalizada_en ?? c.llego_deposito_en), render: ({ c }) => horaSegura(c.en_deposito_en ?? c.finalizada_en ?? c.llego_deposito_en) },
             ]}
           />

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { UsoPorPersona } from "@/lib/asistente-costos";
-import { mesLargo, numero } from "@/lib/formato";
+import { fechaHoraArgentina, mesLargo, numero } from "@/lib/formato";
 import { Callout, Card, Kpi } from "./Card";
 import estilos from "./ui.module.css";
 import { TablaOrdenable } from "./TablaOrdenable";
@@ -22,13 +22,7 @@ const DOLARES = new Intl.NumberFormat("es-MX", {
   maximumFractionDigits: 4,
 });
 
-const CUANDO = new Intl.DateTimeFormat("es-MX", {
-  day: "2-digit",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-  timeZone: "America/Mexico_City",
-});
+const CUANDO = { format: (fecha: Date) => fechaHoraArgentina(fecha) };
 
 export function UsoAsistente({
   mes,

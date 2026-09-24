@@ -6,20 +6,13 @@ import { UsoAsistente } from "@/components/UsoAsistente";
 import { usoPorPersona } from "@/lib/asistente-costos";
 import { leerUsoDelMes } from "@/lib/asistente-uso";
 import { esMesValido, mesAnterior, mesEnCurso } from "@/lib/periodos";
+import { fechaHoraArgentina } from "@/lib/formato";
 
 export const metadata = { title: "Perfiles" };
 
-/** Fecha corta en horario de México. Vacío queda vacío, no "hoy". */
+/** Fecha corta visible en Argentina. Vacío queda vacío, no "hoy". */
 function cuando(fecha: Date | null): string {
-  if (!fecha) return "";
-  return new Intl.DateTimeFormat("es-MX", {
-    day: "2-digit",
-    month: "short",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "America/Mexico_City",
-  }).format(fecha);
+  return fecha ? fechaHoraArgentina(fecha) : "";
 }
 
 export default async function Perfiles({

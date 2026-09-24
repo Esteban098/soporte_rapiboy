@@ -315,6 +315,14 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   siempre como «última posición conocida». `Viaje.LatitudDestino` es a dónde va
   el paquete, no dónde está la persona: hay una prueba que falla si esa columna
   aparece en la consulta de repartidores.
+- La lógica del día operativo, los cortes y las entregas por hora usa
+  `America/Mexico_City`. Las fechas y horas visibles en la plataforma se
+  convierten a `America/Argentina/Buenos_Aires` y se muestran con el sufijo
+  `hs arg` para que no se mezclen los relojes.
+- En Estadísticas, “Inicio” y “Fin de ruta” se calculan con la primera y la
+  última visita del repartidor, respectivamente. Incluyen tanto entregas como
+  visitas no entregadas; el porcentaje y las entregas por hora siguen contando
+  solo los paquetes entregados.
 - El repartidor de un paquete sale de la reserva
   (`Viaje.IdReserva` → `ReservaxMotoboy.IdMotoboy`).
   `Viaje.IdMotoboyBalanceado` se guarda al lado, sin combinarse: cuando los dos
