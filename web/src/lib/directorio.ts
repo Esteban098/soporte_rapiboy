@@ -18,6 +18,7 @@ export type SellerDirectorio = {
   llevaBodega: boolean;
   llevaDropoff: boolean;
   pagaColecta: boolean;
+  offlineSistema: boolean;
   topeMaximo: number | null;
   grupoWhatsapp: string | null;
   labelsWaha: { id?: string | number; name?: string; color?: string }[];
@@ -36,6 +37,10 @@ export type DriverDirectorio = {
   flotilla: string;
   ultimaReserva: string;
   grupoWhatsapp: string | null;
+  labelsWaha: { id?: string | number; name?: string; color?: string }[];
+  ubicacionManual: string;
+  latitudManual: number | null;
+  longitudManual: number | null;
   asignacion: "AUTOMATICO" | "MANUAL" | null;
   actualizadoEn: string;
 };

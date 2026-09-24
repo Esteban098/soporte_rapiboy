@@ -364,15 +364,15 @@ export function LiveTracker({
           </p>
         ) : null}
 
-        {datos.tablasFaltantes.includes("tracker_choferes") ? (
+        {datos.tablasFaltantes.includes("drivers_activos") ? (
           /*
            * Decir qué falta y qué correr, en vez de dejar la pantalla a medias
            * sin explicación. Sin esto, un mapa sin domicilios se lee como «no
            * hay domicilios cargados» y no como «falta la migración».
            */
           <p className={estilos.aviso} role="status">
-            Falta correr <code>supabase/migracion-06-lugares.sql</code>: no existe{" "}
-            tracker_choferes. El mapa funciona igual, pero sin los domicilios de los
+            Falta correr <code>supabase/migracion-25-drivers-activos.sql</code>: no existe{" "}
+            drivers_activos. El mapa funciona igual, pero sin los domicilios de los
             repartidores.
           </p>
         ) : null}

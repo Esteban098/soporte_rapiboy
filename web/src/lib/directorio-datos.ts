@@ -1,20 +1,11 @@
 import "server-only";
 
 import {
-  TABLA_DIRECTORIO_DRIVERS,
+  TABLA_DRIVERS_ACTIVOS,
   TABLA_SELLERS_ACTIVOS,
-  VISTA_DIRECTORIO_CONTACTOS_WHATSAPP,
 } from "./config";
 import { consultarTodo } from "./supabase";
 import type { DriverDirectorio, SellerDirectorio } from "./directorio";
-
-type ContactoFila = {
-  tipo_entidad: "SELLER" | "DRIVER";
-  id_entidad: number | string;
-  grupo_jid: string | null;
-  nombre_grupo: string | null;
-  origen: "AUTOMATICO" | "MANUAL" | null;
-};
 
 type SellerFila = {
   id_seller?: number | string;
@@ -28,6 +19,7 @@ type SellerFila = {
   lleva_bodega: boolean | null;
   lleva_dropoff: boolean | null;
   paga_colecta: boolean | null;
+  offline_sistema: boolean | null;
   tope_maximo: number | string | null;
   actualizado_en: string | null;
 };
@@ -48,6 +40,13 @@ type DriverFila = {
   condicion: string | null;
   flotilla: string | null;
   ultima_reserva: string | null;
+  grupo_nombre: string | null;
+  labels_waha: unknown;
+  ubicacion_manual: string | null;
+  latitud_manual: number | string | null;
+  longitud_manual: number | string | null;
+  activo: boolean;
+  visto_por_ultima_vez: string | null;
   actualizado_en: string | null;
 };
 
@@ -67,10 +66,6 @@ function labelsWaha(valor: unknown): { id?: string | number; name?: string; colo
     const name = texto(fila.name ?? fila.nombre ?? fila.label);
     return name ? [{ id: fila.id as string | number | undefined, name, color: texto(fila.color) || undefined }] : [];
   });
-}
-
-function asignacionesPorId(filas: ContactoFila[]): Map<string, ContactoFila> {
-  return new Map(filas.map((fila) => [String(fila.id_entidad), fila]));
 }
 
 /** Sellers activos. El JID se conserva en Supabase para los flujos, no viaja al navegador. */
@@ -95,6 +90,7 @@ export async function leerSellersDirectorio(): Promise<SellerDirectorio[]> {
       llevaBodega: fila.lleva_bodega === true,
       llevaDropoff: fila.lleva_dropoff === true,
       pagaColecta: fila.paga_colecta === true,
+      offlineSistema: fila.offline_sistema === true,
       topeMaximo: Number.isFinite(tope) ? tope : null,
       grupoWhatsapp: texto(fila.grupo_nombre) || null,
       labelsWaha: labelsWaha(fila.labels_waha),
@@ -110,26 +106,21 @@ export async function leerSellersDirectorio(): Promise<SellerDirectorio[]> {
 
 /** Drivers activos según la ventana de reservas del flujo 13. */
 export async function leerDriversDirectorio(): Promise<DriverDirectorio[]> {
-  const [drivers, contactos] = await Promise.all([
-    consultarTodo<DriverFila>(TABLA_DIRECTORIO_DRIVERS, { activo: "eq.true" }, "nombre.asc,id_motoboy.asc"),
-    consultarTodo<ContactoFila>(
-      VISTA_DIRECTORIO_CONTACTOS_WHATSAPP,
-      { tipo_entidad: "eq.DRIVER", activo: "eq.true" },
-      "nombre.asc,id_entidad.asc",
-    ),
-  ]);
-  const grupos = asignacionesPorId(contactos);
-
+  const drivers = await consultarTodo<DriverFila>(TABLA_DRIVERS_ACTIVOS, { activo: "eq.true" }, "nombre.asc,id_motoboy.asc");
   return drivers.map((fila) => {
-    const grupo = grupos.get(String(fila.id_motoboy));
+    const etiquetas = labelsWaha(fila.labels_waha);
     return {
       id: Number(fila.id_motoboy),
       nombre: texto(fila.nombre),
       condicion: texto(fila.condicion),
       flotilla: texto(fila.flotilla),
       ultimaReserva: texto(fila.ultima_reserva),
-      grupoWhatsapp: texto(grupo?.nombre_grupo) || null,
-      asignacion: grupo?.origen ?? null,
+      grupoWhatsapp: texto(fila.grupo_nombre) || null,
+      labelsWaha: etiquetas,
+      ubicacionManual: texto(fila.ubicacion_manual),
+      latitudManual: Number.isFinite(Number(fila.latitud_manual)) ? Number(fila.latitud_manual) : null,
+      longitudManual: Number.isFinite(Number(fila.longitud_manual)) ? Number(fila.longitud_manual) : null,
+      asignacion: fila.grupo_nombre ? "AUTOMATICO" : null,
       actualizadoEn: texto(fila.actualizado_en),
     };
   });

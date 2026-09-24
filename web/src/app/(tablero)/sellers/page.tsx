@@ -39,6 +39,7 @@ export default async function Sellers() {
     bodega: seller.llevaBodega ? "Sí" : "No",
     dropoff: seller.llevaDropoff ? "Sí" : "No",
     pagaColecta: seller.pagaColecta ? "Sí" : "No",
+    estadoSistema: seller.offlineSistema ? "Offline en Rapiboy" : "Online en Rapiboy",
     tope: seller.topeMaximo,
     celular: seller.celular,
     email: seller.email,
@@ -57,14 +58,14 @@ export default async function Sellers() {
       />
 
       <div className={estilos.kpis}>
-        <Kpi etiqueta="Sellers activos" valor={numero(resumen.total)} nota="disponibles en el directorio" />
+        <Kpi etiqueta="Sellers en directorio" valor={numero(resumen.total)} nota="incluye dropoff offline" />
         <Kpi etiqueta="Con grupo" valor={numero(resumen.vinculados)} nota="listos para mensajería" tono="good" />
         <Kpi etiqueta="Sin grupo" valor={numero(resumen.pendientes)} nota="requieren vinculación" tono={resumen.pendientes ? "warning" : "neutral"} />
         <Kpi etiqueta="Asignación manual" valor={numero(resumen.manuales)} nota="protegida de la sincronización" />
       </div>
 
       <div className={estilos.stack}>
-        <Card titulo="Directorio de sellers" nota="Solo se muestran sellers activos de México. La búsqueda revisa todas las columnas y los filtros se pueden combinar.">
+        <Card titulo="Directorio de sellers" nota="Incluye sellers operativos y dropoff que figuran offline en Rapiboy. La búsqueda revisa todas las columnas y los filtros se pueden combinar.">
           <Tabla
             id="directorio-sellers"
             titulo="Directorio · Sellers"
@@ -75,6 +76,7 @@ export default async function Sellers() {
               { clave: "whatsapp", etiqueta: "WhatsApp" },
               { clave: "asignacion", etiqueta: "Asignación" },
               { clave: "comercial", etiqueta: "Comercial" },
+              { clave: "estadoSistema", etiqueta: "Estado sistema" },
             ]}
             columnas={[
               { clave: "id", titulo: "ID", tipo: "numero" },
@@ -90,6 +92,7 @@ export default async function Sellers() {
               { clave: "horaCorte", titulo: "Hora corte", tipo: "texto" },
               { clave: "bodega", titulo: "Bodega", tipo: "texto" },
               { clave: "dropoff", titulo: "Dropoff", tipo: "texto" },
+              { clave: "estadoSistema", titulo: "Estado sistema", tipo: "texto" },
               { clave: "pagaColecta", titulo: "Paga colecta", tipo: "texto" },
               { clave: "tope", titulo: "Tope diario", tipo: "numero" },
               { clave: "celular", titulo: "Celular", tipo: "texto" },
@@ -142,7 +145,7 @@ function SinTablas() {
     <>
       <PageHead eyebrow="Directorio · México" titulo="Sellers" flujo="directorio" />
       <Callout tono="warning" titulo="Falta crear el directorio">
-        Corré <code>web/supabase/migracion-17-directorio-activos-whatsapp.sql</code> en Supabase y después ejecutá el flujo <code>n8n/13-directorio-activos-whatsapp.json</code>.
+        Corré las migraciones del directorio (incluida <code>migracion-17-directorio-activos-whatsapp.sql</code> y la 25 de drivers) en Supabase y después ejecutá el flujo <code>n8n/13-directorio-activos-whatsapp.json</code>.
       </Callout>
     </>
   );

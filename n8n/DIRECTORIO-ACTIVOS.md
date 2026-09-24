@@ -16,31 +16,42 @@ La sincronización incluye:
 ## Archivos
 
 1. `../web/supabase/migracion-17-directorio-activos-whatsapp.sql`
-2. `13-directorio-activos-whatsapp.json`
+2. `../web/supabase/migracion-23-eliminar-staging-directorio-sellers.sql`
+3. `../web/supabase/migracion-24-offline-sellers.sql`
+4. `../web/supabase/migracion-25-drivers-activos.sql`
+5. `../web/supabase/migracion-26-eliminar-catalogos-drivers-antiguos.sql`
+6. `13-directorio-activos-whatsapp.json`
 
 ORDEN DE INSTALACIÓN
 --------------------
 1. Ejecutar `web/supabase/migracion-17-directorio-activos-whatsapp.sql` una sola vez en el SQL
    Editor de Supabase.
-2. Importar `n8n/13-directorio-activos-whatsapp.json` en n8n.
-3. Seleccionar en los nodos Microsoft SQL la credencial de la base Rapiboy.
-4. Seleccionar en los nodos Postgres la credencial de Supabase/plataforma.
-5. Configurar WAHA_API_KEY como variable de entorno de n8n. No colocar la
+2. Ejecutar `web/supabase/migracion-23-eliminar-staging-directorio-sellers.sql` después
+   de importar y probar el workflow actualizado.
+3. Ejecutar `web/supabase/migracion-24-offline-sellers.sql` y luego
+   `web/supabase/migracion-25-drivers-activos.sql`.
+4. Importar `n8n/13-directorio-activos-whatsapp.json` en n8n y ejecutar una
+   sincronización exitosa.
+5. Comprobar `drivers_activos`; recién entonces ejecutar la migración 26,
+   que elimina `directorio_drivers` y `tracker_choferes`.
+6. Seleccionar en los nodos Microsoft SQL la credencial de la base Rapiboy.
+7. Seleccionar en los nodos Postgres la credencial de Supabase/plataforma.
+8. Configurar WAHA_API_KEY como variable de entorno de n8n. No colocar la
    clave directamente dentro del workflow.
-6. Ejecutar el flujo manualmente y revisar el resultado del último nodo.
-7. Activar el workflow y copiar la **Production URL** del nodo
+9. Ejecutar el flujo manualmente y revisar el resultado del último nodo.
+10. Activar el workflow y copiar la **Production URL** del nodo
    `Boton Actualizar directorio` (`actualizar-directorio`) en la variable
    `N8N_WEBHOOKS_DIRECTORIO` de la aplicación web.
-8. Pulsar **Actualizar directorio** desde Sellers/Drivers y confirmar que la
+11. Pulsar **Actualizar directorio** desde Sellers/Drivers y confirmar que la
    respuesta termina correctamente antes de revisar los datos en la plataforma.
-9. Verificar los grupos que requieren revisión con:
+12. Verificar los grupos que requieren revisión con:
 
    select *
    from public.whatsapp_grupos_diagnostico
    where estado <> 'VINCULABLE'
    order by estado, nombre_grupo;
 
-10. Mantener activo el workflow. Se ejecutará a las
+13. Mantener activo el workflow. Se ejecutará a las
    09:00, hora de Ciudad de México, de lunes a sábado.
 
 El webhook no necesita un cuerpo especial: la aplicación envía un `POST` vacío
@@ -49,10 +60,10 @@ actualizar sus catálogos.
 
 TABLAS DE LA PLATAFORMA
 -----------------------
-public.directorio_sellers
-  Catálogo operativo de tiendas/sellers. Una fila por id_seller.
+public.sellers_activos
+  Catálogo operativo consolidado de tiendas/sellers. Una fila por id_usuario.
 
-public.directorio_drivers
+public.drivers_activos
   Catálogo operativo de repartidores. Una fila por id_motoboy.
 
 public.whatsapp_grupos
@@ -75,7 +86,7 @@ public.whatsapp_grupos_diagnostico
 
 REGLAS IMPORTANTES
 ------------------
-- No se modifican tracker_tiendas ni tracker_choferes; son referencias
+- `drivers_activos` conserva también el punto manual del KMZ y el grupo de WhatsApp.
   geográficas y tienen otra finalidad.
 - Un grupo se asocia automáticamente únicamente si el ID extraído coincide
   con exactamente una entidad activa.

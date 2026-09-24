@@ -31,7 +31,7 @@ como credencial de tipo *Postgres*, con SSL activado.
 Los archivos la referencian con el id `REEMPLAZAR`: al abrir cada nodo morado
 hay que elegir la credencial de la lista. Es una sola vez por nodo.
 
-Las credenciales de SQL Server, Google Sheets y OpenAI ya existen y se
+Las credenciales de SQL Server y OpenAI ya existen y se
 referencian por el id que tienen hoy, así que esas se enganchan solas. El flujo
 07 también necesita una credencial **Header Auth**: nombre
 `X-Rapiboy-Token` y un valor largo aleatorio. El mismo valor se carga en las
@@ -47,8 +47,9 @@ variable de entorno de n8n. La guía completa está en
 
 `13-directorio-activos-whatsapp.json` reemplaza las hojas del workflow
 `[MX - SM] - DB_Webhook - Esteban` por tablas propias de la plataforma. Antes
-de importarlo se ejecuta
-`web/supabase/migracion-17-directorio-activos-whatsapp.sql`.
+de importarlo se ejecutan las migraciones 17 a 25. Después de verificar una
+corrida correcta se ejecuta la migración 26, que elimina los catálogos antiguos
+`directorio_drivers` y `tracker_choferes`.
 
 El snapshot consolidado de sellers se instala con las migraciones 18 y 19 en
 `sellers_activos`. Los labels de soporte se resuelven desde los chats de los
@@ -58,7 +59,9 @@ realiza la carga inicial de `soporte_asignado`; después la plataforma conserva
 las correcciones manuales.
 
 La corrida hace upsert de sellers de México y de drivers que tomaron una
-reserva válida durante los últimos 14 días. Después consulta WAHA, extrae el ID
+reserva válida durante los últimos 14 días en `sellers_activos` y
+`drivers_activos`. Los drivers conservan además el label `Drivers` y la
+ubicación manual del KMZ. Después consulta WAHA, extrae el ID
 de nombres como `#694864 Nombre - Vehículo` y crea la asignación solo cuando el
 ID coincide con exactamente una entidad activa. Los IDs se califican por
 `SELLER` o `DRIVER`, de modo que el mismo número en ambos catálogos queda

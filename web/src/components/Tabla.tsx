@@ -19,6 +19,7 @@ import { EditorCaso, type Edicion } from "./EditorCaso";
 import { numero, porcentaje, decimal } from "@/lib/formato";
 import { AsignarSoporteSeller } from "./AsignarSoporteSeller";
 import { EditarUbicacionSeller } from "./EditarUbicacionSeller";
+import { EditarUbicacionDriver } from "./EditarUbicacionDriver";
 import { ChipCaso, TextoEstado } from "./Card";
 import estilos from "./ui.module.css";
 import tabla from "./tabla.module.css";
@@ -44,7 +45,8 @@ export type TipoColumna =
   /** Un comercio, pintado con el color de quien lo tiene asignado. */
   | "tienda"
   | "soporte"
-  | "ubicacion";
+  | "ubicacion"
+  | "ubicacionDriver";
 
 export type Columna = {
   clave: string;
@@ -454,6 +456,10 @@ function Celda({
         />
       </td>
     );
+  }
+
+  if (columna.tipo === "ubicacionDriver") {
+    return <td className={clase}><EditarUbicacionDriver id={Number(fila.id)} ubicacion={String(fila.ubicacionManual ?? "")} latitud={fila.latitudManual == null ? null : Number(fila.latitudManual)} longitud={fila.longitudManual == null ? null : Number(fila.longitudManual)} /></td>;
   }
 
   if (valor == null || valor === "") {

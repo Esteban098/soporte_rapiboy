@@ -1921,9 +1921,9 @@ test("el domicilio del repartidor se muestra solo, sin la lista entera", async (
     tracker_drivers_vista: [driver({ id_motoboy: 7 })],
     tracker_paquetes: [paquete()],
     tracker_sincronizaciones: [],
-    tracker_choferes: [
-      { id_motoboy: 7, nombre: "Ana Ruiz", latitud: 19.5, longitud: -99.2 },
-      { id_motoboy: 99, nombre: "Otro", latitud: 19.6, longitud: -99.3 },
+    drivers_activos: [
+      { id_motoboy: 7, nombre: "Ana Ruiz", latitud_manual: 19.5, longitud_manual: -99.2 },
+      { id_motoboy: 99, nombre: "Otro", latitud_manual: 19.6, longitud_manual: -99.3 },
     ],
   });
   t.after(base.restore);
@@ -1967,7 +1967,7 @@ test("un domicilio con coordenadas imposibles no se dibuja", async (t) => {
     tracker_sincronizaciones: [],
 
     // El (0,0) es válido como número y no como domicilio: cae en el Atlántico.
-    tracker_choferes: [{ id_motoboy: 7, nombre: "Ana Ruiz", latitud: 0, longitud: 0 }],
+    drivers_activos: [{ id_motoboy: 7, nombre: "Ana Ruiz", latitud_manual: 0, longitud_manual: 0 }],
   });
   t.after(base.restore);
 
@@ -2023,11 +2023,11 @@ test("la pantalla dice qué migración falta en vez de fingir que no hay datos",
    * cargado», que es una respuesta distinta y equivocada: no es que la persona
    * no tenga domicilio, es que la tabla no existe.
    */
-  assert.deepEqual(datos.tablasFaltantes, ["tracker_choferes", "sellers_activos"]);
+  assert.deepEqual(datos.tablasFaltantes, ["drivers_activos", "sellers_activos"]);
   assert.equal(datos.drivers.length, 1, "el mapa tiene que seguir funcionando");
 
   const panel = readFileSync(new URL("../src/components/LiveTracker.tsx", import.meta.url), "utf8");
-  assert.match(panel, /migracion-06-lugares\.sql/);
+  assert.match(panel, /migracion-25-drivers-activos\.sql/);
 });
 
 test("con las tablas cargadas no se avisa nada", async (t) => {
@@ -2036,7 +2036,7 @@ test("con las tablas cargadas no se avisa nada", async (t) => {
     tracker_drivers_vista: [driver()],
     tracker_paquetes: [paquete()],
     tracker_sincronizaciones: [],
-    tracker_choferes: [],
+    drivers_activos: [],
     sellers_activos: [],
   });
   t.after(base.restore);

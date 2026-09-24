@@ -1,6 +1,6 @@
 import "server-only";
 import {
-  TABLA_TRACKER_CHOFERES,
+  TABLA_DRIVERS_ACTIVOS,
   TABLA_TRACKER_DEMORAS,
   TABLA_TRACKER_PAQUETES,
   TABLA_TRACKER_SYNC,
@@ -204,10 +204,10 @@ export async function leerTracker(diaForzado?: string, momento = new Date()): Pr
      * filas, así que se leen todas de una y se cruzan en memoria: una consulta
      * por repartidor serían veinte viajes a la base para dibujar una pantalla.
      *
-     * Si todavía no existe -la migración 06 no se corrió-, la pantalla funciona
+     * Si todavía no existe -la migración 25 no se corrió-, la pantalla funciona
      * igual y lo dice. Un dato accesorio no puede tirar abajo el mapa entero.
      */
-    opcional<DomicilioFila>(TABLA_TRACKER_CHOFERES, {}, "id_motoboy.asc"),
+    opcional<DomicilioFila>(TABLA_DRIVERS_ACTIVOS, {}, "id_motoboy.asc"),
 
     // Es opcional durante el despliegue para que instalar primero la web no
     // tire abajo el mapa; la pantalla avisa qué migración falta y no permite
@@ -247,7 +247,13 @@ export async function leerTracker(diaForzado?: string, momento = new Date()): Pr
       : paquete;
   });
 
-  const domicilios = new Map(choferes.map((c) => [c.id_motoboy, c]));
+  const domicilios = new Map(
+    choferes.map((c) => [c.id_motoboy, {
+      ...c,
+      latitud: c.latitud_manual,
+      longitud: c.longitud_manual,
+    }]),
+  );
   const demoraPorDriver = new Map(demoras.map((demora) => [demora.id_motoboy, demora]));
 
   const paquetesConDetalle: PaqueteDelTracker[] = paquetesVisibles;
@@ -296,8 +302,10 @@ export async function leerTracker(diaForzado?: string, momento = new Date()): Pr
 type DomicilioFila = {
   id_motoboy: number;
   nombre: string;
-  latitud: number;
-  longitud: number;
+  latitud_manual: number | null;
+  longitud_manual: number | null;
+  latitud: number | null;
+  longitud: number | null;
 };
 
 function armarDriver(
@@ -361,7 +369,7 @@ function armarDriver(
 
     domicilio:
       casa && coordenadaValida(casa.latitud, casa.longitud)
-        ? { lat: casa.latitud, lon: casa.longitud }
+        ? { lat: casa.latitud as number, lon: casa.longitud as number }
         : null,
 
     paquetes: clasificados,

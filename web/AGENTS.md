@@ -125,19 +125,21 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `recorridosDeRepartidores()`, que exige `operadorActual()`.
 
 - El directorio operativo de contactos vive en `sellers_activos` para sellers y
-  en las tablas de drivers/grupos heredadas para compatibilidad; se instala con
-  las migraciones 17-19 y lo sincroniza solo
+  `drivers_activos` para drivers; se instala con las migraciones 17-19, 24 y
+  25 y lo sincroniza solo
   `../n8n/13-directorio-activos-whatsapp.json`. No reutiliza `tracker_tiendas`
-  ni `tracker_choferes`, que son puntos geográficos estáticos importados de
-  KMZ. Las asignaciones automáticas requieren una coincidencia única del ID
+  ni las tablas antiguas `directorio_drivers`/`tracker_choferes`, que se retiran
+  con la migración 26 después de validar la primera sincronización. Las
+  asignaciones automáticas requieren una coincidencia única del ID
   extraído del nombre del grupo. Las asignaciones `MANUAL` nunca se reemplazan
   durante una sincronización.
   Se visualiza en dos pantallas independientes, `/sellers` y `/drivers`, dentro
   del grupo **Directorio** del sidebar. Las lecturas pasan por
   `src/lib/directorio-datos.ts`, que es `server-only`; el JID queda en el
   servidor para los futuros flujos WAHA y no forma parte del DTO de pantalla.
-  La pantalla de Sellers permite asignar Cande o Esteban en la misma tabla;
-  ambas pantallas disparan el flujo 13 con el botón Actualizar y muestran sus
+  La pantalla de Sellers permite asignar Cande o Esteban y editar la ubicación
+  manual; la pantalla Drivers también permite ver, agregar, editar y borrar su
+  ubicación manual (dirección, latitud y longitud). Ambas pantallas disparan el flujo 13 con el botón Actualizar y muestran sus
   tablas con una cantidad inicial reducida; el resto se despliega a pedido. Las
   tablas especiales que no usan `Tabla.tsx` pasan por `TablaOrdenable.tsx` para
   conservar el mismo ordenamiento por encabezado que Ayer.
@@ -171,7 +173,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Los flujos 08 y 09 escriben **solo** las tablas `tracker_*` y leen SQL Server
   en modo lectura. No comparten tablas con ningún otro flujo, así que se pueden
   importar, apagar o rehacer sin mirar el resto.
-- El flujo 13 escribe directamente `sellers_activos`; también escribe `directorio_drivers`,
+- El flujo 13 escribe directamente `sellers_activos`; incluye sellers normales activos y
+  dropoff de México aunque Rapiboy los marque offline, conservando ese dato en
+  `offline_sistema`; también escribe `drivers_activos`,
   `whatsapp_grupos`, `whatsapp_asignaciones` y
   `directorio_sync_ejecuciones`. No debe escribir las tablas geográficas del
   tracker ni depender de Google Sheets. Un fallo de SQL Server o WAHA no puede
@@ -432,9 +436,9 @@ versionado y generado a mano con `scripts/cobertura.mts`.
 - Una tabla de referencia que falta se **anota y se avisa** (`tablasFaltantes`),
   no se traga con un `catch`. «No corriste la migración» y «esta persona no
   tiene domicilio» son respuestas distintas y la pantalla tiene que decir cuál.
-- `tracker_tiendas` y `tracker_choferes` son de referencia: las genera
-  `npx tsx scripts/lugares.mts` desde los KMZ de `datos/` y no las escribe
-  ningún flujo. `id_tienda` **no** es único (#55004 tiene dos sucursales) y la
+- `tracker_tiendas` es de referencia y la genera `npx tsx scripts/lugares.mts`
+  desde los KMZ de `datos/`; los puntos de drivers viven en `drivers_activos`.
+  `id_tienda` **no** es único (#55004 tiene dos sucursales) y la
   pantalla lo marca en vez de elegir uno.
 - `sellers_activos.soporte_asignado` dice de quién es cada comercio (Grupo A
   `esteban@rapiboy.com`, Grupo B `candelaria@rapiboy.com`) y decide su color en

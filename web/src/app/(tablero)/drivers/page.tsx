@@ -31,6 +31,14 @@ export default async function Drivers() {
     condicion: driver.condicion,
     flotilla: driver.flotilla,
     ultimaReserva: fechaHoraMexico(driver.ultimaReserva),
+    labels: driver.labelsWaha.map((label) => label.name).join(", "),
+    ubicacion: driver.ubicacionManual,
+    ubicacionManual: driver.ubicacionManual,
+    latitudManual: driver.latitudManual,
+    longitudManual: driver.longitudManual,
+    coordenadas: driver.latitudManual != null && driver.longitudManual != null
+      ? `${driver.latitudManual}, ${driver.longitudManual}`
+      : "",
     actualizado: fechaHoraMexico(driver.actualizadoEn),
   }));
 
@@ -40,18 +48,18 @@ export default async function Drivers() {
         eyebrow="Directorio · México"
         titulo="Drivers"
         flujo="directorio"
-        dek="Repartidores que tomaron una reserva válida durante los últimos 14 días y su grupo asignado de WhatsApp. El grupo será el destino de los futuros mensajes predeterminados de WAHA."
+        dek="Repartidores activos sincronizados desde Rapiboy, con su grupo de WhatsApp y la ubicación manual tomada del KMZ."
       />
 
       <div className={estilos.kpis}>
-        <Kpi etiqueta="Drivers activos" valor={numero(resumen.total)} nota="con reserva en los últimos 14 días" />
+        <Kpi etiqueta="Drivers activos" valor={numero(resumen.total)} nota="sincronizados desde Rapiboy" />
         <Kpi etiqueta="Con grupo" valor={numero(resumen.vinculados)} nota="listos para mensajería" tono="good" />
         <Kpi etiqueta="Sin grupo" valor={numero(resumen.pendientes)} nota="requieren vinculación" tono={resumen.pendientes ? "warning" : "neutral"} />
         <Kpi etiqueta="Asignación manual" valor={numero(resumen.manuales)} nota="protegida de la sincronización" />
       </div>
 
       <div className={estilos.stack}>
-        <Card titulo="Directorio de drivers" nota="La actividad se determina por reservas válidas de las últimas dos semanas. La lista no depende del live tracker.">
+        <Card titulo="Directorio de drivers" nota="La dirección del sistema y la ubicación manual del KMZ son datos separados.">
           <Tabla
             id="directorio-drivers"
             titulo="Directorio · Drivers"
@@ -63,6 +71,7 @@ export default async function Drivers() {
               { clave: "asignacion", etiqueta: "Asignación" },
               { clave: "condicion", etiqueta: "Condición" },
               { clave: "flotilla", etiqueta: "Flotilla" },
+              { clave: "labels", etiqueta: "Labels WAHA" },
             ]}
             columnas={[
               { clave: "id", titulo: "ID", tipo: "numero" },
@@ -72,6 +81,9 @@ export default async function Drivers() {
               { clave: "asignacion", titulo: "Asignación", tipo: "texto" },
               { clave: "condicion", titulo: "Condición", tipo: "texto" },
               { clave: "flotilla", titulo: "Flotilla", tipo: "texto" },
+              { clave: "labels", titulo: "Labels WAHA", tipo: "texto" },
+              { clave: "ubicacion", titulo: "Ubicación manual", tipo: "ubicacionDriver" },
+              { clave: "coordenadas", titulo: "Coordenadas", tipo: "texto" },
               { clave: "ultimaReserva", titulo: "Última reserva", tipo: "texto" },
               { clave: "actualizado", titulo: "Actualizado", tipo: "texto" },
             ]}
@@ -99,7 +111,7 @@ function SinTablas() {
     <>
       <PageHead eyebrow="Directorio · México" titulo="Drivers" flujo="directorio" />
       <Callout tono="warning" titulo="Falta crear el directorio">
-        Corré <code>web/supabase/migracion-17-directorio-activos-whatsapp.sql</code> en Supabase y después ejecutá el flujo <code>n8n/13-directorio-activos-whatsapp.json</code>.
+        Ejecutá en Supabase <code>web/supabase/migracion-17-directorio-activos-whatsapp.sql</code>, las migraciones 24 y 25 (especialmente <code>web/supabase/migracion-25-drivers-activos.sql</code>) y después corré el flujo <code>n8n/13-directorio-activos-whatsapp.json</code>.
       </Callout>
     </>
   );

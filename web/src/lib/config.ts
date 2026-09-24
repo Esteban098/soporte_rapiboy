@@ -162,18 +162,14 @@ export const TABLA_TRACKER_TIENDAS =
 export const TABLA_SELLERS_ACTIVOS =
   process.env.SUPABASE_TABLA_SELLERS_ACTIVOS?.trim() || "sellers_activos";
 
-/** Drivers con reserva reciente sincronizados por el flujo 13. */
-export const TABLA_DIRECTORIO_DRIVERS =
-  process.env.SUPABASE_TABLA_DIRECTORIO_DRIVERS?.trim() || "directorio_drivers";
+/** Catálogo consolidado de drivers sincronizado por el flujo 13. */
+export const TABLA_DRIVERS_ACTIVOS =
+  process.env.SUPABASE_TABLA_DRIVERS_ACTIVOS?.trim() || "drivers_activos";
 
 /** Vista que resuelve el grupo de WhatsApp de cada seller o driver. */
 export const VISTA_DIRECTORIO_CONTACTOS_WHATSAPP =
   process.env.SUPABASE_VISTA_DIRECTORIO_CONTACTOS_WHATSAPP?.trim() ||
   "directorio_contactos_whatsapp";
-
-/** El domicilio de cada chofer, por `IdMotoboy`. Misma procedencia. */
-export const TABLA_TRACKER_CHOFERES =
-  process.env.SUPABASE_TABLA_TRACKER_CHOFERES?.trim() || "tracker_choferes";
 
 /** Una fila por corrida de n8n, con su resultado. */
 export const TABLA_TRACKER_SYNC =

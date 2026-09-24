@@ -5,9 +5,10 @@ reclamos y colectas.
 
 - `web/`: tablero Next.js conectado a Supabase.
 - `n8n/`: workflows importables de ingesta y automatización.
-- El directorio operativo se consolida por `Usuario.Id` en `sellers_activos`.
-  Se instala con las migraciones 17, 18 y 19, se limpia la antigua distribución
-  con la 20 y la asignación inicial desde labels se carga con la 21. El flujo
+- El directorio operativo se consolida por ID estable: `Usuario.Id` en
+  `sellers_activos` y `Motoboy.Id` en `drivers_activos`. Se instala con las
+  migraciones 17 a 25; la 26 retira los catálogos antiguos después de validar
+  una sincronización. El flujo
   `n8n/13-directorio-activos-whatsapp.json` sincroniza sellers, drivers, grupos
   y labels de soporte de WAHA; la plataforma muestra el directorio en
   **Sellers** y **Drivers**.
@@ -20,3 +21,8 @@ La ubicación manual de cada seller vive en `sellers_activos` (`ubicacion_manual
 cuando el `Usuario.Id` tiene una única ubicación y la pantalla Sellers permite
 editarla o borrarla. Esa ubicación tiene prioridad en Live Tracker, Colectas y
 Ruta; la dirección de SQL Server permanece separada y no es editable.
+
+La ubicación manual de cada driver vive en `drivers_activos` con las mismas
+columnas y permite agregar, editar o borrar dirección, latitud y longitud desde
+la pantalla Drivers. Los datos de SQL Server permanecen separados y no son
+editables desde la plataforma.

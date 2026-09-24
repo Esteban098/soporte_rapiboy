@@ -79,3 +79,23 @@ export async function guardarUbicacionSeller(
   updateTag("sellers-activos");
   return { ok: true };
 }
+
+/** Guarda el punto manual del KMZ para un driver sin tocar los datos de SQL. */
+export async function guardarUbicacionDriver(
+  idMotoboy: number,
+  datos: { ubicacion: string; latitud: number; longitud: number } | null,
+): Promise<ResultadoUbicacion> {
+  const quien = (await sesionActual())?.email;
+  if (!quien) return { ok: false, error: "No tenés permiso para editar." };
+  if (!Number.isSafeInteger(idMotoboy) || idMotoboy <= 0) return { ok: false, error: "El ID del driver no es válido." };
+  if (datos !== null && (!datos.ubicacion.trim() || !Number.isFinite(datos.latitud) || datos.latitud < -90 || datos.latitud > 90 || !Number.isFinite(datos.longitud) || datos.longitud < -180 || datos.longitud > 180)) {
+    return { ok: false, error: "Completá la ubicación y unas coordenadas válidas." };
+  }
+  const cambios = datos === null
+    ? { ubicacion_manual: null, latitud_manual: null, longitud_manual: null }
+    : { ubicacion_manual: datos.ubicacion.trim(), latitud_manual: datos.latitud, longitud_manual: datos.longitud };
+  const falla = await actualizarFilas("drivers_activos", { id_motoboy: `eq.${idMotoboy}`, activo: "eq.true" }, cambios);
+  if (falla) return { ok: false, error: falla };
+  updateTag("drivers-activos");
+  return { ok: true };
+}
