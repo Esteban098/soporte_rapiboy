@@ -147,3 +147,8 @@ test("la migración y la instalación nueva usan la misma rotación y conservan 
   assert.match(migracion, /commit;/);
   assert.doesNotMatch(migracion, /select \*\s+from public\.mover_a_historico/);
 });
+
+test("Siniestrados permite agregar un caso con el mismo editor de Mensual", () => {
+  const pagina = readFileSync(new URL("../src/app/(tablero)/siniestrados/page.tsx", import.meta.url), "utf8");
+  assert.match(pagina, /<PanelCasos\s+editable/);
+});

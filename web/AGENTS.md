@@ -29,7 +29,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `fecha_colectado`. Los cortes de calendario usan `America/Mexico_City`.
 - `Siniestrados` y `Siniestrados Historial` filtran el estado actual
   `Siniestrado` sobre `mensual` y `mensual_historico`, respectivamente. No
-  duplicar tablas ni modificar los criterios de ingreso de los workflows.
+  duplicar tablas ni modificar los criterios de ingreso de los workflows. La
+  vista operativa permite agregar un ID con el mismo `EditorCaso` de Mensual:
+  se inserta en `mensual` con los datos de soporte y el refresco de estados
+  completa el resto cuando encuentra el viaje.
 - `valor_producto` es `numeric(18, 2)` y viene de
   `Viaje.ValorDeclaradoCompleto`. Lo cargan los flujos 01, 02 y 04 y lo conserva
   la rotación. Un importe desconocido es `null`, no cero. Para bases existentes

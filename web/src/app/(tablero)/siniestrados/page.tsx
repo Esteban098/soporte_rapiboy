@@ -34,6 +34,7 @@ export default async function Siniestrados() {
       ) : null}
       <div className={estilos.stack}>
         <PanelCasos
+          editable
           id="siniestrados-casos"
           titulo={`Siniestrados · ${periodo}`}
           nota="Valor producto es el importe declarado; Valor al 70% es la bonificación calculada por Supabase. Marcá Cobrado cuando se haya cobrado el siniestro."
