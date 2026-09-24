@@ -28,18 +28,28 @@ create index if not exists drivers_activos_ubicacion_idx on public.drivers_activ
 
 alter table public.drivers_activos enable row level security;
 
-insert into public.drivers_activos (
-  id_motoboy, nombre, condicion, flotilla, ultima_reserva,
-  ubicacion_manual, latitud_manual, longitud_manual,
-  activo, visto_por_ultima_vez, actualizado_en, ultimo_sync_id
-)
-select
-  d.id_motoboy, d.nombre, d.condicion, d.flotilla, d.ultima_reserva,
-  c.nombre, c.latitud, c.longitud,
-  d.activo, d.visto_por_ultima_vez, d.actualizado_en, d.ultimo_sync_id
-from public.directorio_drivers d
-left join public.tracker_choferes c on c.id_motoboy = d.id_motoboy
-on conflict (id_motoboy) do nothing;
+-- Copia histórica opcional. Si las tablas antiguas ya fueron retiradas, la
+-- migración continúa normalmente y el flujo 13 cargará el catálogo nuevo.
+do $$
+begin
+  if to_regclass('public.directorio_drivers') is not null
+     and to_regclass('public.tracker_choferes') is not null then
+    execute $sql$
+      insert into public.drivers_activos (
+        id_motoboy, nombre, condicion, flotilla, ultima_reserva,
+        ubicacion_manual, latitud_manual, longitud_manual,
+        activo, visto_por_ultima_vez, actualizado_en, ultimo_sync_id
+      )
+      select d.id_motoboy, d.nombre, d.condicion, d.flotilla, d.ultima_reserva,
+             c.nombre, c.latitud, c.longitud,
+             d.activo, d.visto_por_ultima_vez, d.actualizado_en, d.ultimo_sync_id
+        from public.directorio_drivers d
+        left join public.tracker_choferes c on c.id_motoboy = d.id_motoboy
+      on conflict (id_motoboy) do nothing
+    $sql$;
+  end if;
+end
+$$;
 
 -- Compatibilidad durante la transición: el flujo 13 existente todavía escribe
 -- directorio_drivers hasta que se reemplace/importa su nodo de upsert.
@@ -66,10 +76,14 @@ begin
 end;
 $$;
 
-drop trigger if exists directorio_drivers_a_activos on public.directorio_drivers;
-create trigger directorio_drivers_a_activos
-after insert or update on public.directorio_drivers
-for each row execute function public.sincronizar_driver_legacy();
+do $$
+begin
+  if to_regclass('public.directorio_drivers') is not null then
+    execute 'drop trigger if exists directorio_drivers_a_activos on public.directorio_drivers';
+    execute 'create trigger directorio_drivers_a_activos after insert or update on public.directorio_drivers for each row execute function public.sincronizar_driver_legacy()';
+  end if;
+end
+$$;
 
 create or replace view public.directorio_contactos_whatsapp
 with (security_invoker = true) as
