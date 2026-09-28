@@ -1,9 +1,10 @@
 "use server";
 
 import { updateTag } from "next/cache";
-import { TABLA_MENSUAL } from "@/lib/config";
+import { TABLA_MENSUAL, TABLA_MENSUAL_HISTORICO } from "@/lib/config";
 import { usuarioActual } from "@/lib/sesion";
-import { actualizarFila, borrarFila, insertarFila } from "@/lib/supabase";
+import { actualizarFila, actualizarFilaSi, borrarFila, insertarFila } from "@/lib/supabase";
+import { estadoActualDelSistema } from "@/lib/asistente-datos";
 
 /**
  * Alta, edición y baja de casos desde el tablero.
@@ -25,11 +26,34 @@ export type DatosCaso = {
   ubicacion: string;
   telefono: string;
   aviso: string;
+  motivoSiniestro: string;
+  comentarioSiniestro: string;
 };
 
 export type Resultado = { ok: true } | { ok: false; error: string };
 
 const AVISOS_VALIDOS = new Set(["", "NO AVISADO", "AVISADO"]);
+const MOTIVOS_SINIESTRO_VALIDOS = new Set([
+  "",
+  "Perdido en Deposito",
+  "Roto",
+  "Perdido por driver",
+  "Mal entregado",
+  "Otros",
+]);
+
+function tieneDatosSiniestro(datos: DatosCaso): boolean {
+  return Boolean(datos.motivoSiniestro.trim() || datos.comentarioSiniestro.trim());
+}
+
+async function validarEstadoSiniestro(id: number): Promise<string | null> {
+  const sistema = await estadoActualDelSistema(id);
+  if (!sistema.ok) return sistema.error;
+  if (sistema.estado.trim().toLowerCase() !== "siniestrado") {
+    return `No se puede guardar: el sistema informa el estado «${sistema.estado}», no «Siniestrado».`;
+  }
+  return null;
+}
 
 /** Deja el texto listo para la base: sin espacios de más, y vacío como nulo. */
 function texto(valor: string): string | null {
@@ -43,6 +67,9 @@ function validar(id: number, datos: DatosCaso): string | null {
   }
   if (!AVISOS_VALIDOS.has(datos.aviso.trim().toUpperCase())) {
     return "El aviso solo puede quedar vacío, en NO AVISADO o en AVISADO.";
+  }
+  if (!MOTIVOS_SINIESTRO_VALIDOS.has(datos.motivoSiniestro.trim())) {
+    return "El motivo del siniestro no es válido.";
   }
   return null;
 }
@@ -61,17 +88,22 @@ function aColumnas(datos: DatosCaso, quien: string) {
     ubicacion: texto(datos.ubicacion),
     telefono: texto(datos.telefono),
     aviso: texto(datos.aviso.toUpperCase()),
+    motivo_siniestro: texto(datos.motivoSiniestro),
+    comentario_siniestro: texto(datos.comentarioSiniestro),
     editado_por: quien,
     editado_en: new Date().toISOString(),
   };
 }
 
-export async function agregarCaso(id: number, datos: DatosCaso): Promise<Resultado> {
+export async function agregarCaso(id: number, datos: DatosCaso, validarSiniestro = false): Promise<Resultado> {
   const quien = await usuarioActual();
   if (!quien) return { ok: false, error: "No tenés permiso para editar." };
 
   const invalido = validar(id, datos);
   if (invalido) return { ok: false, error: invalido };
+  if (validarSiniestro && tieneDatosSiniestro(datos)) {
+    return { ok: false, error: "Primero agregá el ID y actualizá Siniestrados; después podrás cargar motivo y comentario cuando el estado esté validado." };
+  }
 
   const falla = await insertarFila(TABLA_MENSUAL, { id, ...aColumnas(datos, quien) });
   if (falla) return { ok: false, error: falla };
@@ -80,14 +112,37 @@ export async function agregarCaso(id: number, datos: DatosCaso): Promise<Resulta
   return { ok: true };
 }
 
-export async function editarCaso(id: number, datos: DatosCaso): Promise<Resultado> {
+export async function editarCaso(
+  id: number,
+  datos: DatosCaso,
+  origen: "mensual" | "historico" = "mensual",
+  validarSiniestro = false,
+): Promise<Resultado> {
   const quien = await usuarioActual();
   if (!quien) return { ok: false, error: "No tenés permiso para editar." };
 
   const invalido = validar(id, datos);
   if (invalido) return { ok: false, error: invalido };
 
-  const falla = await actualizarFila(TABLA_MENSUAL, id, aColumnas(datos, quien));
+  const tabla = origen === "historico" ? TABLA_MENSUAL_HISTORICO : TABLA_MENSUAL;
+  if (validarSiniestro) {
+    const estadoSistema = await validarEstadoSiniestro(id);
+    if (estadoSistema) return { ok: false, error: estadoSistema };
+    const resultado = await actualizarFilaSi(
+      tabla,
+      id,
+      { estado: "ilike.Siniestrado" },
+      aColumnas(datos, quien),
+    );
+    if ("error" in resultado) return { ok: false, error: resultado.error };
+    if (resultado.filas !== 1) {
+      return { ok: false, error: "La plataforma ya no tiene el paquete como Siniestrado. Actualizá la tabla." };
+    }
+    updateTag("datos");
+    return { ok: true };
+  }
+
+  const falla = await actualizarFila(tabla, id, aColumnas(datos, quien));
   if (falla) return { ok: false, error: falla };
 
   updateTag("datos");

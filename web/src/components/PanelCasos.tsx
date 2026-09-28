@@ -24,6 +24,7 @@ export function PanelCasos({
   vacio = "No quedó ningún caso en esta vista.",
   limite = 30,
   editable = false,
+  soloEdicion = false,
   columnasExtra = [],
   cobros,
 }: {
@@ -43,6 +44,8 @@ export function PanelCasos({
   limite?: number;
   /** Solo para las vistas que leen `mensual`: ver la nota en `Tabla`. */
   editable?: boolean;
+  /** Permite editar filas existentes sin altas ni bajas, como en Histórico. */
+  soloEdicion?: boolean;
   columnasExtra?: Columna[];
   cobros?: OrigenCobro;
 }) {
@@ -72,6 +75,7 @@ export function PanelCasos({
           limite={limite}
           vacio={vacio}
           editable={editable}
+          soloEdicion={soloEdicion}
           cobros={cobros}
         />
       </Card>

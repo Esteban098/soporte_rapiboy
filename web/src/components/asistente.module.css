@@ -43,6 +43,36 @@
   transform: translate3d(0, 0, 0) scale(0.98);
 }
 
+/* Estado compacto: conserva la conversación montada y deja el tablero libre. */
+.minimizado {
+  position: fixed;
+  right: 20px;
+  bottom: 0;
+  z-index: 111;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 15px;
+  background: var(--accent);
+  color: var(--on-primary);
+  border: 1px solid var(--accent);
+  border-bottom: none;
+  border-radius: var(--radio) var(--radio) 0 0;
+  box-shadow: var(--shadow);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.minimizado:hover {
+  filter: brightness(1.08);
+}
+
+.minimizado .beta {
+  margin-left: 0;
+}
+
 /* Un escalón arriba del panel de seguimiento: si están los dos abiertos, el
    último que se abrió para preguntar es el que se está usando. */
 .panel {
@@ -128,6 +158,7 @@
 }
 
 .nueva,
+.minimizar,
 .cerrar {
   background: none;
   border: none;
@@ -149,7 +180,13 @@
   padding: 4px 7px;
 }
 
+.minimizar {
+  font-size: 20px;
+  padding: 0 7px 3px;
+}
+
 .nueva:hover:not(:disabled),
+.minimizar:hover,
 .cerrar:hover {
   opacity: 1;
   background: rgba(255, 255, 255, 0.16);

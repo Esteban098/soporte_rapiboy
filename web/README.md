@@ -796,6 +796,15 @@ todo. Repetir la función es seguro.
   tablas de Siniestrados, tanto operativa como histórica, con sesión válida.
   La edición registra al operador y la fecha en `editado_por` y `editado_en`.
   n8n no modifica esta marca; la rotación la conserva y recalcula el 70%.
+- `motivo_siniestro` y `comentario_siniestro` son campos manuales de
+  Siniestrados. El motivo se elige entre **Perdido en Deposito**, **Roto**,
+  **Perdido por driver**, **Mal entregado** y **Otros**; el comentario es texto
+  libre. Ambos tienen alta, lectura, edición y baja desde el editor, no los
+  pisa n8n y la rotación los copia al Histórico. En Siniestrados Historial se
+  pueden editar filas existentes; no se permiten altas ni bajas.
+  Para guardar cualquiera de esos dos campos, la plataforma y RapiboyData
+  deben informar estado `Siniestrado`; la web valida ambos antes del guardado
+  mediante el webhook 11.
 
 Para actualizar una instalación existente:
 
@@ -808,6 +817,9 @@ Para actualizar una instalación existente:
 3. Publicar la web y usar **Actualizar** en Siniestrados y en cada período
    histórico que se quiera completar con importes. No se rellenan importes al
    ejecutar la migración SQL.
+
+Para habilitar motivo y comentario en una instalación existente, ejecutar
+`supabase/migracion-29-siniestrados-detalle.sql` después de la migración 03.
 
 La consulta de colectas suministrada se usa como referencia del campo de
 valor, no como reemplazo de las consultas: se conservan los filtros actuales
@@ -1078,6 +1090,10 @@ Al lado de **Añadir seguimiento**, en todas las pantallas, está la pestaña
 «reportes sin tomar», «¿cómo va tal repartidor?»—. Lo ven admin y operador,
 igual que Seguimiento. La conversación sobrevive a la navegación y se reinicia
 con **Nueva conversación**.
+
+El panel se puede **minimizar** desde el encabezado para liberar espacio y
+volver a expandirlo sin perder los mensajes; el botón de cerrar lo oculta por
+completo.
 
 **Solo consulta.** El modelo no tiene acceso a la base: le pide al servidor
 una de ocho consultas —paquete por ID, historial del viaje en el sistema, casos

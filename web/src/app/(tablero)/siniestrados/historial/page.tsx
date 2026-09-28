@@ -60,6 +60,8 @@ export default async function SiniestradosHistorial({
       ) : null}
       <div className={estilos.stack}>
         <PanelCasos
+          editable
+          soloEdicion
           id="siniestrados-historial-casos"
           titulo={`Siniestrados históricos · ${periodo}`}
           nota="Valor producto es el importe declarado; Valor al 70% es la bonificación. La lista refleja el estado vigente y puede cambiar al actualizar el período."

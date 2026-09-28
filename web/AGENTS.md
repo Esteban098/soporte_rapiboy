@@ -41,6 +41,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `cobrado` es booleano, empieza en `false` y solo lo modifica el equipo desde
   las vistas de Siniestrados. Ambos viven en Mensual e Histórico, sin nuevas
   tablas. Instalar `supabase/migracion-03-cobros-siniestrados.sql` para agregarlos.
+  Siniestrados también permite editar `motivo_siniestro` (Perdido en Deposito,
+  Roto, Perdido por driver, Mal entregado u Otros) y `comentario_siniestro`.
+  Son campos manuales con CRUD desde el editor; n8n no los incluye y la
+  rotación los conserva en Histórico. En Histórico se pueden editar las filas
+  existentes, sin altas ni bajas. En bases existentes, instalar
+  `supabase/migracion-29-siniestrados-detalle.sql`.
+  Para guardar motivo o comentario, la web exige que tanto la fila de la
+  plataforma como el estado consultado en RapiboyData sean `Siniestrado`.
+  La consulta usa el webhook 11; si no está configurado, la edición se
+  rechaza.
 - `seguimiento` usa solamente los estados `abierto` y `cerrado` en la columna
   `estado`; cualquier `tomado` legado ahí se migra a abierto. **Tomado** es
   `tomado_por` / `tomado_en` sobre un reporte abierto: cuenta como abierto en
@@ -246,6 +256,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - La pestaña **Asistente** (`src/components/Asistente.tsx`) está en todas las
   pantallas junto a Seguimiento, y con la misma condición: base Supabase y
   rol admin u operador. `POST /api/asistente` pide `operadorActual()`.
+  El panel se puede minimizar desde el encabezado y volver a expandir sin
+  perder la conversación; cerrarlo sigue ocultándolo por completo.
 - El modelo **no ve la base ni escribe SQL**: recibe ocho herramientas de
   solo lectura (`src/lib/asistente.ts`) que ejecuta `asistente-datos.ts` con
   las mismas funciones de las pantallas, para que el chat y el tablero no

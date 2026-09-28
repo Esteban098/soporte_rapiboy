@@ -1,27 +1,20 @@
--- Ejecutar sobre una base con historico.sql instalado. No crea tablas ni mueve filas.
--- Incluye valor_producto si todavía no se aplicó migracion-02.
+-- Agrega el motivo y el comentario que soporte carga en Siniestrados.
+-- Los workflows de n8n no deben incluir estas columnas: así conservan el CRUD
+-- manual cuando refrescan el resto de los datos.
 begin;
 
 alter table public.mensual
-  add column if not exists valor_producto numeric(18, 2),
-  add column if not exists valor_70 numeric(18, 2) generated always as (round(valor_producto * 0.70, 2)) stored,
-  add column if not exists cobrado boolean not null default false,
   add column if not exists motivo_siniestro text,
   add column if not exists comentario_siniestro text;
 
 alter table public.mensual_historico
-  add column if not exists valor_producto numeric(18, 2),
-  add column if not exists valor_70 numeric(18, 2) generated always as (round(valor_producto * 0.70, 2)) stored,
-  add column if not exists cobrado boolean not null default false,
   add column if not exists motivo_siniestro text,
   add column if not exists comentario_siniestro text;
 
--- El bloqueo de las filas evita perder una marca de cobro concurrente al archivar.
+-- La rotación copia también los campos manuales antes de quitar la fila de
+-- Mensual. Repetirla es seguro y conserva cambios posteriores del caso.
 create or replace function public.mover_a_historico(fecha_corte date)
-returns table (
-  pedidos_archivados bigint,
-  cancelados_archivados bigint
-)
+returns table (pedidos_archivados bigint, cancelados_archivados bigint)
 language plpgsql
 set search_path = public
 as $$
@@ -34,50 +27,16 @@ begin
   end if;
 
   insert into public.mensual_historico (
-    id,
-    fecha_creacion,
-    fecha_programado,
-    estado,
-    repartidor,
-    tienda,
-    destino,
-    poligono,
-    visitas,
-    valor_producto,
-    cobrado,
-    motivo_siniestro,
-    comentario_siniestro,
-    reclamo_tienda,
-    ubicacion,
-    telefono,
-    aviso,
-    avisado_en,
-    foto,
-    editado_por,
-    editado_en
+    id, fecha_creacion, fecha_programado, estado, repartidor, tienda, destino,
+    poligono, visitas, valor_producto, cobrado, motivo_siniestro,
+    comentario_siniestro, reclamo_tienda, ubicacion, telefono, aviso,
+    avisado_en, foto, editado_por, editado_en
   )
   select
-    id,
-    fecha_creacion,
-    fecha_programado,
-    estado,
-    repartidor,
-    tienda,
-    destino,
-    poligono,
-    visitas,
-    valor_producto,
-    cobrado,
-    motivo_siniestro,
-    comentario_siniestro,
-    reclamo_tienda,
-    ubicacion,
-    telefono,
-    aviso,
-    avisado_en,
-    foto,
-    editado_por,
-    editado_en
+    id, fecha_creacion, fecha_programado, estado, repartidor, tienda, destino,
+    poligono, visitas, valor_producto, cobrado, motivo_siniestro,
+    comentario_siniestro, reclamo_tienda, ubicacion, telefono, aviso,
+    avisado_en, foto, editado_por, editado_en
   from public.mensual
   where coalesce(fecha_creacion, fecha_programado) < fecha_corte
   for update
@@ -105,30 +64,14 @@ begin
 
   delete from public.mensual m
   where coalesce(m.fecha_creacion, m.fecha_programado) < fecha_corte
-    and exists (
-      select 1
-      from public.mensual_historico h
-      where h.id = m.id
-    );
+    and exists (select 1 from public.mensual_historico h where h.id = m.id);
   get diagnostics pedidos_movidos = row_count;
 
   insert into public.cancelados_historico (
-    id,
-    id_meli,
-    tienda,
-    estado_rbp,
-    estado_meli,
-    fecha_colectado,
-    fecha_cancelado
+    id, id_meli, tienda, estado_rbp, estado_meli, fecha_colectado, fecha_cancelado
   )
   select
-    id,
-    id_meli,
-    tienda,
-    estado_rbp,
-    estado_meli,
-    fecha_colectado,
-    fecha_cancelado
+    id, id_meli, tienda, estado_rbp, estado_meli, fecha_colectado, fecha_cancelado
   from public.cancelados
   where fecha_colectado::date < fecha_corte
   on conflict (id) do update set
@@ -141,11 +84,7 @@ begin
 
   delete from public.cancelados c
   where c.fecha_colectado::date < fecha_corte
-    and exists (
-      select 1
-      from public.cancelados_historico h
-      where h.id = c.id
-    );
+    and exists (select 1 from public.cancelados_historico h where h.id = c.id);
   get diagnostics cancelados_movidos = row_count;
 
   return query select pedidos_movidos, cancelados_movidos;

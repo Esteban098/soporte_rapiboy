@@ -4,12 +4,20 @@ import { useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { agregarCaso, borrarCaso, editarCaso, type DatosCaso } from "@/app/casos";
+import { MOTIVOS_SINIESTRO, type OrigenCobro } from "@/lib/siniestrados";
 import estilos from "./editor-caso.module.css";
 
 /** Qué caso se está tocando: uno existente, o uno nuevo. */
 export type Edicion = { modo: "nuevo" } | { modo: "editar"; id: number; datos: DatosCaso };
 
-const VACIO: DatosCaso = { reclamoTienda: "", ubicacion: "", telefono: "", aviso: "" };
+const VACIO: DatosCaso = {
+  reclamoTienda: "",
+  ubicacion: "",
+  telefono: "",
+  aviso: "",
+  motivoSiniestro: "",
+  comentarioSiniestro: "",
+};
 
 /**
  * Las tipificaciones que ya usa soporte, ordenadas por lo que más aparece.
@@ -37,7 +45,19 @@ const TIPIFICACIONES = [
  * refresco, no algo para escribir a mano. Si se pudieran editar, el cambio
  * duraría hasta la próxima corrida de n8n.
  */
-export function EditorCaso({ edicion, alCerrar }: { edicion: Edicion; alCerrar: () => void }) {
+export function EditorCaso({
+  edicion,
+  alCerrar,
+  mostrarSiniestro = false,
+  origen = "mensual",
+  puedeBorrar = true,
+}: {
+  edicion: Edicion;
+  alCerrar: () => void;
+  mostrarSiniestro?: boolean;
+  origen?: OrigenCobro;
+  puedeBorrar?: boolean;
+}) {
   const nuevo = edicion.modo === "nuevo";
   const [id, setId] = useState(nuevo ? "" : String(edicion.id));
   const [datos, setDatos] = useState<DatosCaso>(nuevo ? VACIO : edicion.datos);
@@ -48,7 +68,7 @@ export function EditorCaso({ edicion, alCerrar }: { edicion: Edicion; alCerrar: 
 
   const campo = (clave: keyof DatosCaso) => ({
     value: datos[clave],
-    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setDatos((d) => ({ ...d, [clave]: e.target.value })),
   });
 
@@ -57,8 +77,8 @@ export function EditorCaso({ edicion, alCerrar }: { edicion: Edicion; alCerrar: 
       setError(null);
       const numero = Number(id.trim());
       const resultado = nuevo
-        ? await agregarCaso(numero, datos)
-        : await editarCaso(edicion.id, datos);
+        ? await agregarCaso(numero, datos, mostrarSiniestro)
+        : await editarCaso(edicion.id, datos, origen, mostrarSiniestro);
 
       if (!resultado.ok) {
         setError(resultado.error);
@@ -138,6 +158,32 @@ export function EditorCaso({ edicion, alCerrar }: { edicion: Edicion; alCerrar: 
           </select>
         </label>
 
+        {mostrarSiniestro ? (
+          <>
+            <label className={estilos.campo}>
+              <span className={estilos.etiqueta}>Motivo del siniestro</span>
+              <select className={estilos.entrada} {...campo("motivoSiniestro")}>
+                <option value="">Sin motivo</option>
+                {MOTIVOS_SINIESTRO.map((motivo) => (
+                  <option key={motivo} value={motivo}>
+                    {motivo}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className={estilos.campo}>
+              <span className={estilos.etiqueta}>Comentario del siniestro</span>
+              <textarea
+                className={estilos.entrada}
+                {...campo("comentarioSiniestro")}
+                rows={3}
+                placeholder="Detalle adicional"
+              />
+            </label>
+          </>
+        ) : null}
+
         {error ? <p className={estilos.error}>{error}</p> : null}
 
         {confirmando ? (
@@ -164,7 +210,7 @@ export function EditorCaso({ edicion, alCerrar }: { edicion: Edicion; alCerrar: 
             <button type="button" className={estilos.secundario} onClick={alCerrar} disabled={guardando}>
               Cancelar
             </button>
-            {!nuevo ? (
+            {!nuevo && puedeBorrar ? (
               <button
                 type="button"
                 className={estilos.borrar}

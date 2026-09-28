@@ -28,6 +28,7 @@ type Entrada = MensajeChat & { error?: boolean };
 
 export function Asistente() {
   const [abierto, setAbierto] = useState(false);
+  const [minimizado, setMinimizado] = useState(false);
   const [mensajes, setMensajes] = useState<Entrada[]>([]);
   const [borrador, setBorrador] = useState("");
   const [pensando, setPensando] = useState(false);
@@ -97,9 +98,33 @@ export function Asistente() {
 
   if (!abierto) {
     return (
-      <button type="button" className={estilos.pestana} onClick={() => setAbierto(true)} data-noimprimir>
+      <button
+        type="button"
+        className={estilos.pestana}
+        onClick={() => {
+          setMinimizado(false);
+          setAbierto(true);
+        }}
+        data-noimprimir
+      >
         <IconoChispa />
         Asistente
+        <span className={estilos.beta}>Beta</span>
+      </button>
+    );
+  }
+
+  if (minimizado) {
+    return (
+      <button
+        type="button"
+        className={estilos.minimizado}
+        onClick={() => setMinimizado(false)}
+        aria-label="Expandir Asistente"
+        data-noimprimir
+      >
+        <IconoChispa />
+        <span>Asistente</span>
         <span className={estilos.beta}>Beta</span>
       </button>
     );
@@ -122,6 +147,15 @@ export function Asistente() {
               Nueva conversación
             </button>
           ) : null}
+          <button
+            type="button"
+            className={estilos.minimizar}
+            onClick={() => setMinimizado(true)}
+            aria-label="Minimizar Asistente"
+            title="Minimizar"
+          >
+            −
+          </button>
           <button type="button" className={estilos.cerrar} onClick={() => setAbierto(false)} aria-label="Cerrar">
             ✕
           </button>

@@ -246,6 +246,20 @@ async function historialViaje(id: string, maxMovimientos = 60) {
   }
 }
 
+/** Valida el estado vigente en RapiboyData antes de editar datos sensibles. */
+export async function estadoActualDelSistema(id: number): Promise<
+  { ok: true; estado: string } | { ok: false; error: string }
+> {
+  const resultado = await historialViaje(String(id), 0);
+  if ("error" in resultado) return { ok: false, error: resultado.error };
+  if (!resultado.encontrado || resultado.en_alcance_del_tablero === false) {
+    return { ok: false, error: "No se pudo validar el estado del viaje en el sistema." };
+  }
+  const estado = resultado.estado_actual?.trim() ?? "";
+  if (!estado) return { ok: false, error: "El sistema no informó el estado actual del viaje." };
+  return { ok: true, estado };
+}
+
 /* ---------------------------------------------------------------------------
    buscar_casos
    --------------------------------------------------------------------------- */

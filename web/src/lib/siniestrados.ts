@@ -11,7 +11,17 @@ export function esOrigenCobro(valor: unknown): valor is OrigenCobro {
 export const COLUMNAS_COBRO: Columna[] = [
   { clave: "valor70", titulo: "Valor al 70%", tipo: "decimal" },
   { clave: "cobrado", titulo: "Cobrado", tipo: "cobrado" },
+  { clave: "motivoSiniestro", titulo: "Motivo", tipo: "texto" },
+  { clave: "comentarioSiniestro", titulo: "Comentario", tipo: "texto" },
 ];
+
+export const MOTIVOS_SINIESTRO = [
+  "Perdido en Deposito",
+  "Roto",
+  "Perdido por driver",
+  "Mal entregado",
+  "Otros",
+] as const;
 
 export function esSiniestrado(pedido: Pedido): boolean {
   return pedido.estado.trim().toLowerCase() === "siniestrado";

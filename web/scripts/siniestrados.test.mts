@@ -58,7 +58,7 @@ test("el cobro distingue false de datos ausentes y el 70% viene de la base", () 
   assert.equal(pedido(1, "2026-09").cobrado, null);
   assert.equal(filasDePedidos([cobrado])[0].cobrado, true);
   assert.equal(filasDePedidos([cobrado])[0].valor70, 875.35);
-  assert.deepEqual(COLUMNAS_COBRO.map(c => c.clave), ["valor70", "cobrado"]);
+  assert.deepEqual(COLUMNAS_COBRO.map(c => c.clave), ["valor70", "cobrado", "motivoSiniestro", "comentarioSiniestro"]);
   assert.equal(esOrigenCobro("mensual"), true);
   assert.equal(esOrigenCobro("historico"), true);
   for (const origen of [null, "perfiles", "mensual_historico", "", 1, {}]) {
@@ -116,7 +116,7 @@ for (const [archivo, consulta, transformar, guardar] of flujos) {
     }
     const columnas = nodo(guardar).parameters.columns!.value;
     assert.equal(columnas.valor_producto, "={{ $json.valor_producto }}");
-    for (const campo of ["reclamo_tienda", "ubicacion", "telefono", "aviso", "avisado_en", "foto", "editado_por", "editado_en", "cobrado", "valor_70"]) {
+    for (const campo of ["reclamo_tienda", "ubicacion", "telefono", "aviso", "avisado_en", "foto", "editado_por", "editado_en", "cobrado", "valor_70", "motivo_siniestro", "comentario_siniestro"]) {
       assert.ok(!(campo in columnas), `No debe actualizar ${campo}`);
     }
     if (archivo.startsWith("04")) {
@@ -135,7 +135,7 @@ test("la migración y la instalación nueva usan la misma rotación y conservan 
   const funcion = inicial.match(patron)?.[0];
   assert.ok(funcion);
   assert.equal(migracion.match(patron)?.[0], funcion);
-  assert.match(funcion, /visitas,\s+valor_producto,\s+cobrado,\s+reclamo_tienda/g);
+  assert.match(funcion, /visitas,\s+valor_producto,\s+cobrado,\s+motivo_siniestro,\s+comentario_siniestro,\s+reclamo_tienda/g);
   assert.match(funcion, /valor_producto = excluded.valor_producto/);
   assert.match(funcion, /cobrado = excluded.cobrado/);
   assert.match(funcion, /for update\s+on conflict/);

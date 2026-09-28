@@ -40,6 +40,10 @@ create table if not exists public.mensual (
 
   -- Columnas de soporte: las carga el equipo, n8n NO las toca.
   cobrado           boolean not null default false,
+  -- Datos exclusivos del seguimiento de siniestros. Los flujos automáticos
+  -- no los nombran para que una actualización no borre lo cargado por soporte.
+  motivo_siniestro  text,
+  comentario_siniestro text,
   reclamo_tienda    text,
   ubicacion         text,
   telefono          text,

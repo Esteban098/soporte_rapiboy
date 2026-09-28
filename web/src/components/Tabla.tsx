@@ -75,6 +75,7 @@ export function Tabla({
   vacio = "No hay datos para mostrar.",
   limite,
   editable = false,
+  soloEdicion = false,
   cobros,
 }: {
   /** Identifica la tabla para recordar qué columnas ocultó cada persona. */
@@ -100,6 +101,8 @@ export function Tabla({
    * sería escribir en algo que se borra.
    */
   editable?: boolean;
+  /** En Histórico solo se editan filas existentes: no hay altas ni bajas. */
+  soloEdicion?: boolean;
   cobros?: OrigenCobro;
 }) {
   const [orden, setOrden] = useState<Orden>(ordenInicial ?? null);
@@ -150,6 +153,9 @@ export function Tabla({
   const limiteInicial = Math.min(limite ?? 10, 10);
   const visibles = !expandida ? ordenadas.slice(0, limiteInicial) : ordenadas;
   const columnasVisibles = columnas.filter((c) => !ocultas.has(c.clave));
+  const mostrarCamposSiniestro = columnas.some(
+    (columna) => columna.clave === "motivoSiniestro" || columna.clave === "comentarioSiniestro",
+  );
 
   /**
    * Imprime esta tabla y nada más.
@@ -210,14 +216,22 @@ export function Tabla({
 
   return (
     <div data-imprimir={imprimiendo ? "si" : undefined}>
-      {edicion ? <EditorCaso edicion={edicion} alCerrar={() => setEdicion(null)} /> : null}
+      {edicion ? (
+        <EditorCaso
+          edicion={edicion}
+          alCerrar={() => setEdicion(null)}
+          mostrarSiniestro={mostrarCamposSiniestro}
+          origen={cobros}
+          puedeBorrar={!soloEdicion}
+        />
+      ) : null}
 
       <div className={tabla.filtros} data-noimprimir>
-        {editable ? (
+        {editable && !soloEdicion ? (
           <button
             type="button"
             className={tabla.agregar}
-            onClick={() => setEdicion({ modo: "nuevo" })}
+                        onClick={() => setEdicion({ modo: "nuevo" })}
           >
             + Agregar caso
           </button>
@@ -335,6 +349,7 @@ export function Tabla({
           <table className={estilos.table}>
             <thead>
               <tr>
+                {editable ? <th data-noimprimir aria-label="Acciones" /> : null}
                 {columnasVisibles.map((columna) => {
                   const activa = orden?.clave === columna.clave;
                   const numerica = esNumerica(columna.tipo);
@@ -354,21 +369,11 @@ export function Tabla({
                     </th>
                   );
                 })}
-                {editable ? <th data-noimprimir aria-label="Acciones" /> : null}
               </tr>
             </thead>
             <tbody>
               {visibles.map((fila, indice) => (
                 <tr key={String(fila.id ?? indice)}>
-                  {columnasVisibles.map((columna) => (
-                    <Celda
-                      key={columna.clave}
-                      columna={columna}
-                      valor={fila[columna.clave]}
-                      fila={fila}
-                      cobros={cobros}
-                    />
-                  ))}
                   {editable ? (
                     <td data-noimprimir className={tabla.celdaAccion}>
                       <button
@@ -381,6 +386,15 @@ export function Tabla({
                       </button>
                     </td>
                   ) : null}
+                  {columnasVisibles.map((columna) => (
+                    <Celda
+                      key={columna.clave}
+                      columna={columna}
+                      valor={fila[columna.clave]}
+                      fila={fila}
+                      cobros={cobros}
+                    />
+                  ))}
                 </tr>
               ))}
             </tbody>
@@ -413,6 +427,8 @@ function edicionDe(fila: Fila): Edicion {
       ubicacion: texto(fila.ubicacion),
       telefono: texto(fila.telefono),
       aviso: texto(fila.aviso).toUpperCase(),
+      motivoSiniestro: texto(fila.motivoSiniestro),
+      comentarioSiniestro: texto(fila.comentarioSiniestro),
     },
   };
 }

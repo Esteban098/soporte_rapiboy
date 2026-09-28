@@ -67,6 +67,10 @@ export type Pedido = {
   cerrado: boolean;
   /** Tipificación que cargó soporte con lo que pasó la tienda. Vacío si no hay. */
   reclamoTienda: string;
+  /** Motivo operativo del siniestro, cargado por soporte. */
+  motivoSiniestro: string;
+  /** Comentario libre asociado al siniestro. */
+  comentarioSiniestro: string;
   /**
    * Lo que pasó la tienda para concretar la entrega. Son datos del cliente, y
    * se muestran en el tablero porque el equipo los necesita para trabajar el
@@ -157,6 +161,8 @@ export type CampoPedido =
   | "valorProducto"
   | "valor70"
   | "cobrado"
+  | "motivoSiniestro"
+  | "comentarioSiniestro"
   | "enlace"
   | "reclamo"
   | "ubicacion"
@@ -201,6 +207,8 @@ const ALIAS: Record<Exclude<CampoPedido, "demora">, string[]> = {
   valorProducto: ["valor_producto", "valorproducto", "valor producto", "valordeclaradocompleto"],
   valor70: ["valor_70", "valor70"],
   cobrado: ["cobrado"],
+  motivoSiniestro: ["motivo_siniestro", "motivo siniestro", "motivosiniestro"],
+  comentarioSiniestro: ["comentario_siniestro", "comentario siniestro", "comentariosiniestro"],
   enlace: ["enlace"],
   reclamo: ["reclamo tienda", "reclamotienda", "reclamo_tienda"],
   ubicacion: ["ubicacion", "ubicación"],
@@ -345,6 +353,8 @@ export function parsearPedido(fila: string[], mapa: MapaColumnas): Pedido | null
       : null,
     cerrado,
     reclamoTienda: celda(fila, mapa.reclamo),
+    motivoSiniestro: celda(fila, mapa.motivoSiniestro),
+    comentarioSiniestro: celda(fila, mapa.comentarioSiniestro),
     ubicacion: celda(fila, mapa.ubicacion),
     telefono: celda(fila, mapa.telefono),
     tieneDatosTienda: celda(fila, mapa.ubicacion) !== "" || celda(fila, mapa.telefono) !== "",

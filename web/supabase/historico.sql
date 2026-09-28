@@ -16,7 +16,9 @@
 alter table public.mensual add column if not exists valor_producto numeric(18, 2);
 alter table public.mensual
   add column if not exists valor_70 numeric(18, 2) generated always as (round(valor_producto * 0.70, 2)) stored,
-  add column if not exists cobrado boolean not null default false;
+  add column if not exists cobrado boolean not null default false,
+  add column if not exists motivo_siniestro text,
+  add column if not exists comentario_siniestro text;
 
 create table if not exists public.mensual_historico
   (like public.mensual including all);
@@ -24,7 +26,9 @@ create table if not exists public.mensual_historico
 alter table public.mensual_historico add column if not exists valor_producto numeric(18, 2);
 alter table public.mensual_historico
   add column if not exists valor_70 numeric(18, 2) generated always as (round(valor_producto * 0.70, 2)) stored,
-  add column if not exists cobrado boolean not null default false;
+  add column if not exists cobrado boolean not null default false,
+  add column if not exists motivo_siniestro text,
+  add column if not exists comentario_siniestro text;
 
 create table if not exists public.cancelados_historico
   (like public.cancelados including all);
@@ -62,6 +66,8 @@ begin
     visitas,
     valor_producto,
     cobrado,
+    motivo_siniestro,
+    comentario_siniestro,
     reclamo_tienda,
     ubicacion,
     telefono,
@@ -83,6 +89,8 @@ begin
     visitas,
     valor_producto,
     cobrado,
+    motivo_siniestro,
+    comentario_siniestro,
     reclamo_tienda,
     ubicacion,
     telefono,
@@ -105,6 +113,8 @@ begin
     visitas = excluded.visitas,
     valor_producto = excluded.valor_producto,
     cobrado = excluded.cobrado,
+    motivo_siniestro = excluded.motivo_siniestro,
+    comentario_siniestro = excluded.comentario_siniestro,
     reclamo_tienda = excluded.reclamo_tienda,
     ubicacion = excluded.ubicacion,
     telefono = excluded.telefono,
