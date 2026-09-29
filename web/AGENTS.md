@@ -68,10 +68,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   (`supabase/migracion-12-notificaciones.sql`), se leen sin caché filtrando por
   el correo de la sesión, y un fallo al notificar nunca hace fallar el
   guardado del reporte. La campana está en la barra, junto al selector de tema.
-  También crea alertas deduplicadas: un paquete abierto con más de dos días sin
-  movimiento se avisa a admin y operador (nunca Comercial); un seguimiento
+  También crea alertas deduplicadas: los paquetes abiertos con más de dos días
+  sin movimiento se agrupan en una alerta por estado para admin y operador
+  (nunca Comercial); un seguimiento
   tomado con más de tres días abierto se avisa solo a quien lo tomó. Instalar
-  `supabase/migracion-30-alertas-operativas.sql` después de la migración 12.
+  `supabase/migracion-30-alertas-operativas.sql` y luego
+  `supabase/migracion-31-agrupar-alertas-demora.sql` después de la migración 12.
   Cada reporte conserva `driver` y `seller`
   como foto del pedido al momento del alta; se pueden cargar manualmente y, si
   quedan vacíos, se buscan en Mensual o Histórico. `abierto_en` se reinicia al

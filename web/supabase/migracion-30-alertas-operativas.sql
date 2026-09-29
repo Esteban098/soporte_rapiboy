@@ -2,7 +2,7 @@
 --
 -- Añade avisos para paquetes demorados y seguimientos abiertos más de tres
 -- días. `clave` impide que el refresco periódico cree la misma alerta una y
--- otra vez; cambia cuando el paquete se mueve o el seguimiento se reabre.
+-- otra vez. Las demoras se agrupan por estado y los seguimientos por apertura.
 
 begin;
 

@@ -35,7 +35,6 @@ type Seccion = {
   href: string;
   /** `null` en las que cambian de nombre según el rol. */
   etiqueta: string | null;
-  icono: () => React.ReactElement;
   /** Para las rutas que son prefijo de otra hermana. */
   exacto?: boolean;
   destacado?: boolean;
@@ -43,63 +42,59 @@ type Seccion = {
   nuevaVentana?: boolean;
 };
 
-type Grupo = { titulo: string; icono: () => React.ReactElement; secciones: Seccion[] };
+type Grupo = { titulo: string; secciones: Seccion[] };
 
 const NAVEGACION: (Grupo | Seccion)[] = [
   {
     titulo: "Cola de trabajo",
-    icono: Reloj,
     secciones: [
-      { href: "/", etiqueta: "Mes en curso", icono: Calendario },
-      { href: "/operacion", etiqueta: "Ayer", icono: Reloj },
-      { href: "/demorados", etiqueta: "Demorados", icono: Alerta },
-      { href: "/reclamos", etiqueta: "Informacion de tiendas", icono: Barras },
-      { href: "/cancelados", etiqueta: "Cancelados", icono: Cruz },
+      { href: "/", etiqueta: "Mes en curso" },
+      { href: "/operacion", etiqueta: "Ayer" },
+      { href: "/demorados", etiqueta: "Demorados" },
+      { href: "/reclamos", etiqueta: "Informacion de tiendas" },
+      { href: "/cancelados", etiqueta: "Cancelados" },
     ],
   },
   {
     titulo: "Siniestrados",
-    icono: Alerta,
     secciones: [
       /* `exacto` porque /siniestrados es prefijo de /siniestrados/historial: sin
          eso las dos entradas se encienden a la vez estando en la de abajo. */
-      { href: "/siniestrados", etiqueta: "Siniestrados", icono: Alerta, exacto: true },
-      { href: "/siniestrados/historial", etiqueta: "Historial", icono: Archivo },
+      { href: "/siniestrados", etiqueta: "Siniestrados", exacto: true },
+      { href: "/siniestrados/historial", etiqueta: "Historial" },
     ],
   },
 
-  { href: "/seguimiento", etiqueta: "Seguimiento", icono: Nota, destacado: true },
-  { href: "/cobertura", etiqueta: "Cobertura", icono: Mapa, beta: true },
+  { href: "/seguimiento", etiqueta: "Seguimiento", destacado: true },
+  { href: "/cobertura", etiqueta: "Cobertura", beta: true },
   /* Suelta y no en «Cola de trabajo»: no mira el mes ni el día de ayer, mira
      lo que está pasando ahora. Se entra a ver dónde está alguien, viniendo de
      cualquier pantalla, igual que a Cobertura. */
-  { href: "/live-tracker", etiqueta: "Live tracker", icono: Moto },
+  { href: "/live-tracker", etiqueta: "Live tracker" },
 
   {
     titulo: "Directorio",
-    icono: Persona,
     secciones: [
-      { href: "/sellers", etiqueta: "Sellers", icono: Local },
-      { href: "/drivers", etiqueta: "Drivers", icono: Moto },
+      { href: "/sellers", etiqueta: "Sellers" },
+      { href: "/drivers", etiqueta: "Drivers" },
     ],
   },
 
   /* Colectas abre su propio espacio de trabajo. El tablero que quedó atrás se
      conserva abierto para poder contrastar una ruta con la operación general. */
-  { href: "/colectas", etiqueta: "Colectas", icono: Camion, nuevaVentana: true },
+  { href: "/colectas", etiqueta: "Colectas", nuevaVentana: true },
   {
     titulo: "Historial",
-    icono: Archivo,
     secciones: [
-      { href: "/historico", etiqueta: "Históricos Casos", icono: Archivo },
-      { href: "/cancelados-historico", etiqueta: "Históricos Cancelados", icono: Archivo },
+      { href: "/historico", etiqueta: "Históricos Casos" },
+      { href: "/cancelados-historico", etiqueta: "Históricos Cancelados" },
     ],
   },
 
   /* Cambia de nombre según el rol: quien administra ve «Perfiles» y el resto,
      «Mi perfil». La entrada está para todos porque cualquiera necesita poder
      cambiar su propia contraseña. */
-  { href: "/perfiles", etiqueta: null, icono: Persona },
+  { href: "/perfiles", etiqueta: null },
 ];
 
 function esGrupo(entrada: Grupo | Seccion): entrada is Grupo {
@@ -161,7 +156,6 @@ export function Shell({
                   key={entrada.titulo}
                   titulo={entrada.titulo}
                   rutas={entrada.secciones.map(({ href, exacto }) => ({ href, exacto }))}
-                  icono={<entrada.icono />}
                 >
                   {entrada.secciones.map((seccion) => (
                     <li key={seccion.href}>
@@ -227,7 +221,6 @@ function Enlace({ seccion, esAdmin }: { seccion: Seccion; esAdmin: boolean }) {
       nuevaVentana={seccion.nuevaVentana}
       titulo={seccion.nuevaVentana ? `${etiqueta} · abrir en una nueva ventana` : etiqueta}
     >
-      <seccion.icono />
       {/* `data-rail-texto`: lo que desaparece con el menú plegado. */}
       <span data-rail-texto>{etiqueta}</span>
       {seccion.beta ? <span className={estilos.railBeta} aria-label="Beta">BETA</span> : null}
@@ -298,126 +291,5 @@ export function PageHead({
       </div>
       {dek ? <p className={estilos.pageDek}>{dek}</p> : null}
     </div>
-  );
-}
-
-/* Iconos de la barra: trazo de 1.5, sin relleno, para que no compitan con el texto. */
-
-function Calendario() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <rect x="2" y="2.5" width="12" height="11" rx="1.5" />
-      <path d="M2 6h12M6 6v7.5" />
-    </svg>
-  );
-}
-
-function Reloj() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <circle cx="8" cy="8" r="5.75" />
-      <path d="M8 4.75V8l2.25 1.5" />
-    </svg>
-  );
-}
-
-function Alerta() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <path d="M8 2.75 14 13H2z" strokeLinejoin="round" />
-      <path d="M8 6.5v3M8 11.2v.05" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function Barras() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <path d="M2.5 13.5V9M6.5 13.5V4M10.5 13.5V6.5M14 13.5V2.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function Cruz() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <circle cx="8" cy="8" r="5.75" />
-      <path d="M5.9 5.9l4.2 4.2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function Nota() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <path d="M13.5 9.5a1.5 1.5 0 0 1-1.5 1.5H6l-3 2.5V4A1.5 1.5 0 0 1 4.5 2.5H12A1.5 1.5 0 0 1 13.5 4Z" strokeLinejoin="round" />
-      <path d="M6 6h4M6 8h2.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function Persona() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <circle cx="8" cy="5.5" r="2.75" />
-      <path d="M3 13.5c0-2.2 2.2-3.75 5-3.75s5 1.55 5 3.75" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-/** Contorno cerrado con un punto adentro: el área donde hay servicio. */
-function Mapa() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <path d="M2.5 5.2 6 3.2l4 2 3.5-2v7.6l-3.5 2-4-2-3.5 2Z" strokeLinejoin="round" />
-      <path d="M6 3.2v7.6M10 5.2v7.6" />
-    </svg>
-  );
-}
-
-/** Toldo de local a la calle: dónde queda cada comercio. */
-function Local() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <path d="M2 6.2 3.2 2.8h9.6L14 6.2" strokeLinejoin="round" />
-      <path d="M2 6.2a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0" strokeLinejoin="round" />
-      <path d="M3 8v5.2h10V8" strokeLinejoin="round" />
-      <path d="M6.4 13.2V9.6h3.2v3.6" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-/** Moto de reparto: lo que se está siguiendo en vivo. */
-function Moto() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-      <circle cx="4" cy="11.5" r="2.4" />
-      <circle cx="12" cy="11.5" r="2.4" />
-      <path d="M4 11.5h2.6l2-3.4h2.6" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8.6 6.2h2l1.4 5.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-/** Cajas apiladas: lo guardado, por oposición a lo que está sobre la mesa. */
-function Archivo() {
-  return (
-    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false">
-      <rect x="2" y="2.5" width="12" height="3.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M3.2 6v6.4a1 1 0 0 0 1 1h7.6a1 1 0 0 0 1-1V6" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <line x1="6.4" y1="9" x2="9.6" y2="9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-/** Camioneta de reparto: lo que pasa a buscar la mercadería al comercio. */
-function Camion() {
-  return (
-    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false">
-      <path d="M1.5 4.5h7.2v6.2H1.5z" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M8.7 6.9h2.9l2.9 2.4v1.4H8.7z" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <circle cx="4.6" cy="12.2" r="1.4" fill="none" stroke="currentColor" strokeWidth="1.4" />
-      <circle cx="11.6" cy="12.2" r="1.4" fill="none" stroke="currentColor" strokeWidth="1.4" />
-    </svg>
   );
 }

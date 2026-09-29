@@ -19,20 +19,18 @@ import estilos from "./ui.module.css";
  * alguien vuelva al tablero y no encuentre una sección que ayer estaba, sin
  * saber que fue él quien la plegó.
  *
- * La lista se renderiza siempre y se oculta con `hidden`: con el menú plegado a
- * íconos, `ui.module.css` muestra todas las secciones y el título del grupo
- * pasa a ser solo una línea divisoria.
+ * La lista se renderiza siempre y se oculta con `hidden`: en el menú compacto,
+ * `ui.module.css` muestra todas las secciones para que la navegación siga
+ * completa.
  */
 export function NavGrupo({
   titulo,
   rutas,
-  icono,
   children,
 }: {
   titulo: string;
   /** Las rutas de sus secciones, para saber si el grupo contiene la actual. */
   rutas: { href: string; exacto?: boolean }[];
-  icono: React.ReactNode;
   children: React.ReactNode;
 }) {
   const ruta = usePathname();
@@ -52,9 +50,6 @@ export function NavGrupo({
         disabled={contieneLaActual}
         onClick={() => setAbiertoAMano((v) => !v)}
       >
-        <span className={estilos.railGrupoIcono} aria-hidden="true">
-          {icono}
-        </span>
         <span className={estilos.railGrupoTexto} data-rail-texto>
           {titulo}
         </span>

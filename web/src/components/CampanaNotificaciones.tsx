@@ -191,7 +191,7 @@ export function CampanaNotificaciones() {
 
 function fraseDe(item: Bandeja["items"][number]) {
   if (item.tipo === "demora_paquete") {
-    return <>Paquete demorado{item.casoId ? <> <span className={estilos.caso}>#{item.casoId}</span></> : null}</>;
+    return <>Paquetes demorados por estado</>;
   }
   if (item.tipo === "seguimiento_vencido") {
     return <>Seguimiento vencido{item.casoId ? <> del paquete <span className={estilos.caso}>#{item.casoId}</span></> : null}</>;

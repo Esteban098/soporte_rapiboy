@@ -36,9 +36,8 @@
   --surface-2: rgba(255, 255, 255, 0.08);
   --surface-3: rgba(255, 255, 255, 0.14);
 
-  /* Dos tamaños y un solo grosor para toda la barra: texto (secciones, títulos
-     de grupo, marca, usuario), rótulo (subtítulo, «Salir») y el mismo peso en todo,
-     también en la sección activa, para que el texto no salte al elegirla. */
+  /* Dos tamaños para toda la barra: texto (secciones, títulos de grupo, marca,
+     usuario) y rótulo (subtítulo, «Salir»). */
   --rail-texto: 14px;
   --rail-rotulo: 12px;
   --rail-peso: 500;
@@ -147,12 +146,6 @@
   cursor: default;
 }
 
-/* El ícono del grupo no se muestra: el título alcanza y los íconos quedan
-   para las secciones, que son lo que se toca. */
-.railGrupoIcono {
-  display: none;
-}
-
 .railGrupoTexto {
   flex: 1;
   min-width: 0;
@@ -161,6 +154,11 @@
 .railGrupoFlecha {
   font-size: 9px;
   opacity: 0.65;
+}
+
+/* Los títulos agrupan accesos; el peso los diferencia de sus elementos. */
+.railGrupoTexto {
+  font-weight: 700;
 }
 
 /* Las secciones quedan un poco indentadas bajo su grupo: la sangría es lo único
@@ -247,12 +245,6 @@
   transform: scale(0.98);
 }
 
-.railItem svg {
-  flex: none;
-  opacity: 0.75;
-  transition: opacity var(--dur-corta) var(--ease);
-}
-
 /* La sección abierta es una pastilla blanca: sobre el azul marino es lo
    primero que se ve y no depende del color de acento. */
 .railItemActivo,
@@ -261,19 +253,11 @@
   color: var(--rail-fondo);
 }
 
-.railItemActivo svg {
-  opacity: 1;
-}
-
 /* Seguimiento se destaca siempre, esté activo o no: es la cola de reportes
    sueltos, y conviene que salte a la vista incluso de paso por el menú. */
 .railItemAmarillo {
   background: rgba(255, 230, 0, 0.14);
   color: var(--warning);
-}
-
-.railItemAmarillo svg {
-  opacity: 1;
 }
 
 .railItemAmarillo:hover {
@@ -305,38 +289,31 @@
 }
 
 /*
- * Menú plegado a íconos (`data-menu="corto"` en <html>, lo pone `BotonMenu`).
- * Todo lo marcado con `data-rail-texto` desaparece, las secciones de todos los
- * grupos quedan a la vista —plegar un grupo no tiene sentido sin su título— y
- * cada título pasa a ser una raya corta que separa los bloques.
+ * Menú compacto (`data-menu="corto"` en <html>, lo pone `BotonMenu`). Mantiene
+ * los textos: sin íconos, ocultarlos haría inaccesibles las secciones.
  * Solo en escritorio: en pantallas chicas la barra ya va arriba, en fila.
  */
 @media (min-width: 901px) {
   :global(html[data-menu="corto"]) .app {
-    grid-template-columns: 68px minmax(0, 1fr);
+    grid-template-columns: 188px minmax(0, 1fr);
   }
 
-  :global(html[data-menu="corto"]) .rail [data-rail-texto],
   :global(html[data-menu="corto"]) .railGrupoFlecha,
   :global(html[data-menu="corto"]) .railBeta {
     display: none;
   }
 
   :global(html[data-menu="corto"]) .marca {
-    justify-content: center;
-    padding: 0 0 12px;
+    padding: 0 14px 12px;
   }
 
   :global(html[data-menu="corto"]) .railGrupoBoton {
-    justify-content: center;
-    padding: 12px 0 8px;
+    padding: 12px 18px 8px;
     pointer-events: none;
   }
 
   :global(html[data-menu="corto"]) .railGrupoBoton::before {
-    content: "";
-    width: 22px;
-    border-top: 1px solid var(--rule);
+    display: none;
   }
 
   :global(html[data-menu="corto"]) .railLista,
@@ -351,8 +328,7 @@
   }
 
   :global(html[data-menu="corto"]) .railItem {
-    justify-content: center;
-    padding: 10px 0;
+    padding: 9px 11px;
   }
 
   :global(html[data-menu="corto"]) .railPie {

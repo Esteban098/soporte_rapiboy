@@ -1089,14 +1089,19 @@ tarjetas, las menciones se ven resaltadas, y más marcadas si son a vos.
 La campana también genera alertas sin repetirlas mientras siga vigente la misma
 condición:
 
-- Un paquete abierto con más de dos días sin movimiento se avisa a perfiles
-  **Administrador** y **Operador**; el rol Comercial no las recibe. Al tocar el
-  aviso se abre Demorados.
+- Los paquetes abiertos con más de dos días sin movimiento se agrupan en una
+  única alerta por estado para perfiles **Administrador** y **Operador**; el rol
+  Comercial no las recibe. Al tocar el aviso se abre Demorados.
 - Un seguimiento tomado que lleva más de tres días abierto se avisa solo a la
   persona que lo tomó. Al tocarlo se abre ese seguimiento.
 
-La alerta se vuelve a habilitar si el paquete tiene un movimiento nuevo y más
-adelante vuelve a demorarse, o si el seguimiento se reabre. Ejecutar
+Al adoptar la agrupación se debe ejecutar también
+`supabase/migracion-31-agrupar-alertas-demora.sql`; elimina las alertas previas
+por paquete y la campana genera las alertas agrupadas vigentes en su próximo
+refresco.
+
+La alerta de demora se deduplica por estado y destinatario; el seguimiento se
+vuelve a habilitar si se reabre. Ejecutar
 `supabase/migracion-30-alertas-operativas.sql` después de la migración 12.
 
 Si la página muestra «No se pudieron cargar los datos» con `fetch failed`, casi

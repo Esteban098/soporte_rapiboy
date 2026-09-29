@@ -2,7 +2,7 @@ import "server-only";
 import { TABLA_NOTIFICACIONES, TABLA_PERFILES } from "./config";
 import { cargarPedidos, cargarSeguimientos } from "./datos";
 import { armarDirectorio, correosMencionados, type Mencionable } from "./menciones";
-import { demorados, diasSinMovimiento } from "./metricas";
+import { demorados } from "./metricas";
 import { DIAS_PARA_ALERTA_SEGUIMIENTO, seguimientoVencido } from "./seguimiento";
 import { consultarFresco, insertarFilas, insertarFilasSinDuplicar, TablaFaltante } from "./supabase";
 
@@ -138,8 +138,14 @@ async function destinatariosOperativos(): Promise<string[]> {
   return [...new Set([...conRolOperativo, ...permitidos.filter((email) => !comerciales.has(email))])];
 }
 
-function claveDeDemora(id: number, ultimoMovimiento: Date | null): string {
-  return `demora-paquete:${id}:${ultimoMovimiento?.toISOString() ?? "sin-movimiento"}`;
+function claveDeDemora(estado: string): string {
+  const identificador = estado
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `demora-estado:${identificador || "sin-estado"}`;
 }
 
 function claveDeSeguimiento(id: string, abiertoEn: Date | null): string {
@@ -149,9 +155,9 @@ function claveDeSeguimiento(id: string, abiertoEn: Date | null): string {
 /**
  * Genera los avisos operativos sin repetirlos.
  *
- * La campana invoca esta función cada vez que refresca su bandeja. La clave se
- * ata al último movimiento o a la última apertura: si el paquete se mueve o
- * el seguimiento se reabre, puede volver a alertar cuando cumpla el umbral.
+ * La campana invoca esta función cada vez que refresca su bandeja. Las demoras
+ * se agrupan por estado para evitar una alerta por paquete; los seguimientos
+ * mantienen una alerta individual por responsable.
  */
 export async function generarAlertasOperativas(): Promise<void> {
   try {
@@ -163,19 +169,25 @@ export async function generarAlertasOperativas(): Promise<void> {
     ]);
     const alertasDemora = demorados(pedidos, ahora);
     const seguimientosVencidos = reportes.filter((reporte) => seguimientoVencido(reporte, ahora));
+    const demorasPorEstado = new Map<string, { estado: string; cantidad: number }>();
+    for (const pedido of alertasDemora) {
+      const estado = pedido.estado.trim() || "Sin estado";
+      const clave = estado.toLocaleLowerCase("es");
+      const grupo = demorasPorEstado.get(clave);
+      if (grupo) grupo.cantidad += 1;
+      else demorasPorEstado.set(clave, { estado, cantidad: 1 });
+    }
 
     const filas = [
-      ...alertasDemora.flatMap((pedido) => {
-        const dias = diasSinMovimiento(pedido, ahora) ?? 0;
-        return destinatarios.map((destinatario) => ({
+      ...[...demorasPorEstado.values()].flatMap(({ estado, cantidad }) =>
+        destinatarios.map((destinatario) => ({
           destinatario,
           tipo: "demora_paquete",
           autor: AUTOR_SISTEMA,
-          caso_id: String(pedido.id),
-          extracto: `El paquete #${pedido.id} lleva ${dias} días sin movimiento y sigue abierto.`,
-          clave: claveDeDemora(pedido.id, pedido.ultimoMovimiento),
-        }));
-      }),
+          extracto: `${cantidad} paquete${cantidad === 1 ? "" : "s"} demorado${cantidad === 1 ? "" : "s"} con estado «${estado}».`,
+          clave: claveDeDemora(estado),
+        })),
+      ),
       ...seguimientosVencidos.map((reporte) => ({
         destinatario: reporte.tomadoPor!,
         tipo: "seguimiento_vencido",
