@@ -80,6 +80,27 @@ export async function insertarFilas(
 }
 
 /**
+ * Inserta filas que tienen una clave única y deja intacta una alerta ya creada.
+ *
+ * A diferencia de un upsert normal, no actualiza `leida_en` ni vuelve a sellar
+ * `created_at`: una alerta operativa repetida sigue siendo el mismo aviso.
+ */
+export async function insertarFilasSinDuplicar(
+  tabla: string,
+  filas: Record<string, unknown>[],
+  conflicto: string,
+): Promise<string | null> {
+  if (filas.length === 0) return null;
+  const respuesta = await pedir(`${encodeURIComponent(tabla)}?on_conflict=${encodeURIComponent(conflicto)}`, {
+    method: "POST",
+    body: JSON.stringify(filas),
+    headers: { prefer: "resolution=ignore-duplicates,return=minimal" },
+    cache: "no-store",
+  });
+  return respuesta.ok ? null : motivoDeFalla(respuesta);
+}
+
+/**
  * Inserta o actualiza por una clave única declarada en la base.
  *
  * Se usa para fotografías operativas donde una nueva respuesta reemplaza la

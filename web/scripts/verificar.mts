@@ -1,41 +1,41 @@
 /**
- * Comprueba que la normalización de la web da los mismos números que el
- * análisis en Python sobre el libro original. Corre contra los fixtures.
+ * Verificación autosuficiente de la normalización y las métricas principales.
+ *
+ * Antes leía CSV locales generados desde un libro que ya no es una dependencia
+ * del proyecto. El chequeo no debe requerir datos operativos ni secretos para
+ * poder correrse antes de publicar.
  */
-import { cargarAyer, cargarPedidos } from "../src/lib/datos";
-import {
-  antiguedadAbiertos,
-  demorados,
-  devueltosPorDiaSemana,
-  visitasPorResultado,
-  ranking,
-  resumen,
-} from "../src/lib/metricas";
+import assert from "node:assert/strict";
+import { demorados, ranking, resumen } from "../src/lib/metricas";
+import { mapearColumnas, parsearPedido } from "../src/lib/normalizar";
 
-const { pedidos, campos } = await cargarPedidos();
-console.log(`campos que trae Mensual: ${campos.join(", ")}\n`);
-const r = resumen(pedidos);
+const encabezado = ["id", "fecha_creacion", "fecha_programado", "estado", "tienda", "visitas"];
+const mapa = mapearColumnas(encabezado);
+const pedidos = [
+  ["1001", "2026-09-01", "2026-09-05", "Pedido no entregado", "Tienda A", "1"],
+  ["1002", "2026-09-02", "2026-09-06", "Devuelto", "Tienda B", "2"],
+  ["1003", "2026-09-03", "2026-09-07", "Entregado", "Tienda A", "1"],
+]
+  .map((fila) => parsearPedido(fila, mapa))
+  .filter((pedido): pedido is NonNullable<typeof pedido> => pedido !== null);
 
-console.log(`casos: ${r.casos}  devoluciones: ${r.devoluciones} (${r.tasaDevolucion.toFixed(1)}%)`);
-console.log(`entregados: ${r.entregados}  abiertos: ${r.abiertos}`);
-console.log(`período: ${r.desde} .. ${r.hasta}  visitas promedio: ${r.visitasPromedio.toFixed(2)}`);
+assert.equal(pedidos.length, 3);
+const metricas = resumen(pedidos);
+assert.deepEqual({
+  ...metricas,
+  tasaDevolucion: undefined,
+}, {
+  casos: 3,
+  devoluciones: 1,
+  entregados: 1,
+  abiertos: 1,
+  tasaDevolucion: undefined,
+  visitasPromedio: 4 / 3,
+  desde: "2026-09",
+  hasta: "2026-09",
+});
+assert.ok(Math.abs(metricas.tasaDevolucion - (100 / 3)) < 1e-10);
+assert.deepEqual(demorados(pedidos, Date.parse("2026-09-10T00:00:00.000Z")).map((pedido) => pedido.id), [1001]);
+assert.equal(ranking(pedidos, "tienda", { minimoCasos: 1, limite: 1 })[0]?.nombre, "Tienda B");
 
-console.log("\ndevueltos por día de la semana:");
-for (const d of devueltosPorDiaSemana(pedidos)) console.log(`  ${d.dia}: ${d.devueltos}`);
-
-console.log("\nvisitas antes de cerrar:");
-for (const v of visitasPorResultado(pedidos))
-  console.log(`  ${v.visitas}: entregados=${v.entregados} devueltos=${v.devueltos}`);
-
-console.log("\nantigüedad de los abiertos:");
-for (const t of antiguedadAbiertos(pedidos)) console.log(`  ${t.tramo}: ${t.casos} casos (${t.porcentaje.toFixed(1)}%)`);
-
-console.log("\npeores tiendas:");
-for (const f of ranking(pedidos, "tienda", { limite: 5 }))
-  console.log(`  ${f.nombre}: ${f.casos} casos, ${f.tasaDevolucion.toFixed(1)}%`);
-
-const atrasados = demorados(pedidos);
-console.log(`\ndemorados (derivados de Mensual): ${atrasados.length} casos`);
-
-const ayer = await cargarAyer();
-console.log(`ayer: ${ayer.pedidos.length} casos | campos: ${ayer.campos.join(", ")}`);
+console.log("Verificación: normalización y métricas principales correctas.");

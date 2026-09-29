@@ -607,7 +607,7 @@ Comandos útiles:
 
 ```bash
 npm run typecheck    # TypeScript
-npm run verificar    # imprime todas las métricas por consola
+npm run verificar    # valida normalización y métricas sin depender de datos locales
 npm run build        # build de producción
 ```
 
@@ -802,9 +802,22 @@ todo. Repetir la función es seguro.
   libre. Ambos tienen alta, lectura, edición y baja desde el editor, no los
   pisa n8n y la rotación los copia al Histórico. En Siniestrados Historial se
   pueden editar filas existentes; no se permiten altas ni bajas.
-  Para guardar cualquiera de esos dos campos, la plataforma y RapiboyData
-  deben informar estado `Siniestrado`; la web valida ambos antes del guardado
-  mediante el webhook 11.
+  Para guardar cualquiera de esos dos campos, RapiboyData debe informar estado
+  `Siniestrado`; la web lo valida mediante el webhook 11. El alta desde
+  Siniestrados comprueba además que el ID no esté ya en Mensual o Histórico y
+  muestra únicamente motivo y comentario. n8n completa los datos operativos al
+  actualizar.
+
+### Alta e información de paquetes
+
+- **Agregar paquete** en Mensual crea únicamente el ID, después de confirmar
+  que no exista ya en Mensual o Histórico. El refresco de n8n completa estado,
+  repartidor, tienda y demás datos del sistema.
+- Reclamo de tienda, ubicación, teléfono o indicación y aviso no forman parte
+  del alta: se modifican exclusivamente desde **Información de tienda** del
+  paquete ya cargado.
+- **Agregar paquete siniestrado** además permite motivo y comentario, valida
+  que RapiboyData lo informe como `Siniestrado` y tampoco admite duplicados.
 
 Para actualizar una instalación existente:
 
@@ -1070,6 +1083,21 @@ tarjetas, las menciones se ven resaltadas, y más marcadas si son a vos.
 - **Instalación:** ejecutar `supabase/migracion-12-notificaciones.sql` en
   Supabase. Hasta entonces la campana no aparece y los reportes se guardan sin
   avisar. Los avisos se borran junto con su reporte.
+
+### Alertas operativas
+
+La campana también genera alertas sin repetirlas mientras siga vigente la misma
+condición:
+
+- Un paquete abierto con más de dos días sin movimiento se avisa a perfiles
+  **Administrador** y **Operador**; el rol Comercial no las recibe. Al tocar el
+  aviso se abre Demorados.
+- Un seguimiento tomado que lleva más de tres días abierto se avisa solo a la
+  persona que lo tomó. Al tocarlo se abre ese seguimiento.
+
+La alerta se vuelve a habilitar si el paquete tiene un movimiento nuevo y más
+adelante vuelve a demorarse, o si el seguimiento se reabre. Ejecutar
+`supabase/migracion-30-alertas-operativas.sql` después de la migración 12.
 
 Si la página muestra «No se pudieron cargar los datos» con `fetch failed`, casi
 siempre es `SUPABASE_URL` mal copiado: tiene que ser

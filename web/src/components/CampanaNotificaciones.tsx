@@ -84,7 +84,7 @@ export function CampanaNotificaciones() {
     setAbierta(!abierta);
   }
 
-  function abrir(id: string, leida: boolean, seguimientoId: string | null) {
+  function abrir(id: string, leida: boolean, seguimientoId: string | null, tipo: Bandeja["items"][number]["tipo"]) {
     setAbierta(false);
     if (!leida) {
       setBandeja((previa) =>
@@ -101,6 +101,7 @@ export function CampanaNotificaciones() {
       });
     }
     if (seguimientoId) router.push(`/seguimiento?reporte=${encodeURIComponent(seguimientoId)}`);
+    else if (tipo === "demora_paquete") router.push("/demorados");
   }
 
   function leerTodas() {
@@ -148,7 +149,7 @@ export function CampanaNotificaciones() {
           {bandeja === null ? (
             <p className={estilos.vacio}>Cargando…</p>
           ) : items.length === 0 ? (
-            <p className={estilos.vacio}>Cuando alguien te arrobe en un reporte, aparece acá.</p>
+            <p className={estilos.vacio}>Las menciones y alertas operativas aparecen acá.</p>
           ) : (
             <ul className={estilos.lista}>
               {items.map((item) => (
@@ -156,7 +157,7 @@ export function CampanaNotificaciones() {
                   <button
                     type="button"
                     className={`${estilos.item} ${item.leida ? "" : estilos.noLeida}`}
-                    onClick={() => abrir(item.id, item.leida, item.seguimientoId)}
+                    onClick={() => abrir(item.id, item.leida, item.seguimientoId, item.tipo)}
                   >
                     <span
                       className={estilos.avatar}
@@ -166,15 +167,7 @@ export function CampanaNotificaciones() {
                       {inicialesDePersona(item.autor)}
                     </span>
                     <span className={estilos.cuerpo}>
-                      <span className={estilos.frase}>
-                        <strong>{nombreDePersona(item.autor)}</strong> te mencionó
-                        {item.casoId ? (
-                          <>
-                            {" "}
-                            en el caso <span className={estilos.caso}>#{item.casoId}</span>
-                          </>
-                        ) : null}
-                      </span>
+                      <span className={estilos.frase}>{fraseDe(item)}</span>
                       {item.extracto ? (
                         <span className={estilos.extracto}>{item.extracto}</span>
                       ) : null}
@@ -193,6 +186,21 @@ export function CampanaNotificaciones() {
         </section>
       ) : null}
     </div>
+  );
+}
+
+function fraseDe(item: Bandeja["items"][number]) {
+  if (item.tipo === "demora_paquete") {
+    return <>Paquete demorado{item.casoId ? <> <span className={estilos.caso}>#{item.casoId}</span></> : null}</>;
+  }
+  if (item.tipo === "seguimiento_vencido") {
+    return <>Seguimiento vencido{item.casoId ? <> del paquete <span className={estilos.caso}>#{item.casoId}</span></> : null}</>;
+  }
+  return (
+    <>
+      <strong>{nombreDePersona(item.autor)}</strong> te mencionó
+      {item.casoId ? <> en el caso <span className={estilos.caso}>#{item.casoId}</span></> : null}
+    </>
   );
 }
 

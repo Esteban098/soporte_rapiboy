@@ -30,9 +30,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `Siniestrados` y `Siniestrados Historial` filtran el estado actual
   `Siniestrado` sobre `mensual` y `mensual_historico`, respectivamente. No
   duplicar tablas ni modificar los criterios de ingreso de los workflows. La
-  vista operativa permite agregar un ID con el mismo `EditorCaso` de Mensual:
-  se inserta en `mensual` con los datos de soporte y el refresco de estados
-  completa el resto cuando encuentra el viaje.
+  vista operativa permite agregar un ID a `mensual`: el alta común guarda solo
+  el ID y el refresco de estados completa el resto cuando encuentra el viaje.
+  Reclamo, ubicación, teléfono, indicación y aviso se cargan después desde
+  **Información de tienda**, sobre un paquete existente.
 - `valor_producto` es `numeric(18, 2)` y viene de
   `Viaje.ValorDeclaradoCompleto`. Lo cargan los flujos 01, 02 y 04 y lo conserva
   la rotación. Un importe desconocido es `null`, no cero. Para bases existentes
@@ -47,10 +48,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   rotación los conserva en Histórico. En Histórico se pueden editar las filas
   existentes, sin altas ni bajas. En bases existentes, instalar
   `supabase/migracion-29-siniestrados-detalle.sql`.
-  Para guardar motivo o comentario, la web exige que tanto la fila de la
-  plataforma como el estado consultado en RapiboyData sean `Siniestrado`.
-  La consulta usa el webhook 11; si no está configurado, la edición se
-  rechaza.
+  Para guardar motivo o comentario, la web valida el estado consultado en
+  RapiboyData mediante el webhook 11. Al agregar desde Siniestrados solo se
+  controla que el ID exista en RapiboyData y no esté ya en Mensual o Histórico;
+  no se exige que la fila recién creada ya tenga estado en Supabase. Ese alta
+  muestra únicamente motivo y comentario; n8n completa el resto al actualizar.
 - `seguimiento` usa solamente los estados `abierto` y `cerrado` en la columna
   `estado`; cualquier `tomado` legado ahí se migra a abierto. **Tomado** es
   `tomado_por` / `tomado_en` sobre un reporte abierto: cuenta como abierto en
@@ -66,6 +68,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   (`supabase/migracion-12-notificaciones.sql`), se leen sin caché filtrando por
   el correo de la sesión, y un fallo al notificar nunca hace fallar el
   guardado del reporte. La campana está en la barra, junto al selector de tema.
+  También crea alertas deduplicadas: un paquete abierto con más de dos días sin
+  movimiento se avisa a admin y operador (nunca Comercial); un seguimiento
+  tomado con más de tres días abierto se avisa solo a quien lo tomó. Instalar
+  `supabase/migracion-30-alertas-operativas.sql` después de la migración 12.
   Cada reporte conserva `driver` y `seller`
   como foto del pedido al momento del alta; se pueden cargar manualmente y, si
   quedan vacíos, se buscan en Mensual o Histórico. `abierto_en` se reinicia al

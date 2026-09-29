@@ -46,7 +46,9 @@
 /* Estado compacto: conserva la conversación montada y deja el tablero libre. */
 .minimizado {
   position: fixed;
-  right: 20px;
+  /* Conserva el anclaje de la pestaña normal, a la izquierda de Seguimiento.
+     Minimizar no debe convertirla en una pestaña distinta ni desplazarla. */
+  right: 236px;
   bottom: 0;
   z-index: 111;
   display: inline-flex;

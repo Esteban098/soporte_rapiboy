@@ -1,8 +1,10 @@
 import "server-only";
 import { TABLA_NOTIFICACIONES, TABLA_PERFILES } from "./config";
-import { cargarSeguimientos } from "./datos";
+import { cargarPedidos, cargarSeguimientos } from "./datos";
 import { armarDirectorio, correosMencionados, type Mencionable } from "./menciones";
-import { consultarFresco, insertarFilas, TablaFaltante } from "./supabase";
+import { demorados, diasSinMovimiento } from "./metricas";
+import { DIAS_PARA_ALERTA_SEGUIMIENTO, seguimientoVencido } from "./seguimiento";
+import { consultarFresco, insertarFilas, insertarFilasSinDuplicar, TablaFaltante } from "./supabase";
 
 /**
  * Avisos por persona. Por ahora un solo tipo: alguien te arrobó en un reporte.
@@ -11,11 +13,13 @@ import { consultarFresco, insertarFilas, TablaFaltante } from "./supabase";
  * una hora no avisa nada.
  */
 
+export type TipoNotificacion = "mencion" | "demora_paquete" | "seguimiento_vencido";
+
 export type Notificacion = {
   id: string;
   /** ISO, para que viaje igual del servidor al navegador. */
   creada: string | null;
-  tipo: "mencion";
+  tipo: TipoNotificacion;
   autor: string;
   seguimientoId: string | null;
   casoId: string | null;
@@ -32,14 +36,22 @@ type FilaNotificacion = {
   seguimiento_id: string | null;
   caso_id: string | null;
   extracto: string | null;
+  clave?: string | null;
   leida_en: string | null;
 };
+
+const TIPOS: readonly TipoNotificacion[] = ["mencion", "demora_paquete", "seguimiento_vencido"];
+const AUTOR_SISTEMA = "sistema@rapiboy";
+
+function tipoDe(valor: string | null): TipoNotificacion {
+  return TIPOS.includes(valor as TipoNotificacion) ? valor as TipoNotificacion : "mencion";
+}
 
 function parsear(fila: FilaNotificacion): Notificacion {
   return {
     id: fila.id,
     creada: fila.created_at,
-    tipo: "mencion",
+    tipo: tipoDe(fila.tipo),
     autor: (fila.autor ?? "").trim(),
     seguimientoId: fila.seguimiento_id,
     casoId: fila.caso_id?.trim() || null,
@@ -97,6 +109,89 @@ export async function directorioDelEquipo(): Promise<Mencionable[]> {
     .map((email) => ({ email }));
 
   return armarDirectorio([...perfiles, ...permitidos, ...enReportes]);
+}
+
+/** Correos que ven la operación completa; Comercial queda explícitamente afuera. */
+async function destinatariosOperativos(): Promise<string[]> {
+  const [perfiles, permitidos] = await Promise.all([
+    consultarFresco<{ email: string; rol: string | null }>(TABLA_PERFILES, {
+      select: "email,rol",
+      activo: "is.true",
+    }).catch(() => []),
+    Promise.resolve(
+      (process.env.ALLOWED_EMAILS ?? "")
+        .split(/[,;\s]+/)
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  ]);
+  const comerciales = new Set(
+    perfiles
+      .filter((perfil) => perfil.rol === "comercial")
+      .map((perfil) => perfil.email.trim().toLowerCase()),
+  );
+  const conRolOperativo = perfiles
+    .filter((perfil) => perfil.rol === "admin" || perfil.rol === "operador")
+    .map((perfil) => perfil.email.trim().toLowerCase());
+  // Los correos permitidos sin perfil se comportan como operador; si luego se
+  // les crea un perfil Comercial, el conjunto de arriba los excluye.
+  return [...new Set([...conRolOperativo, ...permitidos.filter((email) => !comerciales.has(email))])];
+}
+
+function claveDeDemora(id: number, ultimoMovimiento: Date | null): string {
+  return `demora-paquete:${id}:${ultimoMovimiento?.toISOString() ?? "sin-movimiento"}`;
+}
+
+function claveDeSeguimiento(id: string, abiertoEn: Date | null): string {
+  return `seguimiento-vencido:${id}:${abiertoEn?.toISOString() ?? "sin-fecha"}`;
+}
+
+/**
+ * Genera los avisos operativos sin repetirlos.
+ *
+ * La campana invoca esta función cada vez que refresca su bandeja. La clave se
+ * ata al último movimiento o a la última apertura: si el paquete se mueve o
+ * el seguimiento se reabre, puede volver a alertar cuando cumpla el umbral.
+ */
+export async function generarAlertasOperativas(): Promise<void> {
+  try {
+    const ahora = Date.now();
+    const [{ pedidos }, { reportes }, destinatarios] = await Promise.all([
+      cargarPedidos(),
+      cargarSeguimientos(),
+      destinatariosOperativos(),
+    ]);
+    const alertasDemora = demorados(pedidos, ahora);
+    const seguimientosVencidos = reportes.filter((reporte) => seguimientoVencido(reporte, ahora));
+
+    const filas = [
+      ...alertasDemora.flatMap((pedido) => {
+        const dias = diasSinMovimiento(pedido, ahora) ?? 0;
+        return destinatarios.map((destinatario) => ({
+          destinatario,
+          tipo: "demora_paquete",
+          autor: AUTOR_SISTEMA,
+          caso_id: String(pedido.id),
+          extracto: `El paquete #${pedido.id} lleva ${dias} días sin movimiento y sigue abierto.`,
+          clave: claveDeDemora(pedido.id, pedido.ultimoMovimiento),
+        }));
+      }),
+      ...seguimientosVencidos.map((reporte) => ({
+        destinatario: reporte.tomadoPor!,
+        tipo: "seguimiento_vencido",
+        autor: AUTOR_SISTEMA,
+        seguimiento_id: reporte.id,
+        caso_id: reporte.casoId,
+        extracto: `Tu seguimiento del paquete #${reporte.casoId} lleva más de ${DIAS_PARA_ALERTA_SEGUIMIENTO} días abierto.`,
+        clave: claveDeSeguimiento(reporte.id, reporte.abiertoEn),
+      })),
+    ];
+    const falla = await insertarFilasSinDuplicar(TABLA_NOTIFICACIONES, filas, "destinatario,clave");
+    if (falla) console.error(`No se pudieron guardar las alertas operativas: ${falla}`);
+  } catch (error) {
+    // Una alerta no puede impedir que la campana muestre las menciones ya existentes.
+    console.error("No se pudieron generar las alertas operativas", error);
+  }
 }
 
 function recortar(texto: string, largo: number): string {

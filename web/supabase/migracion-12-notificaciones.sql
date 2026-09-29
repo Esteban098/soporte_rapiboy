@@ -1,8 +1,8 @@
 -- ---------------------------------------------------------------------------
 -- Notificaciones
 --
--- Avisos para una persona del equipo. Hoy hay un solo tipo: alguien la arrobó
--- en el comentario de un reporte de seguimiento. La campana de la barra
+-- Avisos para una persona del equipo: menciones, paquetes demorados y
+-- seguimientos vencidos. La campana de la barra
 -- superior lee las del usuario que tiene la sesión.
 --
 -- `destinatario` y `autor` son correos en minúsculas, el mismo identificador
@@ -23,12 +23,30 @@ create table if not exists public.notificaciones (
   seguimiento_id  uuid references public.seguimiento (id) on delete cascade,
   caso_id         text,
   extracto        text,
+  clave           text,
   leida_en        timestamptz
 );
 
+alter table public.notificaciones add column if not exists clave text;
+
 alter table public.notificaciones drop constraint if exists notificaciones_tipo_check;
 alter table public.notificaciones
-  add constraint notificaciones_tipo_check check (tipo in ('mencion'));
+  add constraint notificaciones_tipo_check
+  check (tipo in ('mencion', 'demora_paquete', 'seguimiento_vencido'));
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'notificaciones_destinatario_clave_key'
+      and conrelid = 'public.notificaciones'::regclass
+  ) then
+    alter table public.notificaciones
+      add constraint notificaciones_destinatario_clave_key unique (destinatario, clave);
+  end if;
+end;
+$$;
 
 -- La campana lista las últimas de una persona y cuenta las no leídas.
 create index if not exists notificaciones_destinatario_idx

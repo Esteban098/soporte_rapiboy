@@ -2,7 +2,12 @@
 
 import { modoDatos, TABLA_NOTIFICACIONES } from "@/lib/config";
 import type { Mencionable } from "@/lib/menciones";
-import { directorioDelEquipo, leerNotificaciones, type Notificacion } from "@/lib/notificaciones";
+import {
+  directorioDelEquipo,
+  generarAlertasOperativas,
+  leerNotificaciones,
+  type Notificacion,
+} from "@/lib/notificaciones";
 import { usuarioActual } from "@/lib/sesion";
 import { actualizarFilas } from "@/lib/supabase";
 
@@ -29,6 +34,7 @@ export async function bandejaNotificaciones(): Promise<Bandeja> {
   if (!quien || modoDatos() !== "supabase") return SIN_BANDEJA;
 
   try {
+    await generarAlertasOperativas();
     const leida = await leerNotificaciones(quien);
     return { items: leida.items, noLeidas: leida.noLeidas, disponible: !leida.sinTabla };
   } catch (error) {

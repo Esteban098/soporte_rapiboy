@@ -167,6 +167,17 @@ export function minutosAbierto(reporte: Seguimiento, ahora: number): number | nu
   return Math.max(0, Math.floor((ahora - reporte.abiertoEn.getTime()) / 60_000));
 }
 
+/** A partir de cuándo se avisa a quien tiene tomado un seguimiento abierto. */
+export const DIAS_PARA_ALERTA_SEGUIMIENTO = 3;
+
+/** Un aviso vencido solo tiene destinatario si el reporte fue tomado. */
+export function seguimientoVencido(reporte: Seguimiento, ahora = Date.now()): boolean {
+  return reporte.estado === "abierto" &&
+    Boolean(reporte.tomadoPor) &&
+    Boolean(reporte.abiertoEn) &&
+    ahora - reporte.abiertoEn!.getTime() > DIAS_PARA_ALERTA_SEGUIMIENTO * 24 * 60 * 60 * 1000;
+}
+
 export function resumirSeguimientos(reportes: Seguimiento[]): ResumenSeguimiento {
   const tiempos = reportes
     .map(tiempoResolucionMinutos)

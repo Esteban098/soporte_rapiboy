@@ -148,7 +148,14 @@ test("la migración y la instalación nueva usan la misma rotación y conservan 
   assert.doesNotMatch(migracion, /select \*\s+from public\.mover_a_historico/);
 });
 
-test("Siniestrados permite agregar un caso con el mismo editor de Mensual", () => {
+test("las altas distinguen paquete, información de tienda y siniestro", () => {
   const pagina = readFileSync(new URL("../src/app/(tablero)/siniestrados/page.tsx", import.meta.url), "utf8");
+  const editor = readFileSync(new URL("../src/components/EditorCaso.tsx", import.meta.url), "utf8");
+  const acciones = readFileSync(new URL("../src/app/casos.ts", import.meta.url), "utf8");
   assert.match(pagina, /<PanelCasos\s+editable/);
+  assert.match(editor, /Agregar paquete siniestrado/);
+  assert.match(editor, /Información de tienda/);
+  assert.match(editor, /!nuevo && !mostrarSiniestro/);
+  assert.match(acciones, /export async function agregarPaquete/);
+  assert.match(acciones, /const columnas = esSiniestro \? aColumnasSiniestro\(datos, quien\) : \{\}/);
 });

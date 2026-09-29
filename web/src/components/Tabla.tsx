@@ -90,7 +90,7 @@ export function Tabla({
   /** Cuántas filas mostrar de entrada. El resto se despliega a pedido. */
   limite?: number;
   /**
-   * Habilita agregar, editar y borrar casos.
+   * Habilita agregar paquetes y editar su información manual.
    *
    * Va como bandera y no como funciones porque esto se usa desde componentes de
    * servidor, y las funciones no cruzan esa frontera. La tabla se encarga del
@@ -233,7 +233,7 @@ export function Tabla({
             className={tabla.agregar}
                         onClick={() => setEdicion({ modo: "nuevo" })}
           >
-            + Agregar caso
+            {mostrarCamposSiniestro ? "+ Agregar paquete siniestrado" : "+ Agregar paquete"}
           </button>
         ) : null}
 
@@ -380,9 +380,11 @@ export function Tabla({
                         type="button"
                         className={tabla.editar}
                         onClick={() => setEdicion(edicionDe(fila))}
-                        aria-label={`Editar el caso ${fila.id}`}
+                        aria-label={mostrarCamposSiniestro
+                          ? `Editar el siniestro ${fila.id}`
+                          : `Editar la información de tienda del paquete ${fila.id}`}
                       >
-                        Editar
+                        {mostrarCamposSiniestro ? "Editar siniestro" : "Información de tienda"}
                       </button>
                     </td>
                   ) : null}

@@ -3,25 +3,25 @@
 import { updateTag } from "next/cache";
 import { TABLA_MENSUAL, TABLA_MENSUAL_HISTORICO } from "@/lib/config";
 import { usuarioActual } from "@/lib/sesion";
-import { actualizarFila, actualizarFilaSi, borrarFila, insertarFila } from "@/lib/supabase";
+import { actualizarFila, borrarFila, consultarFresco, insertarFila, TablaFaltante } from "@/lib/supabase";
 import { estadoActualDelSistema } from "@/lib/asistente-datos";
 
 /**
- * Alta, edición y baja de casos desde el tablero.
+ * Alta, edición y baja de paquetes desde el tablero.
  *
  * Solo se tocan las columnas de soporte, nunca las del sistema. No es una
  * restricción de permisos sino de sentido: estado, repartidor, comercio y
  * visitas los reescribe n8n en cada corrida, así que editarlos acá duraría
  * hasta el próximo refresco y sería una mentira mientras tanto.
  *
- * Por eso alcanza con el id para dar de alta un caso. Si el pedido existe en el
+ * Por eso alcanza con el ID para dar de alta un paquete. Si el pedido existe en el
  * sistema, el refresco de estados lo encuentra en la tabla, lo consulta y le
- * completa el resto solo. El equipo carga lo que la tienda pasó; el flujo pone
- * lo demás.
+ * completa el resto solo. La información de tienda y la del siniestro se
+ * editan después, en acciones separadas.
  */
 
-/** Lo que el equipo puede escribir de un caso. */
-export type DatosCaso = {
+/** Información manual que el equipo puede asociar a un paquete. */
+export type DatosPaquete = {
   reclamoTienda: string;
   ubicacion: string;
   telefono: string;
@@ -42,10 +42,6 @@ const MOTIVOS_SINIESTRO_VALIDOS = new Set([
   "Otros",
 ]);
 
-function tieneDatosSiniestro(datos: DatosCaso): boolean {
-  return Boolean(datos.motivoSiniestro.trim() || datos.comentarioSiniestro.trim());
-}
-
 async function validarEstadoSiniestro(id: number): Promise<string | null> {
   const sistema = await estadoActualDelSistema(id);
   if (!sistema.ok) return sistema.error;
@@ -61,9 +57,9 @@ function texto(valor: string): string | null {
   return limpio === "" ? null : limpio;
 }
 
-function validar(id: number, datos: DatosCaso): string | null {
+function validar(id: number, datos: DatosPaquete): string | null {
   if (!Number.isInteger(id) || id <= 0) {
-    return "El id del viaje tiene que ser un número entero positivo.";
+    return "El ID del paquete tiene que ser un número entero positivo.";
   }
   if (!AVISOS_VALIDOS.has(datos.aviso.trim().toUpperCase())) {
     return "El aviso solo puede quedar vacío, en NO AVISADO o en AVISADO.";
@@ -74,13 +70,8 @@ function validar(id: number, datos: DatosCaso): string | null {
   return null;
 }
 
-/**
- * Las columnas que se escriben, más el rastro de quién lo hizo.
- *
- * `caso`, `informacion_enviar` e `ids` no están y no pueden estar: son
- * generadas, y Postgres rechaza el pedido si alguien las manda.
- */
-function aColumnas(datos: DatosCaso, quien: string) {
+/** Información de tienda: se edita por separado, nunca durante el alta. */
+function aColumnasInformacionTienda(datos: DatosPaquete, quien: string) {
   return {
     // En mayúsculas, como venía del libro: si no, "Numero alterno" y "NUMERO
     // ALTERNO" cuentan como dos tipificaciones distintas en el tablero.
@@ -88,6 +79,14 @@ function aColumnas(datos: DatosCaso, quien: string) {
     ubicacion: texto(datos.ubicacion),
     telefono: texto(datos.telefono),
     aviso: texto(datos.aviso.toUpperCase()),
+    editado_por: quien,
+    editado_en: new Date().toISOString(),
+  };
+}
+
+/** Campos propios del alta rápida de un siniestro. */
+function aColumnasSiniestro(datos: DatosPaquete, quien: string) {
+  return {
     motivo_siniestro: texto(datos.motivoSiniestro),
     comentario_siniestro: texto(datos.comentarioSiniestro),
     editado_por: quien,
@@ -95,28 +94,57 @@ function aColumnas(datos: DatosCaso, quien: string) {
   };
 }
 
-export async function agregarCaso(id: number, datos: DatosCaso, validarSiniestro = false): Promise<Resultado> {
+/** La fila puede estar en la ventana operativa o ya archivada. */
+async function idYaCargado(id: number): Promise<boolean> {
+  for (const tabla of [TABLA_MENSUAL, TABLA_MENSUAL_HISTORICO]) {
+    try {
+      const filas = await consultarFresco<{ id: number }>(tabla, {
+        id: `eq.${id}`,
+        limit: "1",
+      });
+      if (filas.length > 0) return true;
+    } catch (error) {
+      // Una instalación anterior puede no tener todavía la tabla histórica.
+      if (!(error instanceof TablaFaltante)) throw error;
+    }
+  }
+  return false;
+}
+
+export async function agregarPaquete(id: number, datos: DatosPaquete, esSiniestro = false): Promise<Resultado> {
   const quien = await usuarioActual();
   if (!quien) return { ok: false, error: "No tenés permiso para editar." };
 
   const invalido = validar(id, datos);
   if (invalido) return { ok: false, error: invalido };
-  if (validarSiniestro && tieneDatosSiniestro(datos)) {
-    return { ok: false, error: "Primero agregá el ID y actualizá Siniestrados; después podrás cargar motivo y comentario cuando el estado esté validado." };
+
+  if (await idYaCargado(id)) {
+    return { ok: false, error: "Ese paquete ya está cargado en Mensual o en el Histórico." };
   }
 
-  const falla = await insertarFila(TABLA_MENSUAL, { id, ...aColumnas(datos, quien) });
+  if (esSiniestro) {
+    const sistema = await estadoActualDelSistema(id);
+    if (!sistema.ok) return { ok: false, error: sistema.error };
+    if (sistema.estado.trim().toLowerCase() !== "siniestrado") {
+      return { ok: false, error: `El sistema informa el estado «${sistema.estado}», no «Siniestrado».` };
+    }
+  }
+
+  // Un alta común guarda solo el ID. La información de tienda se completa una
+  // vez que el paquete ya existe, desde su acción específica en la tabla.
+  const columnas = esSiniestro ? aColumnasSiniestro(datos, quien) : {};
+  const falla = await insertarFila(TABLA_MENSUAL, { id, ...columnas });
   if (falla) return { ok: false, error: falla };
 
   updateTag("datos");
   return { ok: true };
 }
 
-export async function editarCaso(
+export async function editarInformacionPaquete(
   id: number,
-  datos: DatosCaso,
+  datos: DatosPaquete,
   origen: "mensual" | "historico" = "mensual",
-  validarSiniestro = false,
+  esSiniestro = false,
 ): Promise<Resultado> {
   const quien = await usuarioActual();
   if (!quien) return { ok: false, error: "No tenés permiso para editar." };
@@ -125,24 +153,13 @@ export async function editarCaso(
   if (invalido) return { ok: false, error: invalido };
 
   const tabla = origen === "historico" ? TABLA_MENSUAL_HISTORICO : TABLA_MENSUAL;
-  if (validarSiniestro) {
+  if (esSiniestro) {
     const estadoSistema = await validarEstadoSiniestro(id);
     if (estadoSistema) return { ok: false, error: estadoSistema };
-    const resultado = await actualizarFilaSi(
-      tabla,
-      id,
-      { estado: "ilike.Siniestrado" },
-      aColumnas(datos, quien),
-    );
-    if ("error" in resultado) return { ok: false, error: resultado.error };
-    if (resultado.filas !== 1) {
-      return { ok: false, error: "La plataforma ya no tiene el paquete como Siniestrado. Actualizá la tabla." };
-    }
-    updateTag("datos");
-    return { ok: true };
   }
 
-  const falla = await actualizarFila(tabla, id, aColumnas(datos, quien));
+  const columnas = esSiniestro ? aColumnasSiniestro(datos, quien) : aColumnasInformacionTienda(datos, quien);
+  const falla = await actualizarFila(tabla, id, columnas);
   if (falla) return { ok: false, error: falla };
 
   updateTag("datos");
@@ -150,13 +167,13 @@ export async function editarCaso(
 }
 
 /**
- * Saca el caso de la tabla.
+ * Saca el paquete de la tabla.
  *
  * Ojo con lo que significa: si el pedido sigue existiendo en el sistema, la
  * ingesta lo va a volver a traer mañana, pero sin lo que soporte haya cargado.
  * Borrar sirve para sacar algo que no correspondía, no para archivarlo.
  */
-export async function borrarCaso(id: number): Promise<Resultado> {
+export async function quitarPaquete(id: number): Promise<Resultado> {
   const quien = await usuarioActual();
   if (!quien) return { ok: false, error: "No tenés permiso para editar." };
   if (!Number.isInteger(id) || id <= 0) return { ok: false, error: "Id inválido." };

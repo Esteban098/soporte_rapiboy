@@ -3,14 +3,19 @@
 import { useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { agregarCaso, borrarCaso, editarCaso, type DatosCaso } from "@/app/casos";
+import {
+  agregarPaquete,
+  editarInformacionPaquete,
+  quitarPaquete,
+  type DatosPaquete,
+} from "@/app/casos";
 import { MOTIVOS_SINIESTRO, type OrigenCobro } from "@/lib/siniestrados";
 import estilos from "./editor-caso.module.css";
 
-/** Qué caso se está tocando: uno existente, o uno nuevo. */
-export type Edicion = { modo: "nuevo" } | { modo: "editar"; id: number; datos: DatosCaso };
+/** Qué paquete se está tocando: uno existente, o uno nuevo. */
+export type Edicion = { modo: "nuevo" } | { modo: "editar"; id: number; datos: DatosPaquete };
 
-const VACIO: DatosCaso = {
+const VACIO: DatosPaquete = {
   reclamoTienda: "",
   ubicacion: "",
   telefono: "",
@@ -38,7 +43,7 @@ const TIPIFICACIONES = [
 ];
 
 /**
- * Alta y edición de un caso.
+ * Alta de paquetes y edición de su información manual.
  *
  * Solo se editan las columnas que carga soporte. Las del sistema —estado,
  * repartidor, comercio, visitas— se muestran como lo que son: algo que llena el
@@ -60,13 +65,13 @@ export function EditorCaso({
 }) {
   const nuevo = edicion.modo === "nuevo";
   const [id, setId] = useState(nuevo ? "" : String(edicion.id));
-  const [datos, setDatos] = useState<DatosCaso>(nuevo ? VACIO : edicion.datos);
+  const [datos, setDatos] = useState<DatosPaquete>(nuevo ? VACIO : edicion.datos);
   const [error, setError] = useState<string | null>(null);
   const [confirmando, setConfirmando] = useState(false);
   const [guardando, iniciar] = useTransition();
   const router = useRouter();
 
-  const campo = (clave: keyof DatosCaso) => ({
+  const campo = (clave: keyof DatosPaquete) => ({
     value: datos[clave],
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setDatos((d) => ({ ...d, [clave]: e.target.value })),
@@ -77,8 +82,8 @@ export function EditorCaso({
       setError(null);
       const numero = Number(id.trim());
       const resultado = nuevo
-        ? await agregarCaso(numero, datos, mostrarSiniestro)
-        : await editarCaso(edicion.id, datos, origen, mostrarSiniestro);
+        ? await agregarPaquete(numero, datos, mostrarSiniestro)
+        : await editarInformacionPaquete(edicion.id, datos, origen, mostrarSiniestro);
 
       if (!resultado.ok) {
         setError(resultado.error);
@@ -92,7 +97,7 @@ export function EditorCaso({
   function borrar() {
     iniciar(async () => {
       setError(null);
-      const resultado = await borrarCaso(Number(id));
+      const resultado = await quitarPaquete(Number(id));
       if (!resultado.ok) {
         setError(resultado.error);
         return;
@@ -103,17 +108,25 @@ export function EditorCaso({
   }
 
   return createPortal(
-    <div className={estilos.fondo} role="dialog" aria-modal="true" aria-label={nuevo ? "Agregar caso" : "Editar caso"}>
+    <div className={estilos.fondo} role="dialog" aria-modal="true" aria-label={nuevo ? "Agregar paquete" : "Editar información del paquete"}>
       <div className={estilos.panel}>
-        <h2 className={estilos.titulo}>{nuevo ? "Agregar un caso" : `Caso ${edicion.id}`}</h2>
+        <h2 className={estilos.titulo}>
+          {nuevo
+            ? mostrarSiniestro ? "Agregar paquete siniestrado" : "Agregar paquete"
+            : mostrarSiniestro ? `Información del siniestro · ${edicion.id}` : `Información de tienda · ${edicion.id}`}
+        </h2>
         <p className={estilos.nota}>
           {nuevo
-            ? "Alcanza con el id del viaje. El estado, el repartidor y el comercio los completa el refresco de estados cuando encuentre el pedido en el sistema."
-            : "Se editan solo los datos que aporta la tienda. El resto lo reescribe n8n en cada corrida."}
+            ? mostrarSiniestro
+              ? "Ingresá el ID del paquete. Se valida que RapiboyData lo informe como Siniestrado y que no esté cargado; el refresco completa los datos operativos."
+              : "Ingresá solo el ID del paquete. El refresco completa estado, repartidor y tienda; la información de tienda se carga después desde la fila del paquete."
+            : mostrarSiniestro
+              ? "Se editan únicamente el motivo y el comentario del siniestro."
+              : "Cargá solamente la información aportada por la tienda. El resto lo actualiza n8n."}
         </p>
 
         <label className={estilos.campo}>
-          <span className={estilos.etiqueta}>Id del viaje</span>
+          <span className={estilos.etiqueta}>ID del paquete</span>
           <input
             className={estilos.entrada}
             value={id}
@@ -124,39 +137,45 @@ export function EditorCaso({
           />
         </label>
 
-        <label className={estilos.campo}>
-          <span className={estilos.etiqueta}>Reclamo de tienda</span>
-          <input
-            className={estilos.entrada}
-            list="tipificaciones-reclamo"
-            {...campo("reclamoTienda")}
-            placeholder="Elegí una o escribí otra"
-          />
-          <datalist id="tipificaciones-reclamo">
-            {TIPIFICACIONES.map((t) => (
-              <option key={t} value={t} />
-            ))}
-          </datalist>
-        </label>
+        {/* La información de tienda pertenece a un paquete existente. El alta
+            normal solo crea su ID; Siniestrados usa su propio bloque manual. */}
+        {!nuevo && !mostrarSiniestro ? (
+          <>
+            <label className={estilos.campo}>
+              <span className={estilos.etiqueta}>Reclamo de tienda</span>
+              <input
+                className={estilos.entrada}
+                list="tipificaciones-reclamo"
+                {...campo("reclamoTienda")}
+                placeholder="Elegí una o escribí otra"
+              />
+              <datalist id="tipificaciones-reclamo">
+                {TIPIFICACIONES.map((t) => (
+                  <option key={t} value={t} />
+                ))}
+              </datalist>
+            </label>
 
-        <label className={estilos.campo}>
-          <span className={estilos.etiqueta}>Ubicación</span>
-          <input className={estilos.entrada} {...campo("ubicacion")} placeholder="Link de mapa" />
-        </label>
+            <label className={estilos.campo}>
+              <span className={estilos.etiqueta}>Ubicación</span>
+              <input className={estilos.entrada} {...campo("ubicacion")} placeholder="Link de mapa" />
+            </label>
 
-        <label className={estilos.campo}>
-          <span className={estilos.etiqueta}>Teléfono o indicación</span>
-          <input className={estilos.entrada} {...campo("telefono")} placeholder="55 1234 5678" />
-        </label>
+            <label className={estilos.campo}>
+              <span className={estilos.etiqueta}>Teléfono o indicación</span>
+              <input className={estilos.entrada} {...campo("telefono")} placeholder="55 1234 5678" />
+            </label>
 
-        <label className={estilos.campo}>
-          <span className={estilos.etiqueta}>Aviso</span>
-          <select className={estilos.entrada} {...campo("aviso")}>
-            <option value="">Sin datos para avisar</option>
-            <option value="NO AVISADO">NO AVISADO</option>
-            <option value="AVISADO">AVISADO</option>
-          </select>
-        </label>
+            <label className={estilos.campo}>
+              <span className={estilos.etiqueta}>Aviso</span>
+              <select className={estilos.entrada} {...campo("aviso")}>
+                <option value="">Sin datos para avisar</option>
+                <option value="NO AVISADO">NO AVISADO</option>
+                <option value="AVISADO">AVISADO</option>
+              </select>
+            </label>
+          </>
+        ) : null}
 
         {mostrarSiniestro ? (
           <>
@@ -189,13 +208,13 @@ export function EditorCaso({
         {confirmando ? (
           <div className={estilos.confirmar}>
             <p className={estilos.confirmarTexto}>
-              Se borra el caso {edicion.modo === "editar" ? edicion.id : ""} y lo que la tienda
-              aportó. Si el pedido sigue vivo en el sistema, la ingesta lo va a traer de nuevo
+              Se borra el paquete {edicion.modo === "editar" ? edicion.id : ""} y su información manual.
+              Si el pedido sigue vivo en el sistema, la ingesta lo va a traer de nuevo
               mañana, pero sin estos datos.
             </p>
             <div className={estilos.acciones}>
               <button type="button" className={estilos.peligro} onClick={borrar} disabled={guardando}>
-                Sí, borrarlo
+                Sí, quitarlo
               </button>
               <button type="button" className={estilos.secundario} onClick={() => setConfirmando(false)}>
                 Volver

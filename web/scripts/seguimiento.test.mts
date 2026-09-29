@@ -6,6 +6,7 @@ import {
   minutosAbierto,
   parsearSeguimiento,
   resumirSeguimientos,
+  seguimientoVencido,
   tiempoResolucionMinutos,
   type FilaSeguimiento,
   type Seguimiento,
@@ -71,6 +72,12 @@ const cerrado = parsearSeguimiento(
 assert.equal(etapaDe(cerrado), "cerrado");
 assert.equal(minutosAbierto(cerrado, Date.now()), null);
 assert.equal(tiempoResolucionMinutos(cerrado), 150);
+
+// La alerta vencida exige más de tres días abiertos y un responsable tomado.
+const cuatroDias = Date.parse("2026-09-11T06:00:00.000Z");
+assert.equal(seguimientoVencido(tomado, cuatroDias), true);
+assert.equal(seguimientoVencido({ ...tomado, tomadoPor: null }, cuatroDias), false);
+assert.equal(seguimientoVencido(cerrado, cuatroDias), false);
 
 assert.deepEqual(resumirSeguimientos([legado, tomado, cerrado]), {
   total: 3,
