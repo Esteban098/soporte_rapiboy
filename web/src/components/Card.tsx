@@ -88,11 +88,23 @@ export function Kpi({
 
   return (
     <div className={`${estilos.kpi} ${claseFondo}`}>
+      <span className={estilos.kpiIcono} aria-hidden="true">{iconoDe(etiqueta)}</span>
       <div className={estilos.kpiLabel}>{etiqueta}</div>
       <div className={`${estilos.kpiValue} ${claseValor}`}>{valor}</div>
       {nota ? <div className={estilos.kpiNote}>{nota}</div> : null}
     </div>
   );
+}
+
+/** Íconos de apoyo, no de navegación: permiten escanear el tablero sin texto repetido. */
+function iconoDe(etiqueta: string) {
+  const clave = etiqueta.toLocaleLowerCase("es");
+  const comun = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8 };
+  if (/(driver|repartidor|ruta)/.test(clave)) return <svg {...comun}><circle cx="7" cy="17" r="2.5" /><circle cx="17" cy="17" r="2.5" /><path d="M7 17h4l3-7h3l2 7M10 10h4" /></svg>;
+  if (/(entreg|cerrad|resuelt|cobrad|bodega)/.test(clave)) return <svg {...comun}><path d="m5 12 4 4L19 6" /><path d="M4 4h16v16H4z" /></svg>;
+  if (/(abiert|demor|sin entregar|sin respuesta|pendiente)/.test(clave)) return <svg {...comun}><path d="M12 3 21 20H3Z" /><path d="M12 9v4m0 3h.01" /></svg>;
+  if (/(tienda|seller|directorio|grupo)/.test(clave)) return <svg {...comun}><path d="M4 10h16v10H4zM3 10l2-6h14l2 6M8 20v-6h4v6" /></svg>;
+  return <svg {...comun}><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 15v-3m4 3V8m4 7v-5" /></svg>;
 }
 
 /** Estado del paquete: texto con su color, sin pill. */

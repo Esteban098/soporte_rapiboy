@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cambiarEstado, tomarSeguimiento, type Resultado } from "@/app/seguimiento";
 import { EditorReporte } from "./EditorReporte";
 import { NombreTienda } from "./ColorTiendas";
+import { GraficosSeguimiento } from "./GraficosSeguimiento";
 import { enlaceViaje } from "@/lib/enlaces";
 import { duracion, fechaHoraArgentina, numero } from "@/lib/formato";
 import { aliasDeCorreo, tramosConMenciones } from "@/lib/menciones";
@@ -141,6 +142,8 @@ export function TableroSeguimiento({
       {editando ? <EditorReporte reporte={editando} alCerrar={() => setEditando(null)} /> : null}
 
       <Resumen resumen={resumen} mios={yo ? mios : null} />
+
+      <GraficosSeguimiento reportes={visibles} />
 
       <div className={estilos.herramientas} data-noimprimir>
         <input

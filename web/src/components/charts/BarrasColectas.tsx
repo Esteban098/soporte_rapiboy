@@ -87,7 +87,7 @@ export function BarrasColectas({
           />
           <Bar
             dataKey="colectas"
-            radius={[3, 3, 0, 0]}
+            radius={[9, 9, 0, 0]}
             onClick={(entrada: unknown) => {
               const punto = datoTocado<FilaDia>(entrada);
               if (punto) abrir(punto);

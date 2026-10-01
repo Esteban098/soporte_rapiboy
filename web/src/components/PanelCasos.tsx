@@ -5,6 +5,7 @@ import { columnasPara, filasDePedidos, FILTROS_PEDIDO } from "@/lib/filas";
 import { Card } from "./Card";
 import { Tabla } from "./Tabla";
 import { GraficoCasos } from "./charts/GraficoCasos";
+import estilos from "./ui.module.css";
 
 /**
  * Un listado de casos con su gráfico.
@@ -27,6 +28,7 @@ export function PanelCasos({
   soloEdicion = false,
   columnasExtra = [],
   cobros,
+  dimensionInicial,
 }: {
   id: string;
   titulo: string;
@@ -48,37 +50,45 @@ export function PanelCasos({
   soloEdicion?: boolean;
   columnasExtra?: Columna[];
   cobros?: OrigenCobro;
+  /** Agrupación inicial del gráfico, sin alterar los controles disponibles. */
+  dimensionInicial?: string;
 }) {
   const columnas = [...columnasPara(casos.campos), ...columnasExtra];
   const filas = filasDadas ?? filasDePedidos(casos.pedidos);
 
   return (
-    <>
-      <Card titulo={tituloGrafico} nota={notaGrafico}>
-        <GraficoCasos
-          id={id}
-          filas={filas}
-          columnas={columnas}
-          filtros={FILTROS_PEDIDO}
-          titulo={titulo}
-        />
-      </Card>
-
-      <Card titulo={titulo} nota={nota}>
-        <Tabla
-          id={id}
-          titulo={titulo}
-          columnas={columnas}
-          filas={filas}
-          filtros={FILTROS_PEDIDO}
-          ordenInicial={{ clave: "quieto", asc: false }}
-          limite={limite}
-          vacio={vacio}
-          editable={editable}
-          soloEdicion={soloEdicion}
-          cobros={cobros}
-        />
-      </Card>
-    </>
+    <Card>
+      <div className={estilos.datosDivididos}>
+        <section>
+          <h2 className={estilos.panelDatosTitulo}>{tituloGrafico}</h2>
+          <p className={estilos.panelDatosNota}>{notaGrafico}</p>
+          <GraficoCasos
+            id={id}
+            filas={filas}
+            columnas={columnas}
+            filtros={FILTROS_PEDIDO}
+            titulo={titulo}
+            dimensionInicial={dimensionInicial}
+          />
+        </section>
+        <section>
+          <h2 className={estilos.panelDatosTitulo}>{titulo}</h2>
+          {nota ? <p className={estilos.panelDatosNota}>{nota}</p> : null}
+          <Tabla
+            id={id}
+            titulo={titulo}
+            columnas={columnas}
+            filas={filas}
+            filtros={FILTROS_PEDIDO}
+            ordenInicial={{ clave: "quieto", asc: false }}
+            limite={limite}
+            vacio={vacio}
+            editable={editable}
+            soloEdicion={soloEdicion}
+            cobros={cobros}
+          />
+        </section>
+      </div>
+    </Card>
   );
 }

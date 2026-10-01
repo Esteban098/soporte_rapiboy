@@ -7,10 +7,10 @@
 
 .caja {
   max-width: 520px;
-  background: var(--surface);
-  border: 1px solid var(--rule-soft);
+  background: var(--glass);
+  border: 1px solid var(--glass-edge);
   border-radius: var(--radio);
-  box-shadow: var(--shadow);
+  box-shadow: var(--glass-shadow);
   padding: 28px 28px 24px;
 }
 

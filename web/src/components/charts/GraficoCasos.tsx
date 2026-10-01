@@ -55,6 +55,7 @@ export function GraficoCasos({
   columnas,
   filtros,
   titulo,
+  dimensionInicial,
 }: {
   id: string;
   filas: Fila[];
@@ -62,6 +63,7 @@ export function GraficoCasos({
   filtros: Filtro[];
   /** Cómo se llama este listado en la pestaña de detalle. */
   titulo?: string;
+  dimensionInicial?: string;
 }) {
   const disponibles = new Set(columnas.map((c) => c.clave));
   const dimensiones = DIMENSIONES.filter((d) => disponibles.has(d.clave));
@@ -75,6 +77,7 @@ export function GraficoCasos({
       dimensiones={dimensiones}
       medidas={MEDIDAS}
       titulo={titulo}
+      dimensionInicial={dimensionInicial}
     />
   );
 }

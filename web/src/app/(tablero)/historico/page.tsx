@@ -178,7 +178,7 @@ export default async function Historico({
           </Card>
 
           <Card
-            titulo="Sirve pedirle datos a la tienda"
+            titulo="Efectividad de datos"
             nota="Qué parte terminó entregada, mes a mes, según si la tienda aportó algo o no. Lo que convence no es un mes, es que la distancia se sostenga."
           >
             <LineasEntrega datos={serie} detalle={detalleCasos} />

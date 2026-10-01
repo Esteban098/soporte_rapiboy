@@ -6,7 +6,7 @@
   z-index: 120;
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding: 18px;
   background: color-mix(in srgb, var(--plane) 88%, transparent);
   overflow-y: auto;
   animation: aparecer var(--dur) var(--ease-salida) both;
@@ -30,7 +30,7 @@
 
   width: min(440px, 100%);
   border-radius: var(--radio);
-  padding: 24px 26px 22px;
+  padding: 18px 20px 17px;
   animation: subir var(--dur-larga) var(--ease-salida) both;
 }
 
@@ -52,14 +52,14 @@
   letter-spacing: -0.022em;
   font-size: var(--type-title-lg);
   color: var(--ink);
-  margin: 0 0 6px;
+  margin: 0 0 4px;
 }
 
 .nota {
   font-size: 12.5px;
   color: var(--muted);
   line-height: 1.5;
-  margin: 0 0 16px;
+  margin: 0 0 11px;
 }
 
 .campo {
@@ -80,7 +80,7 @@
   background: var(--surface-2);
   border: 1px solid var(--rule);
   border-radius: var(--radio-2);
-  padding: 8px 12px;
+  padding: 7px 10px;
   font-family: var(--sans);
   font-size: var(--type-body-md);
   color: var(--ink);
@@ -102,7 +102,7 @@
 
 .error {
   margin: 0 0 12px;
-  padding: 10px 13px;
+  padding: 8px 10px;
   border-radius: var(--radio-2);
   background: var(--critical-soft);
   font-size: var(--type-label-md);
@@ -122,7 +122,7 @@
 .borrar,
 .peligro {
   border-radius: var(--radio-3);
-  padding: 8px 17px;
+  padding: 7px 13px;
   font-family: var(--sans);
   font-weight: 500;
   font-size: 13px;
@@ -180,7 +180,7 @@
 
 .confirmar {
   margin-top: 14px;
-  padding: 13px 15px;
+  padding: 10px 12px;
   border-radius: var(--radio-2);
   border: 0;
   background: var(--critical-soft);

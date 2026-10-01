@@ -22,7 +22,7 @@
 .tablero {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -49,8 +49,8 @@
 .resumen {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 18px 20px;
+  gap: 10px;
+  padding: 14px 16px;
   background: var(--glass);
   border: 1px solid var(--glass-edge);
   border-radius: var(--radio);
@@ -82,7 +82,7 @@
 .cifra dd {
   margin: 0;
   font-family: var(--display);
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.02em;
@@ -150,7 +150,7 @@
   background: none;
   border: none;
   border-radius: calc(var(--radio-2) - 3px);
-  padding: 6px 14px;
+  padding: 5px 11px;
   font-family: var(--sans);
   font-weight: 500;
   font-size: 12.5px;
@@ -185,7 +185,7 @@
 
 .vacio {
   margin: 0;
-  padding: 40px 4px;
+  padding: 28px 4px;
   color: var(--muted);
   font-size: 14.5px;
   text-align: center;
@@ -212,7 +212,7 @@
   gap: 10px;
   width: 100%;
   margin: 6px 0;
-  padding: 8px 10px;
+  padding: 6px 8px;
   background: none;
   border: 0;
   border-radius: var(--radio-2);
@@ -277,8 +277,8 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
-  gap: 12px;
-  padding: 2px 0 18px;
+  gap: 9px;
+  padding: 2px 0 12px;
 }
 
 .columna {
@@ -286,7 +286,7 @@
   flex-direction: column;
   gap: 8px;
   min-width: 0;
-  padding: 10px;
+  padding: 8px;
   background: var(--surface-2);
   border-radius: var(--radio-2);
 }
@@ -329,7 +329,7 @@
 .tarjetas {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 /* --- tarjeta --- */
@@ -340,7 +340,7 @@
   flex-direction: column;
   gap: 7px;
   min-width: 0;
-  padding: 10px 10px 6px 15px;
+  padding: 8px 8px 5px 12px;
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--rule-soft);
@@ -431,7 +431,7 @@
 
 .texto {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 12.5px;
   line-height: 1.45;
   color: var(--ink);
   white-space: pre-wrap;
@@ -529,7 +529,7 @@
   align-items: center;
   gap: 7px;
   min-width: 0;
-  padding: 3px 10px 3px 7px;
+  padding: 2px 8px 2px 6px;
   border-radius: var(--radio-3);
   font-size: 12.5px;
   color: var(--ink-2);

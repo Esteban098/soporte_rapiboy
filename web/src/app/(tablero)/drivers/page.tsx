@@ -8,7 +8,7 @@ import { fechaHoraMexico, resumirDirectorio } from "@/lib/directorio";
 import { numero } from "@/lib/formato";
 import { TablaFaltante } from "@/lib/supabase";
 
-export const metadata = { title: "Directorio · Drivers" };
+export const metadata = { title: "Base de datos · Drivers" };
 
 export default async function Drivers() {
   if (modoDatos() !== "supabase") return <SinBase />;
@@ -30,25 +30,21 @@ export default async function Drivers() {
     asignacion: driver.asignacion === "MANUAL" ? "Manual" : driver.asignacion === "AUTOMATICO" ? "Automática" : "",
     condicion: driver.condicion,
     flotilla: driver.flotilla,
-    ultimaReserva: fechaHoraMexico(driver.ultimaReserva),
     labels: driver.labelsWaha.map((label) => label.name).join(", "),
     ubicacion: driver.ubicacionManual,
     ubicacionManual: driver.ubicacionManual,
     latitudManual: driver.latitudManual,
     longitudManual: driver.longitudManual,
-    coordenadas: driver.latitudManual != null && driver.longitudManual != null
-      ? `${driver.latitudManual}, ${driver.longitudManual}`
-      : "",
     actualizado: fechaHoraMexico(driver.actualizadoEn),
   }));
 
   return (
     <>
       <PageHead
-        eyebrow="Directorio · México"
+        eyebrow="Base de datos · México"
         titulo="Drivers"
         flujo="directorio"
-        dek="Repartidores activos sincronizados desde Rapiboy, con su grupo de WhatsApp y la ubicación manual tomada del KMZ."
+        dek="Repartidores activos, vínculo de WhatsApp y ubicación operativa."
       />
 
       <div className={estilos.kpis}>
@@ -59,12 +55,13 @@ export default async function Drivers() {
       </div>
 
       <div className={estilos.stack}>
-        <Card titulo="Directorio de drivers" nota="La dirección del sistema y la ubicación manual del KMZ son datos separados.">
+        <Card titulo="Base de datos · drivers" nota="Vista operativa de vínculo, condición y ubicación. Ordená o filtrá antes de abrir una edición.">
           <Tabla
             id="directorio-drivers"
-            titulo="Directorio · Drivers"
+            titulo="Base de datos · Drivers"
             filas={filas}
             limite={20}
+            compacta
             ordenInicial={{ clave: "driver", asc: true }}
             filtros={[
               { clave: "whatsapp", etiqueta: "WhatsApp" },
@@ -78,13 +75,9 @@ export default async function Drivers() {
               { clave: "driver", titulo: "Driver", tipo: "texto" },
               { clave: "whatsapp", titulo: "WhatsApp", tipo: "texto" },
               { clave: "grupo", titulo: "Grupo", tipo: "texto" },
-              { clave: "asignacion", titulo: "Asignación", tipo: "texto" },
               { clave: "condicion", titulo: "Condición", tipo: "texto" },
               { clave: "flotilla", titulo: "Flotilla", tipo: "texto" },
-              { clave: "labels", titulo: "Labels WAHA", tipo: "texto" },
               { clave: "ubicacion", titulo: "Ubicación manual", tipo: "ubicacionDriver" },
-              { clave: "coordenadas", titulo: "Coordenadas", tipo: "texto" },
-              { clave: "ultimaReserva", titulo: "Última reserva", tipo: "texto" },
               { clave: "actualizado", titulo: "Actualizado", tipo: "texto" },
             ]}
             vacio="No hay drivers activos sincronizados."
@@ -98,7 +91,7 @@ export default async function Drivers() {
 function SinBase() {
   return (
     <>
-      <PageHead eyebrow="Directorio · México" titulo="Drivers" flujo="directorio" />
+      <PageHead eyebrow="Base de datos · México" titulo="Drivers" flujo="directorio" />
       <Callout tono="warning" titulo="La plataforma no está usando Supabase">
         El directorio operativo solo está disponible con la base de Supabase activa.
       </Callout>
@@ -109,7 +102,7 @@ function SinBase() {
 function SinTablas() {
   return (
     <>
-      <PageHead eyebrow="Directorio · México" titulo="Drivers" flujo="directorio" />
+      <PageHead eyebrow="Base de datos · México" titulo="Drivers" flujo="directorio" />
       <Callout tono="warning" titulo="Falta crear el directorio">
         Ejecutá en Supabase <code>web/supabase/migracion-17-directorio-activos-whatsapp.sql</code>, las migraciones 24 y 25 (especialmente <code>web/supabase/migracion-25-drivers-activos.sql</code>) y después corré el flujo <code>n8n/13-directorio-activos-whatsapp.json</code>.
       </Callout>

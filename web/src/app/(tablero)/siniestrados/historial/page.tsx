@@ -67,6 +67,7 @@ export default async function SiniestradosHistorial({
           nota="Valor producto es el importe declarado; Valor al 70% es la bonificación. La lista refleja el estado vigente y puede cambiar al actualizar el período."
           columnasExtra={COLUMNAS_COBRO}
           cobros={modoDatos() === "supabase" && campos.includes("cobrado") ? "historico" : undefined}
+          dimensionInicial="repartidor"
           casos={{ pedidos: filtrados, campos: [...new Set([...campos, "valorProducto" as const])] }}
           vacio="No hay paquetes siniestrados en el período seleccionado."
         />

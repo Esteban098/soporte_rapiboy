@@ -120,13 +120,13 @@ const TEXTOS: Record<ClaveFlujo, Textos> = {
       "Se está rehaciendo la asignación y releyendo los últimos 30 días. Puede tardar un minuto.",
   },
   directorio: {
-    boton: "Actualizar directorio",
-    cargando: "Actualizando directorio…",
+    boton: "Actualizar base de datos",
+    cargando: "Actualizando base de datos…",
     conFlujos:
       "Vuelve a sincronizar sellers, drivers y sus grupos asignados de WhatsApp desde Rapiboy y WAHA.",
     sinFlujos:
-      "Vuelve a leer lo guardado. No hay flujo de directorio configurado, así que no se consulta el sistema.",
-    esperaTitulo: "Actualizando el directorio",
+      "Vuelve a leer lo guardado. No hay flujo de Base de datos configurado, así que no se consulta el sistema.",
+    esperaTitulo: "Actualizando la base de datos",
     esperaTexto: "Se están sincronizando sellers, drivers y grupos de WhatsApp.",
   },
 };

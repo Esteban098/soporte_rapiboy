@@ -59,6 +59,7 @@ export function GraficoDinamico({
   titulo = "Casos",
   tope = 12,
   orden = "mayor",
+  dimensionInicial,
 }: {
   id: string;
   filas: Fila[];
@@ -72,9 +73,15 @@ export function GraficoDinamico({
   tope?: number;
   /** Orden de las barras: útil para comparar los mayores y menores valores. */
   orden?: "mayor" | "menor";
+  /** Agrupación con la que abre el gráfico, si está disponible. */
+  dimensionInicial?: string;
 }) {
   const { filtradas, hayFiltros } = useVista({ id, filas, columnas, filtros });
-  const [dimension, setDimension] = useState(dimensiones[0]?.clave ?? "");
+  const [dimension, setDimension] = useState(
+    dimensiones.some((item) => item.clave === dimensionInicial)
+      ? dimensionInicial!
+      : dimensiones[0]?.clave ?? "",
+  );
   const [medida, setMedida] = useState(medidas[0]?.clave ?? "");
 
   const medidaActiva = medidas.find((m) => m.clave === medida) ?? medidas[0];
@@ -209,7 +216,7 @@ export function GraficoDinamico({
             />
             <Bar
               dataKey="valor"
-              radius={[0, 4, 4, 0]}
+              radius={[0, 9, 9, 0]}
               onClick={(entrada: unknown) => {
                 const punto = datoTocado<{ nombre: string }>(entrada);
                 if (punto?.nombre) abrir(punto.nombre);

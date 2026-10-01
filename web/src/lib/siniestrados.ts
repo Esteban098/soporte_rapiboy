@@ -39,9 +39,11 @@ export function siniestradosHistoricos(pedidos: Pedido[], rango: Rango): Pedido[
 export function resumenSiniestrados(pedidos: Pedido[]) {
   let centavos = 0;
   let sinValor = 0;
+  let cobrados = 0;
   for (const pedido of pedidos) {
     if (pedido.valorProducto == null) sinValor += 1;
     else centavos += Math.round(pedido.valorProducto * 100);
+    if (pedido.cobrado === true) cobrados += 1;
   }
-  return { casos: pedidos.length, valorTotal: centavos / 100, sinValor };
+  return { casos: pedidos.length, valorTotal: centavos / 100, sinValor, cobrados };
 }

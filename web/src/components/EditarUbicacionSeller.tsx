@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { guardarUbicacionSeller } from "@/app/sellers";
+import estilos from "./directorio-edicion.module.css";
 
 export function EditarUbicacionSeller({
   id,
@@ -22,40 +23,36 @@ export function EditarUbicacionSeller({
 
   if (!abierto) {
     return (
-      <div>
+      <div className={estilos.ubicacion}>
         {latitud != null && longitud != null ? (
           <>
-            <div>{ubicacion || "Ubicación manual"}</div>
-            <small>{latitud}, {longitud}</small>
+            <span className={estilos.texto}>{ubicacion || "Ubicación manual"}</span>
+            <small className={estilos.coordenadas}>{latitud}, {longitud}</small>
           </>
         ) : (
-          <span>Sin ubicación manual</span>
+          <span className={estilos.coordenadas}>Sin ubicación manual</span>
         )}
-        <div>
-          <button type="button" onClick={() => setAbierto(true)}>
-            {latitud != null && longitud != null ? "Editar" : "Agregar"}
-          </button>
-        </div>
+        <button className={estilos.accion} type="button" onClick={() => setAbierto(true)}>{latitud != null && longitud != null ? "Editar" : "Agregar"}</button>
       </div>
     );
   }
 
   return (
-    <div>
-      <input value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Ubicación o domicilio" aria-label={`Ubicación manual del seller ${id}`} />
-      <input value={lat} onChange={(e) => setLat(e.target.value)} placeholder="Latitud" inputMode="decimal" aria-label="Latitud" />
-      <input value={lon} onChange={(e) => setLon(e.target.value)} placeholder="Longitud" inputMode="decimal" aria-label="Longitud" />
-      <button type="button" disabled={pendiente} onClick={() => iniciar(async () => {
+    <div className={estilos.formulario}>
+      <input className={estilos.entrada} value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Ubicación o domicilio" aria-label={`Ubicación manual del seller ${id}`} />
+      <input className={estilos.entrada} value={lat} onChange={(e) => setLat(e.target.value)} placeholder="Latitud" inputMode="decimal" aria-label="Latitud" />
+      <input className={estilos.entrada} value={lon} onChange={(e) => setLon(e.target.value)} placeholder="Longitud" inputMode="decimal" aria-label="Longitud" />
+      <div className={estilos.acciones}><button className={estilos.accion} type="button" disabled={pendiente} onClick={() => iniciar(async () => {
         const resultado = await guardarUbicacionSeller(id, { ubicacion: direccion, latitud: Number(lat), longitud: Number(lon) });
         if (!resultado.ok) window.alert(resultado.error);
         else setAbierto(false);
       })}>Guardar</button>
-      {latitud != null && longitud != null ? <button type="button" disabled={pendiente} onClick={() => iniciar(async () => {
+      {latitud != null && longitud != null ? <button className={`${estilos.accion} ${estilos.peligro}`} type="button" disabled={pendiente} onClick={() => iniciar(async () => {
         const resultado = await guardarUbicacionSeller(id, null);
         if (!resultado.ok) window.alert(resultado.error);
         else setAbierto(false);
       })}>Borrar</button> : null}
-      <button type="button" disabled={pendiente} onClick={() => setAbierto(false)}>Cancelar</button>
+      <button className={estilos.accion} type="button" disabled={pendiente} onClick={() => setAbierto(false)}>Cancelar</button></div>
     </div>
   );
 }

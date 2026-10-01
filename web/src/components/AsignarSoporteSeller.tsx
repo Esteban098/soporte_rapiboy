@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { asignarSoporteSeller, type SoporteSeller } from "@/app/sellers";
+import estilos from "./directorio-edicion.module.css";
 
 export function AsignarSoporteSeller({
   id,
@@ -14,6 +15,7 @@ export function AsignarSoporteSeller({
 
   return (
     <select
+      className={estilos.select}
       value={valor ?? ""}
       disabled={pendiente}
       aria-label={`Soporte del seller ${id}`}

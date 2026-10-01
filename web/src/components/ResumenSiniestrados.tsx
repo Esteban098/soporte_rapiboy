@@ -20,6 +20,12 @@ export function ResumenSiniestrados({ pedidos }: { pedidos: Pedido[] }) {
         tono={resumen.sinValor > 0 ? "warning" : "neutral"}
         nota="Los valores faltantes no se consideran cero"
       />
+      <Kpi
+        etiqueta="Cobrados"
+        valor={numero(resumen.cobrados)}
+        nota={`${numero(Math.max(0, resumen.casos - resumen.cobrados))} pendientes de cobro`}
+        tono={resumen.cobrados > 0 ? "good" : "neutral"}
+      />
     </div>
   );
 }

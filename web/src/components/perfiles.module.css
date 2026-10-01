@@ -4,7 +4,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 12px;
+  gap: 9px;
   margin-top: 4px;
 }
 
@@ -27,9 +27,9 @@
   background: var(--surface-2);
   border: 1px solid var(--rule);
   border-radius: var(--radio-2);
-  padding: 8px 12px;
+  padding: 7px 10px;
   font-family: var(--sans);
-  font-size: 13.5px;
+  font-size: 12.5px;
   color: var(--ink);
   transition:
     border-color var(--dur-corta) var(--ease),
@@ -47,10 +47,10 @@
   border: 0;
   border-radius: var(--radio-3);
   color: #fff;
-  padding: 9px 20px;
+  padding: 7px 15px;
   font-family: var(--sans);
   font-weight: 500;
-  font-size: 13.5px;
+  font-size: 12.5px;
   letter-spacing: -0.01em;
   cursor: pointer;
   transition:
@@ -74,9 +74,9 @@
 .error,
 .aviso {
   margin: 0;
-  padding: 10px 14px;
+  padding: 8px 11px;
   border-radius: var(--radio-2);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.5;
   color: var(--ink);
 }

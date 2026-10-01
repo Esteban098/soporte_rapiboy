@@ -1,0 +1,71 @@
+.select,
+.accion {
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-3);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 11.5px;
+  line-height: 1.2;
+}
+
+.select {
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.ubicacion {
+  display: grid;
+  gap: 4px;
+  min-width: 150px;
+}
+
+.texto {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coordenadas {
+  color: var(--muted);
+  font-size: 10.5px;
+}
+
+.accion {
+  width: fit-content;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.accion:hover:not(:disabled),
+.select:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.formulario {
+  display: grid;
+  gap: 5px;
+  min-width: 190px;
+}
+
+.entrada {
+  min-width: 0;
+  padding: 5px 7px;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+}
+
+.acciones {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.peligro {
+  color: var(--critical);
+}

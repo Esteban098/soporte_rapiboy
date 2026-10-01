@@ -7,25 +7,25 @@
   /* Semilla de marca. Los roles de color se derivan de este único valor para
      que cambiar la identidad visual no obligue a perseguir hexadecimales por
      cada componente. */
-  --seed: #0071e3;
+  --seed: #5e5ce6;
   --primary: var(--seed);
   --on-primary: #ffffff;
   --primary-container: color-mix(in srgb, var(--seed) 14%, white);
   --on-primary-container: color-mix(in srgb, var(--seed) 78%, black);
-  --secondary: #248a78;
+  --secondary: #14b8a6;
   --secondary-container: color-mix(in srgb, var(--secondary) 14%, white);
   --tertiary: #8b5e34;
   --tertiary-container: color-mix(in srgb, var(--tertiary) 14%, white);
   --outline: rgba(0, 0, 0, 0.22);
 
   /* Escala tipográfica compartida. */
-  --type-display-lg: clamp(2.5rem, 4vw, 4rem);
-  --type-headline-md: clamp(1.75rem, 2.5vw, 2.25rem);
-  --type-title-lg: 1.375rem;
-  --type-title-md: 1.125rem;
-  --type-body-lg: 1rem;
-  --type-body-md: 0.9375rem;
-  --type-label-md: 0.8125rem;
+  --type-display-lg: clamp(2.15rem, 3.4vw, 3.25rem);
+  --type-headline-md: clamp(1.4rem, 2vw, 1.75rem);
+  --type-title-lg: 1.125rem;
+  --type-title-md: 0.9375rem;
+  --type-body-lg: 0.875rem;
+  --type-body-md: 0.875rem;
+  --type-label-md: 0.75rem;
 
   --plane: #f5f5f7;
   --surface: #ffffff;
@@ -50,7 +50,14 @@
   --accent: var(--primary);
   --accent-ink: var(--on-primary-container);
   --accent-soft: var(--primary-container);
-  --serie-2: #30bfa4;
+  /* Paleta única para gráficas: índigo de marca, turquesa y rosa. */
+  --chart-primary: var(--dashboard-indigo);
+  --chart-secondary: var(--serie-2);
+  --chart-tertiary: var(--serie-3);
+  --serie-2: #14cdbf;
+  --serie-3: #ee9fc1;
+  --dashboard-indigo: #5e5ce6;
+  --dashboard-indigo-soft: color-mix(in srgb, var(--dashboard-indigo) 14%, var(--surface));
 
   --good: #248a3d;
   --good-soft: rgba(52, 199, 89, 0.14);
@@ -71,10 +78,10 @@
    * costo en cada una. Una capa alcanza para leer que algo está apoyado.
    */
   --segmento-activo: #ffffff;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  --shadow-alta: 0 3px 10px rgba(0, 0, 0, 0.14);
-  --radio: 24px;
-  --radio-2: 14px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-alta: 0 2px 7px rgba(0, 0, 0, 0.12);
+  --radio: 18px;
+  --radio-2: 11px;
   --radio-3: 999px;
 
   /* ---- movimiento ----
@@ -155,7 +162,8 @@
     --accent: var(--seed);
     --accent-ink: var(--on-primary-container);
     --accent-soft: var(--primary-container);
-    --serie-2: #40d6b8;
+    --serie-2: #24d9c8;
+    --serie-3: #ffaccd;
 
     --good: #30d158;
     --good-soft: rgba(48, 209, 88, 0.18);
@@ -225,10 +233,11 @@
   --rule: rgba(255, 255, 255, 0.1);
   --rule-soft: rgba(255, 255, 255, 0.06);
 
-  --accent: #0a84ff;
+  --accent: var(--seed);
   --accent-ink: #4aa3ff;
   --accent-soft: rgba(10, 132, 255, 0.18);
-  --serie-2: #40d6b8;
+  --serie-2: #24d9c8;
+  --serie-3: #ffaccd;
 
   --good: #30d158;
   --good-soft: rgba(48, 209, 88, 0.18);
@@ -289,7 +298,7 @@
  * variables quedan para no tener que tocar cada componente que las usa.
  */
 :root {
-  --plane: #eaf0f8;
+  --plane: #eef2fa;
   --muted: #626d80;
   --glass: var(--surface);
   --glass-edge: var(--rule);
@@ -327,13 +336,18 @@
 }
 
 html {
+  font-size: 93.75%;
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
-  background: var(--plane);
+  background:
+    radial-gradient(720px 420px at 98% -8%, color-mix(in srgb, var(--chart-tertiary) 16%, transparent), transparent 68%),
+    radial-gradient(620px 380px at -10% 20%, color-mix(in srgb, var(--chart-secondary) 11%, transparent), transparent 70%),
+    var(--plane);
+  background-attachment: fixed;
   min-height: 100vh;
   color: var(--ink);
   font-family: var(--sans);

@@ -73,7 +73,7 @@ export function BarrasDevueltos({
           <Bar
             dataKey="devueltos"
             fill="var(--serie-2)"
-            radius={[4, 4, 0, 0]}
+            radius={[9, 9, 0, 0]}
             onClick={(entrada: unknown) => {
               const punto = datoTocado<FilaDiaSemana>(entrada);
               if (punto) abrir(punto);

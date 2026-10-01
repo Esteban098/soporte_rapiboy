@@ -94,6 +94,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   cada repartidor visible y no retroceden junto con la fecha de la ruta. Los
   días viajan como texto a n8n porque la web, n8n y SQL Server pueden estar en
   zonas distintas. Nunca restar horas a mano.
+- La página **Última jornada** agrega el bloque opcional «Resumen ruta última
+  jornada» con la foto cerrada del tracker: total de paquetes, entregados, no
+  entregados, no visitados y SLA (entregados sobre el total). Es solo lectura y
+  no puede bloquear la cola de Ayer si las tablas `tracker_*` aún no están
+  instaladas o no responden.
 - `minutos_sin_actualizar`, `minutos_sin_movimiento` y `estado_posicion` **no se guardan**: los calcula
   la vista `tracker_drivers_vista` al leer, y el navegador los vuelve a
   calcular contra su propio reloj. Una antigüedad guardada envejece mal —diría
@@ -167,7 +172,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   extraído del nombre del grupo. Las asignaciones `MANUAL` nunca se reemplazan
   durante una sincronización.
   Se visualiza en dos pantallas independientes, `/sellers` y `/drivers`, dentro
-  del grupo **Directorio** del sidebar. Las lecturas pasan por
+  del grupo **Base de datos** del sidebar. Las lecturas pasan por
   `src/lib/directorio-datos.ts`, que es `server-only`; el JID queda en el
   servidor para los futuros flujos WAHA y no forma parte del DTO de pantalla.
   La pantalla de Sellers permite asignar Cande o Esteban y editar la ubicación

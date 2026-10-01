@@ -77,6 +77,7 @@ export function Tabla({
   editable = false,
   soloEdicion = false,
   cobros,
+  compacta = false,
 }: {
   /** Identifica la tabla para recordar qué columnas ocultó cada persona. */
   id: string;
@@ -104,6 +105,8 @@ export function Tabla({
   /** En Histórico solo se editan filas existentes: no hay altas ni bajas. */
   soloEdicion?: boolean;
   cobros?: OrigenCobro;
+  /** Variante densa para directorios: conserva controles y legibilidad. */
+  compacta?: boolean;
 }) {
   const [orden, setOrden] = useState<Orden>(ordenInicial ?? null);
   const [edicion, setEdicion] = useState<Edicion | null>(null);
@@ -345,8 +348,8 @@ export function Tabla({
       {ordenadas.length === 0 ? (
         <p className={estilos.empty}>{vacio}</p>
       ) : (
-        <div className={estilos.tableWrap}>
-          <table className={estilos.table}>
+        <div className={`${estilos.tableWrap} ${compacta ? estilos.tableWrapCompacta : ""}`}>
+          <table className={`${estilos.table} ${compacta ? estilos.tableCompacta : ""}`}>
             <thead>
               <tr>
                 {editable ? <th data-noimprimir aria-label="Acciones" /> : null}

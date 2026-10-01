@@ -100,7 +100,7 @@ export function BarrasVisitas({ datos, detalle }: { datos: FilaVisitas[]; detall
           <Bar
             dataKey="entregados"
             fill="var(--accent)"
-            radius={[4, 4, 0, 0]}
+            radius={[9, 9, 0, 0]}
             onClick={(entrada: unknown) => {
               const punto = datoTocado<FilaVisitas>(entrada);
               if (punto) abrir(punto, "Entregado");
@@ -117,7 +117,7 @@ export function BarrasVisitas({ datos, detalle }: { datos: FilaVisitas[]; detall
           <Bar
             dataKey="devueltos"
             fill="var(--serie-2)"
-            radius={[4, 4, 0, 0]}
+            radius={[9, 9, 0, 0]}
             onClick={(entrada: unknown) => {
               const punto = datoTocado<FilaVisitas>(entrada);
               if (punto) abrir(punto, "Devuelto");

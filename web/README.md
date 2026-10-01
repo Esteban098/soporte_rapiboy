@@ -45,7 +45,7 @@ Tres decisiones que vale la pena tener presentes:
 | Ruta | Qué muestra |
 |---|---|
 | `/` | **Mes en curso**: abiertos contra cerrados —la métrica principal—, el desglose de estados, todos los casos de `Mensual`, las devoluciones por día de la semana y las visitas antes de cerrar. |
-| `/operacion` | **Ayer**: los casos de la pestaña `Ayer`, lo que quedó sin cerrar la jornada anterior. |
+| `/operacion` | **Última jornada**: los casos nuevos de la jornada anterior y, cuando el tracker está disponible, el resumen de ruta cerrado: total, entregados, no entregados, no visitados y SLA. |
 | `/demorados` | **Demorados**: la cola de escalamiento, derivada de `Mensual`. Entra todo caso que lleve más de 2 días sin cambiar de estado y todavía no haya cerrado. |
 | `/reclamos` | Casos donde la tienda aportó datos, con el dato tal cual y la información del viaje. Se filtra por avisado / no avisado. |
 | `/cobertura` | **Cobertura · BETA**: el contorno donde hay servicio y un verificador puntual por dirección o coordenadas que responde si un domicilio entra. No busca por ID de viaje. |
@@ -53,8 +53,8 @@ Tres decisiones que vale la pena tener presentes:
 | `/live-tracker` | **Live tracker**: dónde está cada repartidor de la jornada y qué le queda por entregar. Panel de selección a la izquierda, mapa a la derecha. |
 | `/colectas` | **Colectas**: abre un espacio de trabajo propio con Asignación, Asistencia, Historial y Ruta en vivo. |
 | `/tiendas` | **Ruta**: las **colectas de hoy** en vivo —se elige a qué repartidores ver y el mapa muestra solo esos, con el camino que ya hizo y las paradas que le faltan—. Ver [Tiendas](#tiendas). |
-| `/sellers` | **Directorio · Sellers**: sellers activos, grupos de WhatsApp y distribución editable de tiendas. La tabla comienza reducida y se puede expandir. |
-| `/drivers` | **Directorio · Drivers**: drivers activos y grupos de WhatsApp. La tabla comienza reducida y se puede expandir. |
+| `/sellers` | **Base de datos · Sellers**: sellers activos, grupos de WhatsApp y distribución editable de tiendas. La tabla comienza reducida y se puede expandir. |
+| `/drivers` | **Base de datos · Drivers**: drivers activos y grupos de WhatsApp. La tabla comienza reducida y se puede expandir. |
 
 Al abrir **Colectas** desde el tablero general, se abre una nueva pestaña con
 un sidebar propio. Así el tablero de entregas fallidas queda abierto para

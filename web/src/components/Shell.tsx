@@ -49,7 +49,7 @@ const NAVEGACION: (Grupo | Seccion)[] = [
     titulo: "Cola de trabajo",
     secciones: [
       { href: "/", etiqueta: "Mes en curso" },
-      { href: "/operacion", etiqueta: "Ayer" },
+      { href: "/operacion", etiqueta: "Última jornada" },
       { href: "/demorados", etiqueta: "Demorados" },
       { href: "/reclamos", etiqueta: "Informacion de tiendas" },
       { href: "/cancelados", etiqueta: "Cancelados" },
@@ -73,7 +73,7 @@ const NAVEGACION: (Grupo | Seccion)[] = [
   { href: "/live-tracker", etiqueta: "Live tracker" },
 
   {
-    titulo: "Directorio",
+    titulo: "Base de datos",
     secciones: [
       { href: "/sellers", etiqueta: "Sellers" },
       { href: "/drivers", etiqueta: "Drivers" },

@@ -4,11 +4,11 @@ import { Tabla } from "@/components/Tabla";
 import estilos from "@/components/ui.module.css";
 import { modoDatos } from "@/lib/config";
 import { leerSellersDirectorio } from "@/lib/directorio-datos";
-import { fechaCalendario, fechaHoraMexico, resumirDirectorio } from "@/lib/directorio";
+import { fechaHoraMexico, resumirDirectorio } from "@/lib/directorio";
 import { numero } from "@/lib/formato";
 import { TablaFaltante } from "@/lib/supabase";
 
-export const metadata = { title: "Directorio · Sellers" };
+export const metadata = { title: "Base de datos · Sellers" };
 
 export default async function Sellers() {
   if (modoDatos() !== "supabase") return <SinBase />;
@@ -29,32 +29,20 @@ export default async function Sellers() {
     grupo: seller.grupoWhatsapp ?? "",
     asignacion: seller.asignacion === "MANUAL" ? "Manual" : seller.asignacion === "AUTOMATICO" ? "Automática" : "",
     soporte: seller.soporteAsignado,
-    labels: seller.labelsWaha.map((label) => label.name).join(", "),
-    alerta: alertaSoporte(seller.soporteAsignado, seller.labelsWaha.flatMap((label) => label.name ? [label.name] : [])),
     ubicacionManual: seller.ubicacionManual,
     latitudManual: seller.latitudManual,
     longitudManual: seller.longitudManual,
-    comercial: seller.comercial,
-    horaCorte: seller.horaCorte,
-    bodega: seller.llevaBodega ? "Sí" : "No",
-    dropoff: seller.llevaDropoff ? "Sí" : "No",
-    pagaColecta: seller.pagaColecta ? "Sí" : "No",
     estadoSistema: seller.offlineSistema ? "Offline en Rapiboy" : "Online en Rapiboy",
-    tope: seller.topeMaximo,
-    celular: seller.celular,
-    email: seller.email,
-    direccion: seller.direccion,
-    activacion: fechaCalendario(seller.fechaActivacion),
     actualizado: fechaHoraMexico(seller.actualizadoEn),
   }));
 
   return (
     <>
       <PageHead
-        eyebrow="Directorio · México"
+        eyebrow="Base de datos · México"
         titulo="Sellers"
         flujo="directorio"
-        dek="Tiendas activas sincronizadas desde Rapiboy y su grupo asignado de WhatsApp. Este directorio será la fuente de destinatarios para los mensajes predeterminados de WAHA."
+        dek="Tiendas activas, grupo de WhatsApp y responsable operativo."
       />
 
       <div className={estilos.kpis}>
@@ -65,17 +53,17 @@ export default async function Sellers() {
       </div>
 
       <div className={estilos.stack}>
-        <Card titulo="Directorio de sellers" nota="Incluye sellers operativos y dropoff que figuran offline en Rapiboy. La búsqueda revisa todas las columnas y los filtros se pueden combinar.">
+        <Card titulo="Base de datos · sellers" nota="Vista operativa: vínculo, responsable y ubicación. Los filtros acotan la lista antes de trabajar.">
           <Tabla
             id="directorio-sellers"
-            titulo="Directorio · Sellers"
+            titulo="Base de datos · Sellers"
             filas={filas}
             limite={20}
+            compacta
             ordenInicial={{ clave: "seller", asc: true }}
             filtros={[
               { clave: "whatsapp", etiqueta: "WhatsApp" },
               { clave: "asignacion", etiqueta: "Asignación" },
-              { clave: "comercial", etiqueta: "Comercial" },
               { clave: "estadoSistema", etiqueta: "Estado sistema" },
             ]}
             columnas={[
@@ -83,22 +71,9 @@ export default async function Sellers() {
               { clave: "seller", titulo: "Seller", tipo: "tienda" },
               { clave: "whatsapp", titulo: "WhatsApp", tipo: "texto" },
               { clave: "grupo", titulo: "Grupo", tipo: "texto" },
-              { clave: "asignacion", titulo: "Asignación", tipo: "texto" },
               { clave: "soporte", titulo: "Soporte", tipo: "soporte" },
-              { clave: "labels", titulo: "Labels WAHA", tipo: "texto" },
-              { clave: "alerta", titulo: "Validación", tipo: "texto" },
               { clave: "ubicacionManual", titulo: "Ubicación manual", tipo: "ubicacion" },
-              { clave: "comercial", titulo: "Comercial", tipo: "texto" },
-              { clave: "horaCorte", titulo: "Hora corte", tipo: "texto" },
-              { clave: "bodega", titulo: "Bodega", tipo: "texto" },
-              { clave: "dropoff", titulo: "Dropoff", tipo: "texto" },
               { clave: "estadoSistema", titulo: "Estado sistema", tipo: "texto" },
-              { clave: "pagaColecta", titulo: "Paga colecta", tipo: "texto" },
-              { clave: "tope", titulo: "Tope diario", tipo: "numero" },
-              { clave: "celular", titulo: "Celular", tipo: "texto" },
-              { clave: "email", titulo: "Email", tipo: "texto" },
-              { clave: "direccion", titulo: "Dirección", tipo: "texto" },
-              { clave: "activacion", titulo: "Activación", tipo: "texto" },
               { clave: "actualizado", titulo: "Actualizado", tipo: "texto" },
             ]}
             vacio="No hay sellers activos sincronizados."
@@ -109,30 +84,10 @@ export default async function Sellers() {
   );
 }
 
-function alertaSoporte(soporte: "CANDE" | "ESTEBAN" | null, labels: string[]): string {
-  if (!soporte) return labels.length ? "⚠️ Falta asignación" : "Sin asignar";
-  const esperado = soporte === "CANDE" ? "cande" : "esteban";
-  const relevantes = labelsSoporte(labels);
-  const coincide = relevantes.some((label) => normalizar(label).includes(esperado));
-  if (!relevantes.length) return "Asignado manualmente";
-  return coincide ? "Correcto" : "⚠️ No coincide";
-}
-
-function normalizar(valor: string): string {
-  return valor.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase().trim();
-}
-
-function labelsSoporte(labels: string[]): string[] {
-  return labels.filter((label) => {
-    const valor = normalizar(label);
-    return valor.includes("cande") || valor.includes("candelaria") || valor.includes("esteban");
-  });
-}
-
 function SinBase() {
   return (
     <>
-      <PageHead eyebrow="Directorio · México" titulo="Sellers" flujo="directorio" />
+      <PageHead eyebrow="Base de datos · México" titulo="Sellers" flujo="directorio" />
       <Callout tono="warning" titulo="La plataforma no está usando Supabase">
         El directorio operativo solo está disponible con la base de Supabase activa.
       </Callout>
@@ -143,7 +98,7 @@ function SinBase() {
 function SinTablas() {
   return (
     <>
-      <PageHead eyebrow="Directorio · México" titulo="Sellers" flujo="directorio" />
+      <PageHead eyebrow="Base de datos · México" titulo="Sellers" flujo="directorio" />
       <Callout tono="warning" titulo="Falta la tabla sellers_activos">
         Ejecutá en Supabase las migraciones del directorio hasta la 25, en orden
         (especialmente <code>migracion-18-sellers-activos-consolidados.sql</code>),

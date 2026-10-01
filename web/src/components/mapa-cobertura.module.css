@@ -2,7 +2,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .campo {
@@ -12,9 +12,9 @@
   color: var(--ink);
   border: 1px solid var(--rule);
   border-radius: var(--radio-2);
-  padding: 9px 12px;
+  padding: 7px 10px;
   font-family: var(--sans);
-  font-size: 13.5px;
+  font-size: 12.5px;
   transition:
     border-color var(--dur-corta) var(--ease),
     box-shadow var(--dur-corta) var(--ease);
@@ -31,9 +31,9 @@
   color: #fff;
   border: 0;
   border-radius: var(--radio-2);
-  padding: 10px 18px;
+  padding: 8px 14px;
   font-family: var(--sans);
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 600;
   cursor: pointer;
   transition: opacity var(--dur-corta) var(--ease);
@@ -45,7 +45,7 @@
 }
 
 .ayuda {
-  margin: 10px 0 0;
+  margin: 7px 0 0;
   color: var(--muted);
   font-size: 12.5px;
   line-height: 1.55;
@@ -58,7 +58,7 @@
  */
 .resultado {
   margin-top: 16px;
-  padding: 13px 16px;
+  padding: 10px 12px;
   border: 1px solid var(--rule);
   border-radius: var(--radio-2);
   background: var(--surface-2);
@@ -81,7 +81,7 @@
 
 .veredicto {
   margin: 0;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 650;
   letter-spacing: -0.01em;
 }
@@ -93,7 +93,7 @@
 .detalle {
   margin: 5px 0 0;
   color: var(--ink-2);
-  font-size: 12.5px;
+  font-size: 11.5px;
   line-height: 1.55;
   overflow-wrap: anywhere;
 }

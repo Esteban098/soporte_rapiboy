@@ -85,6 +85,7 @@ export function BarrasCanceladosMes({
             name="alDia"
             stackId="mes"
             fill="var(--serie-2)"
+            radius={[9, 9, 0, 0]}
             onClick={(entrada: unknown) => {
               const punto = datoTocado<FilaMesCancelados>(entrada);
               if (punto) abrir(punto, "Reflejado en los dos");
@@ -93,8 +94,8 @@ export function BarrasCanceladosMes({
           <Bar
             dataKey="desincronizados"
             stackId="mes"
-            fill="var(--warning)"
-            radius={[4, 4, 0, 0]}
+            fill="var(--serie-3)"
+            radius={[9, 9, 0, 0]}
             onClick={(entrada: unknown) => {
               const punto = datoTocado<FilaMesCancelados>(entrada);
               if (punto) abrir(punto, "Sin reflejar en Meli");
@@ -105,7 +106,7 @@ export function BarrasCanceladosMes({
       <Leyenda
         series={[
           { nombre: "Reflejados en los dos sistemas", color: "var(--serie-2)" },
-          { nombre: "Sin reflejar en Meli", color: "var(--warning)" },
+          { nombre: "Sin reflejar en Meli", color: "var(--serie-3)" },
         ]}
       />
     </div>

@@ -40,6 +40,7 @@ export default async function Siniestrados() {
           nota="Valor producto es el importe declarado; Valor al 70% es la bonificación calculada por Supabase. Marcá Cobrado cuando se haya cobrado el siniestro."
           columnasExtra={COLUMNAS_COBRO}
           cobros={modoDatos() === "supabase" && campos.includes("cobrado") ? "mensual" : undefined}
+          dimensionInicial="repartidor"
           casos={{ pedidos: filtrados, campos: [...new Set([...campos, "valorProducto" as const])] }}
           vacio="No hay paquetes siniestrados en el período operativo."
         />

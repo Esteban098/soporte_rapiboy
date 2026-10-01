@@ -1,0 +1,30 @@
+.panel {
+  padding: 15px 16px 16px;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radio);
+  background: var(--glass);
+  box-shadow: var(--glass-shadow);
+}
+
+.encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.encabezado h2, .grafico h3 { margin: 0; font-family: var(--display); letter-spacing: -.022em; }
+.encabezado h2 { font-size: var(--type-title-md); }
+.encabezado p { margin: 3px 0 0; color: var(--muted); font-size: var(--type-label-md); }
+.encabezado strong { padding: 5px 9px; border-radius: var(--radio-3); background: var(--secondary-container); color: var(--secondary); font-size: 11.5px; white-space: nowrap; }
+
+.grilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.grafico { min-width: 0; padding: 11px; border: 1px solid var(--rule-soft); border-radius: var(--radio-2); background: color-mix(in srgb, var(--surface-2) 74%, var(--surface)); }
+.grafico h3 { font-size: 12px; }
+.anilloValor { fill: var(--ink); font-family: var(--display); font-size: 22px; font-weight: 700; letter-spacing: -.055em; }
+.anilloEtiqueta { fill: var(--muted); font-family: var(--sans); font-size: 10px; }
+.vacio { display: grid; place-items: center; height: 184px; margin: 0; color: var(--muted); font-size: 11.5px; text-align: center; }
+
+@media (max-width: 960px) { .grilla { grid-template-columns: 1fr; } }
+@media (max-width: 540px) { .encabezado { flex-direction: column; } }
