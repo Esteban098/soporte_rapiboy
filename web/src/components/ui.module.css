@@ -504,6 +504,44 @@
   line-height: 1.45;
 }
 
+/* La foto cerrada de la ruta es una lectura distinta de la cola de casos:
+   este plano índigo permite reconocerla sin sumar otro separador ni etiqueta. */
+.resumenUltimaJornada {
+  background:
+    radial-gradient(circle at 88% 14%, color-mix(in srgb, var(--secondary) 52%, transparent), transparent 32%),
+    linear-gradient(135deg, var(--dashboard-indigo), color-mix(in srgb, var(--dashboard-indigo) 77%, var(--seed)));
+  border-color: color-mix(in srgb, #fff 24%, transparent);
+  box-shadow: 0 14px 30px -20px color-mix(in srgb, var(--dashboard-indigo) 88%, transparent);
+}
+
+.resumenUltimaJornada::before {
+  width: 132px;
+  height: 132px;
+  right: -48px;
+  top: -62px;
+  background: color-mix(in srgb, #fff 16%, transparent);
+}
+
+.resumenUltimaJornada .cardTitle { color: #fff; }
+.resumenUltimaJornada .cardNote { color: color-mix(in srgb, #fff 82%, transparent); }
+
+/* La grilla ya queda contenida por la tarjeta: no necesita el margen inferior
+   que usa cuando aparece como bloque independiente entre secciones. */
+.resumenUltimaJornada .kpis { margin-bottom: 0; }
+
+/* `--good-soft` es translúcido para superficies claras. Sobre el índigo del
+   resumen se mezclaba con el fondo y dejaba «Entregados» sin contraste. */
+.resumenUltimaJornada .kpiFillGood {
+  background: #e8f7ef;
+  border-color: rgba(255, 255, 255, 0.52);
+}
+
+/* Separa la foto de ruta de los indicadores de casos sin alterar el ritmo de
+   las grillas de KPI del resto de las pantallas. */
+.kpisCasosUltimaJornada {
+  border-top: 16px solid transparent;
+}
+
 /* --- kpis --- */
 
 .kpis {

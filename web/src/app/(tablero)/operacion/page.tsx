@@ -43,7 +43,9 @@ export default async function Ayer() {
         dek="Los casos que entraron nuevos en la jornada anterior: los que no estaban ya en Mensual ni en Cancelados. Un caso aparece acá una sola vez, el día que falló por primera vez; si sigue abierto después, se lo sigue en Mes en curso."
       />
 
-      <div className={estilos.kpis}>
+      {tracker ? <PulsoRuta datos={tracker} /> : null}
+
+      <div className={`${estilos.kpis} ${estilos.kpisCasosUltimaJornada}`}>
         <Kpi
           etiqueta="Casos de la jornada"
           valor={numero(ayer.length)}
@@ -72,8 +74,6 @@ export default async function Ayer() {
       </div>
 
       <div className={estilos.stack}>
-        {tracker ? <PulsoRuta datos={tracker} /> : null}
-
         <Callout
           tono={resolucion.abiertos > 0 ? "critical" : "neutral"}
           titulo="Por dónde empezar el turno"
@@ -142,6 +142,7 @@ function PulsoRuta({ datos }: { datos: DatosDelTracker }) {
     <Card
       titulo="Resumen ruta última jornada"
       nota={`Resumen de la jornada ${datos.dia}, con la misma foto que usa Live tracker.`}
+      className={estilos.resumenUltimaJornada}
     >
       <div className={estilos.kpis}>
         <Kpi etiqueta="Total de la jornada" valor={numero(total)} nota="paquetes de ayer" />

@@ -5,15 +5,18 @@ export function Card({
   titulo,
   nota,
   extra,
+  className,
   children,
 }: {
   titulo?: string;
   nota?: string;
   extra?: React.ReactNode;
+  /** Variante visual puntual, sin duplicar la estructura de una tarjeta. */
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className={estilos.card}>
+    <section className={`${estilos.card} ${className ?? ""}`}>
       {titulo ? (
         <div className={estilos.cardHead}>
           <h2 className={estilos.cardTitle}>{titulo}</h2>
