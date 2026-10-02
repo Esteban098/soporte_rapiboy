@@ -285,8 +285,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   fila para consultas internas, pero descarta nombres de columnas que puedan
   contener credenciales (`password`, `secret`, `clave`, `api_key` o `hash`).
 - La fuente RapiboyData se consulta con `buscar_paquete` e `historial_viaje`,
-  mediante el webhook autenticado de n8n. `consultar_datos` no reemplaza esa
-  fuente ni intenta acceder a SQL Server directamente.
+  mediante el webhook autenticado de n8n. El flujo 11 devuelve la ficha
+  operativa completa del viaje —estado, dirección, teléfono, destinatario,
+  ruta, orden, coordenadas de destino, comentarios y última evidencia— además
+  de los movimientos. `consultar_datos` no reemplaza esa fuente ni intenta
+  acceder a SQL Server directamente.
 - Las respuestas resumidas de las herramientas de pantalla siguen sin enviar
   teléfono, domicilio ni coordenadas: los `…ParaModelo()` eligen campos a mano
   y una prueba lo verifica. La consulta interna `consultar_datos` es la
