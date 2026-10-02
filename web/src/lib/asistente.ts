@@ -1,12 +1,11 @@
 /**
  * Asistente del tablero: lo que no depende del servidor.
  *
- * El modelo no ve la base. Ve cinco herramientas de solo lectura, cada una
- * apoyada en las mismas funciones que usan las pantallas, así que contesta con
+ * El modelo no recibe credenciales ni SQL. Ve herramientas de solo lectura,
+ * apoyadas en las mismas funciones que usan las pantallas, y una consulta
+ * interna con tablas cerradas para explorar datos operativos. Así contesta con
  * las reglas del tablero —qué es un caso cerrado, a qué mes pertenece, qué es
- * un demorado— y no con las que se le ocurran. Dejarlo escribir SQL sería
- * darle la base sin esas reglas: contestaría números distintos a los de la
- * pantalla, y con total seguridad.
+ * un demorado— y no con las que se le ocurran.
  *
  * Este módulo es puro a propósito: define las herramientas, los filtros y qué
  * sale de cada fila, y se prueba sin red (`npm run test:asistente`). La
@@ -107,6 +106,10 @@ export function instrucciones(momento = new Date()): string {
     "    si está en alcance, que nunca fue una entrega fallida.",
     "  - Si el sistema no respondió, contestá con el tablero y aclaralo.",
     "  Para más movimientos que los que trae, usá historial_viaje.",
+    "- Para consultar otros campos o tablas operativas de Supabase, usá consultar_datos. Indicá la fuente",
+    "  y filtrá por campo y valor cuando haya muchas filas; si el resultado está paginado, decilo.",
+    "- La fuente dataRapiboy se consulta por historial_viaje o buscar_paquete: no inventes una tabla de",
+    "  Supabase para reemplazar el estado del sistema.",
     "- Colectas: la asignación dice qué chofer colecta habitualmente cada comercio (el que más fue en",
     "  30 días), no una orden. Lo que pasó un día puntual está en colectas_realizadas: un comercio",
     "  puede tener un chofer asignado y que ese día haya ido otro.",
@@ -153,6 +156,7 @@ export const NOMBRES_HERRAMIENTAS = [
   "repartidor_en_vivo",
   "asignacion_colectas",
   "colectas_realizadas",
+  "consultar_datos",
 ] as const;
 
 export type NombreHerramienta = (typeof NOMBRES_HERRAMIENTAS)[number];
@@ -336,6 +340,38 @@ export const HERRAMIENTAS = [
           estado: { type: "string", enum: ["Pendiente", "Colectada", "En depósito", "Cancelada"] },
           limite: LIMITE,
         },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "consultar_datos",
+      description:
+        "Explora datos operativos de las tablas de Supabase y sus campos disponibles. Usala cuando la " +
+        "pregunta no encaje en otra herramienta, para buscar por texto o consultar una tabla concreta. " +
+        "Es de solo lectura y devuelve como máximo 50 filas por página.",
+      parameters: {
+        type: "object",
+        properties: {
+          fuente: {
+            type: "string",
+            enum: [
+              "mensual", "mensual_historico", "ayer", "cancelados", "cancelados_historico",
+              "seguimiento", "colectas", "colectas_asignacion", "colectas_vivo",
+              "colectas_vivo_drivers", "colectas_vivo_posiciones", "asistencia_votos",
+              "asistencia_contactos", "tracker_drivers", "tracker_paquetes", "tracker_demoras",
+              "tracker_tiendas", "sellers_activos", "drivers_activos", "notificaciones",
+            ],
+            description: "Tabla operativa de Supabase que querés consultar.",
+          },
+          campo: { type: "string", description: "Columna exacta donde buscar. Indicá también valor para filtrar." },
+          valor: { type: "string", description: "Texto a buscar sin distinguir mayúsculas ni acentos." },
+          limite: LIMITE,
+          pagina: { type: "integer", description: "Página de resultados, empieza en 1." },
+        },
+        required: ["fuente"],
         additionalProperties: false,
       },
     },

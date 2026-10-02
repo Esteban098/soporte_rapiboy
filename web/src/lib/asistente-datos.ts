@@ -28,8 +28,26 @@ import type { Cancelado } from "./cancelados";
 import { enlaceViaje } from "./enlaces";
 import { cargaPorChofer, diasDisponibles, resumirAsignaciones, resumirDia } from "./colectas";
 import {
+  TABLA_ASISTENCIA_CONTACTOS,
+  TABLA_ASISTENCIA_VOTOS,
+  TABLA_AYER,
+  TABLA_CANCELADOS,
+  TABLA_CANCELADOS_HISTORICO,
+  TABLA_COLECTAS,
+  TABLA_COLECTAS_ASIGNACION,
+  TABLA_COLECTAS_VIVO,
+  TABLA_COLECTAS_VIVO_DRIVERS,
+  TABLA_COLECTAS_VIVO_POSICIONES,
+  TABLA_DRIVERS_ACTIVOS,
+  TABLA_MENSUAL,
+  TABLA_MENSUAL_HISTORICO,
+  TABLA_NOTIFICACIONES,
+  TABLA_SEGUIMIENTO,
+  TABLA_SELLERS_ACTIVOS,
+  TABLA_TRACKER_DEMORAS,
   TABLA_TRACKER_DRIVERS,
   TABLA_TRACKER_PAQUETES,
+  TABLA_TRACKER_TIENDAS,
   historialViajeConfig,
   modoDatos,
 } from "./config";
@@ -86,6 +104,8 @@ export async function ejecutarHerramienta(
         return await asignacionColectas(args);
       case "colectas_realizadas":
         return await colectasRealizadas(args);
+      case "consultar_datos":
+        return await consultarDatos(args);
     }
   } catch (error) {
     if (error instanceof TablaFaltante) {
@@ -586,5 +606,119 @@ async function colectasRealizadas(args: Record<string, unknown>) {
     detalle: muestra.filas.map(colectaParaModelo),
     recortado: muestra.recortado ? `Se muestran ${muestra.filas.length} de ${muestra.total}.` : undefined,
     nota: delDia.length === 0 ? "No hay colectas cargadas ese día (la tabla guarda los últimos 30 días)." : undefined,
+  };
+}
+
+/* ---------------------------------------------------------------------------
+   consultar_datos
+   --------------------------------------------------------------------------- */
+
+const FUENTES_DATOS = {
+  mensual: TABLA_MENSUAL,
+  mensual_historico: TABLA_MENSUAL_HISTORICO,
+  ayer: TABLA_AYER,
+  cancelados: TABLA_CANCELADOS,
+  cancelados_historico: TABLA_CANCELADOS_HISTORICO,
+  seguimiento: TABLA_SEGUIMIENTO,
+  colectas: TABLA_COLECTAS,
+  colectas_asignacion: TABLA_COLECTAS_ASIGNACION,
+  colectas_vivo: TABLA_COLECTAS_VIVO,
+  colectas_vivo_drivers: TABLA_COLECTAS_VIVO_DRIVERS,
+  colectas_vivo_posiciones: TABLA_COLECTAS_VIVO_POSICIONES,
+  asistencia_votos: TABLA_ASISTENCIA_VOTOS,
+  asistencia_contactos: TABLA_ASISTENCIA_CONTACTOS,
+  tracker_drivers: TABLA_TRACKER_DRIVERS,
+  tracker_paquetes: TABLA_TRACKER_PAQUETES,
+  tracker_demoras: TABLA_TRACKER_DEMORAS,
+  tracker_tiendas: TABLA_TRACKER_TIENDAS,
+  sellers_activos: TABLA_SELLERS_ACTIVOS,
+  drivers_activos: TABLA_DRIVERS_ACTIVOS,
+  notificaciones: TABLA_NOTIFICACIONES,
+} as const;
+
+type FuenteDatos = keyof typeof FUENTES_DATOS;
+
+const ORDEN_DATOS: Record<FuenteDatos, string> = {
+  mensual: "id.desc",
+  mensual_historico: "id.desc",
+  ayer: "id.desc",
+  cancelados: "id.desc",
+  cancelados_historico: "id.desc",
+  seguimiento: "created_at.desc",
+  colectas: "id.desc",
+  colectas_asignacion: "id_usuario.asc",
+  colectas_vivo: "id_colecta.asc",
+  colectas_vivo_drivers: "id_motoboy.asc",
+  colectas_vivo_posiciones: "id_motoboy.asc",
+  asistencia_votos: "recibido_en.desc",
+  asistencia_contactos: "actualizado_en.desc",
+  tracker_drivers: "id_motoboy.asc",
+  tracker_paquetes: "id_viaje.asc",
+  tracker_demoras: "registrado_en.desc",
+  tracker_tiendas: "nombre_mapa.asc",
+  sellers_activos: "id_usuario.asc",
+  drivers_activos: "id_motoboy.asc",
+  notificaciones: "created_at.desc",
+};
+
+/** Campos que nunca deben viajar al modelo, aunque la tabla los tuviera. */
+function esCampoSecreto(campo: string): boolean {
+  return /password|secret|clave|api[_-]?key|hash/i.test(campo);
+}
+
+function filaParaModelo(fila: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(fila).filter(([campo]) => !esCampoSecreto(campo)));
+}
+
+async function consultarDatos(args: Record<string, unknown>) {
+  const fuente = texto(args, "fuente") as FuenteDatos | null;
+  if (!fuente || !(fuente in FUENTES_DATOS)) {
+    return { error: `La fuente tiene que ser una de: ${Object.keys(FUENTES_DATOS).join(", ")}.` };
+  }
+  if (modoDatos() !== "supabase") return { error: "La consulta de datos requiere la base de Supabase." };
+
+  const campo = texto(args, "campo");
+  if (campo && !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(campo)) {
+    return { error: "El campo solo puede contener letras, números y guion bajo." };
+  }
+  if (campo && esCampoSecreto(campo)) return { error: "Ese campo no está disponible para el asistente." };
+
+  const buscado = texto(args, "valor");
+  const paginaPedido = Number(args.pagina);
+  const pagina = Number.isFinite(paginaPedido) && paginaPedido >= 1 ? Math.floor(paginaPedido) : 1;
+  const tope = limite(args);
+  const parametros: Record<string, string> = {
+    limit: String(tope),
+    offset: String((pagina - 1) * tope),
+    order: ORDEN_DATOS[fuente],
+  };
+
+  // El nombre de columna está validado arriba y el valor viaja por URLSearchParams.
+  // Para columnas numéricas PostgREST no admite ilike; los dígitos se comparan exactos.
+  if (campo && buscado) {
+    const valor = buscado.replace(/[,*]/g, " ").slice(0, 100);
+    parametros[campo] = /^-?\d+(\.\d+)?$/.test(valor) ? `eq.${valor}` : `ilike.*${valor}*`;
+  }
+
+  const filas = await consultarFresco<Record<string, unknown>>(FUENTES_DATOS[fuente], parametros);
+  const visibles = filas
+    .filter((fila) => {
+      if (!buscado || campo) return true;
+      const termino = normalizar(buscado);
+      return Object.entries(fila).some(([clave, valor]) => !esCampoSecreto(clave) && normalizar(String(valor ?? "")).includes(termino));
+    })
+    .map(filaParaModelo);
+
+  return {
+    fuente,
+    tabla: FUENTES_DATOS[fuente],
+    pagina,
+    limite: tope,
+    filas: visibles,
+    campos: visibles[0] ? Object.keys(visibles[0]) : [],
+    recortado: filas.length === tope ? "Puede haber más resultados: pedí otra página o agregá un filtro." : undefined,
+    nota: buscado && !campo
+      ? "La búsqueda sin columna se hizo sobre esta página; indicá campo para buscar en toda la tabla de forma eficiente."
+      : undefined,
   };
 }

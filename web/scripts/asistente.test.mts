@@ -144,7 +144,7 @@ test("ninguna herramienta escribe", () => {
     [...NOMBRES_HERRAMIENTAS],
   );
   for (const nombre of NOMBRES_HERRAMIENTAS) {
-    assert.match(nombre, /^(buscar|historial|metricas|reportes|repartidor|asignacion|colectas)_/, nombre);
+    assert.match(nombre, /^(buscar|historial|metricas|reportes|repartidor|asignacion|colectas|consultar)_/, nombre);
   }
 
   // La capa de datos solo importa lecturas de Supabase.
@@ -423,10 +423,10 @@ test("el historial se valida y se recorta", () => {
   assert.equal(recortado.at(-1)!.texto.length, 2000);
 });
 
-test("las fechas llegan legibles y en hora de México", () => {
+test("las fechas llegan legibles y en hora argentina", () => {
   assert.match(diaLegible("2026-09-05")!, /^5 sept? 2026$/);
-  // 17:33 UTC son las 11:33 en Ciudad de México.
-  assert.match(momentoLegible("2026-09-17T17:33:17.792Z")!, /^17 sept?, 11:33 \(hora de México\)$/);
+  // La plataforma muestra los instantes en hora argentina.
+  assert.match(momentoLegible("2026-09-17T17:33:17.792Z")!, /^17 sept?, 14:33 hs arg$/);
   assert.equal(momentoLegible(null), null);
   assert.equal(diaLegible("no es fecha"), null);
   // El historial del sistema ya viene en hora local: se reescribe, no se convierte.

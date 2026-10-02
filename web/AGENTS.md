@@ -271,16 +271,28 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   rol admin u operador. `POST /api/asistente` pide `operadorActual()`.
   El panel se puede minimizar desde el encabezado y volver a expandir sin
   perder la conversación; cerrarlo sigue ocultándolo por completo.
-- El modelo **no ve la base ni escribe SQL**: recibe ocho herramientas de
-  solo lectura (`src/lib/asistente.ts`) que ejecuta `asistente-datos.ts` con
+- El modelo **no escribe SQL**: recibe herramientas de solo lectura
+  (`src/lib/asistente.ts`) que ejecuta `asistente-datos.ts` con
   las mismas funciones de las pantallas, para que el chat y el tablero no
   puedan contestar distinto. Ninguna herramienta escribe; una prueba falla si
   la capa de datos importa una escritura. Una acción nueva —marcar cobrado,
   cerrar un reporte— sería una herramienta aparte y con confirmación.
-- Teléfono, ubicación, domicilio del cliente, coordenadas y domicilio del
-  repartidor **no salen hacia OpenAI**: los `…ParaModelo()` eligen campos a mano
-  y una prueba lo verifica. Para esos datos está la ficha en el tablero. Las
-  personas viajan por nombre (`nombreDePersona`), nunca con su correo.
+- `consultar_datos` permite explorar las tablas operativas de Supabase
+  (`mensual`, históricos, tracker, colectas, asistencia, directorio,
+  notificaciones y seguimiento), con filtros por columna, paginación y un
+  máximo de 50 filas. La lista de tablas está cerrada en código: el modelo no
+  puede elegir una tabla arbitraria ni enviar SQL. Devuelve los campos de la
+  fila para consultas internas, pero descarta nombres de columnas que puedan
+  contener credenciales (`password`, `secret`, `clave`, `api_key` o `hash`).
+- La fuente RapiboyData se consulta con `buscar_paquete` e `historial_viaje`,
+  mediante el webhook autenticado de n8n. `consultar_datos` no reemplaza esa
+  fuente ni intenta acceder a SQL Server directamente.
+- Las respuestas resumidas de las herramientas de pantalla siguen sin enviar
+  teléfono, domicilio ni coordenadas: los `…ParaModelo()` eligen campos a mano
+  y una prueba lo verifica. La consulta interna `consultar_datos` es la
+  excepción explícita para admin/operador: permite ver los campos operativos de
+  la tabla solicitada, incluidos datos de contacto y ubicación, porque el
+  asistente es de uso interno. Nunca devuelve credenciales ni hashes.
 - El chat **no puede ver más que el tablero**. El flujo 11 responde por
   cualquier viaje de Rapiboy, pero `historialParaModelo` no detalla uno que no
   sea modalidad 5 y localidad 9: solo dice que está fuera de alcance.
