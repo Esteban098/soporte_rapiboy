@@ -23,6 +23,7 @@ import {
   limite,
   mesValido,
   paqueteEnRutaParaModelo,
+  preguntaOperativa,
   reporteParaModelo,
   pedidoParaModelo,
   repartidorParaModelo,
@@ -449,4 +450,10 @@ test("el asistente es solo para admin y operador", () => {
 
   const shell = fuente("../src/components/Shell.tsx");
   assert.match(shell, /conSeguimiento \? <Asistente \/> : null/);
+});
+
+test("el asistente rechaza consultas ajenas a la operación", () => {
+  assert.equal(preguntaOperativa("¿Cómo aprender japonés?"), false);
+  assert.equal(preguntaOperativa("¿Qué pasó con el viaje 30878377?"), true);
+  assert.equal(preguntaOperativa("¿Cuántos paquetes demorados hay hoy?"), true);
 });

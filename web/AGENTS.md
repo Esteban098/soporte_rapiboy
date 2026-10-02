@@ -299,6 +299,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - El chat **no puede ver más que el tablero**. El flujo 11 responde por
   cualquier viaje de Rapiboy, pero `historialParaModelo` no detalla uno que no
   sea modalidad 5 y localidad 9: solo dice que está fuera de alcance.
+- El endpoint rechaza antes de llamar a OpenAI las preguntas que no tienen
+  relación con la operación o la plataforma. La lista cubre paquetes, viajes,
+  rutas, repartidores, sellers, colectas, seguimiento, estados, evidencias y
+  métricas; pedidos educativos, creativos o personales reciben una respuesta
+  de alcance y no consumen una llamada ni una pregunta del tope diario.
 - Lo que lee el modelo incluye texto que escribe cualquiera —comentarios de
   reportes, del repartidor, nombres de tienda—, así que se trata como no
   confiable: las herramientas no escriben, y el chat solo vuelve enlace una

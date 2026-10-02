@@ -1,4 +1,4 @@
-import { validarHistorial } from "@/lib/asistente";
+import { preguntaOperativa, validarHistorial } from "@/lib/asistente";
 import { responder } from "@/lib/asistente-chat";
 import { llegoAlTope, registrarUso } from "@/lib/asistente-uso";
 import { TOPE_DIARIO_ASISTENTE } from "@/lib/config";
@@ -19,6 +19,12 @@ export async function POST(pedido: Request) {
   const cuerpo = (await pedido.json().catch(() => null)) as { mensajes?: unknown } | null;
   const historial = validarHistorial(cuerpo?.mensajes);
   if (!historial) return Response.json({ ok: false, error: "Falta la pregunta." }, { status: 400 });
+  if (!preguntaOperativa(historial.at(-1)!.texto)) {
+    return Response.json(
+      { ok: false, error: "Solo puedo ayudar con la operación interna de Rapiboy y los datos de la plataforma." },
+      { status: 422 },
+    );
+  }
 
   // Antes de gastar nada: el tope diario frena un bucle o una sesión robada.
   if (await llegoAlTope(operador.email)) {

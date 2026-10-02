@@ -60,6 +60,24 @@ export function validarHistorial(entrada: unknown): MensajeChat[] | null {
   return recientes;
 }
 
+/** El asistente solo atiende operación Rapiboy y el tablero. */
+const TERMINOS_OPERATIVOS = [
+  "rapiboy", "paquete", "viaje", "entrega", "entregado", "devol", "repartidor", "driver",
+  "ruta", "seller", "tienda", "colecta", "seguimiento", "demora", "tracker", "estado",
+  "evidencia", "direccion", "domicilio", "telefono", "reporte", "caso", "siniestro", "cobro",
+  "asistencia", "motoboy", "poligono", "operacion", "operativo", "plataforma", "tablero", "sistema",
+  "consulta", "supabase", "n8n",
+];
+
+export function preguntaOperativa(texto: string): boolean {
+  const limpio = normalizar(texto);
+  if (!limpio) return false;
+  if (/\b(aprender|ensename|enséñame|receta|cocina|japones|japones|ingles|idioma|programar|poema|cancion|pelicula|musica|ejercicio|entrenamiento)\b/u.test(limpio)) {
+    return false;
+  }
+  return /\d{5,12}/.test(limpio) || TERMINOS_OPERATIVOS.some((termino) => limpio.includes(termino));
+}
+
 /* ---------------------------------------------------------------------------
    Instrucciones
    --------------------------------------------------------------------------- */
@@ -94,6 +112,9 @@ export function instrucciones(momento = new Date()): string {
     "- Si piden un listado largo, resumí y sugerí la pantalla del tablero donde verlo completo.",
     "- Sos de solo lectura: no podés modificar casos, reportes, avisos ni cobros. Si te lo piden,",
     "  explicá en qué pantalla se hace.",
+    "- Tu único propósito es la operación interna de Rapiboy y el uso del tablero: paquetes, viajes,",
+    "  entregas, rutas, repartidores, sellers, colectas, seguimiento, evidencias, estados y métricas.",
+    "  Rechazá con una frase breve cualquier pedido educativo, creativo, personal o ajeno a la operación.",
     "- Como es una herramienta interna, cuando buscar_paquete o historial_viaje devuelvan la ficha completa",
     "  podés informar domicilio, teléfono, destinatario y coordenadas del viaje. Si no vienen, decilo.",
     "- buscar_paquete consulta primero el sistema de Rapiboy (RapiboyData) y lo cruza con el tablero:",
