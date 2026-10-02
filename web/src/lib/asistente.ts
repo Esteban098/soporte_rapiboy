@@ -131,7 +131,8 @@ export function instrucciones(momento = new Date()): string {
     "- Para consultar otros campos o tablas operativas de Supabase, usá consultar_datos. Indicá la fuente",
     "  y filtrá por campo y valor cuando haya muchas filas; si el resultado está paginado, decilo.",
     "- La fuente dataRapiboy se consulta por historial_viaje o buscar_paquete: no inventes una tabla de",
-    "  Supabase para reemplazar el estado del sistema.",
+    "  Supabase para reemplazar el estado del sistema. Para colectas o motoboys usá consultar_sistema:",
+    "  esa herramienta concatena la respuesta de RapiboyData con la fila de Supabase cuando existe.",
     "- Colectas: la asignación dice qué chofer colecta habitualmente cada comercio (el que más fue en",
     "  30 días), no una orden. Lo que pasó un día puntual está en colectas_realizadas: un comercio",
     "  puede tener un chofer asignado y que ese día haya ido otro.",
@@ -179,6 +180,7 @@ export const NOMBRES_HERRAMIENTAS = [
   "asignacion_colectas",
   "colectas_realizadas",
   "consultar_datos",
+  "consultar_sistema",
 ] as const;
 
 export type NombreHerramienta = (typeof NOMBRES_HERRAMIENTAS)[number];
@@ -394,6 +396,25 @@ export const HERRAMIENTAS = [
           pagina: { type: "integer", description: "Página de resultados, empieza en 1." },
         },
         required: ["fuente"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "consultar_sistema",
+      description:
+        "Consulta datos operativos directamente en RapiboyData mediante el flujo seguro de n8n. " +
+        "Permite buscar un viaje por ID, colectas por fecha o ID, y un motoboy por ID. No acepta SQL.",
+      parameters: {
+        type: "object",
+        properties: {
+          entidad: { type: "string", enum: ["viaje", "colectas", "motoboy"] },
+          id: { type: "string", description: "ID numérico del viaje, colecta o motoboy." },
+          fecha: { type: "string", description: "Fecha de operación como AAAA-MM-DD. Obligatoria para colectas si no se indica id." },
+        },
+        required: ["entidad"],
         additionalProperties: false,
       },
     },

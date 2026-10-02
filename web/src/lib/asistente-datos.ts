@@ -106,6 +106,8 @@ export async function ejecutarHerramienta(
         return await colectasRealizadas(args);
       case "consultar_datos":
         return await consultarDatos(args);
+      case "consultar_sistema":
+        return await consultarSistema(args);
     }
   } catch (error) {
     if (error instanceof TablaFaltante) {
@@ -229,7 +231,7 @@ const ENCABEZADO_TOKEN_HISTORIAL = "ChatBot-Rapiboy-Token";
  * consulta el sistema es n8n. El flujo solo lee y devuelve el resultado en la
  * misma respuesta (`Response Mode: Last Node`).
  */
-async function historialViaje(id: string, maxMovimientos = 60) {
+async function historialViaje(id: string, maxMovimientos = 60, opciones: { entidad?: string; fecha?: string } = {}) {
   const config = historialViajeConfig();
   if (!config) {
     return { error: "La consulta al sistema no está configurada (falta N8N_WEBHOOK_HISTORIAL_VIAJE)." };
@@ -242,7 +244,7 @@ async function historialViaje(id: string, maxMovimientos = 60) {
         "content-type": "application/json",
         ...(config.token ? { [ENCABEZADO_TOKEN_HISTORIAL]: config.token } : {}),
       },
-      body: JSON.stringify({ origen: "asistente", id }),
+      body: JSON.stringify({ origen: "asistente", id, entidad: opciones.entidad ?? "viaje", fecha: opciones.fecha ?? null }),
       cache: "no-store",
       signal: AbortSignal.timeout(TIMEOUT_HISTORIAL_MS),
     });
@@ -259,11 +261,89 @@ async function historialViaje(id: string, maxMovimientos = 60) {
               : "El sistema de Rapiboy no respondió bien.",
       };
     }
-    return historialParaModelo(await respuesta.json(), maxMovimientos);
+    const crudo = await respuesta.json();
+    return opciones.entidad && opciones.entidad !== "viaje"
+      ? sistemaParaModelo(crudo)
+      : historialParaModelo(crudo, maxMovimientos);
   } catch (error) {
     console.error("[asistente] No se pudo consultar el historial:", error);
     return { error: "No se pudo consultar el sistema de Rapiboy en este momento." };
   }
+}
+
+async function consultarSistema(args: Record<string, unknown>) {
+  const entidad = texto(args, "entidad");
+  if (!entidad || !["viaje", "colectas", "motoboy"].includes(entidad)) {
+    return { error: "La entidad tiene que ser viaje, colectas o motoboy." };
+  }
+  const id = idValido(texto(args, "id"));
+  const fecha = diaValido(texto(args, "fecha"));
+  if (texto(args, "id") && !id) return { error: "El ID tiene que ser numérico." };
+  if (texto(args, "fecha") && !fecha) return { error: "La fecha tiene que tener la forma AAAA-MM-DD." };
+  if (entidad === "viaje" && !id) return { error: "Para consultar un viaje hace falta el ID." };
+  if (entidad === "motoboy" && !id) return { error: "Para consultar un motoboy hace falta el ID." };
+  if (entidad === "colectas" && !id && !fecha) return { error: "Para consultar colectas indicá un ID o una fecha." };
+
+  // Un viaje se devuelve con el mismo cruce que la herramienta principal:
+  // RapiboyData manda para estado y movimientos, y Supabase aporta el trabajo
+  // operativo del tablero cuando existe.
+  if (entidad === "viaje") return buscarPaquete({ id });
+
+  const [sistema, supabase] = await Promise.all([
+    historialViaje(id ?? "", 60, { entidad, fecha: fecha ?? undefined }),
+    leerCruceSupabase(entidad, id, fecha),
+  ]);
+  return { entidad, sistema, supabase };
+}
+
+async function leerCruceSupabase(entidad: string, id: string | null, fecha: string | null) {
+  if (modoDatos() !== "supabase") return { disponible: false, filas: [] };
+  try {
+    const tabla = entidad === "colectas" ? TABLA_COLECTAS : TABLA_DRIVERS_ACTIVOS;
+    const parametros: Record<string, string> = {
+      limit: entidad === "colectas" ? "100" : "1",
+      order: entidad === "colectas" ? "fecha.desc,id.desc" : "id_motoboy.asc",
+    };
+    if (entidad === "colectas") {
+      if (id) parametros.id = `eq.${id}`;
+      else if (fecha) parametros.fecha = `eq.${fecha}`;
+    } else if (id) {
+      parametros.id_motoboy = `eq.${id}`;
+    }
+    const filas = await consultarFresco<Record<string, unknown>>(tabla, parametros);
+    if (entidad === "motoboy" && id) {
+      const tracker = await consultarFresco<Record<string, unknown>>(TABLA_TRACKER_DRIVERS, {
+        id_motoboy: `eq.${id}`,
+        limit: "1",
+      }).catch((trackerError) => {
+        if (trackerError instanceof TablaFaltante) return [];
+        throw trackerError;
+      });
+      return { disponible: true, filas: [...filas, ...tracker].map(filaParaModelo) };
+    }
+    return { disponible: true, filas: filas.map(filaParaModelo) };
+  } catch (error) {
+    if (error instanceof TablaFaltante) return { disponible: false, filas: [] };
+    throw error;
+  }
+}
+
+function sistemaParaModelo(crudo: unknown) {
+  const datos = crudo && typeof crudo === "object" ? crudo as Record<string, unknown> : {};
+  const entidad = typeof datos.entidad === "string" ? datos.entidad : null;
+  const filas = Array.isArray(datos.filas) ? datos.filas : [];
+  const secreto = /password|secret|clave|api[_-]?key|hash/i;
+  const limpiar = (fila: unknown) => {
+    if (!fila || typeof fila !== "object") return {};
+    return Object.fromEntries(Object.entries(fila as Record<string, unknown>).filter(([k]) => !secreto.test(k)));
+  };
+  return {
+    encontrado: filas.length > 0,
+    entidad,
+    total: filas.length,
+    filas: filas.slice(0, 50).map(limpiar),
+    recortado: filas.length > 50,
+  };
 }
 
 /** Valida el estado vigente en RapiboyData antes de editar datos sensibles. */

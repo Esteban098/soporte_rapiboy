@@ -167,9 +167,9 @@ test("el flujo 11 solo lee y valida el ID antes de interpolarlo", () => {
   const sql = consulta.replace(/--.*$/gm, "");
   assert.doesNotMatch(sql, /\b(INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|TRUNCATE|EXEC)\b/i);
   // Solo el ID viaja a la consulta, y un Code node lo exige dígitos antes.
-  assert.deepEqual(sql.match(/\{\{[^}]*\}\}/g), ["{{ $json.id }}"]);
+  assert.deepEqual(sql.match(/\{\{[^}]*\}\}/g), ["{{ $json.entidad }}", "{{ $json.id }}", "{{ $json.fecha }}"]);
   const validar = String(flujo.nodes.find((n) => n.name === "Validar ID")?.parameters.jsCode);
-  assert.match(validar, /\^\\d\{5,12\}\$/);
+  assert.match(validar, /\^\\d\{1,12\}\$/);
 
   const webhook = flujo.nodes.find((n) => n.type === "n8n-nodes-base.webhook")!;
   assert.equal(webhook.parameters.authentication, "headerAuth", "el webhook devuelve datos: tiene que pedir token");

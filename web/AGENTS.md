@@ -290,6 +290,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   ruta, orden, coordenadas de destino, comentarios y última evidencia— además
   de los movimientos. `consultar_datos` no reemplaza esa fuente ni intenta
   acceder a SQL Server directamente.
+- `consultar_sistema` usa ese mismo flujo 11 para consultar directamente
+  `Viaje`, `Colecta` y `Motoboy`. La entidad es una lista cerrada y los filtros
+  son ID o fecha; el asistente nunca puede mandar una consulta SQL ni un nombre
+  de tabla arbitrario. La respuesta se cruza con Supabase: Viaje con `mensual`,
+  históricos, `ayer`, cancelados, seguimiento y tracker; Colecta con
+  `colectas`; Motoboy con `drivers_activos` y `tracker_drivers`.
 - Las respuestas resumidas de las herramientas de pantalla siguen sin enviar
   teléfono, domicilio ni coordenadas: los `…ParaModelo()` eligen campos a mano
   y una prueba lo verifica. La consulta interna `consultar_datos` es la
