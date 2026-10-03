@@ -161,7 +161,10 @@ async function buscarPaquete(args: Record<string, unknown>) {
   const reportes = seguimiento.reportes.filter((r) => r.casoId === id);
 
   const enTablero = Boolean(caso || cancelado || enRuta || reportes.length);
-  const estadoSistema = "encontrado" in sistema && sistema.encontrado ? (sistema.estado_actual ?? null) : null;
+  const estadoSistema =
+    "estado_actual" in sistema && "encontrado" in sistema && sistema.encontrado
+      ? (sistema.estado_actual ?? null)
+      : null;
   const estadoTablero = caso?.estado || cancelado?.estadoRbp || enRuta?.estado || null;
 
   return {
@@ -352,7 +355,11 @@ export async function estadoActualDelSistema(id: number): Promise<
 > {
   const resultado = await historialViaje(String(id), 0);
   if ("error" in resultado) return { ok: false, error: resultado.error };
-  if (!resultado.encontrado || resultado.en_alcance_del_tablero === false) {
+  if (
+    !("estado_actual" in resultado) ||
+    !resultado.encontrado ||
+    resultado.en_alcance_del_tablero === false
+  ) {
     return { ok: false, error: "No se pudo validar el estado del viaje en el sistema." };
   }
   const estado = resultado.estado_actual?.trim() ?? "";
