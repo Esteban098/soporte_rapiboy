@@ -55,6 +55,7 @@ Tres decisiones que vale la pena tener presentes:
 | `/tiendas` | **Ruta**: las **colectas de hoy** en vivo —se elige a qué repartidores ver y el mapa muestra solo esos, con el camino que ya hizo y las paradas que le faltan—. Ver [Tiendas](#tiendas). |
 | `/sellers` | **Base de datos · Sellers**: sellers activos, grupos de WhatsApp y distribución editable de tiendas. La tabla comienza reducida y se puede expandir. |
 | `/drivers` | **Base de datos · Drivers**: drivers activos y grupos de WhatsApp. La tabla comienza reducida y se puede expandir. |
+| `/chats-sellers` | **Chat de soporte sellers**: inbox humano/bot separado de Seguimiento. |
 
 Al abrir **Colectas** desde el tablero general, se abre una nueva pestaña con
 un sidebar propio. Así el tablero de entregas fallidas queda abierto para
@@ -80,6 +81,72 @@ La identidad visual parte de `--seed` en `globals.css`. Los roles `primary`,
 componentes compartidos consumen esos roles y la escala tipográfica
 `display`/`headline`/`title`/`body`/`label`. Para cambiar la marca se modifica
 la semilla, conservando los estados operativos y sus contrastes.
+
+## Chat de sellers
+
+El inbox de `/chats-sellers` es independiente de `seguimiento`. La conversación
+inicia con el bot; cuando el operador la toma pasa a `humano` y el servidor
+vuelve a comprobar ese estado antes de enviar mensajes del bot. Solo el operador
+asignado puede responder o cerrar; al cerrarla, regresa a `bot`. Los chats sin
+vínculo único con un seller activo y los mensajes
+que no son texto quedan para atención humana. El rol comercial no tiene acceso.
+
+El webhook de Meta es `POST /api/whatsapp/webhook`: verifica el HMAC
+`X-Hub-Signature-256`, cifra teléfono y contenido con AES-256-GCM y guarda el
+evento de forma idempotente antes de responder. También exige que `object`,
+`messaging_product` y `metadata.phone_number_id` correspondan al WhatsApp Cloud
+API y al número configurado en `META_WHATSAPP_PHONE_NUMBER_ID`. El índice de
+contacto es HMAC; guardar o rotar `WHATSAPP_INDICE_KEY` requiere reindexar las
+conversaciones. El webhook y los endpoints privados de `/api/whatsapp/worker/*`
+quedan fuera de la redirección de sesión del proxy. La verificación GET exige
+`META_WEBHOOK_VERIFY_TOKEN`, el webhook POST exige la firma HMAC y cada endpoint
+worker exige `N8N_WEBHOOK_WHATSAPP_SECRET` como Bearer.
+El webhook solo admite mensajes directos de WhatsApp por ahora. El campo de
+canal contempla grupos, pero la ingestión de grupos queda pendiente de confirmar
+que Meta habilitó Groups API para esta cuenta y de adaptar la identidad del
+remitente de grupo.
+
+El servidor conserva la hora del último mensaje entrante y solo envía texto
+libre dentro de la ventana de atención de 24 horas de WhatsApp. Fuera de esa
+ventana, marca la conversación para atención humana, bloquea el envío y muestra
+que el seller debe escribir de nuevo; el envío de plantillas aprobadas por Meta
+queda para una etapa posterior.
+
+El workflow `../n8n/15-chat-sellers.json` consulta RapiboyData en modo lectura,
+restringe cada consulta al `IdUsuario` vinculado por el teléfono y al ID de
+paquete validado (o a los últimos 30 días), y entrega al LLM estado, fechas y
+el texto de la consulta con teléfonos, correos y enlaces omitidos. El modelo
+nunca construye SQL. Una pregunta fuera de alcance, datos
+ambiguos o una salida inválida se deriva al inbox. n8n guarda desactivado el
+historial de ejecuciones exitosas, fallidas y manuales para no retener texto ni
+PII en sus ejecuciones. Las respuestas del bot tienen unicidad por evento
+entrante; si Meta no confirma el envío, se marca «Verificar envío» y se deriva
+para evitar duplicados. Meta y el token de envío permanecen en Next.js.
+
+Para habilitarlo en una instalación existente:
+
+1. Confirmar que existe `sellers_activos` (migración 18) y aplicar
+   `supabase/migracion-32-chat-sellers.sql`.
+2. Generar claves independientes (`openssl rand -base64 32`) y configurar las
+   variables `WHATSAPP_*` y `META_*` de `.env.example` en Vercel (Production).
+   Configurar `N8N_WEBHOOK_WHATSAPP_SECRET` con el secreto compartido; la URL
+   `N8N_WEBHOOK_WHATSAPP` se agrega después de activar el workflow.
+3. En n8n Cloud, importar el workflow 15. Crear Header Auth con encabezado
+   `Authorization` y valor `Bearer <N8N_WEBHOOK_WHATSAPP_SECRET>`; elegir esa
+   credencial en el webhook y los cuatro nodos HTTP. Las URL de los cuatro
+   nodos apuntan al dominio de producción de Vercel. Confirmar SQL Server y
+   OpenAI, y mantener el workflow apagado mientras se configuran.
+4. Activar el workflow y copiar la **Production URL** del nodo webhook a
+   `N8N_WEBHOOK_WHATSAPP` en Vercel; volver a desplegar para aplicar el cambio.
+5. En Meta, configurar como callback
+   `https://TU-DOMINIO/api/whatsapp/webhook`, usar el mismo
+   `META_WEBHOOK_VERIFY_TOKEN` de Vercel y suscribir el campo `messages`.
+   Después probar recepción, derivación, toma, envío humano y cierre.
+
+La clave de cifrado lleva versión (`WHATSAPP_CIFRADO_KEY_V1`) para permitir
+rotación con convivencia de versiones. No regenerar ni cambiar las claves sin
+un plan de re-cifrado/reindexación. La cuenta SQL Server de n8n debe ser de solo
+lectura para RapiboyData.
 
 ## Live tracker
 

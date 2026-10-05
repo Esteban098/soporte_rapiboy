@@ -254,8 +254,29 @@ function celda(fila: string[], indice: number | undefined): string {
   return texto.toLowerCase() === "nan" ? "" : texto;
 }
 
-/** Estados que la columna CASO del libro considera resueltos. */
-const ESTADOS_CERRADOS = new Set(["entregado", "devuelto", "siniestrado"]);
+/**
+ * Estados que ya terminaron el caso.
+ *
+ * Ayer no trae la columna generada `caso`, por eso esta regla también se usa
+ * como respaldo en esa vista. El sistema puede devolver acentos, mayúsculas o
+ * la variante "Devolución en centro de DropOff"; se normaliza antes de
+ * comparar para que no vuelva a contar como abierto un caso ya resuelto.
+ */
+const ESTADOS_CERRADOS = new Set([
+  "entregado",
+  "devuelto",
+  "siniestrado",
+  "devolucion en centro de dropoff",
+]);
+
+function estadoComparable(estado: string): string {
+  return estado
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
 
 export function parsearFecha(valor: string): Date | null {
   if (!valor) return null;
@@ -372,10 +393,14 @@ export function parsearPedido(fila: string[], mapa: MapaColumnas): Pedido | null
  * regla en código. Las vistas del día no traen esa columna.
  */
 function cerradoDe(fila: string[], mapa: MapaColumnas, estadoNormalizado: string): boolean {
+  // El estado actual es la fuente operativa. Si dice Entregado o Devuelto,
+  // nunca debe quedar abierto por una columna CASO vieja o desactualizada.
+  if (ESTADOS_CERRADOS.has(estadoComparable(estadoNormalizado))) return true;
+
   const declarado = celda(fila, mapa.caso).toLowerCase();
   if (declarado === "cerrado") return true;
   if (declarado === "abierto") return false;
-  return ESTADOS_CERRADOS.has(estadoNormalizado);
+  return false;
 }
 
 /**

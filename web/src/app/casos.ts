@@ -9,10 +9,9 @@ import { estadoActualDelSistema } from "@/lib/asistente-datos";
 /**
  * Alta, edición y baja de paquetes desde el tablero.
  *
- * Solo se tocan las columnas de soporte, nunca las del sistema. No es una
- * restricción de permisos sino de sentido: estado, repartidor, comercio y
- * visitas los reescribe n8n en cada corrida, así que editarlos acá duraría
- * hasta el próximo refresco y sería una mentira mientras tanto.
+ * Las ediciones solo tocan columnas de soporte, nunca las del sistema. El alta
+ * de un siniestro es la única excepción: guarda estado y fecha provisorios para
+ * que aparezca de inmediato; n8n los reemplaza con los valores oficiales.
  *
  * Por eso alcanza con el ID para dar de alta un paquete. Si el pedido existe en el
  * sistema, el refresco de estados lo encuentra en la tabla, lo consulta y le
@@ -132,7 +131,20 @@ export async function agregarPaquete(id: number, datos: DatosPaquete, esSiniestr
 
   // Un alta común guarda solo el ID. La información de tienda se completa una
   // vez que el paquete ya existe, desde su acción específica en la tabla.
-  const columnas = esSiniestro ? aColumnasSiniestro(datos, quien) : {};
+  //
+  // Un siniestro necesita una excepción: la pantalla de Siniestrados descarta
+  // filas sin estado ni fecha, y el refresco de n8n puede ejecutarse después.
+  // Guardamos una foto provisoria para que el caso sea visible inmediatamente;
+  // el flujo 02 reemplaza estas columnas con los valores oficiales del sistema.
+  const fechaProvisoria = new Date().toISOString().slice(0, 10);
+  const columnas = esSiniestro
+    ? {
+        ...aColumnasSiniestro(datos, quien),
+        estado: "Siniestrado",
+        fecha_creacion: fechaProvisoria,
+        fecha_programado: fechaProvisoria,
+      }
+    : {};
   const falla = await insertarFila(TABLA_MENSUAL, { id, ...columnas });
   if (falla) return { ok: false, error: falla };
 

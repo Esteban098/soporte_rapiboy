@@ -121,6 +121,24 @@ export async function upsertFila(
   return respuesta.ok ? null : motivoDeFalla(respuesta);
 }
 
+/** Ejecuta una función SQL de forma atómica. La función debe estar autorizada en Postgres. */
+export async function ejecutarRpc<T>(
+  funcion: string,
+  argumentos: Record<string, unknown>,
+): Promise<T> {
+  const respuesta = await pedir(`rpc/${encodeURIComponent(funcion)}`, {
+    method: "POST",
+    body: JSON.stringify(argumentos),
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!respuesta.ok) {
+    const detalle = await respuesta.text().catch(() => "");
+    throw new Error(`No se pudo ejecutar la operación segura "${funcion}" (HTTP ${respuesta.status}). ${detalle}`.trim());
+  }
+  return (await respuesta.json()) as T;
+}
+
 /**
  * Modifica una fila por id. Devuelve `null` si salió bien.
  *

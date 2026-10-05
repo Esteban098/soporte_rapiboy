@@ -49,10 +49,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   existentes, sin altas ni bajas. En bases existentes, instalar
   `supabase/migracion-29-siniestrados-detalle.sql`.
   Para guardar motivo o comentario, la web valida el estado consultado en
-  RapiboyData mediante el webhook 11. Al agregar desde Siniestrados solo se
-  controla que el ID exista en RapiboyData y no esté ya en Mensual o Histórico;
-  no se exige que la fila recién creada ya tenga estado en Supabase. Ese alta
-  muestra únicamente motivo y comentario; n8n completa el resto al actualizar.
+  RapiboyData mediante el webhook 11. Al agregar desde Siniestrados se
+  controla que el ID exista, esté en estado Siniestrado y no esté ya en Mensual
+  o Histórico. La web guarda de inmediato una foto provisoria con estado
+  Siniestrado y la fecha del alta para que el caso sea visible; el refresco 02
+  reemplaza esas columnas con las fechas y el estado oficiales del sistema.
 - `seguimiento` usa solamente los estados `abierto` y `cerrado` en la columna
   `estado`; cualquier `tomado` legado ahí se migra a abierto. **Tomado** es
   `tomado_por` / `tomado_en` sobre un reporte abierto: cuenta como abierto en

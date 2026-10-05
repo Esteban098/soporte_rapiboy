@@ -66,6 +66,7 @@ const NAVEGACION: (Grupo | Seccion)[] = [
   },
 
   { href: "/seguimiento", etiqueta: "Seguimiento", destacado: true },
+  { href: "/chats-sellers", etiqueta: "Chat de sellers" },
   { href: "/cobertura", etiqueta: "Cobertura", beta: true },
   /* Suelta y no en «Cola de trabajo»: no mira el mes ni el día de ayer, mira
      lo que está pasando ahora. Se entra a ver dónde está alguien, viniendo de

@@ -15,26 +15,27 @@ const pedidos = [
   ["1001", "2026-09-01", "2026-09-05", "Pedido no entregado", "Tienda A", "1"],
   ["1002", "2026-09-02", "2026-09-06", "Devuelto", "Tienda B", "2"],
   ["1003", "2026-09-03", "2026-09-07", "Entregado", "Tienda A", "1"],
+  ["1004", "2026-09-04", "2026-09-08", "Devolución en centro de DropOff", "Tienda C", "1"],
 ]
   .map((fila) => parsearPedido(fila, mapa))
   .filter((pedido): pedido is NonNullable<typeof pedido> => pedido !== null);
 
-assert.equal(pedidos.length, 3);
+assert.equal(pedidos.length, 4);
 const metricas = resumen(pedidos);
 assert.deepEqual({
   ...metricas,
   tasaDevolucion: undefined,
 }, {
-  casos: 3,
-  devoluciones: 1,
+  casos: 4,
+  devoluciones: 2,
   entregados: 1,
   abiertos: 1,
   tasaDevolucion: undefined,
-  visitasPromedio: 4 / 3,
+  visitasPromedio: 5 / 4,
   desde: "2026-09",
   hasta: "2026-09",
 });
-assert.ok(Math.abs(metricas.tasaDevolucion - (100 / 3)) < 1e-10);
+assert.ok(Math.abs(metricas.tasaDevolucion - 50) < 1e-10);
 assert.deepEqual(demorados(pedidos, Date.parse("2026-09-10T00:00:00.000Z")).map((pedido) => pedido.id), [1001]);
 assert.equal(ranking(pedidos, "tienda", { minimoCasos: 1, limite: 1 })[0]?.nombre, "Tienda B");
 

@@ -85,8 +85,8 @@ test("los totales suman centavos y señalan importes faltantes", () => {
   const pedidos = [pedido(1, "2026-09", "Siniestrado", "0.10"),
     pedido(2, "2026-09", "Siniestrado", "0.20"), pedido(3, "2026-09", "Siniestrado", ""),
     pedido(4, "2026-09", "Siniestrado", "0")];
-  assert.deepEqual(resumenSiniestrados(pedidos), { casos: 4, valorTotal: 0.3, sinValor: 1 });
-  assert.deepEqual(resumenSiniestrados([]), { casos: 0, valorTotal: 0, sinValor: 0 });
+  assert.deepEqual(resumenSiniestrados(pedidos), { casos: 4, valorTotal: 0.3, sinValor: 1, cobrados: 0 });
+  assert.deepEqual(resumenSiniestrados([]), { casos: 0, valorTotal: 0, sinValor: 0, cobrados: 0 });
 });
 
 type Nodo = { name: string; parameters: {
@@ -157,5 +157,7 @@ test("las altas distinguen paquete, información de tienda y siniestro", () => {
   assert.match(editor, /Información de tienda/);
   assert.match(editor, /!nuevo && !mostrarSiniestro/);
   assert.match(acciones, /export async function agregarPaquete/);
-  assert.match(acciones, /const columnas = esSiniestro \? aColumnasSiniestro\(datos, quien\) : \{\}/);
+  assert.match(acciones, /aColumnasSiniestro\(datos, quien\)/);
+  assert.match(acciones, /estado: "Siniestrado"/);
+  assert.match(acciones, /fecha_creacion: fechaProvisoria/);
 });

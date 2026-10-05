@@ -74,6 +74,23 @@ test("el proxy aplica la regla y la sesión deja afuera al comercial por defecto
   assert.match(actualizar, /"colectas"/);
 });
 
+test("Meta alcanza su webhook público y la ruta autentica sus desafíos y firmas", () => {
+  const proxy = fuente("../src/proxy.ts");
+  const bypass = 'ruta === "/api/whatsapp/webhook"';
+  assert.ok(proxy.indexOf(bypass) >= 0);
+  assert.ok(proxy.indexOf(bypass) < proxy.indexOf("if (authDeshabilitada())"));
+  assert.match(proxy, /ruta\.startsWith\("\/api\/whatsapp\/worker\/"\)/);
+
+  const webhook = fuente("../src/app/api/whatsapp/webhook/route.ts");
+  assert.match(webhook, /timingSafeEqual\(a, b\)/);
+  assert.match(webhook, /firmaValida\(raw, pedido\.headers\.get\("x-hub-signature-256"\)\)/);
+
+  for (const ruta of ["evento", "finalizar", "pendientes", "responder"]) {
+    const worker = fuente(`../src/app/api/whatsapp/worker/${ruta}/route.ts`);
+    assert.match(worker, /autorizadoN8n\(request\)/, ruta);
+  }
+});
+
 test("perfiles.sql trae el rol comercial en una base nueva y en una existente", () => {
   const sql = fuente("../supabase/perfiles.sql").replace(/--[^\n]*/g, "");
 

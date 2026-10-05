@@ -145,9 +145,9 @@ test("la URL de la tesela es la que documenta RainViewer", () => {
   );
 });
 
-test("la hora del cuadro es hora de México", () => {
-  // 2023-11-14 22:13:20 UTC son las 16:13 en Ciudad de México.
-  assert.equal(horaDeCuadro(1_700_000_000), "16:13");
+test("la hora del cuadro se muestra en hora argentina", () => {
+  // 2023-11-14 22:13:20 UTC son las 19:13 en Argentina.
+  assert.equal(horaDeCuadro(1_700_000_000), "19:13 hs arg");
 });
 
 test("la capa está apagada por default y no pide nada sin prenderla", () => {

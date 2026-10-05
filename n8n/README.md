@@ -442,6 +442,37 @@ que se supo, que es viejo pero cierto.
   —sábado cuando corre un lunes— y hoy a partir de esa hora.
 - Los dos se importan **apagados**, como todos.
 
+## Chat de sellers por WhatsApp
+
+`15-chat-sellers.json` conecta el webhook verificado de Next.js con el inbox.
+Importarlo apagado. Las cuatro URL de la plataforma ya apuntan a la app de
+producción; si cambia el dominio de Vercel, actualizarlo en esos nodos. Crear
+una credencial **Header Auth** con encabezado `Authorization` y valor
+`Bearer <N8N_WEBHOOK_WHATSAPP_SECRET>` (el mismo secreto que está en Vercel) y
+seleccionarla en **Webhook desde Meta adapter** y en los cuatro nodos HTTP.
+n8n Cloud no necesita variables `$env` para este workflow. Elegir además las
+credenciales existentes de SQL Server y OpenAI. El workflow deshabilita el
+almacenamiento de ejecuciones exitosas, fallidas y manuales. Mantener SQL Server
+en solo lectura.
+
+La consulta se limita al `IdUsuario` que el servidor encontró por teléfono; el
+único valor interpolado es ese entero confiable y el ID de viaje validado. No se
+acepta texto de WhatsApp como SQL. Solo se seleccionan estado, ID y fechas; no
+se envían teléfono, domicilio, coordenadas ni datos de destinatarios al LLM.
+El texto de la tienda se envía al modelo para clasificar la pregunta, tras
+ocultar teléfonos, correos y enlaces; los demás datos que la tienda incluya en
+su mensaje aún pueden formar parte de esa consulta.
+Las consultas sin ID ven los últimos 30 días y hasta 30 paquetes; si falta el
+pedido, el resultado debe derivarse a una persona. La cola se recupera cada
+minuto y procesa un evento por iteración para mantener vinculados sus datos. El
+evento queda reclamado con vencimiento para reintentar una caída del workflow;
+la respuesta de bot tiene una clave única por evento entrante para que el
+reintento no la envíe dos veces. Si no se confirma si Meta aceptó el envío, se
+deriva a atención humana y la bandeja lo marca para revisión.
+
+La integración actual atiende chats directos. No conectar este flujo a grupos
+existentes hasta confirmar disponibilidad de Groups API para la WABA de Rapiboy.
+
 ## Historial de viaje para el asistente (beta)
 
 `11-historial-viaje.json` lo usa la pestaña **Asistente** del tablero, que
