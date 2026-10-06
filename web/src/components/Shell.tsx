@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { NavLink } from "./NavLink";
-import { NavGrupo } from "./NavGrupo";
 import { SignOutButton } from "./SignOutButton";
 import { BotonActualizar } from "./BotonActualizar";
 import { SeguimientoWidget } from "./SeguimientoWidget";
@@ -9,6 +8,7 @@ import { Asistente } from "./Asistente";
 import { SelectorTema } from "./SelectorTema";
 import { BotonMenu } from "./BotonMenu";
 import { CampanaNotificaciones } from "./CampanaNotificaciones";
+import { NavegacionHorizontal } from "./NavegacionHorizontal";
 import { flujosDe, variableDeFlujo, type ClaveFlujo, type ModoDatos } from "@/lib/config";
 import { esComercial, inicioDe, puedeVerRuta, type RolPerfil } from "@/lib/permisos";
 import estilos from "./ui.module.css";
@@ -40,57 +40,18 @@ type Seccion = {
   destacado?: boolean;
   beta?: boolean;
   nuevaVentana?: boolean;
+  /** Todas las rutas que encienden este título de primer nivel. */
+  rutasActivas?: string[];
 };
 
-type Grupo = { titulo: string; secciones: Seccion[] };
-
-const NAVEGACION: (Grupo | Seccion)[] = [
-  {
-    titulo: "Cola de trabajo",
-    secciones: [
-      { href: "/", etiqueta: "Mes en curso" },
-      { href: "/operacion", etiqueta: "Última jornada" },
-      { href: "/demorados", etiqueta: "Demorados" },
-      { href: "/reclamos", etiqueta: "Informacion de tiendas" },
-      { href: "/cancelados", etiqueta: "Cancelados" },
-    ],
-  },
-  {
-    titulo: "Siniestrados",
-    secciones: [
-      /* `exacto` porque /siniestrados es prefijo de /siniestrados/historial: sin
-         eso las dos entradas se encienden a la vez estando en la de abajo. */
-      { href: "/siniestrados", etiqueta: "Siniestrados", exacto: true },
-      { href: "/siniestrados/historial", etiqueta: "Historial" },
-    ],
-  },
-
-  { href: "/seguimiento", etiqueta: "Seguimiento", destacado: true },
-  { href: "/chats-sellers", etiqueta: "Chat de sellers" },
-  { href: "/cobertura", etiqueta: "Cobertura", beta: true },
-  /* Suelta y no en «Cola de trabajo»: no mira el mes ni el día de ayer, mira
-     lo que está pasando ahora. Se entra a ver dónde está alguien, viniendo de
-     cualquier pantalla, igual que a Cobertura. */
-  { href: "/live-tracker", etiqueta: "Live tracker" },
-
-  {
-    titulo: "Base de datos",
-    secciones: [
-      { href: "/sellers", etiqueta: "Sellers" },
-      { href: "/drivers", etiqueta: "Drivers" },
-    ],
-  },
-
-  /* Colectas abre su propio espacio de trabajo. El tablero que quedó atrás se
-     conserva abierto para poder contrastar una ruta con la operación general. */
-  { href: "/colectas", etiqueta: "Colectas", nuevaVentana: true },
-  {
-    titulo: "Historial",
-    secciones: [
-      { href: "/historico", etiqueta: "Históricos Casos" },
-      { href: "/cancelados-historico", etiqueta: "Históricos Cancelados" },
-    ],
-  },
+const NAVEGACION: Seccion[] = [
+  { href: "/", etiqueta: "Operación", rutasActivas: ["/", "/operacion", "/demorados", "/reclamos", "/cancelados", "/detalle"] },
+  { href: "/siniestrados", etiqueta: "Siniestrados", rutasActivas: ["/siniestrados"] },
+  { href: "/seguimiento", etiqueta: "Herramientas", destacado: true, rutasActivas: ["/seguimiento", "/cobertura", "/live-tracker"] },
+  { href: "/chats-sellers", etiqueta: "Chat de sellers", nuevaVentana: true, rutasActivas: ["/chats-sellers"] },
+  { href: "/sellers", etiqueta: "Base de datos", rutasActivas: ["/sellers", "/drivers"] },
+  { href: "/colectas", etiqueta: "Colectas", nuevaVentana: true, rutasActivas: ["/colectas", "/tiendas"] },
+  { href: "/historico", etiqueta: "Históricos", rutasActivas: ["/historico", "/cancelados-historico"] },
 
   /* Cambia de nombre según el rol: quien administra ve «Perfiles» y el resto,
      «Mi perfil». La entrada está para todos porque cualquiera necesita poder
@@ -98,23 +59,13 @@ const NAVEGACION: (Grupo | Seccion)[] = [
   { href: "/perfiles", etiqueta: null },
 ];
 
-function esGrupo(entrada: Grupo | Seccion): entrada is Grupo {
-  return "secciones" in entrada;
-}
-
 /**
  * El menú de un rol: sin las secciones que no puede abrir y sin los grupos que
  * quedan vacíos. Es la misma regla del proxy, así que el menú nunca ofrece una
  * pantalla que después rebota.
  */
-function navegacionDe(rol: RolPerfil | null): (Grupo | Seccion)[] {
-  return NAVEGACION.map((entrada) =>
-    esGrupo(entrada)
-      ? { ...entrada, secciones: entrada.secciones.filter((s) => puedeVerRuta(rol, s.href)) }
-      : entrada,
-  ).filter((entrada) =>
-    esGrupo(entrada) ? entrada.secciones.length > 0 : puedeVerRuta(rol, entrada.href),
-  );
+function navegacionDe(rol: RolPerfil | null): Seccion[] {
+  return NAVEGACION.filter((entrada) => puedeVerRuta(rol, entrada.href));
 }
 
 export function Shell({
@@ -151,30 +102,11 @@ export function Shell({
           </Link>
 
           <div className={estilos.railCuerpo}>
-            {navegacionDe(rol).map((entrada) =>
-              esGrupo(entrada) ? (
-                <NavGrupo
-                  key={entrada.titulo}
-                  titulo={entrada.titulo}
-                  rutas={entrada.secciones.map(({ href, exacto }) => ({ href, exacto }))}
-                >
-                  {entrada.secciones.map((seccion) => (
-                    <li key={seccion.href}>
-                      <Enlace seccion={seccion} esAdmin={esAdmin} />
-                    </li>
-                  ))}
-                </NavGrupo>
-              ) : (
-                /* Sin cabecera de grupo y sin la indentación que aplica
-                   `.railGrupo .railLista`, así queda al nivel de los grupos y
-                   no adentro de ninguno. */
-                <ul key={entrada.href} className={`${estilos.railLista} ${estilos.railSuelta}`}>
-                  <li>
-                    <Enlace seccion={entrada} esAdmin={esAdmin} />
-                  </li>
-                </ul>
-              ),
-            )}
+            {navegacionDe(rol).map((entrada) => (
+              <ul key={entrada.href} className={`${estilos.railLista} ${estilos.railSuelta}`}>
+                <li><Enlace seccion={entrada} esAdmin={esAdmin} /></li>
+              </ul>
+            ))}
           </div>
 
           <div className={estilos.railPie}>
@@ -198,7 +130,7 @@ export function Shell({
           <SelectorTema />
         </header>
 
-        <main className={estilos.main}>{children}</main>
+        <main className={estilos.main}><NavegacionHorizontal rol={rol} />{children}</main>
 
         {/* Se carga en todas las pantallas del tablero: reportar algo casi
             nunca pasa estando parado en la pantalla de reportes. Solo con la
@@ -220,6 +152,7 @@ function Enlace({ seccion, esAdmin }: { seccion: Seccion; esAdmin: boolean }) {
       exacto={seccion.exacto}
       destacado={seccion.destacado}
       nuevaVentana={seccion.nuevaVentana}
+      rutasActivas={seccion.rutasActivas}
       titulo={seccion.nuevaVentana ? `${etiqueta} · abrir en una nueva ventana` : etiqueta}
     >
       {/* `data-rail-texto`: lo que desaparece con el menú plegado. */}

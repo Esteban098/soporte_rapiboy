@@ -472,6 +472,15 @@ deriva a atención humana y la bandeja lo marca para revisión.
 
 La integración actual atiende chats directos. No conectar este flujo a grupos
 existentes hasta confirmar disponibilidad de Groups API para la WABA de Rapiboy.
+La migración `web/supabase/migracion-33-chat-sellers-estados.sql` agrega el cierre
+persistente. n8n sigue recibiendo los controles internos `bot` y `pendiente` para
+un chat abierto; al llegar un mensaje nuevo a uno cerrado, la función de ingreso
+lo reabre antes de entregar el evento al workflow. Los duplicados de Meta no
+cambian el estado.
+La migración `web/supabase/migracion-34-chat-contactos-reportes.sql` conserva el
+contacto aunque se elimine el historial del chat y hace que una asignación manual
+a `sellers_activos` prevalezca sobre la coincidencia automática por teléfono.
+n8n no necesita nodos nuevos para Contactos, Usuarios ni Reportes.
 
 ## Historial de viaje para el asistente (beta)
 

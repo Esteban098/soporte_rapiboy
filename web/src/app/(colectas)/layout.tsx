@@ -19,5 +19,5 @@ export default async function ColectasLayout({ children }: { children: React.Rea
     } catch { /* El espacio de colectas funciona sin el índice de colores. */ }
   }
 
-  return <ProveedorTiendas indice={indice}><ColectasShell usuario={usuario} puedeOperar={sesion?.user?.rol !== "comercial"}>{children}</ColectasShell></ProveedorTiendas>;
+  return <ProveedorTiendas indice={indice}><ColectasShell usuario={usuario} rol={sesion?.user?.rol ?? null}>{children}</ColectasShell></ProveedorTiendas>;
 }

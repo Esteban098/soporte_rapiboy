@@ -183,7 +183,28 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   tablas especiales que no usan `Tabla.tsx` pasan por `TablaOrdenable.tsx` para
   conservar el mismo ordenamiento por encabezado que Ayer.
 
+- El chat de sellers vive en `seller_chat_conversaciones`,
+  `seller_chat_mensajes`, `seller_chat_eventos` y `seller_chat_lecturas`
+  (migraciones 32-34). En la
+  interfaz solo existen **Abierto**, **Asignado** y **Cerrado**; internamente
+  `bot` y `pendiente` son dos variantes de Abierto necesarias para decidir si
+  responde la automatización. Cerrar persiste `cerrado` y un mensaje entrante
+  nuevo lo reabre; un webhook duplicado no debe reabrirlo. Eliminar una
+  conversación borra sus mensajes y eventos y la oculta del inbox, pero
+  conserva el contacto cifrado y `seller_manual_id`. Contactos solo puede
+  asignarse a un `sellers_activos` vigente; el vínculo manual prevalece sobre
+  la búsqueda automática del webhook. Reportes agrega en SQL sin descifrar
+  contenidos. El enlace del menú
+  abre `/chats-sellers` en otra pestaña, pero dentro de esa sección la lista y
+  el detalle comparten la misma pantalla.
+
 ## Límites entre flujos
+
+- La navegación interna de las familias de pantallas vive únicamente en
+  `src/components/NavegacionHorizontal.tsx` y se monta desde `Shell` y
+  `ColectasShell`. No repetir pestañas dentro de cada `page.tsx`. Las entradas
+  se filtran con `puedeVerRuta`, igual que el menú y el proxy. El sidebar lleva
+  un solo título por familia; no volver a agregarle las rutas hijas.
 
 - Los workflows 01 y 02 trabajan únicamente sobre las tablas operativas.
 - Los workflows 04 y 05 leen y escriben únicamente las tablas históricas y

@@ -9,6 +9,7 @@ export function NavLink({
   exacto = false,
   destacado = false,
   nuevaVentana = false,
+  rutasActivas,
   titulo,
   children,
 }: {
@@ -25,12 +26,16 @@ export function NavLink({
   destacado?: boolean;
   /** Abre un espacio de trabajo independiente, sin sacar al operador del tablero actual. */
   nuevaVentana?: boolean;
+  /** Rutas hermanas que pertenecen a esta entrada de primer nivel. */
+  rutasActivas?: string[];
   /** Nombre de la sección como tooltip: con el menú plegado es lo único que la nombra. */
   titulo?: string;
   children: React.ReactNode;
 }) {
   const ruta = usePathname();
-  const activo = href === "/" || exacto ? ruta === href : ruta.startsWith(href);
+  const activo = rutasActivas
+    ? rutasActivas.some((base) => base === "/" ? ruta === "/" : ruta === base || ruta.startsWith(`${base}/`))
+    : href === "/" || exacto ? ruta === href : ruta.startsWith(href);
 
   return (
     <Link

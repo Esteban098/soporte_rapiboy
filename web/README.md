@@ -82,12 +82,37 @@ componentes compartidos consumen esos roles y la escala tipográfica
 `display`/`headline`/`title`/`body`/`label`. Para cambiar la marca se modifica
 la semilla, conservando los estados operativos y sus contrastes.
 
+Las familias con más de una pantalla usan una barra horizontal contextual al
+inicio del contenido. `NavegacionHorizontal.tsx` concentra las rutas de
+Operación, Siniestrados, Herramientas, Chat de sellers, Base de datos,
+Históricos y Colectas; por eso una nueva subsección se registra ahí y no se
+copia un bloque de enlaces en cada página. La barra aplica `puedeVerRuta`, así
+que nunca muestra una pestaña que el rol actual no pueda abrir.
+El sidebar conserva solo un título por familia —Operación, Siniestrados,
+Herramientas, Chat de sellers, Base de datos, Colectas e Históricos—; las
+subsecciones aparecen únicamente en la barra horizontal.
+
 ## Chat de sellers
 
 El inbox de `/chats-sellers` es independiente de `seguimiento`. La conversación
-inicia con el bot; cuando el operador la toma pasa a `humano` y el servidor
-vuelve a comprobar ese estado antes de enviar mensajes del bot. Solo el operador
-asignado puede responder o cerrar; al cerrarla, regresa a `bot`. Los chats sin
+inicia visible como **Abierta**; cuando el operador la toma pasa a **Asignada**
+y el servidor vuelve a comprobar ese control antes de enviar mensajes del bot.
+Solo el operador asignado puede responder o cerrar. Al cerrarla queda en
+**Cerrada** hasta que el seller escriba un mensaje nuevo, que la reabre de forma
+atómica; un reintento duplicado de Meta no la reabre. La bandeja se filtra por
+los tres estados, por conversaciones propias y no leídas; también permite buscar
+por seller, número o mensaje. Eliminar un chat borra sus mensajes y eventos y lo
+retira de la bandeja, pero conserva el contacto y su asignación. La entrada
+**Chat de sellers** del menú abre este espacio de trabajo en una pestaña nueva;
+la lista y el chat seleccionado permanecen juntos dentro de esa pestaña.
+
+El espacio incluye **Contactos**, **Reportes** y **Usuarios**. Contactos nace de
+los números que realmente escriben al WhatsApp y permite vincularlos con un
+registro activo de `sellers_activos`; esa elección manual prevalece sobre la
+detección automática de los mensajes siguientes. Reportes calcula volumen,
+respuestas y tiempos por fecha y usuario directamente sobre chats y mensajes.
+Usuarios reutiliza `perfiles`, por lo que no mantiene otro padrón ni otra regla
+de acceso. Los chats sin
 vínculo único con un seller activo y los mensajes
 que no son texto quedan para atención humana. El rol comercial no tiene acceso.
 
@@ -126,7 +151,9 @@ para evitar duplicados. Meta y el token de envío permanecen en Next.js.
 Para habilitarlo en una instalación existente:
 
 1. Confirmar que existe `sellers_activos` (migración 18) y aplicar
-   `supabase/migracion-32-chat-sellers.sql`.
+   `supabase/migracion-32-chat-sellers.sql` y después
+   `supabase/migracion-33-chat-sellers-estados.sql` y
+   `supabase/migracion-34-chat-contactos-reportes.sql`.
 2. Generar claves independientes (`openssl rand -base64 32`) y configurar las
    variables `WHATSAPP_*` y `META_*` de `.env.example` en Vercel (Production).
    Configurar `N8N_WEBHOOK_WHATSAPP_SECRET` con el secreto compartido; la URL
@@ -141,7 +168,9 @@ Para habilitarlo en una instalación existente:
 5. En Meta, configurar como callback
    `https://TU-DOMINIO/api/whatsapp/webhook`, usar el mismo
    `META_WEBHOOK_VERIFY_TOKEN` de Vercel y suscribir el campo `messages`.
-   Después probar recepción, derivación, toma, envío humano y cierre.
+   Después probar recepción, derivación, toma, envío humano, cierre, reapertura
+   por un mensaje entrante nuevo, no leídos, asignación de contactos, reportes y
+   eliminación.
 
 La clave de cifrado lleva versión (`WHATSAPP_CIFRADO_KEY_V1`) para permitir
 rotación con convivencia de versiones. No regenerar ni cambiar las claves sin

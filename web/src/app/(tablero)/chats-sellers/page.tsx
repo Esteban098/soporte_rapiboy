@@ -12,7 +12,7 @@ export default async function ChatsSellersPage() {
     <PageHead
       eyebrow="Atención a sellers"
       titulo="Chat de soporte"
-      dek="Conversaciones de WhatsApp. Al tomar un chat, el bot deja de responder; al cerrarlo, vuelve a atender los mensajes nuevos."
+      dek="Bandeja de WhatsApp por estado. Seleccioná una conversación, tomala para responder y cerrala al finalizar."
     />
     <ChatSellers usuario={operador.email} />
   </>;

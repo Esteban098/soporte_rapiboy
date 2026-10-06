@@ -3,15 +3,22 @@ import { randomUUID } from "node:crypto";
 import { cifrarTexto, descifrarTexto } from "./chat-cifrado";
 import { actualizarFila, actualizarFilaSi, consultarFresco, ejecutarRpc, insertarFila } from "./supabase";
 
+type EstadoInternoChat = "bot" | "pendiente" | "humano" | "cerrado";
+export type EstadoChat = "abierto" | "asignado" | "cerrado";
+
 type FilaChat = {
   id: string;
+  created_at: string;
   canal: "directo" | "grupo";
   seller_id: number | null;
-  estado: "bot" | "pendiente" | "humano";
+  estado: EstadoInternoChat;
   asignado_a: string | null;
   ultima_entrada_en: string | null;
   ultimo_mensaje_en: string | null;
   cerrado_en: string | null;
+  cerrado_por: string | null;
+  eliminado_en: string | null;
+  eliminado_por: string | null;
   contacto_cifrado: string;
   contacto_iv: string;
   contacto_tag: string;
@@ -19,6 +26,8 @@ type FilaChat = {
   ultimo_mensaje_iv: string | null;
   ultimo_mensaje_tag: string | null;
 };
+
+type FilaLectura = { conversacion_id: string; leido_en: string };
 
 type FilaMensaje = {
   id: string;
@@ -63,26 +72,88 @@ async function marcarUltimoMensaje(
   return "error" in resultado ? resultado.error : null;
 }
 
-export async function listarChats() {
-  const filas = await consultarFresco<FilaChat>("seller_chat_conversaciones", {
-    order: "ultimo_mensaje_en.desc.nullslast",
-    limit: "300",
-  });
+export async function listarChats(email: string) {
+  const [filas, lecturas] = await Promise.all([
+    consultarFresco<FilaChat>("seller_chat_conversaciones", {
+      eliminado_en: "is.null",
+      order: "ultimo_mensaje_en.desc.nullslast",
+      limit: "300",
+    }),
+    consultarFresco<FilaLectura>("seller_chat_lecturas", {
+      email: `eq.${email.toLowerCase()}`,
+      limit: "1000",
+    }).catch(() => []),
+  ]);
+  const leidoEn = new Map(lecturas.map((fila) => [fila.conversacion_id, fila.leido_en]));
   return filas.map((chat) => ({
     id: chat.id,
     canal: chat.canal,
     sellerId: chat.seller_id,
-    estado: chat.estado,
+    estado: chat.estado === "humano" ? "asignado" : chat.estado === "cerrado" ? "cerrado" : "abierto",
+    requiereAtencion: chat.estado === "pendiente",
     asignadoA: chat.asignado_a,
     ultimaEntradaEn: chat.ultima_entrada_en,
     ventanaAbierta: ventanaAbierta(chat.ultima_entrada_en),
     ultimoMensajeEn: chat.ultimo_mensaje_en,
     cerradoEn: chat.cerrado_en,
+    cerradoPor: chat.cerrado_por ?? null,
+    noLeido: Boolean(chat.ultima_entrada_en && (!leidoEn.get(chat.id) || chat.ultima_entrada_en > (leidoEn.get(chat.id) ?? ""))),
     telefono: abrir(chat.contacto_cifrado, chat.contacto_iv, chat.contacto_tag),
     extracto: chat.ultimo_mensaje_cifrado
       ? abrir(chat.ultimo_mensaje_cifrado, chat.ultimo_mensaje_iv ?? "", chat.ultimo_mensaje_tag ?? "")
       : "",
   }));
+}
+
+export async function listarContactosChat() {
+  const filas = await consultarFresco<FilaChat>("seller_chat_conversaciones", {
+    order: "ultimo_mensaje_en.desc.nullslast",
+    limit: "1000",
+  });
+  return filas.map((chat) => ({
+    id: chat.id,
+    sellerId: chat.seller_id,
+    telefono: abrir(chat.contacto_cifrado, chat.contacto_iv, chat.contacto_tag),
+    creadoEn: chat.created_at,
+    ultimoMensajeEn: chat.ultimo_mensaje_en,
+    eliminadoEn: chat.eliminado_en ?? null,
+  }));
+}
+
+export async function asignarContactoChat(conversacionId: string, sellerId: number | null, email: string): Promise<boolean> {
+  return ejecutarRpc<boolean>("seller_chat_asignar_contacto", {
+    p_conversacion_id: conversacionId,
+    p_seller_id: sellerId,
+    p_email: email,
+  });
+}
+
+export async function marcarChatLeido(conversacionId: string, email: string): Promise<boolean> {
+  return ejecutarRpc<boolean>("seller_chat_marcar_leido", {
+    p_conversacion_id: conversacionId,
+    p_email: email,
+  });
+}
+
+export type ReporteChats = {
+  creados: number;
+  cerrados: number;
+  asignados: number;
+  conRespuesta: number;
+  sinRespuesta: number;
+  primeraRespuestaSegundos: number | null;
+  resolucionSegundos: number | null;
+  botSegundos: number | null;
+  atencionHumanaSegundos: number | null;
+  horas: { hora: number; creados: number; cerrados: number; contactos: number }[];
+};
+
+export async function reporteChats(desde: string, hasta: string, usuario: string | null): Promise<ReporteChats> {
+  return ejecutarRpc<ReporteChats>("seller_chat_reporte", {
+    p_desde: desde,
+    p_hasta: hasta,
+    p_usuario: usuario,
+  });
 }
 
 export async function leerMensajes(conversacionId: string) {
@@ -117,12 +188,19 @@ export async function cerrarChat(conversacionId: string, email: string): Promise
   });
 }
 
+export async function eliminarChat(conversacionId: string, email: string): Promise<boolean> {
+  return ejecutarRpc<boolean>("seller_chat_eliminar", {
+    p_conversacion_id: conversacionId,
+    p_email: email,
+  });
+}
+
 async function enviarMensaje(
   chat: FilaChat,
   texto: string,
   autorTipo: "bot" | "operador",
   autorEmail: string | null,
-  estadoEsperado: "bot" | "pendiente" | "humano",
+  estadoEsperado: Exclude<EstadoInternoChat, "cerrado">,
   eventoId?: string,
 ): Promise<{ ok: boolean; error?: string; omitido?: boolean; ventanaCerrada?: boolean }> {
   const conversacionId = chat.id;
