@@ -3,6 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 
 import { fechaCalendario, fechaHoraMexico, resumirDirectorio } from "../src/lib/directorio";
+import { FAMILIAS_NAVEGACION, SECCIONES_PRINCIPALES } from "../src/lib/navegacion";
 
 const fuente = (ruta: string) => readFileSync(new URL(ruta, import.meta.url), "utf8");
 
@@ -28,10 +29,15 @@ test("las fechas de calendario no cambian de día y las horas usan México", () 
   assert.match(fecha, /hs arg/);
 });
 
-test("las dos rutas están en el sidebar y leen mediante una capa server-only", () => {
+test("las dos rutas están en la navegación y leen mediante una capa server-only", () => {
   const shell = fuente("../src/components/Shell.tsx");
-  assert.match(shell, /href: "\/sellers"/);
-  assert.match(shell, /href: "\/drivers"/);
+  const navegacion = fuente("../src/components/NavegacionHorizontal.tsx");
+  const rutas = FAMILIAS_NAVEGACION.flatMap((familia) => familia.entradas.map((entrada) => entrada.href));
+  assert.ok(rutas.includes("/sellers"));
+  assert.ok(rutas.includes("/drivers"));
+  assert.ok(SECCIONES_PRINCIPALES.some((seccion) => seccion.href === "/sellers"));
+  assert.match(shell, /SECCIONES_PRINCIPALES/);
+  assert.match(navegacion, /FAMILIAS_NAVEGACION/);
 
   const datos = fuente("../src/lib/directorio-datos.ts");
   assert.match(datos, /^import "server-only";/);

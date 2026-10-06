@@ -393,6 +393,10 @@ npm run test:colectas-vivo
 npm run test:directorio
 ```
 
+Los destinos y agrupaciones de navegación viven en `src/lib/navegacion.ts`; el
+menú lateral y la barra secundaria consumen esa configuración. No dupliques
+rutas o permisos en los componentes.
+
 Además, validar los workflows con `jq empty ../n8n/*.json`. El build no sale a
 la red: la tipografía son archivos locales en `src/app/fonts/` cargados con
 `next/font/local`, y el polígono de cobertura es `src/lib/cobertura.json`,
@@ -559,6 +563,18 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   si dependiera del orden, alguien que entra a la jornada le correría el color
   a todos los demás. La paleta está ordenada para que ids corridos —lo normal—
   caigan en tonos que contrastan.
+
+## Chat de sellers
+
+- El chat es independiente de `seguimiento`. Next.js es responsable de validar,
+  cifrar y persistir webhooks; n8n solo procesa eventos ya guardados y consulta
+  RapiboyData en modo lectura. Un workflow n8n inactivo no explica la ausencia
+  de una invocación entrante en Vercel.
+- No registrar mensajes, teléfonos, firmas, tokens ni secretos. Los logs deben
+  limitarse a códigos de resultado, conteos e indicadores técnicos sin PII.
+- Una respuesta HTTP 200 a una prueba sintética no demuestra que un mensaje real
+  se haya persistido. Seguir el diagnóstico actualizado en
+  [`docs/chat-sellers.md`](docs/chat-sellers.md).
 
 ## Cobertura
 

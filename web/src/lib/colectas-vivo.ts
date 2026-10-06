@@ -1,6 +1,5 @@
 import {
   BODEGA,
-  ZONA_OPERACION,
   colorDeDriver,
   coordenadaValida,
   distanciaKm,

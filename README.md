@@ -3,7 +3,7 @@
 Plataforma de operación de soporte para entregas fallidas, cancelaciones,
 reclamos y colectas.
 
-- `web/`: tablero Next.js conectado a Supabase.
+- `web/`: tablero Next.js conectado a Supabase, incluido el chat de soporte para sellers.
 - `n8n/`: workflows importables de ingesta y automatización.
 - La asistencia de repartidores se guarda en Supabase por jornada de México e
   `Motoboy.Id`; el webhook de votos reemplaza la escritura operativa en Google
@@ -36,3 +36,11 @@ La lógica operativa continúa usando la hora de Ciudad de México para resolver
 la jornada, los cortes y las sincronizaciones. Las fechas y horas que ve el
 usuario se presentan en horario argentino y llevan el sufijo `hs arg` (por
 ejemplo, `13:29 hs arg`) para evitar mezclar relojes en la pantalla.
+
+## Documentación
+
+- [Guía de la plataforma](web/README.md)
+- [Reglas de arquitectura y trabajo seguro](web/AGENTS.md)
+- [Chat de sellers: integración y diagnóstico](web/docs/chat-sellers.md)
+- [Flujos de automatización](n8n/README.md)
+- [Extensión de Firefox](firefox-extension/README.md)

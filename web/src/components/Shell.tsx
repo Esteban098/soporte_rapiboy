@@ -9,65 +9,14 @@ import { SelectorTema } from "./SelectorTema";
 import { BotonMenu } from "./BotonMenu";
 import { CampanaNotificaciones } from "./CampanaNotificaciones";
 import { NavegacionHorizontal } from "./NavegacionHorizontal";
+import { SECCIONES_PRINCIPALES, type SeccionPrincipal } from "@/lib/navegacion";
 import { flujosDe, variableDeFlujo, type ClaveFlujo, type ModoDatos } from "@/lib/config";
 import { esComercial, inicioDe, puedeVerRuta, type RolPerfil } from "@/lib/permisos";
 import estilos from "./ui.module.css";
 /* El mismo archivo que Next sirve como ícono de la pestaña: una sola copia del logo. */
 import logo from "@/app/icon.png";
 
-/**
- * Las secciones van agrupadas por para qué se usan, no en una lista corrida.
- *
- * «Cola de trabajo» es lo del turno: todo ahí mira el mes en curso o el día.
- * «Siniestrados» y «Colectas» son procesos con vida propia, cada uno con su
- * pantalla de trabajo y su historial. «Historial» junta los meses cerrados de
- * la cola, que se consultan cuando hay tiempo de analizar y no en medio de la
- * operación. El grupo es la única jerarquía; adentro la navegación es directa,
- * sin submenús.
- *
- * Seguimiento, Cobertura y Cuentas van sueltas, sin grupo. No pertenecen a
- * una cola ni a un período: se entra a reportar algo, a preguntar si un
- * domicilio entra o a tocar la propia cuenta, viniendo de cualquier
- * pantalla. Meterlas en un grupo plegable las escondía detrás de
- * un clic, y un grupo con una sola sección adentro es un rodeo.
- */
-type Seccion = {
-  href: string;
-  /** `null` en las que cambian de nombre según el rol. */
-  etiqueta: string | null;
-  /** Para las rutas que son prefijo de otra hermana. */
-  exacto?: boolean;
-  destacado?: boolean;
-  beta?: boolean;
-  nuevaVentana?: boolean;
-  /** Todas las rutas que encienden este título de primer nivel. */
-  rutasActivas?: string[];
-};
-
-const NAVEGACION: Seccion[] = [
-  { href: "/", etiqueta: "Operación", rutasActivas: ["/", "/operacion", "/demorados", "/reclamos", "/cancelados", "/detalle"] },
-  { href: "/siniestrados", etiqueta: "Siniestrados", rutasActivas: ["/siniestrados"] },
-  { href: "/seguimiento", etiqueta: "Herramientas", destacado: true, rutasActivas: ["/seguimiento", "/cobertura", "/live-tracker"] },
-  { href: "/chats-sellers", etiqueta: "Chat de sellers", nuevaVentana: true, rutasActivas: ["/chats-sellers"] },
-  { href: "/sellers", etiqueta: "Base de datos", rutasActivas: ["/sellers", "/drivers"] },
-  { href: "/colectas", etiqueta: "Colectas", nuevaVentana: true, rutasActivas: ["/colectas", "/tiendas"] },
-  { href: "/historico", etiqueta: "Históricos", rutasActivas: ["/historico", "/cancelados-historico"] },
-
-  /* Cambia de nombre según el rol: quien administra ve «Perfiles» y el resto,
-     «Mi perfil». La entrada está para todos porque cualquiera necesita poder
-     cambiar su propia contraseña. */
-  { href: "/perfiles", etiqueta: null },
-];
-
-/**
- * El menú de un rol: sin las secciones que no puede abrir y sin los grupos que
- * quedan vacíos. Es la misma regla del proxy, así que el menú nunca ofrece una
- * pantalla que después rebota.
- */
-function navegacionDe(rol: RolPerfil | null): Seccion[] {
-  return NAVEGACION.filter((entrada) => puedeVerRuta(rol, entrada.href));
-}
-
+/** Cascarón común de las secciones autenticadas del tablero. */
 export function Shell({
   children,
   modo,
@@ -102,7 +51,7 @@ export function Shell({
           </Link>
 
           <div className={estilos.railCuerpo}>
-            {navegacionDe(rol).map((entrada) => (
+            {SECCIONES_PRINCIPALES.filter((entrada) => puedeVerRuta(rol, entrada.href)).map((entrada) => (
               <ul key={entrada.href} className={`${estilos.railLista} ${estilos.railSuelta}`}>
                 <li><Enlace seccion={entrada} esAdmin={esAdmin} /></li>
               </ul>
@@ -144,7 +93,7 @@ export function Shell({
   );
 }
 
-function Enlace({ seccion, esAdmin }: { seccion: Seccion; esAdmin: boolean }) {
+function Enlace({ seccion, esAdmin }: { seccion: SeccionPrincipal; esAdmin: boolean }) {
   const etiqueta = seccion.etiqueta ?? (esAdmin ? "Perfiles" : "Mi perfil");
   return (
     <NavLink

@@ -11,6 +11,8 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    // Bundles de MapLibre copiados para servir el mapa; no son código fuente.
+    "public/maplibre/**",
     "next-env.d.ts",
   ]),
 ]);

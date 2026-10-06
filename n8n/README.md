@@ -1,6 +1,6 @@
 # Flujos de n8n
 
-Catorce workflows. Los tres primeros reemplazan al único que escribía en el
+Quince workflows. Los tres primeros reemplazan al único que escribía en el
 Google Sheet; los siguientes cubren los botones Actualizar y la carga de datos
 de tienda desde Firefox. Se importan desde n8n con **Workflows ▸ Import from
 File**.
@@ -16,10 +16,12 @@ File**.
 | `07-firefox-gestiones.json` | Interpreta el ID y los datos aportados por la tienda, y actualiza solo las columnas de soporte de `mensual` | Al enviar una selección desde la extensión de Firefox |
 | `08-tracker-drivers.json` | Repartidores de la ruta visible y su última posición conocida | 6:45; cada 30 min de 15:00 a 23:30, lunes a sábado; y desde **Actualizar** del live tracker, después de los paquetes |
 | `09-tracker-paquetes.json` | Actualiza la última ruta operativa —el sábado si es lunes— o reconcilia la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 7:15; cada 30 min de 15:00 a 23:30, lunes a sábado; y desde **Actualizar** del live tracker, antes de las posiciones |
+| `10-tracker-diagnostico.json` | Inspección temporal del webhook del tracker | **Desechable e inactivo**; no importar en producción |
 | `11-historial-viaje.json` | Devuelve el estado y el historial de un viaje desde RapiboyData, para el asistente del tablero. Solo lee | Cada vez que alguien pregunta por un paquete en el asistente |
 | `12-colectas-vivo.json` | Las colectas de hoy con su estado, su historial y la última posición de cada repartidor, y guarda cada posición nueva para dibujar el recorrido, para el mapa de **Tiendas**. Solo lee SQL Server | Cada 5 min de 7:00 a 16:55, lunes a sábado, y desde **Actualizar posiciones y estados** en Tiendas |
 | `13-directorio-activos-whatsapp.json` | Sincroniza en Supabase los sellers activos de México, los drivers con reserva válida en los últimos 14 días y sus grupos de WhatsApp | 9:00 de lunes a sábado, manualmente desde n8n y desde los botones de Sellers/Drivers |
 | `14-asistencia-supabase.json` | Plantilla de reemplazo: recibe el voto de la encuesta y lo registra en la plataforma; no usa Google Sheets | Webhook de votos |
+| `15-chat-sellers.json` | Procesa mensajes persistidos del chat y recupera eventos pendientes | Webhook interno y cada minuto; se activa después de configurar credenciales y variables |
 
 ## Asistencia sin Google Sheets
 
@@ -443,6 +445,9 @@ que se supo, que es viejo pero cierto.
 - Los dos se importan **apagados**, como todos.
 
 ## Chat de sellers por WhatsApp
+
+La arquitectura, la configuración de credenciales y el diagnóstico del webhook
+se mantienen en una única guía: [`web/docs/chat-sellers.md`](../web/docs/chat-sellers.md).
 
 `15-chat-sellers.json` conecta el webhook verificado de Next.js con el inbox.
 Importarlo apagado. Las cuatro URL de la plataforma ya apuntan a la app de
