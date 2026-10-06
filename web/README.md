@@ -95,9 +95,12 @@ subsecciones aparecen únicamente en la barra horizontal.
 ## Chat de sellers
 
 El chat de soporte de WhatsApp tiene su propia bandeja, estados, contactos,
-reportes y usuarios; no comparte el flujo de Seguimiento. Next.js recibe y
+mensajes rápidos, reportes y usuarios; no comparte el flujo de Seguimiento. Next.js recibe y
 valida los webhooks, cifra y persiste los mensajes. n8n consulta RapiboyData
-en modo lectura y ejecuta las respuestas del bot. La configuración, el
+en modo lectura y ejecuta las respuestas del bot. Cada reapertura se registra
+como un ciclo independiente para conservar cierres y métricas anteriores. En la
+bandeja, Enter envía, Shift+Enter agrega una línea y `/` permite buscar e
+insertar las respuestas administradas desde **Mensajes rápidos**. La configuración, el
 contrato entre componentes y el diagnóstico de webhooks están en
 [`docs/chat-sellers.md`](docs/chat-sellers.md).
 

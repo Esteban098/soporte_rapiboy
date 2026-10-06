@@ -1,7 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { cifrarTexto, descifrarTexto } from "./chat-cifrado";
-import { actualizarFila, actualizarFilaSi, consultarFresco, ejecutarRpc, insertarFila } from "./supabase";
+import { actualizarFila, actualizarFilaSi, borrarFila, consultarFresco, ejecutarRpc, insertarFila } from "./supabase";
 
 type EstadoInternoChat = "bot" | "pendiente" | "humano" | "cerrado";
 export type EstadoChat = "abierto" | "asignado" | "cerrado";
@@ -29,6 +29,30 @@ type FilaChat = {
 
 type FilaLectura = { conversacion_id: string; leido_en: string };
 
+type FilaRespuestaRapida = {
+  id: string;
+  atajo: string;
+  titulo: string;
+  contenido: string;
+  activa: boolean;
+  creado_por: string;
+  actualizado_por: string;
+  created_at: string;
+  actualizado_en: string;
+};
+
+export type RespuestaRapida = {
+  id: string;
+  atajo: string;
+  titulo: string;
+  contenido: string;
+  activa: boolean;
+  creadoPor: string;
+  actualizadoPor: string;
+  creadoEn: string;
+  actualizadoEn: string;
+};
+
 type FilaMensaje = {
   id: string;
   evento_id?: string | null;
@@ -44,6 +68,30 @@ type FilaMensaje = {
 };
 
 const VENTANA_ATENCION_MS = 24 * 60 * 60 * 1000;
+
+type ErrorMeta = { code?: unknown; error_subcode?: unknown; type?: unknown };
+
+function mensajeFallaMeta(http: number, error: ErrorMeta | null | undefined): string {
+  const codigo = Number(error?.code);
+  const subcodigo = Number(error?.error_subcode);
+  if (codigo === 190 || subcodigo === 463) {
+    return "El token de WhatsApp venció o fue revocado. Actualizá META_WHATSAPP_ACCESS_TOKEN en Vercel.";
+  }
+  if (codigo === 10 || codigo === 200) {
+    return "El token de WhatsApp no tiene permisos para enviar mensajes desde este número.";
+  }
+  if (codigo === 100) {
+    return "Meta rechazó el Phone Number ID o la configuración del mensaje.";
+  }
+  if (codigo === 131030) {
+    return "El destinatario no está habilitado para recibir mensajes de este número de prueba.";
+  }
+  if (codigo === 131026) {
+    return "Meta no pudo entregar el mensaje al número de destino.";
+  }
+  const referencia = Number.isFinite(codigo) ? `, código ${codigo}` : "";
+  return `Meta rechazó el envío (HTTP ${http}${referencia}). Revisá la configuración de WhatsApp Cloud API.`;
+}
 
 function ventanaAbierta(ultimaEntrada: string | null): boolean {
   if (!ultimaEntrada) return false;
@@ -72,12 +120,13 @@ async function marcarUltimoMensaje(
   return "error" in resultado ? resultado.error : null;
 }
 
-export async function listarChats(email: string) {
+export async function listarChats(email: string, limite = 100) {
+  const cantidad = Math.min(1000, Math.max(1, Math.trunc(limite)));
   const [filas, lecturas] = await Promise.all([
     consultarFresco<FilaChat>("seller_chat_conversaciones", {
       eliminado_en: "is.null",
       order: "ultimo_mensaje_en.desc.nullslast",
-      limit: "300",
+      limit: String(cantidad + 1),
     }),
     consultarFresco<FilaLectura>("seller_chat_lecturas", {
       email: `eq.${email.toLowerCase()}`,
@@ -85,7 +134,8 @@ export async function listarChats(email: string) {
     }).catch(() => []),
   ]);
   const leidoEn = new Map(lecturas.map((fila) => [fila.conversacion_id, fila.leido_en]));
-  return filas.map((chat) => ({
+  const hayMas = filas.length > cantidad;
+  const chats = filas.slice(0, cantidad).map((chat) => ({
     id: chat.id,
     canal: chat.canal,
     sellerId: chat.seller_id,
@@ -103,6 +153,7 @@ export async function listarChats(email: string) {
       ? abrir(chat.ultimo_mensaje_cifrado, chat.ultimo_mensaje_iv ?? "", chat.ultimo_mensaje_tag ?? "")
       : "",
   }));
+  return { chats, hayMas };
 }
 
 export async function listarContactosChat() {
@@ -118,6 +169,57 @@ export async function listarContactosChat() {
     ultimoMensajeEn: chat.ultimo_mensaje_en,
     eliminadoEn: chat.eliminado_en ?? null,
   }));
+}
+
+export async function listarRespuestasRapidas(incluirInactivas = false): Promise<RespuestaRapida[]> {
+  const filtros: Record<string, string> = { order: "atajo.asc", limit: "500" };
+  if (!incluirInactivas) filtros.activa = "eq.true";
+  const filas = await consultarFresco<FilaRespuestaRapida>("seller_chat_respuestas_rapidas", filtros);
+  return filas.map((fila) => ({
+    id: fila.id,
+    atajo: fila.atajo,
+    titulo: fila.titulo,
+    contenido: fila.contenido,
+    activa: fila.activa,
+    creadoPor: fila.creado_por,
+    actualizadoPor: fila.actualizado_por,
+    creadoEn: fila.created_at,
+    actualizadoEn: fila.actualizado_en,
+  }));
+}
+
+export async function crearRespuestaRapida(
+  datos: { atajo: string; titulo: string; contenido: string; activa: boolean },
+  email: string,
+): Promise<string | null> {
+  return insertarFila("seller_chat_respuestas_rapidas", {
+    id: randomUUID(),
+    atajo: datos.atajo,
+    titulo: datos.titulo,
+    contenido: datos.contenido,
+    activa: datos.activa,
+    creado_por: email.toLowerCase(),
+    actualizado_por: email.toLowerCase(),
+  });
+}
+
+export async function actualizarRespuestaRapida(
+  id: string,
+  datos: { atajo: string; titulo: string; contenido: string; activa: boolean },
+  email: string,
+): Promise<string | null> {
+  return actualizarFila("seller_chat_respuestas_rapidas", id, {
+    atajo: datos.atajo,
+    titulo: datos.titulo,
+    contenido: datos.contenido,
+    activa: datos.activa,
+    actualizado_por: email.toLowerCase(),
+    actualizado_en: new Date().toISOString(),
+  });
+}
+
+export async function eliminarRespuestaRapida(id: string): Promise<string | null> {
+  return borrarFila("seller_chat_respuestas_rapidas", id);
 }
 
 export async function asignarContactoChat(conversacionId: string, sellerId: number | null, email: string): Promise<boolean> {
@@ -156,13 +258,15 @@ export async function reporteChats(desde: string, hasta: string, usuario: string
   });
 }
 
-export async function leerMensajes(conversacionId: string) {
+export async function leerMensajes(conversacionId: string, limite = 100) {
+  const cantidad = Math.min(1000, Math.max(1, Math.trunc(limite)));
   const filas = await consultarFresco<FilaMensaje>("seller_chat_mensajes", {
     conversacion_id: `eq.${conversacionId}`,
-    order: "creado_en.asc",
-    limit: "500",
+    order: "creado_en.desc,id.desc",
+    limit: String(cantidad + 1),
   });
-  return filas.map((mensaje) => ({
+  const hayMas = filas.length > cantidad;
+  const mensajes = filas.slice(0, cantidad).reverse().map((mensaje) => ({
     id: mensaje.id,
     creadoEn: mensaje.creado_en,
     direccion: mensaje.direccion,
@@ -172,6 +276,7 @@ export async function leerMensajes(conversacionId: string) {
     estadoEnvio: mensaje.estado_envio,
     texto: abrir(mensaje.contenido_cifrado, mensaje.contenido_iv, mensaje.contenido_tag),
   }));
+  return { mensajes, hayMas };
 }
 
 export async function tomarChat(conversacionId: string, email: string): Promise<boolean> {
@@ -188,10 +293,11 @@ export async function cerrarChat(conversacionId: string, email: string): Promise
   });
 }
 
-export async function eliminarChat(conversacionId: string, email: string): Promise<boolean> {
+export async function eliminarChat(conversacionId: string, email: string, esAdmin: boolean): Promise<boolean> {
   return ejecutarRpc<boolean>("seller_chat_eliminar", {
     p_conversacion_id: conversacionId,
     p_email: email,
+    p_es_admin: esAdmin,
   });
 }
 
@@ -310,6 +416,7 @@ async function enviarMensaje(
     return { ok: false, error: "La conversación cambió de estado antes del envío." };
   }
 
+  let motivoFalla = "No se pudo conectar con Meta. El mensaje quedó guardado para revisión.";
   try {
     const telefono = abrir(actual.contacto_cifrado, actual.contacto_iv, actual.contacto_tag);
     const respuesta = await fetch(`https://graph.facebook.com/${version}/${encodeURIComponent(phoneId)}/messages`, {
@@ -325,9 +432,15 @@ async function enviarMensaje(
       cache: "no-store",
       signal: AbortSignal.timeout(10_000),
     });
-    const cuerpo = await respuesta.json().catch(() => null) as { messages?: { id?: string }[] } | null;
+    const cuerpo = await respuesta.json().catch(() => null) as {
+      messages?: { id?: string }[];
+      error?: ErrorMeta;
+    } | null;
     const idMeta = cuerpo?.messages?.[0]?.id ?? "";
-    if (!respuesta.ok || !idMeta) throw new Error("meta_send_failed");
+    if (!respuesta.ok || !idMeta) {
+      motivoFalla = mensajeFallaMeta(respuesta.status, cuerpo?.error);
+      throw new Error("meta_send_failed");
+    }
 
     const errorFinal = await actualizarFila("seller_chat_mensajes", rowId, {
       proveedor_id: idMeta,
@@ -339,7 +452,7 @@ async function enviarMensaje(
     return { ok: true };
   } catch {
     await actualizarFila("seller_chat_mensajes", rowId, { estado_envio: "revision" });
-    return { ok: false, error: "Meta no confirmó el envío. El mensaje quedó guardado para revisión." };
+    return { ok: false, error: motivoFalla };
   } finally {
     await ejecutarRpc("seller_chat_liberar_envio", {
       p_conversacion_id: conversacionId,

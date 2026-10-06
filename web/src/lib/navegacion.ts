@@ -65,6 +65,7 @@ const FAMILIAS: Omit<FamiliaNavegacion, "rutas">[] = [
     entradas: [
       { href: "/chats-sellers", etiqueta: "Bandeja", exacta: true },
       { href: "/chats-sellers/contactos", etiqueta: "Contactos" },
+      { href: "/chats-sellers/respuestas-rapidas", etiqueta: "Mensajes rápidos" },
       { href: "/chats-sellers/reportes", etiqueta: "Reportes" },
       { href: "/chats-sellers/usuarios", etiqueta: "Usuarios" },
     ],

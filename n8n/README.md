@@ -485,7 +485,13 @@ cambian el estado.
 La migración `web/supabase/migracion-34-chat-contactos-reportes.sql` conserva el
 contacto aunque se elimine el historial del chat y hace que una asignación manual
 a `sellers_activos` prevalezca sobre la coincidencia automática por teléfono.
-n8n no necesita nodos nuevos para Contactos, Usuarios ni Reportes.
+La migración `web/supabase/migracion-35-chat-ciclos.sql` registra cada apertura,
+asignación y cierre como un ciclo independiente para que una reapertura no
+reescriba las métricas históricas.
+La migración `web/supabase/migracion-36-chat-respuestas-rapidas.sql` crea los
+mensajes reutilizables que los operadores administran en la plataforma y buscan
+con `/` desde el compositor. n8n no participa en su lectura ni mantenimiento.
+n8n no necesita nodos nuevos para Contactos, Usuarios, Mensajes rápidos ni Reportes.
 
 ## Historial de viaje para el asistente (beta)
 

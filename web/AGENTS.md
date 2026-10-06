@@ -184,8 +184,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   conservar el mismo ordenamiento por encabezado que Ayer.
 
 - El chat de sellers vive en `seller_chat_conversaciones`,
-  `seller_chat_mensajes`, `seller_chat_eventos` y `seller_chat_lecturas`
-  (migraciones 32-34). En la
+  `seller_chat_mensajes`, `seller_chat_eventos`, `seller_chat_lecturas` y
+  `seller_chat_ciclos` (migraciones 32-35). Las respuestas reutilizables viven
+  aparte en `seller_chat_respuestas_rapidas` (migración 36): `/` las busca en el
+  compositor, Enter inserta la seleccionada y un segundo Enter la envía. La conversación representa el
+  contacto durable y cada apertura o reapertura crea un ciclo histórico; los
+  reportes se calculan sobre ciclos para no perder cierres anteriores. En la
   interfaz solo existen **Abierto**, **Asignado** y **Cerrado**; internamente
   `bot` y `pendiente` son dos variantes de Abierto necesarias para decidir si
   responde la automatización. Cerrar persiste `cerrado` y un mensaje entrante
@@ -391,6 +395,7 @@ npm run test:trafico
 npm run test:asistente
 npm run test:colectas-vivo
 npm run test:directorio
+npm run test:chat-sellers
 ```
 
 Los destinos y agrupaciones de navegación viven en `src/lib/navegacion.ts`; el

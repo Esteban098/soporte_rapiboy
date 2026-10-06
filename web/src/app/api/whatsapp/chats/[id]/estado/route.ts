@@ -31,8 +31,11 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
   const { id } = await context.params;
   if (!uuidValido(id)) return Response.json({ ok: false }, { status: 400 });
   try {
-    const eliminado = await eliminarChat(id, operador.email);
-    return Response.json({ ok: eliminado }, { status: eliminado ? 200 : 404 });
+    const eliminado = await eliminarChat(id, operador.email, operador.rol === "admin");
+    return Response.json(
+      { ok: eliminado, error: eliminado ? undefined : "La conversación cambió o está asignada a otro operador." },
+      { status: eliminado ? 200 : 409 },
+    );
   } catch {
     return Response.json({ ok: false, error: "No se pudo eliminar la conversación." }, { status: 503 });
   }

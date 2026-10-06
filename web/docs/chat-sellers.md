@@ -10,9 +10,23 @@
 - La bandeja operativa, contactos, reportes y usuarios usan las tablas de
   Supabase propias del chat. No comparten estados ni ciclo de vida con
   `seguimiento`.
+- El contacto vive en `seller_chat_conversaciones`; cada apertura o reapertura
+  genera un registro histórico en `seller_chat_ciclos`. Los reportes leen esos
+  ciclos, por lo que un mensaje nuevo no borra las métricas del cierre anterior.
 - Cuando una conversación es asignada a un operador, el servidor bloquea las
   respuestas automáticas. Al cerrarla, vuelve a estar disponible para el bot
   cuando llega un mensaje nuevo.
+- El dueño puede cerrar su conversación aunque hayan vencido las 24 horas de
+  respuesta. Un chat asignado solo puede eliminarlo su dueño o un administrador;
+  los chats libres y cerrados pueden eliminarlos los operadores.
+- Al tomar una conversación, la bandeja cambia a **Míos · Asignado**, conserva
+  abierto el detalle y habilita el compositor para responder desde la plataforma.
+- La bandeja usa la distribución y los colores reconocibles de WhatsApp. Enter
+  envía, Shift+Enter agrega una línea y `/` abre el buscador de mensajes rápidos.
+  Elegir uno lo inserta en el compositor para poder revisarlo antes de enviarlo.
+- Los mensajes rápidos se administran desde la pestaña **Mensajes rápidos** y
+  viven en `seller_chat_respuestas_rapidas`. El atajo es único, se escribe sin
+  la barra y puede desactivarse sin borrarlo.
 
 ## Seguridad y límites
 
@@ -39,8 +53,10 @@
 
 1. Aplicar las migraciones que falten, en orden:
    `supabase/migracion-32-chat-sellers.sql`,
-   `supabase/migracion-33-chat-sellers-estados.sql` y
-   `supabase/migracion-34-chat-contactos-reportes.sql`. No volver a ejecutar
+   `supabase/migracion-33-chat-sellers-estados.sql`,
+   `supabase/migracion-34-chat-contactos-reportes.sql`,
+   `supabase/migracion-35-chat-ciclos.sql` y
+   `supabase/migracion-36-chat-respuestas-rapidas.sql`. No volver a ejecutar
    sobre una base cambios que ya se aplicaron.
 2. Crear secretos independientes para las variables `WHATSAPP_*` y `META_*`
    definidas en `.env.example`. Configurarlas en Vercel Production. El secreto
@@ -54,7 +70,7 @@
    `META_WEBHOOK_VERIFY_TOKEN` y suscribir el campo `messages`.
 6. Validar por separado la verificación GET, la llegada de mensajes reales, la
    persistencia en la bandeja, la derivación a un operador, el envío humano, el
-   cierre, la reapertura, los contactos y los reportes.
+   cierre, la reapertura, los contactos, los mensajes rápidos y los reportes.
 
 ## Diagnóstico de recepción
 
@@ -81,6 +97,9 @@ Vercel:
   diagnóstico estructurado sin datos del contacto.
 - Si el mensaje ya está persistido pero no hay respuesta automática, revisar el
   estado del workflow 15, sus credenciales y la respuesta de sus endpoints.
+- Si al responder aparece que el token venció o fue revocado, generar un token
+  vigente de WhatsApp Cloud API y reemplazar `META_WHATSAPP_ACCESS_TOKEN` en
+  Vercel. El código `190` con subcódigo `463` de Meta indica expiración.
 
 Los datos de cuenta, números de solicitud, fechas de Vercel y estados observados
 durante pruebas son temporales; no se mantienen aquí como configuración.

@@ -8,12 +8,15 @@ function uuidValido(valor: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(valor);
 }
 
-export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   if (!await operadorActual()) return Response.json({ ok: false }, { status: 403 });
   const { id } = await context.params;
   if (!uuidValido(id)) return Response.json({ ok: false }, { status: 400 });
   try {
-    return Response.json({ ok: true, mensajes: await leerMensajes(id) }, { headers: { "cache-control": "no-store" } });
+    const solicitado = Number(new URL(request.url).searchParams.get("limit") ?? "100");
+    const limite = Number.isSafeInteger(solicitado) ? Math.min(1000, Math.max(1, solicitado)) : 100;
+    const resultado = await leerMensajes(id, limite);
+    return Response.json({ ok: true, ...resultado }, { headers: { "cache-control": "no-store" } });
   } catch {
     return Response.json({ ok: false, error: "No se pudo cargar la conversación." }, { status: 503 });
   }
