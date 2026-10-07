@@ -4,3 +4,6 @@ analisis/metricas.json
 # Python
 __pycache__/
 *.pyc
+
+# Copias locales de n8n con credenciales privadas
+/n8n/private/

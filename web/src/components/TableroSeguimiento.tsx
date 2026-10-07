@@ -143,8 +143,6 @@ export function TableroSeguimiento({
 
       <Resumen resumen={resumen} mios={yo ? mios : null} />
 
-      <GraficosSeguimiento reportes={visibles} />
-
       <div className={estilos.herramientas} data-noimprimir>
         <input
           type="search"
@@ -244,6 +242,8 @@ export function TableroSeguimiento({
           ))}
         </div>
       )}
+
+      <GraficosSeguimiento reportes={visibles} />
     </div>
   );
 }

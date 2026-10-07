@@ -8,8 +8,8 @@
       "notes": "Meta llama exclusivamente al Route Handler de Next.js. Este endpoint recibe solo eventId/conversacionId y exige el mismo token aleatorio de N8N_WEBHOOK_WHATSAPP_SECRET."
     },
     {
-      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 1 }] } },
-      "id": "3cb2d515-2fe9-40a3-9a95-637619acd002", "name": "Recuperar cola cada minuto", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [-1000, 360],
+      "parameters": { "rule": { "interval": [{ "field": "minutes", "minutesInterval": 10 }] } },
+      "id": "3cb2d515-2fe9-40a3-9a95-637619acd002", "name": "Recuperar cola cada 10 minutos", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [-1000, 360],
       "notes": "Recupera eventos no enviados si n8n estuvo caído o Meta no pudo invocar el workflow."
     },
     {
@@ -86,7 +86,7 @@
   "connections": {
     "Webhook desde Meta adapter": { "main": [[{ "node": "Tomar ID webhook", "type": "main", "index": 0 }]] },
     "Tomar ID webhook": { "main": [[{ "node": "Procesar un evento por vez", "type": "main", "index": 0 }]] },
-    "Recuperar cola cada minuto": { "main": [[{ "node": "Leer cola duradera", "type": "main", "index": 0 }]] },
+    "Recuperar cola cada 10 minutos": { "main": [[{ "node": "Leer cola duradera", "type": "main", "index": 0 }]] },
     "Leer cola duradera": { "main": [[{ "node": "Expandir eventos pendientes", "type": "main", "index": 0 }]] },
     "Expandir eventos pendientes": { "main": [[{ "node": "Procesar un evento por vez", "type": "main", "index": 0 }]] },
     "Procesar un evento por vez": { "main": [[{ "node": "Reclamar y descifrar evento", "type": "main", "index": 0 }], []] },
