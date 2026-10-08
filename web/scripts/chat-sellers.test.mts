@@ -31,6 +31,18 @@ test("los filtros combinan responsable y estado y no conservan una selección oc
   assert.equal(idSeleccionadoVisible("inexistente", []), null);
 });
 
+test("el bot pide el número de seguimiento y no deriva solo porque falte el ID", () => {
+  const workflow = JSON.parse(fuente("../../n8n/15-chat-sellers.json")) as {
+    nodes: { name: string; parameters: { responses?: { values?: { content?: string }[] }; jsCode?: string } }[];
+  };
+  const prompt = workflow.nodes.find((node) => node.name === "Redactar respuesta o derivación")?.parameters.responses?.values?.[0]?.content ?? "";
+  const validacion = workflow.nodes.find((node) => node.name === "Validar JSON del modelo")?.parameters.jsCode ?? "";
+  assert.match(prompt, /si la tienda saluda o pregunta por un paquete sin incluir un número de seguimiento claro, no derives/i);
+  assert.match(prompt, /pedí el número de seguimiento/i);
+  assert.match(validacion, /src\.forzarDerivacion \|\| !formatoValido \|\| p\.derivar/);
+  assert.doesNotMatch(validacion, /const ambiguo/);
+});
+
 test("cada reapertura conserva un ciclo histórico independiente", () => {
   const sql = fuente("../supabase/migracion-35-chat-ciclos.sql");
   assert.match(sql, /create table if not exists public\.seller_chat_ciclos/);

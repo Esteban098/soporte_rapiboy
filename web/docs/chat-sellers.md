@@ -35,6 +35,10 @@
 - Los filtros separan **Responsable** (Míos o Todos los responsables) de
   **Estado** (Abiertos, Asignados, Cerrados o Todos los estados). El detalle
   siempre corresponde a una conversación visible tras aplicar ambos filtros.
+- Si el seller saluda o pregunta por un paquete sin incluir el número de
+  seguimiento, el bot pide ese dato; la cantidad de paquetes posibles no fuerza
+  por sí sola una derivación humana. Las derivaciones quedan para gestiones
+  humanas, consultas fuera del alcance y paquetes que no aparecen en RapiboyData.
 
 ## Seguridad y límites
 

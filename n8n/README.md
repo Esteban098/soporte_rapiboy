@@ -21,7 +21,7 @@ File**.
 | `12-colectas-vivo.json` | Las colectas de hoy con su estado, su historial y la última posición de cada repartidor, y guarda cada posición nueva para dibujar el recorrido, para el mapa de **Tiendas**. Solo lee SQL Server | Cada 5 min de 7:00 a 16:55, lunes a sábado, y desde **Actualizar posiciones y estados** en Tiendas |
 | `13-directorio-activos-whatsapp.json` | Sincroniza en Supabase los sellers activos de México, los drivers con reserva válida en los últimos 14 días y sus grupos de WhatsApp | 9:00 de lunes a sábado, manualmente desde n8n y desde los botones de Sellers/Drivers |
 | `14-asistencia-supabase.json` | Plantilla de reemplazo: recibe el voto de la encuesta y lo registra en la plataforma; no usa Google Sheets | Webhook de votos |
-| `15-chat-sellers.json` | Procesa mensajes persistidos del chat y recupera eventos pendientes | Webhook interno y cada 10 minutos; se activa después de configurar credenciales y variables |
+| `15-chat-sellers.json` | Procesa mensajes persistidos del chat y recupera eventos pendientes | Webhook interno y cada minuto; se activa después de configurar credenciales y variables |
 
 ## Asistencia sin Google Sheets
 
@@ -467,9 +467,11 @@ se envían teléfono, domicilio, coordenadas ni datos de destinatarios al LLM.
 El texto de la tienda se envía al modelo para clasificar la pregunta, tras
 ocultar teléfonos, correos y enlaces; los demás datos que la tienda incluya en
 su mensaje aún pueden formar parte de esa consulta.
-Las consultas sin ID ven los últimos 30 días y hasta 30 paquetes; si falta el
-pedido, el resultado debe derivarse a una persona. La cola se recupera cada
-minuto y procesa un evento por iteración para mantener vinculados sus datos. El
+Las consultas sin ID ven los últimos 30 días y hasta 30 paquetes. Si no se
+indica un número de seguimiento o hay varios paquetes posibles, el bot pide ese
+número en vez de derivar automáticamente; los casos fuera de alcance o que
+requieren gestión humana sí se derivan. La cola se recupera cada minuto y
+procesa un evento por iteración para mantener vinculados sus datos. El
 evento queda reclamado con vencimiento para reintentar una caída del workflow;
 la respuesta de bot tiene una clave única por evento entrante para que el
 reintento no la envíe dos veces. Si no se confirma si Meta aceptó el envío, se
