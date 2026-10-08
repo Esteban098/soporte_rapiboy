@@ -22,6 +22,9 @@ type FilaChat = {
   contacto_cifrado: string;
   contacto_iv: string;
   contacto_tag: string;
+  contacto_nombre_cifrado?: string | null;
+  contacto_nombre_iv?: string | null;
+  contacto_nombre_tag?: string | null;
   ultimo_mensaje_cifrado: string | null;
   ultimo_mensaje_iv: string | null;
   ultimo_mensaje_tag: string | null;
@@ -75,7 +78,7 @@ function mensajeFallaMeta(http: number, error: ErrorMeta | null | undefined): st
   const codigo = Number(error?.code);
   const subcodigo = Number(error?.error_subcode);
   if (codigo === 190 || subcodigo === 463) {
-    return "El token de WhatsApp venció o fue revocado. Actualizá META_WHATSAPP_ACCESS_TOKEN en Vercel.";
+    return "El token de WhatsApp venció o fue revocado. Actualizá META_WHATSAPP_ACCESS_TOKEN en el entorno donde corre la plataforma (.env.local en local o Vercel en producción).";
   }
   if (codigo === 10 || codigo === 200) {
     return "El token de WhatsApp no tiene permisos para enviar mensajes desde este número.";
@@ -149,6 +152,9 @@ export async function listarChats(email: string, limite = 100) {
     cerradoPor: chat.cerrado_por ?? null,
     noLeido: Boolean(chat.ultima_entrada_en && (!leidoEn.get(chat.id) || chat.ultima_entrada_en > (leidoEn.get(chat.id) ?? ""))),
     telefono: abrir(chat.contacto_cifrado, chat.contacto_iv, chat.contacto_tag),
+    nombreContacto: chat.contacto_nombre_cifrado && chat.contacto_nombre_iv && chat.contacto_nombre_tag
+      ? abrir(chat.contacto_nombre_cifrado, chat.contacto_nombre_iv, chat.contacto_nombre_tag)
+      : null,
     extracto: chat.ultimo_mensaje_cifrado
       ? abrir(chat.ultimo_mensaje_cifrado, chat.ultimo_mensaje_iv ?? "", chat.ultimo_mensaje_tag ?? "")
       : "",
@@ -165,6 +171,9 @@ export async function listarContactosChat() {
     id: chat.id,
     sellerId: chat.seller_id,
     telefono: abrir(chat.contacto_cifrado, chat.contacto_iv, chat.contacto_tag),
+    nombreContacto: chat.contacto_nombre_cifrado && chat.contacto_nombre_iv && chat.contacto_nombre_tag
+      ? abrir(chat.contacto_nombre_cifrado, chat.contacto_nombre_iv, chat.contacto_nombre_tag)
+      : null,
     creadoEn: chat.created_at,
     ultimoMensajeEn: chat.ultimo_mensaje_en,
     eliminadoEn: chat.eliminado_en ?? null,

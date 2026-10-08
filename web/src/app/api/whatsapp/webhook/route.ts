@@ -1,7 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { ejecutarRpc } from "@/lib/supabase";
+import { consultarFresco, ejecutarRpc } from "@/lib/supabase";
 import { cifrarTexto, claveContacto } from "@/lib/chat-cifrado";
 import { telefonoAsistencia } from "@/lib/asistencia";
+import { sellerIdDeTelefonoPrueba } from "@/lib/chat-sellers-prueba";
+import { TABLA_SELLERS_ACTIVOS } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,9 +22,11 @@ type MensajeMeta = {
   };
 };
 
+type ContactoMeta = { wa_id?: unknown; profile?: { name?: unknown } };
 type CambioMeta = { value?: {
   messaging_product?: unknown;
   metadata?: { phone_number_id?: unknown };
+  contacts?: ContactoMeta[];
   messages?: MensajeMeta[];
 } };
 type WebhookMeta = { object?: unknown; entry?: { changes?: CambioMeta[] }[] };
@@ -30,7 +34,17 @@ type MensajeConDestino = {
   mensaje: MensajeMeta;
   producto: unknown;
   phoneNumberId: unknown;
+  contactos?: ContactoMeta[];
 };
+
+function nombrePerfil(contactos: ContactoMeta[] | undefined, telefono: string): string | null {
+  const contacto = contactos?.find((fila) => telefonoAsistencia(fila.wa_id) === telefono) ??
+    (contactos?.length === 1 ? contactos[0] : undefined);
+  const valor = contacto?.profile?.name;
+  if (typeof valor !== "string") return null;
+  const nombre = valor.replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 160);
+  return nombre || null;
+}
 
 function firmaValida(raw: Buffer, firma: string | null): boolean {
   const secreto = process.env.META_APP_SECRET?.trim();
@@ -58,6 +72,7 @@ function mensajesEntrantes(cuerpo: WebhookMeta): MensajeConDestino[] {
         mensaje,
         producto: value?.messaging_product,
         phoneNumberId: value?.metadata?.phone_number_id,
+        contactos: value?.contacts,
       }));
     }),
   );
@@ -155,11 +170,24 @@ export async function POST(pedido: Request) {
       const telefono = telefonoAsistencia(mensaje.from);
       if (!eventId || !telefono) continue;
 
-      const sellerId = await ejecutarRpc<number | string | null>("seller_chat_buscar_seller", {
-        p_telefono: telefono,
-      });
+      const sellerPruebaId = sellerIdDeTelefonoPrueba(telefono);
+      let sellerId: number | string | null;
+      if (sellerPruebaId !== null) {
+        // La excepción nunca activa un seller inexistente o inactivo y solo
+        // aplica al número configurado; no cambia el directorio operativo.
+        const sellers = await consultarFresco<{ id_usuario: number; activo: boolean }>(
+          TABLA_SELLERS_ACTIVOS,
+          { id_usuario: `eq.${sellerPruebaId}`, activo: "eq.true", limit: "1" },
+        );
+        sellerId = sellers[0]?.id_usuario ?? null;
+      } else {
+        sellerId = await ejecutarRpc<number | string | null>("seller_chat_buscar_seller", {
+          p_telefono: telefono,
+        });
+      }
       const contacto = cifrarTexto(telefono);
       const contenido = cifrarTexto(textoDelMensaje(mensaje).texto);
+      const nombre = nombrePerfil(evento.contactos, telefono);
       const canal = "directo" as const;
       const recibido = await ejecutarRpc<{
         conversacion_id: string;
@@ -182,6 +210,15 @@ export async function POST(pedido: Request) {
           ? new Date(Number(mensaje.timestamp) * 1000).toISOString()
           : new Date().toISOString(),
       });
+      if (nombre) {
+        const perfil = cifrarTexto(nombre);
+        await ejecutarRpc<boolean>("seller_chat_guardar_nombre_contacto", {
+          p_proveedor_id: eventId,
+          p_nombre_cifrado: perfil.cifrado,
+          p_nombre_iv: perfil.iv,
+          p_nombre_tag: perfil.tag,
+        });
+      }
       if (recibido.nuevo || recibido.evento_estado === "pendiente" || recibido.evento_estado === "fallido") {
         await dispararProcesamiento(eventId, recibido.conversacion_id);
       }

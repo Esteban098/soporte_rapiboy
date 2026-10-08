@@ -185,7 +185,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - El chat de sellers vive en `seller_chat_conversaciones`,
   `seller_chat_mensajes`, `seller_chat_eventos`, `seller_chat_lecturas` y
-  `seller_chat_ciclos` (migraciones 32-35). Las respuestas reutilizables viven
+  `seller_chat_ciclos` (migraciones 32-35). El seller vinculado y el nombre de
+  perfil de WhatsApp se guardan en la conversación; el nombre se cifra en la
+  migración 37. La API estándar de mensajes entrantes no entrega la foto de
+  perfil del seller, así que el chat muestra un avatar con inicial. Las respuestas reutilizables viven
   aparte en `seller_chat_respuestas_rapidas` (migración 36): `/` las busca en el
   compositor, Enter inserta la seleccionada y un segundo Enter la envía. La conversación representa el
   contacto durable y cada apertura o reapertura crea un ciclo histórico; los
@@ -195,7 +198,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   responde la automatización. Cerrar persiste `cerrado` y un mensaje entrante
   nuevo lo reabre; un webhook duplicado no debe reabrirlo. Eliminar una
   conversación borra sus mensajes y eventos y la oculta del inbox, pero
-  conserva el contacto cifrado y `seller_manual_id`. Contactos solo puede
+  conserva el contacto cifrado, el nombre cifrado y `seller_manual_id`. Contactos solo puede
   asignarse a un `sellers_activos` vigente; el vínculo manual prevalece sobre
   la búsqueda automática del webhook. Reportes agrega en SQL sin descifrar
   contenidos. El enlace del menú

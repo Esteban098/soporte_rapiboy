@@ -4,6 +4,33 @@ import { readFileSync } from "node:fs";
 
 const fuente = (ruta: string) => readFileSync(new URL(ruta, import.meta.url), "utf8");
 
+test("la excepción de pruebas solo mapea el teléfono configurado al seller válido", async () => {
+  const { sellerIdDeTelefonoPrueba } = await import("../src/lib/chat-sellers-prueba");
+  const entorno = {
+    WHATSAPP_SELLER_PRUEBA_TELEFONO: "+54 9 11 6117-8413",
+    WHATSAPP_SELLER_PRUEBA_ID: "51522",
+  };
+  assert.equal(sellerIdDeTelefonoPrueba("5491161178413", entorno), 51522);
+  assert.equal(sellerIdDeTelefonoPrueba("5491161178414", entorno), null);
+  assert.equal(sellerIdDeTelefonoPrueba("5491161178413", { ...entorno, WHATSAPP_SELLER_PRUEBA_ID: "0" }), null);
+  assert.equal(sellerIdDeTelefonoPrueba("5491161178413", { ...entorno, WHATSAPP_SELLER_PRUEBA_ID: "no-es-id" }), null);
+});
+
+test("los filtros combinan responsable y estado y no conservan una selección oculta", async () => {
+  const { filtrarChats, idSeleccionadoVisible } = await import("../src/lib/chat-sellers-vista");
+  const chats = [
+    { id: "mio", estado: "asignado" as const, asignadoA: "yo@example.com", noLeido: false, nombreContacto: "Ana", telefono: "549111", extracto: "consulta" },
+    { id: "ajeno", estado: "asignado" as const, asignadoA: "otro@example.com", noLeido: true, nombreContacto: "Luis", telefono: "549112", extracto: "pedido" },
+    { id: "cerrado", estado: "cerrado" as const, asignadoA: null, noLeido: false, nombreContacto: "Eva", telefono: "549113", extracto: "resuelto" },
+  ];
+  const mios = filtrarChats(chats, { estado: "todos", alcance: "mios", usuario: "YO@example.com", soloNoLeidos: false, busqueda: "" });
+  assert.deepEqual(mios.map((chat) => chat.id), ["mio"]);
+  const cerrados = filtrarChats(chats, { estado: "cerrado", alcance: "todos", usuario: "yo@example.com", soloNoLeidos: false, busqueda: "" });
+  assert.deepEqual(cerrados.map((chat) => chat.id), ["cerrado"]);
+  assert.equal(idSeleccionadoVisible("ajeno", mios)?.toString(), "mio");
+  assert.equal(idSeleccionadoVisible("inexistente", []), null);
+});
+
 test("cada reapertura conserva un ciclo histórico independiente", () => {
   const sql = fuente("../supabase/migracion-35-chat-ciclos.sql");
   assert.match(sql, /create table if not exists public\.seller_chat_ciclos/);
@@ -39,7 +66,7 @@ test("tomar mantiene el chat visible y habilita la respuesta del operador", () =
   assert.match(servidor, /export async function responderComoOperador/);
   assert.match(servidor, /graph\.facebook\.com/);
   assert.match(servidor, /codigo === 190 \|\| subcodigo === 463/);
-  assert.match(servidor, /META_WHATSAPP_ACCESS_TOKEN en Vercel/);
+  assert.match(servidor, /META_WHATSAPP_ACCESS_TOKEN en el entorno donde corre la plataforma/);
 });
 
 test("solo el dueño o un administrador elimina un chat asignado", () => {

@@ -27,6 +27,14 @@
 - Los mensajes rápidos se administran desde la pestaña **Mensajes rápidos** y
   viven en `seller_chat_respuestas_rapidas`. El atajo es único, se escribe sin
   la barra y puede desactivarse sin borrarlo.
+- Desde el detalle se puede vincular o cambiar el seller asociado a un número;
+  el vínculo manual prevalece sobre la detección automática. Se muestra el
+  nombre de perfil que Meta incluya en los mensajes y los datos disponibles de
+  la tienda vinculada. La API estándar de WhatsApp Cloud no incluye la foto de
+  perfil del contacto; por eso se representa con un avatar de inicial.
+- Los filtros separan **Responsable** (Míos o Todos los responsables) de
+  **Estado** (Abiertos, Asignados, Cerrados o Todos los estados). El detalle
+  siempre corresponde a una conversación visible tras aplicar ambos filtros.
 
 ## Seguridad y límites
 
@@ -56,7 +64,8 @@
    `supabase/migracion-33-chat-sellers-estados.sql`,
    `supabase/migracion-34-chat-contactos-reportes.sql`,
    `supabase/migracion-35-chat-ciclos.sql` y
-   `supabase/migracion-36-chat-respuestas-rapidas.sql`. No volver a ejecutar
+   `supabase/migracion-36-chat-respuestas-rapidas.sql` y
+   `supabase/migracion-37-chat-perfil-contacto.sql`. No volver a ejecutar
    sobre una base cambios que ya se aplicaron.
 2. Crear secretos independientes para las variables `WHATSAPP_*` y `META_*`
    definidas en `.env.example`. Configurarlas en Vercel Production. El secreto
@@ -71,6 +80,17 @@
 6. Validar por separado la verificación GET, la llegada de mensajes reales, la
    persistencia en la bandeja, la derivación a un operador, el envío humano, el
    cierre, la reapertura, los contactos, los mensajes rápidos y los reportes.
+
+### Número de prueba asociado a un seller
+
+Para probar el bot con un teléfono que no figura en el celular del directorio,
+se puede configurar `WHATSAPP_SELLER_PRUEBA_TELEFONO` y
+`WHATSAPP_SELLER_PRUEBA_ID`. El webhook compara el teléfono normalizado y solo
+usa el ID configurado si ese `id_usuario` existe y está activo en
+`sellers_activos`; no modifica el directorio ni cambia la identificación de
+otros números. Para las pruebas iniciales, `.env.example` deja asociado
+`5491161178413` al seller `51522` (SPG Online). Configurar ambas variables en
+Vercel Production y volver a desplegar para habilitarlo allí.
 
 ## Diagnóstico de recepción
 

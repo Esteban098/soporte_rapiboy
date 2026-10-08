@@ -2,6 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import estilos from "./chat-sellers.module.css";
+import { chatsDelAlcance, filtrarChats, idSeleccionadoVisible } from "@/lib/chat-sellers-vista";
+
+type SellerChat = {
+  id: number;
+  nombre: string;
+  celular: string;
+  direccion: string;
+  email: string;
+  comercial: string;
+  horaCorte: string;
+};
 
 type EstadoChat = "abierto" | "asignado" | "cerrado";
 type Chat = {
@@ -16,6 +27,7 @@ type Chat = {
   ventanaAbierta: boolean;
   ultimoMensajeEn: string | null;
   telefono: string;
+  nombreContacto: string | null;
   extracto: string;
 };
 type Mensaje = {
@@ -45,8 +57,8 @@ const ESTADO: Record<EstadoChat, string> = {
   cerrado: "Cerrado",
 };
 
-function nombre(chat: Chat): string {
-  return chat.sellerId ? `Seller ${chat.sellerId}` : chat.telefono;
+function nombre(chat: Chat, sellerNombre?: string | null): string {
+  return sellerNombre || chat.nombreContacto || chat.telefono;
 }
 
 async function cargarChats(limite: number): Promise<{ chats: Chat[]; hayMas: boolean }> {
@@ -56,7 +68,12 @@ async function cargarChats(limite: number): Promise<{ chats: Chat[]; hayMas: boo
   return { chats: datos.chats as Chat[], hayMas: datos.hayMas === true };
 }
 
-export function ChatSellers({ usuario, esAdmin, respuestasRapidas }: { usuario: string; esAdmin: boolean; respuestasRapidas: RespuestaRapida[] }) {
+export function ChatSellers({ usuario, esAdmin, respuestasRapidas, sellers }: {
+  usuario: string;
+  esAdmin: boolean;
+  respuestasRapidas: RespuestaRapida[];
+  sellers: SellerChat[];
+}) {
   const [chats, setChats] = useState<Chat[]>([]);
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<"todos" | EstadoChat>("abierto");
@@ -87,38 +104,48 @@ export function ChatSellers({ usuario, esAdmin, respuestasRapidas }: { usuario: 
     return () => { window.clearTimeout(inicial); window.clearInterval(reloj); };
   }, [actualizar]);
 
+  const sellersPorId = useMemo(() => new Map(sellers.map((seller) => [seller.id, seller])), [sellers]);
+  const chatsConSeller = useMemo(() => chats.map((chat) => ({
+    ...chat,
+    nombreSeller: chat.sellerId ? sellersPorId.get(chat.sellerId)?.nombre ?? null : null,
+  })), [chats, sellersPorId]);
+  const chatsEnAlcance = useMemo(() => chatsDelAlcance(chatsConSeller, alcance, usuario), [chatsConSeller, alcance, usuario]);
   const conteos = useMemo(() => ({
-    abierto: chats.filter((chat) => chat.estado === "abierto").length,
-    asignado: chats.filter((chat) => chat.estado === "asignado").length,
-    cerrado: chats.filter((chat) => chat.estado === "cerrado").length,
-  }), [chats]);
-  const consulta = busqueda.trim().toLocaleLowerCase("es");
-  const visibles = chats.filter((chat) =>
-    (filtro === "todos" || chat.estado === filtro) &&
-    (alcance === "todos" || chat.asignadoA?.toLowerCase() === usuario.toLowerCase()) &&
-    (!soloNoLeidos || chat.noLeido) &&
-    (!consulta || `${nombre(chat)} ${chat.telefono} ${chat.extracto}`.toLocaleLowerCase("es").includes(consulta)),
-  );
-  const seleccionadoVisible = seleccionado && chats.some((chat) => chat.id === seleccionado)
-    ? seleccionado
-    : visibles[0]?.id ?? null;
+    abierto: chatsEnAlcance.filter((chat) => chat.estado === "abierto").length,
+    asignado: chatsEnAlcance.filter((chat) => chat.estado === "asignado").length,
+    cerrado: chatsEnAlcance.filter((chat) => chat.estado === "cerrado").length,
+  }), [chatsEnAlcance]);
+  const visibles = useMemo(() => filtrarChats(chatsConSeller, {
+    estado: filtro,
+    alcance,
+    usuario,
+    soloNoLeidos,
+    busqueda,
+  }), [chatsConSeller, filtro, alcance, usuario, soloNoLeidos, busqueda]);
+  const seleccionadoVisible = idSeleccionadoVisible(seleccionado, visibles);
+  const chatSeleccionado = chats.find((fila) => fila.id === seleccionadoVisible) ?? null;
+  const sellerSeleccionado = chatSeleccionado?.sellerId
+    ? sellersPorId.get(chatSeleccionado.sellerId) ?? null
+    : null;
 
   return (
     <section className={estilos.inbox} aria-label="Chat de soporte para sellers">
       <aside className={estilos.lista}>
         <div className={estilos.herramientas}>
+          <span className={estilos.etiquetaFiltro}>Responsable</span>
           <div className={estilos.alcance}>
-            <button type="button" className={alcance === "mios" ? estilos.filtroActivo : ""} onClick={() => { setAlcance("mios"); setSeleccionado(null); }}>Míos</button>
-            <button type="button" className={alcance === "todos" ? estilos.filtroActivo : ""} onClick={() => { setAlcance("todos"); setSeleccionado(null); }}>Todos</button>
-            <button type="button" className={soloNoLeidos ? estilos.filtroActivo : ""} onClick={() => { setSoloNoLeidos((valor) => !valor); setSeleccionado(null); }}>No leídos</button>
+            <button type="button" aria-pressed={alcance === "mios"} className={alcance === "mios" ? estilos.filtroActivo : ""} onClick={() => { setAlcance("mios"); setSeleccionado(null); }}>Míos</button>
+            <button type="button" aria-pressed={alcance === "todos"} className={alcance === "todos" ? estilos.filtroActivo : ""} onClick={() => { setAlcance("todos"); setSeleccionado(null); }}>Todos los responsables</button>
+            <button type="button" aria-pressed={soloNoLeidos} className={soloNoLeidos ? estilos.filtroActivo : ""} onClick={() => { setSoloNoLeidos((valor) => !valor); setSeleccionado(null); }}>No leídos</button>
           </div>
           <input value={busqueda} onChange={(evento) => { setBusqueda(evento.target.value); setSeleccionado(null); }} placeholder="Nombre, número o mensaje" aria-label="Buscar conversaciones" />
         </div>
         <nav className={estilos.filtros} aria-label="Estados de las conversaciones">
+          <span className={estilos.etiquetaFiltro}>Estado</span>
           {(["abierto", "asignado", "cerrado", "todos"] as const).map((estado) => (
-            <button key={estado} type="button" className={filtro === estado ? estilos.filtroActivo : ""} onClick={() => { setFiltro(estado); setSeleccionado(null); }}>
-              {estado === "todos" ? "Todos" : ESTADO[estado]}
-              <span>{estado === "todos" ? chats.length : conteos[estado]}{hayMas ? "+" : ""}</span>
+            <button key={estado} type="button" aria-pressed={filtro === estado} className={filtro === estado ? estilos.filtroActivo : ""} onClick={() => { setFiltro(estado); setSeleccionado(null); }}>
+              {estado === "todos" ? "Todos los estados" : `${ESTADO[estado]}${estado === "abierto" || estado === "cerrado" ? "s" : ""}`}
+              <span>{estado === "todos" ? chatsEnAlcance.length : conteos[estado]}{hayMas ? "+" : ""}</span>
             </button>
           ))}
         </nav>
@@ -131,7 +158,7 @@ export function ChatSellers({ usuario, esAdmin, respuestasRapidas }: { usuario: 
           {!cargando && visibles.length === 0 ? <p className={estilos.vacio}>No hay conversaciones en este estado.</p> : null}
           {visibles.map((chat) => (
             <button key={chat.id} type="button" onClick={() => setSeleccionado(chat.id)} className={`${estilos.item} ${seleccionadoVisible === chat.id ? estilos.itemActivo : ""}`}>
-              <span className={estilos.itemArriba}><b>{nombre(chat)}</b><time>{fecha(chat.ultimoMensajeEn)}</time></span>
+              <span className={estilos.itemArriba}><b>{nombre(chat, chat.nombreSeller)}</b><time>{fecha(chat.ultimoMensajeEn)}</time></span>
               <span className={estilos.estado}>
                 {chat.noLeido ? <strong className={estilos.noLeido}>Nuevo</strong> : null}
                 <i className={`${estilos.punto} ${estilos[`punto_${chat.estado}`]}`} />
@@ -151,9 +178,12 @@ export function ChatSellers({ usuario, esAdmin, respuestasRapidas }: { usuario: 
               key={seleccionadoVisible}
               usuario={usuario}
               esAdmin={esAdmin}
-              chat={chats.find((fila) => fila.id === seleccionadoVisible) ?? null}
+              chat={chatSeleccionado}
+              seller={sellerSeleccionado}
+              sellers={sellers}
               respuestasRapidas={respuestasRapidas}
               onActualizar={actualizar}
+              onSellerVinculado={(id, sellerId) => setChats((actuales) => actuales.map((fila) => fila.id === id ? { ...fila, sellerId } : fila))}
               onTomado={() => { setAlcance("mios"); setFiltro("asignado"); }}
             />
           : <div className={estilos.resultado}><h2>Chat de soporte</h2><p>Seleccioná una conversación para ver los mensajes.</p></div>}
@@ -162,7 +192,17 @@ export function ChatSellers({ usuario, esAdmin, respuestasRapidas }: { usuario: 
   );
 }
 
-export function ChatSellerDetalle({ usuario, esAdmin, chat, respuestasRapidas, onActualizar, onTomado }: { usuario: string; esAdmin: boolean; chat: Chat | null; respuestasRapidas: RespuestaRapida[]; onActualizar: () => Promise<void>; onTomado: () => void }) {
+export function ChatSellerDetalle({ usuario, esAdmin, chat, seller, sellers, respuestasRapidas, onActualizar, onSellerVinculado, onTomado }: {
+  usuario: string;
+  esAdmin: boolean;
+  chat: Chat | null;
+  seller: SellerChat | null;
+  sellers: SellerChat[];
+  respuestasRapidas: RespuestaRapida[];
+  onActualizar: () => Promise<void>;
+  onSellerVinculado: (id: string, sellerId: number | null) => void;
+  onTomado: () => void;
+}) {
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [texto, setTexto] = useState("");
   const [error, setError] = useState("");
@@ -172,6 +212,7 @@ export function ChatSellerDetalle({ usuario, esAdmin, chat, respuestasRapidas, o
   const [limiteMensajes, setLimiteMensajes] = useState(100);
   const [hayMensajesAnteriores, setHayMensajesAnteriores] = useState(false);
   const [respuestaActiva, setRespuestaActiva] = useState(0);
+  const [guardandoSeller, setGuardandoSeller] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mensajesRef = useRef<HTMLDivElement>(null);
   const conversacionId = chat?.id ?? "";
@@ -249,6 +290,27 @@ export function ChatSellerDetalle({ usuario, esAdmin, chat, respuestasRapidas, o
     } finally { setOcupado(false); }
   }
 
+  async function vincularSeller(valor: string) {
+    if (!chat) return;
+    const sellerId = valor ? Number(valor) : null;
+    setGuardandoSeller(true);
+    setError("");
+    try {
+      const respuesta = await fetch(`/api/whatsapp/contactos/${chat.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sellerId }),
+      });
+      const datos = await respuesta.json().catch(() => null);
+      if (!respuesta.ok || !datos?.ok) throw new Error(datos?.error || "No se pudo vincular la tienda.");
+      onSellerVinculado(chat.id, sellerId);
+    } catch (falla) {
+      setError(falla instanceof Error ? falla.message : "No se pudo vincular la tienda.");
+    } finally {
+      setGuardandoSeller(false);
+    }
+  }
+
   async function enviar(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
     if (!chat || !texto.trim()) return;
@@ -318,11 +380,11 @@ export function ChatSellerDetalle({ usuario, esAdmin, chat, respuestasRapidas, o
         : `En atención por ${chat.asignadoA ?? "otro operador"}.`;
 
   return (
-    <section className={estilos.detalleSolo} aria-label={`Conversación con ${nombre(chat)}`}>
+    <section className={estilos.detalleSolo} aria-label={`Conversación con ${nombre(chat, seller?.nombre)}`}>
       <header className={estilos.cabecera}>
-        <span className={estilos.avatar} aria-hidden="true">{nombre(chat).slice(0, 1).toUpperCase()}</span>
+        <span className={estilos.avatar} aria-hidden="true">{(seller?.nombre || chat.nombreContacto || chat.telefono).slice(0, 1).toUpperCase()}</span>
         <div>
-          <h2>{chat.sellerId ? `Seller ${chat.sellerId}` : "Número sin vincular"}</h2>
+          <h2>{seller?.nombre || chat.nombreContacto || "Número sin vincular"}</h2>
           <p>{chat.telefono} · {ESTADO[chat.estado]}{chat.asignadoA ? ` · ${chat.asignadoA}` : ""}{chat.cerradoPor ? ` · cerrado por ${chat.cerradoPor}` : ""}{!chat.ventanaAbierta ? " · ventana de respuesta cerrada" : ""}</p>
         </div>
         <div className={estilos.acciones}>
@@ -336,6 +398,26 @@ export function ChatSellerDetalle({ usuario, esAdmin, chat, respuestasRapidas, o
           <button type="button" className={estilos.eliminar} disabled={ocupado || !puedeEliminar} onClick={() => void eliminar()}>Eliminar</button>
         </div>
       </header>
+      <section className={estilos.contactoInfo} aria-label="Información del contacto y tienda">
+        <div className={estilos.datoContacto}>
+          <span>Perfil de WhatsApp</span>
+          <strong>{chat.nombreContacto || "Nombre no informado"}</strong>
+          <small>{chat.telefono}</small>
+        </div>
+        <label className={estilos.vincularSeller}>
+          <span>Tienda vinculada</span>
+          <select value={chat.sellerId ?? ""} disabled={guardandoSeller} onChange={(evento) => void vincularSeller(evento.target.value)}>
+            <option value="">Sin vincular</option>
+            {sellers.map((fila) => <option key={fila.id} value={fila.id}>#{fila.id} · {fila.nombre || "Sin nombre"}</option>)}
+          </select>
+          {guardandoSeller ? <small>Guardando…</small> : null}
+        </label>
+        {seller ? <div className={estilos.datosSeller}>
+          <span>Información de la tienda · #{seller.id}</span>
+          <strong>{seller.nombre || "Sin nombre"}</strong>
+          <small>{[seller.direccion, seller.email, seller.celular, seller.comercial ? `Comercial: ${seller.comercial}` : "", seller.horaCorte ? `Corte ${seller.horaCorte}` : ""].filter(Boolean).join(" · ") || "Sin datos adicionales"}</small>
+        </div> : null}
+      </section>
       <div className={estilos.mensajes} ref={mensajesRef}>
         {hayMensajesAnteriores && limiteMensajes < 1000
           ? <button type="button" className={estilos.cargarMensajes} onClick={() => setLimiteMensajes((actual) => Math.min(1000, actual + 100))}>Cargar mensajes anteriores</button>
