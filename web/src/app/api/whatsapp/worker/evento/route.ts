@@ -8,8 +8,11 @@ export const runtime = "nodejs";
 type Evento = { proveedor_id: string; conversacion_id: string; mensaje_id: string; estado: string };
 type Mensaje = {
   id: string;
+  creado_en: string;
   conversacion_id: string;
   proveedor_id: string;
+  direccion: "entrante" | "saliente";
+  estado_envio: "pendiente" | "enviado" | "fallido" | "revision" | null;
   tipo_contenido: string;
   contenido_cifrado: string;
   contenido_iv: string;
@@ -57,6 +60,26 @@ export async function POST(request: Request) {
       return Response.json({ ok: true, omitido: true, estado: conversacion.estado });
     }
 
+    const historialFilas = await consultarFresco<Mensaje>("seller_chat_mensajes", {
+      conversacion_id: `eq.${conversacion.id}`,
+      select: "id,creado_en,conversacion_id,proveedor_id,direccion,estado_envio,tipo_contenido,contenido_cifrado,contenido_iv,contenido_tag",
+      order: "creado_en.desc,id.desc",
+      limit: "12",
+    });
+    const historial = historialFilas
+      .filter((fila) => fila.id !== mensaje.id && fila.creado_en <= mensaje.creado_en)
+      .filter((fila) => fila.direccion === "entrante" || fila.estado_envio === "enviado")
+      .slice(0, 8)
+      .reverse()
+      .map((fila) => ({
+        role: fila.direccion === "entrante" ? "user" : "assistant",
+        content: descifrarTexto({
+          cifrado: fila.contenido_cifrado,
+          iv: fila.contenido_iv,
+          tag: fila.contenido_tag,
+        }).slice(0, 1500),
+      }));
+
     return Response.json({
       ok: true,
       eventoId: eventId,
@@ -68,6 +91,7 @@ export async function POST(request: Request) {
         iv: mensaje.contenido_iv,
         tag: mensaje.contenido_tag,
       }),
+      historial,
       tipoContenido: mensaje.tipo_contenido,
     }, { headers: { "cache-control": "no-store" } });
   } catch {

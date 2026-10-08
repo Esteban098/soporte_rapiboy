@@ -16,7 +16,7 @@ export default async function ChatsSellersPage() {
   ]);
   return <>
     <PageHead
-      eyebrow="Atención a sellers"
+      eyebrow="Chat Bot de sellers · BETA"
       titulo="Chat de soporte"
       dek="Bandeja de WhatsApp por estado. Seleccioná una conversación, tomala para responder y cerrala al finalizar."
     />

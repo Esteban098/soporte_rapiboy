@@ -35,10 +35,12 @@
 - Los filtros separan **Responsable** (Míos o Todos los responsables) de
   **Estado** (Abiertos, Asignados, Cerrados o Todos los estados). El detalle
   siempre corresponde a una conversación visible tras aplicar ambos filtros.
-- Si el seller saluda o pregunta por un paquete sin incluir el número de
-  seguimiento, el bot pide ese dato; la cantidad de paquetes posibles no fuerza
-  por sí sola una derivación humana. Las derivaciones quedan para gestiones
-  humanas, consultas fuera del alcance y paquetes que no aparecen en RapiboyData.
+- **Chat Bot de sellers está en BETA.** En esta etapa el LLM conversa sobre
+  temas generales sin aplicar reglas de negocio ni limitarse al estado de
+  paquetes. Puede pedir un número de seguimiento si hace falta para consultar
+  un envío y conserva el contexto de hasta ocho mensajes previos del mismo chat.
+  Mantiene los límites técnicos de privacidad: no recibe datos de otros sellers
+  ni secretos y no afirma haber realizado acciones en sistemas.
 
 ## Seguridad y límites
 

@@ -464,14 +464,17 @@ La consulta se limita al `IdUsuario` que el servidor encontró por teléfono; el
 único valor interpolado es ese entero confiable y el ID de viaje validado. No se
 acepta texto de WhatsApp como SQL. Solo se seleccionan estado, ID y fechas; no
 se envían teléfono, domicilio, coordenadas ni datos de destinatarios al LLM.
-El texto de la tienda se envía al modelo para clasificar la pregunta, tras
-ocultar teléfonos, correos y enlaces; los demás datos que la tienda incluya en
-su mensaje aún pueden formar parte de esa consulta.
-Las consultas sin ID ven los últimos 30 días y hasta 30 paquetes. Si no se
-indica un número de seguimiento o hay varios paquetes posibles, el bot pide ese
-número en vez de derivar automáticamente; los casos fuera de alcance o que
-requieren gestión humana sí se derivan. La cola se recupera cada minuto y
-procesa un evento por iteración para mantener vinculados sus datos. El
+El texto de la tienda se envía al modelo tras ocultar teléfonos, correos y
+enlaces; los demás datos que la tienda incluya en su mensaje aún pueden formar
+parte de esa consulta. El LLM conversa en forma general durante la beta; usa los paquetes como contexto
+privado solo si la tienda pregunta por ellos. No aplica todavía reglas de
+negocio ni limita la charla a logística. Si falta el número de seguimiento,
+puede pedirlo, pero no deriva automáticamente. Conserva los límites técnicos de
+privacidad y no afirma haber realizado acciones. Next.js entrega a n8n los
+últimos ocho mensajes previos del mismo chat, descifrados en servidor; el
+workflow omite teléfonos, correos y enlaces antes de enviar el contexto a OpenAI.
+La cola se recupera cada minuto y procesa un evento por iteración para mantener
+vinculados sus datos. El
 evento queda reclamado con vencimiento para reintentar una caída del workflow;
 la respuesta de bot tiene una clave única por evento entrante para que el
 reintento no la envíe dos veces. Si no se confirma si Meta aceptó el envío, se

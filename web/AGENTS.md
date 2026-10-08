@@ -188,7 +188,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `seller_chat_ciclos` (migraciones 32-35). El seller vinculado y el nombre de
   perfil de WhatsApp se guardan en la conversación; el nombre se cifra en la
   migración 37. La API estándar de mensajes entrantes no entrega la foto de
-  perfil del seller, así que el chat muestra un avatar con inicial. Las respuestas reutilizables viven
+  perfil del seller, así que el chat muestra un avatar con inicial. El Chat Bot
+  de sellers está marcado BETA y conversa de forma general; mantiene límites
+  técnicos para no revelar secretos ni datos de otros sellers. Las respuestas reutilizables viven
   aparte en `seller_chat_respuestas_rapidas` (migración 36): `/` las busca en el
   compositor, Enter inserta la seleccionada y un segundo Enter la envía. La conversación representa el
   contacto durable y cada apertura o reapertura crea un ciclo histórico; los

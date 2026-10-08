@@ -15,6 +15,7 @@ export type FamiliaNavegacion = {
     href: string;
     nuevaVentana?: boolean;
     destacado?: boolean;
+    beta?: boolean;
   };
   entradas: EntradaNavegacion[];
   rutas: string[];
@@ -61,7 +62,7 @@ const FAMILIAS: Omit<FamiliaNavegacion, "rutas">[] = [
   },
   {
     etiqueta: "Chat de sellers",
-    principal: { href: "/chats-sellers", nuevaVentana: true },
+    principal: { href: "/chats-sellers", nuevaVentana: true, beta: true },
     entradas: [
       { href: "/chats-sellers", etiqueta: "Bandeja", exacta: true },
       { href: "/chats-sellers/contactos", etiqueta: "Contactos" },
@@ -109,6 +110,7 @@ export const SECCIONES_PRINCIPALES: SeccionPrincipal[] = [
     etiqueta: familia.etiqueta,
     nuevaVentana: familia.principal.nuevaVentana,
     destacado: familia.principal.destacado,
+    beta: familia.principal.beta,
     rutasActivas: familia.rutas,
   })),
   { href: "/perfiles", etiqueta: null },
