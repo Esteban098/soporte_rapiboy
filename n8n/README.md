@@ -474,7 +474,10 @@ privacidad y no afirma haber realizado acciones. Next.js entrega a n8n los
 últimos ocho mensajes previos del mismo chat, descifrados en servidor; el
 workflow omite teléfonos, correos y enlaces antes de enviar el contexto a OpenAI.
 La cola se recupera cada minuto y procesa un evento por iteración para mantener
-vinculados sus datos. El
+vinculados sus datos. En **Procesar un evento por vez** (Loop Over Items), la
+salida **loop** debe conectar con **Reclamar y descifrar evento**; la salida
+**done** queda libre. Las ramas que terminan o responden vuelven a la entrada
+del loop para procesar el siguiente evento. El
 evento queda reclamado con vencimiento para reintentar una caída del workflow;
 la respuesta de bot tiene una clave única por evento entrante para que el
 reintento no la envíe dos veces. Si no se confirma si Meta aceptó el envío, se

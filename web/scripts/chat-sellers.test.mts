@@ -53,6 +53,15 @@ test("el bot beta conversa en general sin reglas de negocio y conserva privacida
   assert.equal(SECCIONES_PRINCIPALES.find((seccion) => seccion.href === "/chats-sellers")?.beta, true);
 });
 
+test("Loop Over Items envía el item de iteración a Reclamar y descifrar evento", () => {
+  const workflow = JSON.parse(fuente("../../n8n/15-chat-sellers.json")) as {
+    connections: Record<string, { main: { node: string }[][] }>;
+  };
+  const salidas = workflow.connections["Procesar un evento por vez"].main;
+  assert.deepEqual(salidas[0], []);
+  assert.equal(salidas[1]?.[0]?.node, "Reclamar y descifrar evento");
+});
+
 test("cada reapertura conserva un ciclo histórico independiente", () => {
   const sql = fuente("../supabase/migracion-35-chat-ciclos.sql");
   assert.match(sql, /create table if not exists public\.seller_chat_ciclos/);

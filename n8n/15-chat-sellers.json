@@ -89,7 +89,7 @@
     "Recuperar cola cada minuto": { "main": [[{ "node": "Leer cola duradera", "type": "main", "index": 0 }]] },
     "Leer cola duradera": { "main": [[{ "node": "Expandir eventos pendientes", "type": "main", "index": 0 }]] },
     "Expandir eventos pendientes": { "main": [[{ "node": "Procesar un evento por vez", "type": "main", "index": 0 }]] },
-    "Procesar un evento por vez": { "main": [[{ "node": "Reclamar y descifrar evento", "type": "main", "index": 0 }], []] },
+    "Procesar un evento por vez": { "main": [[], [{ "node": "Reclamar y descifrar evento", "type": "main", "index": 0 }]] },
     "Reclamar y descifrar evento": { "main": [[{ "node": "Validar contexto y extraer ID", "type": "main", "index": 0 }]] },
     "Validar contexto y extraer ID": { "main": [[{ "node": "¿Evento procesable?", "type": "main", "index": 0 }]] },
     "¿Evento procesable?": { "main": [[{ "node": "Consultar estado en RapiboyData", "type": "main", "index": 0 }], [{ "node": "¿Evento ya tomado?", "type": "main", "index": 0 }]] },
