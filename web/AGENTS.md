@@ -207,6 +207,14 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   abre `/chats-sellers` en otra pestaña, pero dentro de esa sección la lista y
   el detalle comparten la misma pantalla.
 
+- El **resumen semanal a tiendas** vive en `resumenes_tiendas_semanales` y lo
+  envía únicamente el flujo 16. Cuenta casos `Entregado` en la semana cerrada
+  anterior solo cuando `editado_en` demuestra que la información de tienda se
+  cargó antes de la entrega. Agrupa por `mensual.id_usuario` —nunca por el texto
+  de `tienda`— y resuelve el chat desde `sellers_activos.grupo_jid`. La clave
+  `(semana_desde, id_usuario)` hace idempotente el envío. Si falta el grupo,
+  genera `tienda_sin_grupo` para perfiles admin y operador, nunca Comercial.
+
 ## Límites entre flujos
 
 - La navegación interna de las familias de pantallas vive únicamente en

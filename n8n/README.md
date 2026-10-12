@@ -1,6 +1,6 @@
 # Flujos de n8n
 
-Quince workflows. Los tres primeros reemplazan al único que escribía en el
+Dieciséis workflows. Los tres primeros reemplazan al único que escribía en el
 Google Sheet; los siguientes cubren los botones Actualizar y la carga de datos
 de tienda desde Firefox. Se importan desde n8n con **Workflows ▸ Import from
 File**.
@@ -22,6 +22,25 @@ File**.
 | `13-directorio-activos-whatsapp.json` | Sincroniza en Supabase los sellers activos de México, los drivers con reserva válida en los últimos 14 días y sus grupos de WhatsApp | 9:00 de lunes a sábado, manualmente desde n8n y desde los botones de Sellers/Drivers |
 | `14-asistencia-supabase.json` | Plantilla de reemplazo: recibe el voto de la encuesta y lo registra en la plataforma; no usa Google Sheets | Webhook de votos |
 | `15-chat-sellers.json` | Procesa mensajes persistidos del chat y recupera eventos pendientes | Webhook interno y cada minuto; se activa después de configurar credenciales y variables |
+| `16-resumen-semanal-tiendas.json` | Agrupa por seller los paquetes entregados gracias a información cargada y agradece en su grupo de WhatsApp; los sellers sin grupo generan una notificación interna | 17:00 de cada lunes, horario de México, para la semana anterior |
+
+## Resumen semanal a tiendas
+
+Antes de importar el flujo 16 se ejecuta
+`web/supabase/migracion-37-resumen-semanal-tiendas.sql` y se vuelven a importar
+los flujos 01, 02 y 04. Esos tres conservan `Usuario.Id` en Mensual e Histórico;
+el nombre visible de la tienda no se usa como clave.
+
+El resumen incluye solamente casos que quedaron `Entregado` durante la semana
+anterior y cuya información de tienda fue guardada antes de la entrega. Agrupa
+los paquetes por `sellers_activos.id_usuario`, toma de esa misma tabla el JID
+del grupo y registra cada envío por seller y semana. Una fila `ENVIADO` no
+vuelve a la cola aunque se ejecute el workflow otra vez.
+
+Si el seller no tiene `grupo_jid`, no se intenta enviar. Se crea una alerta
+deduplicada en la campana para cada perfil activo con rol admin u operador; los
+perfiles comerciales quedan expresamente excluidos. Corregido el vínculo, una
+nueva ejecución deja el resumen pendiente y lo envía.
 
 ## Asistencia sin Google Sheets
 

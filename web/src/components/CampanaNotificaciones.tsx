@@ -102,6 +102,7 @@ export function CampanaNotificaciones() {
     }
     if (seguimientoId) router.push(`/seguimiento?reporte=${encodeURIComponent(seguimientoId)}`);
     else if (tipo === "demora_paquete") router.push("/demorados");
+    else if (tipo === "tienda_sin_grupo") router.push("/sellers");
   }
 
   function leerTodas() {
@@ -195,6 +196,9 @@ function fraseDe(item: Bandeja["items"][number]) {
   }
   if (item.tipo === "seguimiento_vencido") {
     return <>Seguimiento vencido{item.casoId ? <> del paquete <span className={estilos.caso}>#{item.casoId}</span></> : null}</>;
+  }
+  if (item.tipo === "tienda_sin_grupo") {
+    return <>Resumen semanal sin grupo de WhatsApp</>;
   }
   return (
     <>

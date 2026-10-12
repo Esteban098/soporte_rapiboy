@@ -13,7 +13,11 @@ import { consultarFresco, insertarFilas, insertarFilasSinDuplicar, TablaFaltante
  * una hora no avisa nada.
  */
 
-export type TipoNotificacion = "mencion" | "demora_paquete" | "seguimiento_vencido";
+export type TipoNotificacion =
+  | "mencion"
+  | "demora_paquete"
+  | "seguimiento_vencido"
+  | "tienda_sin_grupo";
 
 export type Notificacion = {
   id: string;
@@ -40,7 +44,12 @@ type FilaNotificacion = {
   leida_en: string | null;
 };
 
-const TIPOS: readonly TipoNotificacion[] = ["mencion", "demora_paquete", "seguimiento_vencido"];
+const TIPOS: readonly TipoNotificacion[] = [
+  "mencion",
+  "demora_paquete",
+  "seguimiento_vencido",
+  "tienda_sin_grupo",
+];
 const AUTOR_SISTEMA = "sistema@rapiboy";
 
 function tipoDe(valor: string | null): TipoNotificacion {

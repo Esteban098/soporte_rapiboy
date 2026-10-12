@@ -1,0 +1,239 @@
+{
+  "name": "Tablero · Resumen semanal a tiendas",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 17 * * 1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -520,
+        0
+      ],
+      "id": "85fe9052-733f-4f3d-8d06-c7af2a87be30",
+      "name": "17:00 cada lunes"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Cierra la semana anterior, agrupa las entregas por Usuario.Id y crea las\n-- notificaciones de los sellers sin grupo. La función es idempotente: una\n-- tienda ya enviada nunca vuelve a la cola.\nselect * from public.preparar_resumenes_tiendas_semanales();",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -280,
+        0
+      ],
+      "id": "74972d2b-e7a1-40a2-9eef-a75ca11bbacd",
+      "name": "Preparar resúmenes",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const fecha = (valor) => new Intl.DateTimeFormat('es-MX', {\n  day: 'numeric',\n  month: 'long',\n  timeZone: 'UTC',\n}).format(new Date(`${valor}T12:00:00Z`));\n\nreturn $input.all().map(({ json: r }) => {\n  const cantidad = Number(r.cantidad_paquetes);\n  const singular = cantidad === 1;\n  const mensaje = [\n    `¡Hola, equipo de ${String(r.tienda).trim()}! 👋`,\n    '',\n    `Queremos compartirles una buena noticia: entre el ${fecha(r.semana_desde)} y el ${fecha(r.semana_hasta)}, ${cantidad} paquete${singular ? '' : 's'} ${singular ? 'pudo' : 'pudieron'} entregarse gracias a la información que nos compartieron.`,\n    '',\n    'La información y las indicaciones que nos hacen llegar ayudan a que el equipo de ruta encuentre soluciones y complete más entregas.',\n    '',\n    '¡Gracias por acompañarnos y por seguir compartiendo información útil! Cada dato hace una diferencia en la experiencia de sus clientes. 🙌',\n  ].join('\\n');\n\n  return { json: { ...r, mensaje } };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -40,
+        0
+      ],
+      "id": "34d9bc64-ceac-4a1e-a203-c88dc8605e85",
+      "name": "Redactar mensajes"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://waha:3000/api/sendText",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $env.WAHA_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chatId",
+              "value": "={{ $json.grupo_jid }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.mensaje }}"
+            },
+            {
+              "name": "session",
+              "value": "Esteban_Larcher"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        200,
+        0
+      ],
+      "id": "2e8ca7e0-d777-4974-aa0d-e250e5b3e7ad",
+      "name": "Enviar al grupo",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Se marca ENVIADO solamente después de que WAHA respondió bien. El JSON va\n-- como parámetro para que el nombre y el texto nunca se interpolen en SQL.\nwith entrada as (select $1::jsonb as j)\nupdate public.resumenes_tiendas_semanales r\n   set estado = 'ENVIADO',\n       mensaje = entrada.j ->> 'mensaje',\n       enviado_en = now(),\n       ultimo_intento_en = now(),\n       detalle_error = null,\n       updated_at = now()\n  from entrada\n where r.id = (entrada.j ->> 'resumen_id')::uuid\n   and r.estado = 'ENVIANDO'\nreturning r.id, r.tienda, r.cantidad_paquetes, r.enviado_en;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify({ resumen_id: $('Redactar mensajes').item.json.resumen_id, mensaje: $('Redactar mensajes').item.json.mensaje })] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        0
+      ],
+      "id": "6e5490c7-f3fa-4ce1-8f12-f3d6d4147919",
+      "name": "Registrar envío",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let resumen = {};\ntry {\n  resumen = $('Redactar mensajes').item.json;\n} catch {}\n\nconst bruto = $json?.error?.message ?? $json?.error ?? 'WAHA no confirmó el envío.';\nconst detalle = String(bruto)\n  .replace(/[\\r\\n]+/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .slice(0, 300) || 'WAHA no confirmó el envío.';\n\nreturn [{ json: { resumen_id: resumen.resumen_id ?? '', detalle } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        180
+      ],
+      "id": "9450636b-743e-4a38-9ed4-12232153639b",
+      "name": "Preparar error"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "with entrada as (select $1::jsonb as j)\nupdate public.resumenes_tiendas_semanales r\n   set estado = 'ERROR',\n       detalle_error = entrada.j ->> 'detalle',\n       updated_at = now()\n  from entrada\n where r.id = nullif(entrada.j ->> 'resumen_id', '')::uuid\n   and r.estado = 'ENVIANDO'\nreturning r.id, r.tienda, r.detalle_error;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($json)] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        180
+      ],
+      "id": "2b13fe53-2a11-48fa-b943-a4ad849e1822",
+      "name": "Registrar error",
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "17:00 cada lunes": {
+      "main": [
+        [
+          {
+            "node": "Preparar resúmenes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar resúmenes": {
+      "main": [
+        [
+          {
+            "node": "Redactar mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redactar mensajes": {
+      "main": [
+        [
+          {
+            "node": "Enviar al grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar al grupo": {
+      "main": [
+        [
+          {
+            "node": "Registrar envío",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar error": {
+      "main": [
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-10-12T00:00:00.000Z",
+  "versionId": "a33e8c6e-bd85-49f9-a8c7-08d80794a2b0"
+}

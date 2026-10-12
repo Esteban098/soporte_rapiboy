@@ -30,6 +30,9 @@ create table if not exists public.mensual (
   -- no avanza, no para cuándo estaba prometido.
   fecha_programado  date,
   estado            text,
+  -- Usuario.Id del seller. Es la unión estable con sellers_activos y sus
+  -- grupos de WhatsApp; `tienda` queda como etiqueta visible.
+  id_usuario        bigint,
   repartidor        text,
   tienda            text,
   destino           text,
@@ -136,6 +139,7 @@ create table if not exists public.mensual (
 create index if not exists mensual_estado_idx           on public.mensual (estado);
 create index if not exists mensual_fecha_programado_idx on public.mensual (fecha_programado desc);
 create index if not exists mensual_caso_idx             on public.mensual (caso);
+create index if not exists mensual_id_usuario_idx        on public.mensual (id_usuario) where id_usuario is not null;
 
 -- ---------------------------------------------------------------------------
 -- Ayer
