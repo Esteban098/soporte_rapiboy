@@ -25,8 +25,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   La migración 40 agrega `fecha_devuelto`: el primer movimiento Devuelto
   posterior a la primera entrada a devolución del mes, aunque el cierre ocurra
   en otro mes. El flujo 17 debe actualizarse después de aplicar esa migración.
-  La pantalla calcula promedio, mediana, porcentaje cerrado en 48 h y pendientes
-  de más de 72 h; fechas ausentes o invertidas no cuentan como cero.
+  La pantalla calcula promedio, porcentaje cerrado en 72 h y pendientes
+  de más de 72 h; Entregado es exitoso y no tiene antigüedad pendiente ni cuenta
+  como pendiente/demorado. Tiempo pendiente conserva el orden numérico en horas,
+  pero se muestra en días cuando supera 24 h. No mostrar tiempo mediano.
+  Fechas ausentes o invertidas no cuentan como cero.
+  Los tiempos descuentan las horas que caen en domingo según America/Mexico_City;
+  lunes a sábado cuentan completos (24 h por día, sin calendario de feriados).
+  Devueltos por día de semana y ranking de fechas se basan en fecha_devuelto en
+  México, excluyen domingos y deduplican por ID/fecha cuando se miran varios meses.
   Gráficas y KPIs comparten la búsqueda y filtros de la tabla; agrupación por
   estado actual, driver de la ficha, seller, polígono o mes. Un rango de meses
   distingue paquetes únicos de registros mensuales para no ocultar repeticiones.

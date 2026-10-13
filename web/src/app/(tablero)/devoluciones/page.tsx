@@ -5,7 +5,7 @@ import { Card, Callout } from "@/components/Card";
 import type { Columna } from "@/components/Tabla";
 import { SelectorMeses } from "@/components/SelectorMeses";
 import { MetricasDevoluciones } from "@/components/MetricasDevoluciones";
-import { horasDevolucion, estadoDevuelto } from "@/lib/devoluciones-metricas";
+import { horasDevolucion, horasPendientesDevolucion } from "@/lib/devoluciones-metricas";
 
 export const metadata = { title: "Devoluciones" };
 
@@ -14,8 +14,8 @@ const columnas: Columna[] = [
   { clave: "primera", titulo: "Primera devolución" },
   { clave: "ultima", titulo: "Última devolución" },
   { clave: "devuelto", titulo: "Fecha Devuelto" },
-  { clave: "horasResolucion", titulo: "Tiempo hasta Devuelto (h)", tipo: "decimal" },
-  { clave: "horasPendiente", titulo: "Horas pendientes", tipo: "decimal" },
+  { clave: "horasResolucion", titulo: "Tiempo hasta Devuelto", tipo: "duracion" },
+  { clave: "horasPendiente", titulo: "Tiempo pendiente", tipo: "duracion" },
   { clave: "estado", titulo: "Estado actual", tipo: "estado" },
   { clave: "repartidor", titulo: "Driver" },
   { clave: "tienda", titulo: "Seller", tipo: "tienda" },
@@ -57,8 +57,9 @@ export default async function Devoluciones({ searchParams }: {
         filas={seleccionadas.map((fila) => ({
           id: fila.id, primera: fecha(fila.primera_devolucion), ultima: fecha(fila.ultima_devolucion),
           devuelto: fecha(fila.fecha_devuelto),
+          fechaDevueltoISO: fila.fecha_devuelto ?? null,
           horasResolucion: horasDevolucion(fila.primera_devolucion, fila.fecha_devuelto),
-          horasPendiente: !fila.fecha_devuelto && !estadoDevuelto(fila.estado) ? horasDevolucion(fila.primera_devolucion, ahora) : null,
+          horasPendiente: horasPendientesDevolucion(fila.primera_devolucion, fila.estado, fila.fecha_devuelto, ahora),
           estado: fila.estado, repartidor: fila.repartidor, tienda: fila.tienda,
           poligono: fila.poligono, destino: fila.destino, mes: fila.mes.slice(0, 7),
         }))} />

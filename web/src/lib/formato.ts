@@ -9,6 +9,13 @@ export const numero = (valor: number) => NUMERO.format(Math.round(valor));
 export const porcentaje = (valor: number) => `${DECIMAL.format(valor)}%`;
 export const decimal = (valor: number) => DOS_DECIMALES.format(valor);
 
+/** Duración numérica en horas: cambia a días cuando supera 24 h. */
+export function duracionHoras(horas: number | null): string {
+  if (horas == null || !Number.isFinite(horas)) return "—";
+  const valor = horas > 24 ? horas / 24 : horas;
+  return `${valor.toLocaleString("es-AR", { maximumFractionDigits: 1 })} ${horas > 24 ? "d" : "h"}`;
+}
+
 /** Hora visible para operación: siempre Argentina, aunque la lógica use México. */
 export function horaArgentina(valor: Date | string | number | null, segundos = false): string {
   if (valor == null) return "—";

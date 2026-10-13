@@ -16,7 +16,7 @@ import {
 } from "@/lib/preferencias";
 import { useVista } from "./useVista";
 import { EditorCaso, type Edicion } from "./EditorCaso";
-import { numero, porcentaje, decimal } from "@/lib/formato";
+import { numero, porcentaje, decimal, duracionHoras } from "@/lib/formato";
 import { AsignarSoporteSeller } from "./AsignarSoporteSeller";
 import { EditarUbicacionSeller } from "./EditarUbicacionSeller";
 import { EditarUbicacionDriver } from "./EditarUbicacionDriver";
@@ -36,6 +36,7 @@ export type TipoColumna =
   | "viaje"
   | "numero"
   | "decimal"
+  | "duracion"
   | "porcentaje"
   | "estado"
   | "caso"
@@ -443,7 +444,7 @@ function etiquetaDe(filtros: Filtro[], clave: string): string {
 }
 
 function esNumerica(tipo?: TipoColumna): boolean {
-  return tipo === "numero" || tipo === "decimal" || tipo === "porcentaje" || tipo === "dias";
+  return tipo === "numero" || tipo === "decimal" || tipo === "duracion" || tipo === "porcentaje" || tipo === "dias";
 }
 
 function Celda({
@@ -596,6 +597,8 @@ function Celda({
           {decimal(Number(valor))}
         </td>
       );
+    case "duracion":
+      return <td className={clase}>{duracionHoras(Number(valor))}</td>;
     case "porcentaje":
       return (
         <td className={clase}>

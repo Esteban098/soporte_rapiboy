@@ -1300,7 +1300,14 @@ La programación relee el mes actual y el anterior para recuperar días omitidos
 
 Las métricas requieren `supabase/migracion-40-devoluciones-tiempo.sql` y el
 flujo 17 actualizado. Miden desde la primera entrada a devolución del mes
-hasta el primer Devuelto posterior: promedio, mediana, porcentaje en 48 h y
+hasta el primer Devuelto posterior: promedio, porcentaje en 72 h laborales y
 antigüedad de registros todavía sin cierre (alerta visual a más de 72 h).
+Los tiempos descuentan las horas del domingo en México; lunes a sábado cuentan
+completos. No se aplica un calendario de feriados ni una jornada de 8 horas.
+Entregado se considera exitoso: no cuenta como pendiente ni muestra tiempo
+pendiente. Esta duración se muestra en horas hasta 24 h y en días al superarlas.
 Los gráficos de torta y barras se agrupan por estado, repartidor, seller,
 polígono o mes y responden a la búsqueda y filtros de la tabla.
+Se agregan volumen de cierres por día de la semana y ranking de fechas con más
+devoluciones: usan la fecha real Devuelto en México, omiten domingos y no duplican
+un mismo paquete/fecha que aparece en varios meses seleccionados.
