@@ -131,10 +131,15 @@ for (const [archivo, consulta, transformar, guardar] of flujos) {
 test("la migración y la instalación nueva usan la misma rotación y conservan el importe", () => {
   const inicial = readFileSync(new URL("../supabase/historico.sql", import.meta.url), "utf8");
   const migracion = readFileSync(new URL("../supabase/migracion-03-cobros-siniestrados.sql", import.meta.url), "utf8");
+  const vigente = readFileSync(new URL("../supabase/migracion-37-resumen-semanal-tiendas.sql", import.meta.url), "utf8");
   const patron = /create or replace function public\.mover_a_historico\(fecha_corte date\)[\s\S]*?\n\$\$;/;
   const funcion = inicial.match(patron)?.[0];
   assert.ok(funcion);
-  assert.equal(migracion.match(patron)?.[0], funcion);
+  const funcionVigente = vigente.match(patron)?.[0];
+  assert.ok(funcionVigente);
+  const normalizar = (sql: string) => sql.replace(/#variable_conflict use_column\s*/g, "").replace(/\s+/g, "");
+  assert.equal(normalizar(funcionVigente), normalizar(funcion));
+  assert.match(funcion, /id_usuario = excluded.id_usuario/);
   assert.match(funcion, /visitas,\s+valor_producto,\s+cobrado,\s+motivo_siniestro,\s+comentario_siniestro,\s+reclamo_tienda/g);
   assert.match(funcion, /valor_producto = excluded.valor_producto/);
   assert.match(funcion, /cobrado = excluded.cobrado/);

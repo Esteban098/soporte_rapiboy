@@ -35,6 +35,14 @@ type Textos = {
  * que no es cuestión de segundos.
  */
 const TEXTOS: Record<ClaveFlujo, Textos> = {
+  devoluciones: {
+    boton: "Actualizar",
+    cargando: "Actualizando…",
+    conFlujos: "Busca paquetes que pasaron por Procesando como devolución y actualiza el período seleccionado.",
+    sinFlujos: "Vuelve a leer las devoluciones guardadas.",
+    esperaTitulo: "Actualizando devoluciones",
+    esperaTexto: "Se está consultando el historial y el estado actual del período.",
+  },
   global: {
     boton: "Actualizar",
     cargando: "Actualizando…",

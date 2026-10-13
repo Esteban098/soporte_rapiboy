@@ -72,6 +72,96 @@ export function ubicarPunto(punto: Punto): Zona[] {
     .map((poligono) => ({ nombre: poligono.nombre, zona: poligono.zona }));
 }
 
+/*
+ * Polígonos colindantes del KMZ.
+ *
+ * La cercanía operativa no se mide en kilómetros: un domicilio pertenece a un
+ * polígono y puede absorber también los que comparten su borde. El margen es
+ * exclusivamente topológico (unos centímetros en las coordenadas exportadas),
+ * para tolerar vértices que el KMZ escribió con distinto redondeo; no amplía
+ * zonas ni convierte esta regla en una búsqueda por radio.
+ */
+const TOLERANCIA_BORDE = 0.000_002;
+const VECINOS = vecinosDeCobertura();
+
+/** El polígono de un punto y los que comparten borde con él. */
+export function poligonosAledanosAlPunto(punto: Punto): Zona[] {
+  const propios = ubicarPunto(punto);
+  const nombres = new Set(propios.map((zona) => zona.nombre));
+  for (const zona of propios) {
+    for (const vecino of VECINOS.get(zona.nombre) ?? []) nombres.add(vecino);
+  }
+  return COBERTURA.poligonos
+    .filter((poligono) => nombres.has(poligono.nombre))
+    .map((poligono) => ({ nombre: poligono.nombre, zona: poligono.zona }));
+}
+
+function vecinosDeCobertura(): Map<string, Set<string>> {
+  const vecinos = new Map(COBERTURA.poligonos.map((poligono) => [poligono.nombre, new Set<string>()]));
+  for (let i = 0; i < COBERTURA.poligonos.length; i += 1) {
+    for (let j = i + 1; j < COBERTURA.poligonos.length; j += 1) {
+      const a = COBERTURA.poligonos[i];
+      const b = COBERTURA.poligonos[j];
+      if (!compartenBorde(a, b)) continue;
+      vecinos.get(a.nombre)?.add(b.nombre);
+      vecinos.get(b.nombre)?.add(a.nombre);
+    }
+  }
+  return vecinos;
+}
+
+function compartenBorde(a: PoligonoCrudo, b: PoligonoCrudo): boolean {
+  const cajaA = cajaDe(a.contorno);
+  const cajaB = cajaDe(b.contorno);
+  if (
+    cajaA.este + TOLERANCIA_BORDE < cajaB.oeste ||
+    cajaB.este + TOLERANCIA_BORDE < cajaA.oeste ||
+    cajaA.norte + TOLERANCIA_BORDE < cajaB.sur ||
+    cajaB.norte + TOLERANCIA_BORDE < cajaA.sur
+  ) return false;
+
+  for (let i = 0; i < a.contorno.length - 1; i += 1) {
+    for (let j = 0; j < b.contorno.length - 1; j += 1) {
+      if (distanciaEntreSegmentos(a.contorno[i], a.contorno[i + 1], b.contorno[j], b.contorno[j + 1]) <= TOLERANCIA_BORDE) return true;
+    }
+  }
+  return false;
+}
+
+function cajaDe(anillo: Anillo): Caja {
+  return anillo.reduce((caja, [lon, lat]) => ({
+    oeste: Math.min(caja.oeste, lon), este: Math.max(caja.este, lon),
+    sur: Math.min(caja.sur, lat), norte: Math.max(caja.norte, lat),
+  }), { oeste: Infinity, este: -Infinity, sur: Infinity, norte: -Infinity });
+}
+
+type Par = [number, number];
+
+function distanciaEntreSegmentos(a: Par, b: Par, c: Par, d: Par): number {
+  if (segmentosSeCruzan(a, b, c, d)) return 0;
+  return Math.min(distanciaPuntoSegmento(a, c, d), distanciaPuntoSegmento(b, c, d), distanciaPuntoSegmento(c, a, b), distanciaPuntoSegmento(d, a, b));
+}
+
+function segmentosSeCruzan(a: Par, b: Par, c: Par, d: Par): boolean {
+  const cruz = (origen: Par, destino: Par, punto: Par) =>
+    (destino[0] - origen[0]) * (punto[1] - origen[1]) - (destino[1] - origen[1]) * (punto[0] - origen[0]);
+  const abC = cruz(a, b, c);
+  const abD = cruz(a, b, d);
+  const cdA = cruz(c, d, a);
+  const cdB = cruz(c, d, b);
+  return (abC === 0 || abD === 0 || Math.sign(abC) !== Math.sign(abD)) &&
+    (cdA === 0 || cdB === 0 || Math.sign(cdA) !== Math.sign(cdB));
+}
+
+function distanciaPuntoSegmento(punto: Par, inicio: Par, fin: Par): number {
+  const dx = fin[0] - inicio[0];
+  const dy = fin[1] - inicio[1];
+  const largo2 = dx * dx + dy * dy;
+  if (largo2 === 0) return Math.hypot(punto[0] - inicio[0], punto[1] - inicio[1]);
+  const t = Math.max(0, Math.min(1, ((punto[0] - inicio[0]) * dx + (punto[1] - inicio[1]) * dy) / largo2));
+  return Math.hypot(punto[0] - (inicio[0] + t * dx), punto[1] - (inicio[1] + t * dy));
+}
+
 function enAnillo(anillo: Anillo, { lon, lat }: Punto): boolean {
   let dentro = false;
   for (let i = 0, j = anillo.length - 1; i < anillo.length; j = i++) {

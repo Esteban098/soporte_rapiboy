@@ -1282,3 +1282,18 @@ cambia (`src/components/useVista.ts`).
 - **El mapa no tiene calles.** El fondo son los polígonos de reparto, que
   ubican bien dentro de la zona conocida pero no sirven para leer una dirección
   puntual. Para eso está el destino escrito en la ficha del paquete.
+
+## Devoluciones mensuales
+
+La pantalla `/devoluciones` muestra una tabla propia con los paquetes que
+pasaron por **Procesando como devolución** en RapiboyData. El mes corresponde
+al movimiento en México; conserva registros anteriores y el estado actual,
+independientemente de Mensual o Última jornada. No duplica un viaje dentro del
+mismo mes, aunque vuelva a pasar por el estado.
+
+Para habilitarla, ejecutar `supabase/migracion-39-devoluciones.sql`, importar
+`../n8n/17-devoluciones-mensuales.json` y configurar la URL de producción en
+`N8N_WEBHOOKS_DEVOLUCIONES` y el secreto Header Auth `X-Rapiboy-Token` en
+`N8N_TOKEN_DEVOLUCIONES`. Activar el flujo tras una prueba: sincroniza a las
+07:00 de México diariamente. Actualizar consulta el período elegido.
+La programación relee el mes actual y el anterior para recuperar días omitidos.

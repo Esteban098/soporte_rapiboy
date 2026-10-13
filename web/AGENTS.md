@@ -12,6 +12,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Modelo de datos
 
+- Devoluciones (`/devoluciones`) usa la tabla independiente
+  `devoluciones_mensuales` (migración 39). El flujo 17 busca en HistorialViaje
+  el estado Procesando como devolución, sin depender de Mensual/Ayer ni del
+  estado actual. Guarda una fila por mes de movimiento en México e ID;
+  movimientos repetidos no duplican el paquete. Conserva todos los meses.
+  Cada día a las 07:00 de México reconcilia el mes actual y el anterior;
+  Actualizar reconcilia el rango seleccionado y actualiza la ficha actual.
+  Nunca elimina filas cuando el estado cambia. El webhook exige la credencial
+  Header Auth `X-Rapiboy-Token`, compartida con `N8N_TOKEN_DEVOLUCIONES`.
+
 - `mensual` y `cancelados` son tablas operativas. Del día 1 al 9 contienen el
   mes anterior y el actual; desde el día 10 deben contener solamente el actual.
 - `mensual_historico` y `cancelados_historico` acumulan los períodos cerrados.
@@ -257,6 +267,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `directorio_sync_ejecuciones`. No debe escribir las tablas geográficas del
   tracker ni depender de Google Sheets. Un fallo de SQL Server o WAHA no puede
   desactivar la última foto válida.
+- El flujo 18 se ejecuta a las 07:50 de México y usa la última jornada cerrada
+  del tracker, aunque al cerrar la ruta ya no estén activos. Cuenta solamente
+  los `PENDIENTE_NO_VISITADO` cuyos destinos
+  estén en el polígono del domicilio manual del driver o uno colindante, según
+  el mismo KMZ de Cobertura. Con 6 o más avisa al grupo del driver; con 16 o
+  más avisa además al grupo operativo. La web entrega los candidatos por el
+  worker privado de WhatsApp y registra `avisos_pendientes_manana` **después**
+  de que WAHA confirma cada envío; no duplicar ese cálculo en n8n ni marcar un
+  aviso antes de enviar el mensaje.
 - El flujo de asistencia escribe únicamente a través de `/api/asistencia/votos`.
   No consulta ni mantiene Google Sheets como fuente operativa. Una importación
   histórica controlada puede enviar `idMotoboy` y `fechaOperacion` directos;

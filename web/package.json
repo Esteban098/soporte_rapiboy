@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:devoluciones": "node --import tsx scripts/devoluciones.test.mts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -23,7 +24,8 @@
     "test:asistencia": "node --import tsx scripts/asistencia.test.mts",
     "test:directorio": "node --conditions=react-server --import tsx scripts/directorio.test.mts",
     "test:chat-sellers": "node --import tsx scripts/chat-sellers.test.mts",
-    "test:resumen-tiendas": "node --import tsx scripts/resumen-tiendas.test.mts"
+    "test:resumen-tiendas": "node --import tsx scripts/resumen-tiendas.test.mts",
+    "test:pendientes-manana": "node --conditions=react-server --import tsx scripts/pendientes-manana.test.mts"
   },
   "dependencies": {
     "next": "16.3.3",

@@ -41,6 +41,7 @@ const FAMILIAS: Omit<FamiliaNavegacion, "rutas">[] = [
       { href: "/demorados", etiqueta: "Demorados" },
       { href: "/reclamos", etiqueta: "Información de tiendas" },
       { href: "/cancelados", etiqueta: "Cancelados" },
+      { href: "/devoluciones", etiqueta: "Devoluciones" },
     ],
   },
   {

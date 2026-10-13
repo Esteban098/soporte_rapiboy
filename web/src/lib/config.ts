@@ -183,6 +183,10 @@ export const VISTA_DIRECTORIO_CONTACTOS_WHATSAPP =
 export const TABLA_TRACKER_SYNC =
   process.env.SUPABASE_TABLA_TRACKER_SYNC?.trim() || "tracker_sincronizaciones";
 
+/** Bitácora idempotente de los avisos automáticos de pendientes de ruta. */
+export const TABLA_AVISOS_PENDIENTES_MANANA =
+  process.env.SUPABASE_TABLA_AVISOS_PENDIENTES_MANANA?.trim() || "avisos_pendientes_manana";
+
 /** Una fila por pregunta al asistente: quién, tokens y costo estimado. */
 export const TABLA_ASISTENTE_USO =
   process.env.SUPABASE_TABLA_ASISTENTE_USO?.trim() || "asistente_uso";
@@ -256,6 +260,7 @@ export function sheetId(): string {
 /** Separa el refresco operativo de los históricos y las colectas. */
 export type ClaveFlujo =
   | "global"
+  | "devoluciones"
   | "historico"
   | "canceladosHistorico"
   | "colectas"
@@ -265,6 +270,7 @@ export type ClaveFlujo =
   | "colectasVivo";
 
 const VARIABLE_DE_FLUJO: Record<ClaveFlujo, string> = {
+  devoluciones: "N8N_WEBHOOKS_DEVOLUCIONES",
   global: "N8N_WEBHOOKS",
   historico: "N8N_WEBHOOKS_HISTORICO",
   canceladosHistorico: "N8N_WEBHOOKS_CANCELADOS_HISTORICO",

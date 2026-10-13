@@ -79,10 +79,18 @@ async function ejecutarFlujo(
     hasta: rango?.hasta ?? null,
   };
 
+  const tokenDevoluciones = process.env.N8N_TOKEN_DEVOLUCIONES?.trim();
+  if (alcance === "devoluciones" && !tokenDevoluciones) {
+    return "Devoluciones: falta configurar la autorización del flujo.";
+  }
+
   try {
     const respuesta = await fetch(url, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        ...(alcance === "devoluciones" ? { "X-Rapiboy-Token": tokenDevoluciones! } : {}),
+      },
       body: JSON.stringify(cuerpo),
       cache: "no-store",
       signal: AbortSignal.timeout(TIMEOUT_FLUJO_MS),

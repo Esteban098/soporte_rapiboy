@@ -1,0 +1,211 @@
+{
+  "name": "17 · Devoluciones mensuales",
+  "nodes": [
+    {
+      "name": "Diario México",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 7 * * *"
+            }
+          ]
+        }
+      },
+      "position": [
+        0,
+        0
+      ],
+      "id": "devoluciones-1"
+    },
+    {
+      "name": "Actualizar desde plataforma",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "actualizar-devoluciones",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REEMPLAZAR",
+          "name": "Devoluciones · X-Rapiboy-Token"
+        }
+      },
+      "webhookId": "devoluciones-mensuales",
+      "position": [
+        0,
+        220
+      ],
+      "id": "devoluciones-2"
+    },
+    {
+      "name": "Validar período",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const b = $json.body ?? {};\nconst valido = (v) => typeof v === 'string' && /^\\d{4}-(0[1-9]|1[0-2])$/.test(v);\nif ((b.desde != null && !valido(b.desde)) || (b.hasta != null && !valido(b.hasta))) throw new Error('Período inválido');\nconst actual = new Intl.DateTimeFormat('en-CA', {timeZone:'America/Mexico_City', year:'numeric', month:'2-digit'}).format(new Date()).slice(0,7);\nconst [y,m] = actual.split('-').map(Number);\nconst anterior = m === 1 ? (y-1)+'-12' : y+'-'+String(m-1).padStart(2,'0');\nconst a = b.desde ?? anterior;\nconst z = b.hasta ?? actual;\nreturn [{json:{desde:a <= z ? a : z, hasta:a <= z ? z : a}}];"
+      },
+      "position": [
+        220,
+        100
+      ],
+      "id": "devoluciones-3"
+    },
+    {
+      "name": "Historial de devoluciones",
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.1,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SET NOCOUNT ON;\nSET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;\nDECLARE @Desde DATETIME = DATEADD(HOUR, 3, CAST('{{ $json.desde }}-01' AS DATETIME));\nDECLARE @Hasta DATETIME = DATEADD(HOUR, 3, DATEADD(MONTH, 1, CAST('{{ $json.hasta }}-01' AS DATETIME)));\nWITH Movimientos AS (\n  SELECT H.IdViaje, H.Fecha,\n    DATEFROMPARTS(YEAR(DATEADD(HOUR, -3, H.Fecha)), MONTH(DATEADD(HOUR, -3, H.Fecha)), 1) AS Mes\n  FROM dbo.HistorialViaje H WITH (NOLOCK)\n  INNER JOIN dbo.EstadoViaje EH WITH (NOLOCK) ON EH.Id = H.IdEstado\n  WHERE H.Fecha >= @Desde AND H.Fecha < @Hasta\n    AND LOWER(LTRIM(RTRIM(EH.NombreCompleto))) COLLATE Latin1_General_CI_AI\n      IN ('procesando como devolucion', 'procesando devolucion')\n), Devoluciones AS (\n  SELECT IdViaje, Mes, MIN(Fecha) AS Primera, MAX(Fecha) AS Ultima\n  FROM Movimientos GROUP BY IdViaje, Mes\n)\nSELECT D.Mes, V.Id,\n  CONVERT(VARCHAR(33), CAST(D.Primera AS DATETIME2(0)) AT TIME ZONE 'Argentina Standard Time', 127) AS PrimeraDevolucion,\n  CONVERT(VARCHAR(33), CAST(D.Ultima AS DATETIME2(0)) AT TIME ZONE 'Argentina Standard Time', 127) AS UltimaDevolucion,\n  E.NombreCompleto AS Estado, U.Alias AS Tienda, V.Direccion AS Destino,\n  P.Nombre AS Poligono, CAST(V.FechaProgramado AS DATE) AS FechaProgramado,\n  V.Visitas, Driver.Repartidor\nFROM Devoluciones D\nINNER JOIN dbo.Viaje V WITH (NOLOCK) ON V.Id = D.IdViaje\nINNER JOIN dbo.Usuario U WITH (NOLOCK) ON U.Id = V.IdUsuario\nLEFT JOIN dbo.EstadoViaje E WITH (NOLOCK) ON E.Id = V.IdEstado\nLEFT JOIN dbo.Poligono P WITH (NOLOCK) ON P.Id = V.IdPoligono\nOUTER APPLY (\n  SELECT TOP 1 H.Repartidor FROM dbo.HistorialViaje H WITH (NOLOCK)\n  WHERE H.IdViaje = V.Id AND NULLIF(LTRIM(RTRIM(H.Repartidor)), '') IS NOT NULL\n  ORDER BY H.Fecha DESC, H.Id DESC\n) Driver\nWHERE U.IdLocalidad = 9 AND U.IdModalidad = 5\nORDER BY D.Mes, V.Id;"
+      },
+      "credentials": {
+        "microsoftSql": {
+          "id": "F5EJUfXcquXz7Rf3",
+          "name": "Microsoft SQL credencial Esteban RPBY"
+        }
+      },
+      "position": [
+        440,
+        100
+      ],
+      "id": "devoluciones-4"
+    },
+    {
+      "name": "A columnas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const texto = (v) => v == null || String(v).trim() === '' ? null : String(v).trim();\nconst dia = (v) => v ? new Date(v).toISOString().slice(0,10) : null;\nreturn $input.all().filter(({json:r}) => Number.isSafeInteger(Number(r.Id)) && Number(r.Id)>0).map(({json:r})=>({json:{\nmes:dia(r.Mes), id:Number(r.Id),\nprimera_devolucion:r.PrimeraDevolucion, ultima_devolucion:r.UltimaDevolucion,\nestado:texto(r.Estado), repartidor:texto(r.Repartidor), tienda:texto(r.Tienda),\ndestino:texto(r.Destino), poligono:texto(r.Poligono),\nfecha_programado:dia(r.FechaProgramado),\nvisitas:r.Visitas == null ? null : Number(r.Visitas), actualizado_en:new Date().toISOString()\n}}));"
+      },
+      "position": [
+        660,
+        100
+      ],
+      "id": "devoluciones-5"
+    },
+    {
+      "name": "Guardar devoluciones",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": "devoluciones_mensuales"
+        },
+        "operation": "upsert",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "mes": "={{ $json.mes }}",
+            "id": "={{ $json.id }}",
+            "primera_devolucion": "={{ $json.primera_devolucion }}",
+            "ultima_devolucion": "={{ $json.ultima_devolucion }}",
+            "estado": "={{ $json.estado }}",
+            "repartidor": "={{ $json.repartidor }}",
+            "tienda": "={{ $json.tienda }}",
+            "destino": "={{ $json.destino }}",
+            "poligono": "={{ $json.poligono }}",
+            "fecha_programado": "={{ $json.fecha_programado }}",
+            "visitas": "={{ $json.visitas }}",
+            "actualizado_en": "={{ $json.actualizado_en }}"
+          },
+          "matchingColumns": [
+            "mes",
+            "id"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "position": [
+        880,
+        100
+      ],
+      "id": "devoluciones-6"
+    }
+  ],
+  "connections": {
+    "Diario México": {
+      "main": [
+        [
+          {
+            "node": "Validar período",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar desde plataforma": {
+      "main": [
+        [
+          {
+            "node": "Validar período",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar período": {
+      "main": [
+        [
+          {
+            "node": "Historial de devoluciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Historial de devoluciones": {
+      "main": [
+        [
+          {
+            "node": "A columnas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A columnas": {
+      "main": [
+        [
+          {
+            "node": "Guardar devoluciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City"
+  },
+  "active": false,
+  "pinData": {}
+}

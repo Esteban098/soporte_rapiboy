@@ -1,6 +1,6 @@
 # Flujos de n8n
 
-Dieciséis workflows. Los tres primeros reemplazan al único que escribía en el
+Dieciocho workflows. Los tres primeros reemplazan al único que escribía en el
 Google Sheet; los siguientes cubren los botones Actualizar y la carga de datos
 de tienda desde Firefox. Se importan desde n8n con **Workflows ▸ Import from
 File**.
@@ -23,6 +23,8 @@ File**.
 | `14-asistencia-supabase.json` | Plantilla de reemplazo: recibe el voto de la encuesta y lo registra en la plataforma; no usa Google Sheets | Webhook de votos |
 | `15-chat-sellers.json` | Procesa mensajes persistidos del chat y recupera eventos pendientes | Webhook interno y cada minuto; se activa después de configurar credenciales y variables |
 | `16-resumen-semanal-tiendas.json` | Agrupa por seller los paquetes entregados gracias a información cargada y agradece en su grupo de WhatsApp; los sellers sin grupo generan una notificación interna | 17:00 de cada lunes, horario de México, para la semana anterior |
+| `17-devoluciones-mensuales.json` | Acumula por mes los paquetes que pasaron por Procesando como devolución y actualiza sus estados actuales | 07:00 diario de México y botón Actualizar del período seleccionado |
+| `18-pendientes-manana.json` | Avisa al grupo del driver cuando tiene más de 5 paquetes no visitados cerca de su domicilio manual y, desde 16, avisa además al grupo operativo | 07:50 de lunes a sábado, hora de México; inactivo hasta configurar y validar |
 
 ## Resumen semanal a tiendas
 
@@ -41,6 +43,51 @@ Si el seller no tiene `grupo_jid`, no se intenta enviar. Se crea una alerta
 deduplicada en la campana para cada perfil activo con rol admin u operador; los
 perfiles comerciales quedan expresamente excluidos. Corregido el vínculo, una
 nueva ejecución deja el resumen pendiente y lo envía.
+
+## Devoluciones mensuales (flujo 17)
+
+`17-devoluciones-mensuales.json` busca movimientos de HistorialViaje con
+NombreCompleto «Procesando como devolución» (también admite «Procesando devolución»,
+sin distinguir acentos). No filtra por el estado actual ni cruza IDs contra
+Mensual, Ayer, cancelados o históricos. Usa localidad 9 y modalidad 5.
+Cada viaje se guarda una vez por mes en `devoluciones_mensuales`; el mes es
+el del movimiento en México y se conservan primera y última aparición del mes.
+Un viaje puede pertenecer a varios meses si tuvo movimientos en cada uno.
+
+1. Ejecutar `web/supabase/migracion-39-devoluciones.sql`.
+2. Importar el flujo 17 y seleccionar credenciales SQL Server y Supabase.
+3. Configurar Header Auth del webhook: `X-Rapiboy-Token` con un secreto propio.
+   Cargar el mismo valor en `N8N_TOKEN_DEVOLUCIONES` y la URL de producción
+   `/webhook/actualizar-devoluciones` en `N8N_WEBHOOKS_DEVOLUCIONES`.
+4. Probar manualmente y activar: corre todos los días a las 07:00 de México,
+   reconcilia mes actual y anterior para recuperar corridas omitidas y cruces
+   de mes. El botón de plataforma envía `desde`/`hasta` y reconcilia esos meses.
+
+La lectura convierte el calendario México al reloj de Argentina documentado
+para RapiboyData. No trunca datos ni los retira por cambiar de estado.
+
+## Pendientes de la última jornada
+
+El flujo 18 no mide distancia: toma los paquetes con clasificación
+`PENDIENTE_NO_VISITADO` de la última jornada del tracker, aunque ya no estén
+activos al cierre, y cuenta solo los que
+caen en el polígono de cobertura del domicilio manual del driver o en un
+polígono colindante. Con **6 o más** manda al grupo vinculado del driver que
+debe recuperar esas entregas durante la mañana; con **16 o más** manda además
+el aviso al grupo operativo `120363325021795726@g.us`, indicando que no hará
+colecta esa mañana.
+
+1. Ejecutar `web/supabase/migracion-38-avisos-pendientes-manana.sql`.
+2. Importar `18-pendientes-manana.json` y asignar a sus dos nodos de
+   Plataforma la misma credencial Header Auth de los workers internos: header
+   `Authorization`, valor `Bearer <N8N_WEBHOOK_WHATSAPP_SECRET>`.
+3. Verificar que cada driver tenga `grupo_jid` y domicilio manual con
+   coordenadas válidas en `drivers_activos`; si falta cualquiera de los dos,
+   el flujo lo omite en vez de adivinar un destinatario o una zona.
+4. Hacer una ejecución manual con WAHA en modo de prueba y recién entonces
+   activar el workflow. La bitácora `avisos_pendientes_manana` se registra solo
+   después de una respuesta exitosa de WAHA, por lo que reintentar no duplica
+   mensajes ya confirmados.
 
 ## Asistencia sin Google Sheets
 
