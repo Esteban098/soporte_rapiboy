@@ -47,12 +47,18 @@ nueva ejecución deja el resumen pendiente y lo envía.
 ## Devoluciones mensuales (flujo 17)
 
 `17-devoluciones-mensuales.json` busca movimientos de HistorialViaje con
-NombreCompleto «Procesando como devolución» (también admite «Procesando devolución»,
-sin distinguir acentos). No filtra por el estado actual ni cruza IDs contra
+`IdEstado = 22`, identificado por operación como `EnProcesoDeDevolucion`.
+No filtra por el estado actual ni cruza IDs contra
 Mensual, Ayer, cancelados o históricos. Usa localidad 9 y modalidad 5.
 Cada viaje se guarda una vez por mes en `devoluciones_mensuales`; el mes es
 el del movimiento en México y se conservan primera y última aparición del mes.
 Un viaje puede pertenecer a varios meses si tuvo movimientos en cada uno.
+
+Para las métricas de resolución, ejecutar también
+`web/supabase/migracion-40-devoluciones-tiempo.sql` antes de actualizar el flujo.
+`fecha_devuelto` toma el primer movimiento Devuelto posterior a la primera
+entrada a devolución del mes; no acota el cierre al mes de ingreso.
+Un cierre faltante queda null y no se interpreta como devolución instantánea.
 
 1. Ejecutar `web/supabase/migracion-39-devoluciones.sql`.
 2. Importar el flujo 17 y seleccionar credenciales SQL Server y Supabase.

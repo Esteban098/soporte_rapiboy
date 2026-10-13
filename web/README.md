@@ -1297,3 +1297,10 @@ Para habilitarla, ejecutar `supabase/migracion-39-devoluciones.sql`, importar
 `N8N_TOKEN_DEVOLUCIONES`. Activar el flujo tras una prueba: sincroniza a las
 07:00 de México diariamente. Actualizar consulta el período elegido.
 La programación relee el mes actual y el anterior para recuperar días omitidos.
+
+Las métricas requieren `supabase/migracion-40-devoluciones-tiempo.sql` y el
+flujo 17 actualizado. Miden desde la primera entrada a devolución del mes
+hasta el primer Devuelto posterior: promedio, mediana, porcentaje en 48 h y
+antigüedad de registros todavía sin cierre (alerta visual a más de 72 h).
+Los gráficos de torta y barras se agrupan por estado, repartidor, seller,
+polígono o mes y responden a la búsqueda y filtros de la tabla.

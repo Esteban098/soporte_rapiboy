@@ -14,13 +14,22 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Devoluciones (`/devoluciones`) usa la tabla independiente
   `devoluciones_mensuales` (migración 39). El flujo 17 busca en HistorialViaje
-  el estado Procesando como devolución, sin depender de Mensual/Ayer ni del
+  el estado `IdEstado = 22` (`EnProcesoDeDevolucion`, confirmado por operación),
+  sin depender de Mensual/Ayer ni del
   estado actual. Guarda una fila por mes de movimiento en México e ID;
   movimientos repetidos no duplican el paquete. Conserva todos los meses.
   Cada día a las 07:00 de México reconcilia el mes actual y el anterior;
   Actualizar reconcilia el rango seleccionado y actualiza la ficha actual.
   Nunca elimina filas cuando el estado cambia. El webhook exige la credencial
   Header Auth `X-Rapiboy-Token`, compartida con `N8N_TOKEN_DEVOLUCIONES`.
+  La migración 40 agrega `fecha_devuelto`: el primer movimiento Devuelto
+  posterior a la primera entrada a devolución del mes, aunque el cierre ocurra
+  en otro mes. El flujo 17 debe actualizarse después de aplicar esa migración.
+  La pantalla calcula promedio, mediana, porcentaje cerrado en 48 h y pendientes
+  de más de 72 h; fechas ausentes o invertidas no cuentan como cero.
+  Gráficas y KPIs comparten la búsqueda y filtros de la tabla; agrupación por
+  estado actual, driver de la ficha, seller, polígono o mes. Un rango de meses
+  distingue paquetes únicos de registros mensuales para no ocultar repeticiones.
 
 - `mensual` y `cancelados` son tablas operativas. Del día 1 al 9 contienen el
   mes anterior y el actual; desde el día 10 deben contener solamente el actual.
