@@ -149,6 +149,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   haber ejecutado el nodo «Abrir sincronización» suelto desde el editor de n8n,
   que crea la fila sin que nada la cierre. Instalar
   `supabase/migracion-05-tracker-lock.sql` en bases que ya corrieron el script.
+- Un `504` del proxy durante paquetes no es por sí mismo una sincronización
+  fallida: la web consulta `tracker_sincronizaciones` y solo lo presenta como
+  proceso en curso si n8n abrió el lock de esa jornada. En ese caso relee la
+  pantalla cada 15 segundos hasta que el estado deja de ser `running`.
 - Ninguna sincronización del tracker desactiva nada si leyó cero filas, y una
   corrida fallida no desactiva nunca. Una consulta que devuelve cero es
   indistinguible de una que no llegó a correr, y vaciar el mapa por eso es peor

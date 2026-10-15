@@ -47,6 +47,7 @@ import estilos from "./live-tracker.module.css";
 type Sync = "posiciones" | "paquetes";
 
 type Aviso = { tono: "ok" | "error"; texto: string };
+type ResultadoSync = { ok: boolean; texto: string; enCurso: boolean };
 type OrdenLista = "porcentaje" | "total" | "entregados" | "actualizacion" | "demora";
 type DireccionOrden = "desc" | "asc";
 type PestanaTracker = "mapa" | "estadisticas";
@@ -102,6 +103,7 @@ export function LiveTracker({
   const [poligonoActivo, setPoligonoActivo] = useState<{ nombre: string; zona: string } | null>(null);
   const [corriendo, setCorriendo] = useState<Sync | null>(null);
   const [aviso, setAviso] = useState<Aviso | null>(null);
+  const [paquetesEnCurso, setPaquetesEnCurso] = useState(false);
   const [ahora, setAhora] = useState(() => Date.now());
   const [recordatorios, setRecordatorios] = useState<Record<number, number>>({});
 
@@ -197,7 +199,9 @@ export function LiveTracker({
      * que un repartidor que dejó de operar desaparece de la lista pero no
      * arrastra a los demás; y si vuelve, vuelve seleccionado.
      */
-    setDatos(cuerpo.datos as DatosDelTracker);
+    const nuevos = cuerpo.datos as DatosDelTracker;
+    setDatos(nuevos);
+    return nuevos;
   }, []);
 
   // La pantalla abierta envejece con el reloj y relee la base cada diez
@@ -217,6 +221,35 @@ export function LiveTracker({
     return () => window.clearInterval(refresco);
   }, [releer]);
 
+  // Un 504 del proxy no corta necesariamente el worker de n8n. Mientras la
+  // bitácora diga `running`, se relee cada quince segundos y se avisa solo al
+  // terminar o al fallar realmente, sin pedirle al operador que recargue.
+  useEffect(() => {
+    if (!paquetesEnCurso) return;
+    let vigente = true;
+    const comprobar = async () => {
+      try {
+        const nuevos = await releer();
+        if (!vigente) return;
+        const sync = nuevos.sincronizaciones.paquetes;
+        if (sync?.estado === "running") return;
+        setPaquetesEnCurso(false);
+        setAhora(Date.now());
+        setAviso({
+          tono: sync?.estado === "failed" ? "error" : "ok",
+          texto: sync?.estado === "failed"
+            ? `Paquetes: la sincronización terminó con un error${sync.mensaje_error ? ". Revisá el detalle en n8n." : "."}`
+            : "Paquetes: actualización terminada. La ruta ya muestra los datos nuevos.",
+        });
+      } catch {
+        // El siguiente pulso reintenta; la última foto válida se conserva.
+      }
+    };
+    void comprobar();
+    const intervalo = window.setInterval(() => void comprobar(), 15_000);
+    return () => { vigente = false; window.clearInterval(intervalo); };
+  }, [paquetesEnCurso, releer]);
+
   /*
    * Un solo botón corre las dos sincronizaciones, una detrás de la otra.
    *
@@ -233,12 +266,14 @@ export function LiveTracker({
 
     const partes: string[] = [];
     let fallo = false;
+    let paquetesPendientes = false;
 
     try {
       for (const cual of ["paquetes", "posiciones"] as const) {
         setCorriendo(cual);
         const resultado = await sincronizar(cual);
         if (!resultado.ok) fallo = true;
+        if (resultado.enCurso && cual === "paquetes") paquetesPendientes = true;
         partes.push(resultado.texto);
       }
 
@@ -248,6 +283,7 @@ export function LiveTracker({
         partes.push("No se pudo releer la jornada.");
       });
       setAviso({ tono: fallo ? "error" : "ok", texto: partes.join(" ") });
+      if (paquetesPendientes) setPaquetesEnCurso(true);
     } finally {
       enVuelo.current = false;
       setCorriendo(null);
@@ -1357,7 +1393,7 @@ function textoCorto(driver: DriverDelTracker): string {
  * No tira: devuelve si salió bien, para que el botón pueda seguir con la
  * otra aunque esta haya fallado.
  */
-async function sincronizar(cual: Sync): Promise<{ ok: boolean; texto: string }> {
+async function sincronizar(cual: Sync): Promise<ResultadoSync> {
   const ruta =
     cual === "posiciones" ? "/api/live-tracker/sync/drivers" : "/api/live-tracker/sync/shipments";
   const nombre = cual === "posiciones" ? "Posiciones" : "Paquetes";
@@ -1369,11 +1405,15 @@ async function sincronizar(cual: Sync): Promise<{ ok: boolean; texto: string }> 
       return {
         ok: false,
         texto: `${nombre}: ${cuerpo?.error ?? `la sincronización respondió ${respuesta.status}.`}`,
+        enCurso: false,
       };
     }
-    return { ok: true, texto: resumenEnPalabras(cual, cuerpo) };
+    if (cuerpo.enCurso === true) {
+      return { ok: true, enCurso: true, texto: `${nombre}: actualización en curso; se refrescará sola al terminar.` };
+    }
+    return { ok: true, enCurso: false, texto: resumenEnPalabras(cual, cuerpo) };
   } catch {
-    return { ok: false, texto: `${nombre}: no se pudo completar la sincronización.` };
+    return { ok: false, enCurso: false, texto: `${nombre}: no se pudo completar la sincronización.` };
   }
 }
 
@@ -1397,21 +1437,25 @@ function tituloActualizar(hayPaquetes: boolean, hayPosiciones: boolean): string 
  * dice nada, «1 nuevo» sí. Es la confirmación de que el paquete que alguien
  * agregó a la ruta hace un minuto ya está en el mapa.
  */
-function resumenEnPalabras(cual: Sync, r: Record<string, number>): string {
+function resumenEnPalabras(cual: Sync, r: Record<string, unknown>): string {
   const partes: string[] = [];
-  if (r.insertados) partes.push(`${r.insertados} nuevo${r.insertados === 1 ? "" : "s"}`);
-  if (r.actualizados) partes.push(`${r.actualizados} actualizado${r.actualizados === 1 ? "" : "s"}`);
-  if (r.desactivados) {
+  const numero = (clave: string) => Number(r[clave]) || 0;
+  const insertados = numero("insertados"); const actualizados = numero("actualizados");
+  const desactivados = numero("desactivados"); const omitidos = numero("omitidos"); const conError = numero("conError");
+  const leidosNumero = numero("leidos");
+  if (insertados) partes.push(`${insertados} nuevo${insertados === 1 ? "" : "s"}`);
+  if (actualizados) partes.push(`${actualizados} actualizado${actualizados === 1 ? "" : "s"}`);
+  if (desactivados) {
     partes.push(
       cual === "posiciones"
-        ? `${r.desactivados} fuera de operación`
-        : `${r.desactivados} fuera de ruta`,
+        ? `${desactivados} fuera de operación`
+        : `${desactivados} fuera de ruta`,
     );
   }
-  if (r.omitidos) partes.push(`${r.omitidos} omitido${r.omitidos === 1 ? "" : "s"}`);
-  if (r.conError) partes.push(`${r.conError} con error`);
+  if (omitidos) partes.push(`${omitidos} omitido${omitidos === 1 ? "" : "s"}`);
+  if (conError) partes.push(`${conError} con error`);
 
   const que = cual === "posiciones" ? "repartidores" : "paquetes";
-  const leidos = `${r.leidos} ${que} leídos`;
+  const leidos = `${leidosNumero} ${que} leídos`;
   return partes.length === 0 ? `${leidos}. Sin cambios.` : `${leidos}: ${partes.join(", ")}.`;
 }

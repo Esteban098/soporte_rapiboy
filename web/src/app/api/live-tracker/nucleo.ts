@@ -2,13 +2,14 @@ import "server-only";
 import { NextResponse } from "next/server";
 import {
   TABLA_TRACKER_DEMORAS,
+  TABLA_TRACKER_SYNC,
   TIMEOUT_FLUJO_MS,
   flujosDe,
   variableDeFlujo,
   type ClaveFlujo,
 } from "@/lib/config";
 import type { Operador } from "@/lib/sesion";
-import { insertarFila, TablaFaltante } from "@/lib/supabase";
+import { consultarFresco, insertarFila, TablaFaltante } from "@/lib/supabase";
 import { ZONA_OPERACION, diaDePaquetes, estadoDemoraDriver } from "@/lib/tracker";
 import { leerTracker } from "@/lib/tracker-datos";
 
@@ -45,6 +46,8 @@ export type ResumenSync = {
   omitidos: number;
   conError: number;
   mensaje: string | null;
+  /** n8n empezó la corrida, pero el proxy venció antes de recibir el cierre. */
+  enCurso?: boolean;
 };
 
 /** Lo que manda el tablero al webhook. Mismo contrato que el resto de flujos. */
@@ -57,6 +60,16 @@ type CuerpoTracker = {
   zona: string;
   /** Cuántos días atrás salió ese día. Va para que quede en el log del flujo. */
 };
+
+async function sincronizacionEnCurso(tipo: "drivers" | "paquetes", dia: string): Promise<boolean> {
+  const filas = await consultarFresco<{ estado: string }>(TABLA_TRACKER_SYNC, {
+    tipo: `eq.${tipo}`,
+    estado: "eq.running",
+    fecha_operacion: `eq.${dia}`,
+    limit: "1",
+  }).catch(() => []);
+  return filas.length > 0;
+}
 
 export async function ejecutarSync(
   clave: ClaveFlujo,
@@ -120,6 +133,16 @@ export async function ejecutarSync(
        * pueda decir «esperá a que termine» en vez de «falló».
        */
       const yaCorriendo = /lock_not_available|ya hay una sincronización/i.test(texto);
+      // El proxy de n8n puede vencer antes que una consulta grande de paquetes.
+      // Solo se presenta como "en curso" si la propia bitácora confirma que
+      // n8n ya abrió esta corrida; un 504 sin lock sigue siendo una falla.
+      if (respuesta.status === 504 && await sincronizacionEnCurso(tipo, dia)) {
+        return NextResponse.json({
+          ok: true, tipo, dia, enCurso: true,
+          leidos: 0, insertados: 0, actualizados: 0, desactivados: 0, omitidos: 0, conError: 0,
+          mensaje: "La sincronización sigue corriendo. La pantalla se actualizará al terminar.",
+        }, { status: 202 });
+      }
       return NextResponse.json(
         {
           ok: false,

@@ -638,6 +638,23 @@ test("16. un error de SQL Server llega como falla del flujo, sin romper la panta
   assert.equal((await respuesta.json()).ok, false);
 });
 
+test("16b. un 504 se muestra como proceso en curso solo si la bitácora confirma el lock", async (t) => {
+  conEntorno(t, { ...BASE, N8N_WEBHOOKS_TRACKER_PAQUETES: "https://n8n.invalid/webhook/tracker-paquetes" });
+  const simulado = t.mock.method(globalThis, "fetch", async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("n8n.invalid")) return new Response("Gateway Timeout", { status: 504 });
+    if (url.includes("tracker_sincronizaciones")) return Response.json([{ estado: "running" }]);
+    assert.fail(`consulta inesperada: ${url}`);
+  });
+  t.after(() => simulado.mock.restore());
+
+  const respuesta = await ejecutarSync("trackerPaquetes", "paquetes", OPERADOR);
+  const cuerpo = await respuesta.json();
+  assert.equal(respuesta.status, 202);
+  assert.equal(cuerpo.ok, true);
+  assert.equal(cuerpo.enCurso, true);
+});
+
 test("17. la base caída y la tabla faltante se distinguen", async (t) => {
   conEntorno(t, BASE);
 
