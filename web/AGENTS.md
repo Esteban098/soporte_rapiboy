@@ -18,7 +18,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   sin depender de Mensual/Ayer ni del
   estado actual. Guarda una fila por mes de movimiento en México e ID;
   movimientos repetidos no duplican el paquete. Conserva todos los meses.
-  Cada día a las 07:00 de México reconcilia el mes actual y el anterior;
+  Cada día a las 10:00 ARG reconcilia el mes actual y el anterior;
   Actualizar reconcilia el rango seleccionado y actualiza la ficha actual.
   Nunca elimina filas cuando el estado cambia. El webhook exige la credencial
   Header Auth `X-Rapiboy-Token`, compartida con `N8N_TOKEN_DEVOLUCIONES`.
@@ -110,7 +110,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   quedan vacíos, se buscan en Mensual o Histórico. `abierto_en` se reinicia al
   reabrir y el tiempo de resolución es la diferencia hasta `atendido_en`.
   Instalar `supabase/migracion-04-seguimiento-semanal.sql` en bases existentes.
-- El **live tracker** vive en cuatro tablas propias —`tracker_drivers`,
+- El **live tracker** vive en sus tablas operativas —`tracker_drivers`,
   `tracker_paquetes`, `tracker_sincronizaciones`, `tracker_demoras`— y no toca ninguna de las
   anteriores. Es la foto de la jornada en curso, no un histórico: la clave de
   repartidores es `id_motoboy` y la de paquetes `id_viaje`, así que una
@@ -130,6 +130,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   entregados, no visitados y SLA (entregados sobre el total). Es solo lectura y
   no puede bloquear la cola de Ayer si las tablas `tracker_*` aún no están
   instaladas o no responden.
+- La pestaña **Estadísticas** del Live Tracker no puede calcular SLA ni fin de
+  ruta desde `tracker_paquetes`: esa tabla es viva y un viaje puede modificarse
+  al día siguiente. `tracker_estadisticas_cerradas` conserva la primera foto de
+  cada jornada cerrada y es la única fuente de sus métricas, horarios por
+  driver, zonas y mapa de calor. La congela el flujo 20 a las 10:30 ARG, tras
+  la sincronización de paquetes; no hacer upsert ni recalcular filas existentes.
 - `minutos_sin_actualizar`, `minutos_sin_movimiento` y `estado_posicion` **no se guardan**: los calcula
   la vista `tracker_drivers_vista` al leer, y el navegador los vuelve a
   calcular contra su propio reloj. Una antigüedad guardada envejece mal —diría
@@ -168,6 +174,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   operativa. En la tarjeta y el detalle de cada paquete se muestra y se agrupa
   por `EstadoViaje.NombreCompleto`; si el nombre falta, se indica «Estado no
   informado».
+- El bloque **Ruta por repartidor**, debajo del mapa, presenta cada paquete de
+  la jornada con `nombre_estado` (Rapiboy) y `estado_meli`
+  (`DetalleViaje.EstadoMeli`). Solo resalta cierres de Rapiboy cuyo estado MELI
+  esté cargado y sea distinto tras ignorar mayúsculas, espacios y acentos; no
+  inventar equivalencias entre vocabularios. Instalar
+  `supabase/migracion-42-tracker-estado-meli.sql` y mantener el nodo activo
+  **Paquetes y detalle del sistema** + su mapeo + el upsert alineados.
 
 - Las **colectas en vivo** del mapa de Tiendas viven en `colectas_vivo` (una
   fila por `Colecta.Id`) y `colectas_vivo_drivers` (una por `Motoboy.Id`), las
@@ -303,7 +316,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `directorio_sync_ejecuciones`. No debe escribir las tablas geográficas del
   tracker ni depender de Google Sheets. Un fallo de SQL Server o WAHA no puede
   desactivar la última foto válida.
-- El flujo 18 se ejecuta a las 07:50 de México y usa la última jornada cerrada
+- El flujo 18 se ejecuta a las 10:50 ARG y usa la última jornada cerrada
   del tracker, aunque al cerrar la ruta ya no estén activos. Cuenta solamente
   los `PENDIENTE_NO_VISITADO` cuyos destinos
   estén en el polígono del domicilio manual del driver o uno colindante, según
@@ -484,10 +497,13 @@ versionado y generado a mano con `scripts/cobertura.mts`.
   siempre como «última posición conocida». `Viaje.LatitudDestino` es a dónde va
   el paquete, no dónde está la persona: hay una prueba que falla si esa columna
   aparece en la consulta de repartidores.
-- La lógica del día operativo, los cortes y las entregas por hora usa
-  `America/Mexico_City`. Las fechas y horas visibles en la plataforma se
-  convierten a `America/Argentina/Buenos_Aires` y se muestran con el sufijo
-  `hs arg` para que no se mezclen los relojes.
+- La política horaria única está en `src/lib/zona-horaria.ts`: Argentina
+  (`America/Argentina/Buenos_Aires`) es el reloj técnico de la plataforma y
+  de n8n; toda agenda se expresa ahí y conserva el instante real al trasladar
+  un horario de México (+3 h). México queda solo como calendario logístico de
+  rutas, domingos y cortes, porque cambiar ese calendario adelantaría la
+  jornada real tres horas. No agregar zonas ni ajustes manuales fuera de esa
+  política.
 - En Estadísticas, “Inicio” y “Fin de ruta” se calculan con la primera y la
   última visita del repartidor, respectivamente. Incluyen tanto entregas como
   visitas no entregadas; el porcentaje y las entregas por hora siguen contando

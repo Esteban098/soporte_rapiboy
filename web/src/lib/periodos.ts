@@ -1,6 +1,7 @@
 /**
  * Meses en formato `AAAA-MM`: su orden alfabético coincide con el cronológico.
  */
+import { ZONA_OPERACION_LOGISTICA } from "./zona-horaria";
 
 /** Mes de una fecha de datos, interpretada en UTC. */
 export function mesDe(fecha: Date): string {
@@ -10,7 +11,7 @@ export function mesDe(fecha: Date): string {
 /** Mes calendario de México, independiente de la zona horaria del servidor. */
 export function mesEnCurso(hoy = new Date()): string {
   const enMexico = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Mexico_City",
+    timeZone: ZONA_OPERACION_LOGISTICA,
     year: "numeric",
     month: "2-digit",
   }).format(hoy);
@@ -33,7 +34,7 @@ export function mesesOperativos(hoy = new Date()): string[] {
   const actual = mesEnCurso(hoy);
   const dia = Number(
     new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Mexico_City",
+      timeZone: ZONA_OPERACION_LOGISTICA,
       day: "2-digit",
     }).format(hoy),
   );

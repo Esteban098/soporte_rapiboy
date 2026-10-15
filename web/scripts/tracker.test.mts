@@ -21,6 +21,9 @@ import {
   estadosDelSistemaSinCategoria,
   estadoPosicion,
   estadoDemoraDriver,
+  estadoOperativoIgual,
+  estaCerradoEnRapiboy,
+  paquetesCerradosConEstadoMeliDistinto,
   largoDeRuta,
   paqueteCoincideConBusqueda,
   paqueteUnicoDeBusqueda,
@@ -139,6 +142,7 @@ function paquete(over: Record<string, unknown> = {}) {
     id_ruta: 55,
     id_estado: 11,
     nombre_estado: "Retirado en camino a destino",
+    estado_meli: "Por colectar",
     orden: 1,
     direccion: "Calle 1",
     telefono: null,
@@ -469,6 +473,21 @@ test("la tarjeta desglosa con los nombres de estado que informa el sistema", () 
       { estado: "Estado no informado", cantidad: 1 },
     ],
   );
+});
+
+test("los cierres con estado MELI distinto conservan los valores originales y no cuentan ruido tipográfico", () => {
+  assert.equal(estaCerradoEnRapiboy("Entregado"), true);
+  assert.equal(estaCerradoEnRapiboy("Para retirar"), false);
+  assert.equal(estadoOperativoIgual("Devolución", " devolucion "), true);
+
+  const distintos = paquetesCerradosConEstadoMeliDistinto([
+    { id_viaje: 1, nombre_estado: "Entregado", estado_meli: "Entregado" },
+    { id_viaje: 2, nombre_estado: "Devuelto", estado_meli: "Por colectar" },
+    { id_viaje: 3, nombre_estado: "Para retirar", estado_meli: "Entregado" },
+    { id_viaje: 4, nombre_estado: "Cancelado", estado_meli: null },
+  ]);
+
+  assert.deepEqual(distintos.map((paquete) => paquete.id_viaje), [2]);
 });
 
 test("el buscador identifica una parada por sus datos y solo la enfoca si es única", () => {
@@ -1472,20 +1491,26 @@ test("el corte de paquetes no reintroduce un desplazamiento configurable", () =>
   assert.match(codigoPaquetes, /diaSemana === 1 \? 2 : 1/);
   assert.match(codigoDrivers, /hora < 15 \? anterior : hoy/);
   assert.match(codigoPaquetes, /hora < 15 \? anterior : hoy/);
-  assert.equal(drivers.settings.timezone, "America/Mexico_City");
-  assert.equal(paquetes.settings.timezone, "America/Mexico_City");
+  // El calendario de la ruta sigue siendo México dentro del nodo, pero n8n
+  // agenda y muestra toda corrida en Argentina. Los cron se trasladan tres
+  // horas sin cambiar el instante real; el tramo nocturno sigue al día ARG
+  // siguiente para cubrir hasta las 23:00 MX.
+  assert.equal(drivers.settings.timezone, "America/Argentina/Buenos_Aires");
+  assert.equal(paquetes.settings.timezone, "America/Argentina/Buenos_Aires");
 
   const horariosDrivers = drivers.nodes
     .find((n: { type: string }) => n.type.includes("scheduleTrigger")).parameters.rule.interval;
   const horariosPaquetes = paquetes.nodes
     .find((n: { type: string }) => n.type.includes("scheduleTrigger")).parameters.rule.interval;
   assert.deepEqual(horariosDrivers, [
-    { triggerAtHour: 6, triggerAtMinute: 45 },
-    { field: "cronExpression", expression: "0,30 15-23 * * 1-6" },
+    { triggerAtHour: 9, triggerAtMinute: 45 },
+    { field: "cronExpression", expression: "0,30 18-23 * * 1-6" },
+    { field: "cronExpression", expression: "0,30 0-2 * * 2-7" },
   ]);
   assert.deepEqual(horariosPaquetes, [
-    { triggerAtHour: 7, triggerAtMinute: 15 },
-    { field: "cronExpression", expression: "0,30 15-23 * * 1-6" },
+    { triggerAtHour: 10, triggerAtMinute: 15 },
+    { field: "cronExpression", expression: "0,30 18-23 * * 1-6" },
+    { field: "cronExpression", expression: "0,30 0-2 * * 2-7" },
   ]);
 });
 

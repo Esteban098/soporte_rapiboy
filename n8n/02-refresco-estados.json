@@ -580,7 +580,8 @@
   "active": false,
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires"
   },
   "tags": [],
   "versionId": "13e8dec5-8c12-57c8-917e-97c7144bbb2b"

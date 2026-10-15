@@ -621,7 +621,8 @@
   "active": false,
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires"
   },
   "tags": [],
   "versionId": "eb44c462-ca9c-556a-a3ef-405f0991f6b3"

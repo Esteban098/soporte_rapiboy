@@ -7,7 +7,7 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 0 17 * * 1"
+              "expression": "0 0 20 * * 1"
             }
           ]
         }
@@ -224,7 +224,7 @@
   "pinData": {},
   "settings": {
     "executionOrder": "v1",
-    "timezone": "America/Mexico_City",
+    "timezone": "America/Argentina/Buenos_Aires",
     "saveManualExecutions": true,
     "callerPolicy": "workflowsFromSameOwner"
   },

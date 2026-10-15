@@ -102,7 +102,7 @@
     "Enviar por plataforma": { "main": [[{ "node": "Procesar un evento por vez", "type": "main", "index": 0 }]] }
   },
   "active": false,
-  "settings": { "executionOrder": "v1", "saveDataSuccessExecution": "none", "saveDataErrorExecution": "none", "saveManualExecutions": false },
+  "settings": { "executionOrder": "v1", "timezone": "America/Argentina/Buenos_Aires", "saveDataSuccessExecution": "none", "saveDataErrorExecution": "none", "saveManualExecutions": false },
   "versionId": "fc590958-83e8-4bdf-a5be-3a6b654e8f15",
   "meta": { "templateCredsSetupCompleted": true },
   "tags": []

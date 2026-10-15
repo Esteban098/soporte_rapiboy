@@ -151,6 +151,10 @@ export const VISTA_TRACKER_DRIVERS =
 export const TABLA_TRACKER_PAQUETES =
   process.env.SUPABASE_TABLA_TRACKER_PAQUETES?.trim() || "tracker_paquetes";
 
+/** Foto inmutable usada por la pestaña Estadísticas una vez cerrada la ruta. */
+export const TABLA_TRACKER_ESTADISTICAS_CERRADAS =
+  process.env.SUPABASE_TABLA_TRACKER_ESTADISTICAS_CERRADAS?.trim() || "tracker_estadisticas_cerradas";
+
 /** Motivos confirmados que silencian una alerta de detención para esa jornada. */
 export const TABLA_TRACKER_DEMORAS =
   process.env.SUPABASE_TABLA_TRACKER_DEMORAS?.trim() || "tracker_demoras";

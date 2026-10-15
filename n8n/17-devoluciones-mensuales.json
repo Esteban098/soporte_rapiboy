@@ -2,7 +2,7 @@
   "name": "17 · Devoluciones mensuales",
   "nodes": [
     {
-      "name": "Diario México",
+      "name": "Diario 10:00 ARG",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "parameters": {
@@ -10,7 +10,7 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 0 7 * * *"
+              "expression": "0 0 10 * * *"
             }
           ]
         }
@@ -205,7 +205,7 @@
   },
   "settings": {
     "executionOrder": "v1",
-    "timezone": "America/Mexico_City"
+    "timezone": "America/Argentina/Buenos_Aires"
   },
   "active": false,
   "pinData": {}

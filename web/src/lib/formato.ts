@@ -1,3 +1,5 @@
+import { ETIQUETA_HORA_PLATAFORMA, ZONA_PLATAFORMA } from "./zona-horaria";
+
 const NUMERO = new Intl.NumberFormat("es-MX");
 const DECIMAL = new Intl.NumberFormat("es-MX", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const DOS_DECIMALES = new Intl.NumberFormat("es-MX", {
@@ -22,12 +24,12 @@ export function horaArgentina(valor: Date | string | number | null, segundos = f
   const fecha = valor instanceof Date ? valor : new Date(valor);
   if (Number.isNaN(fecha.getTime())) return "—";
   return `${new Intl.DateTimeFormat("es-AR", {
-    timeZone: "America/Argentina/Buenos_Aires",
+    timeZone: ZONA_PLATAFORMA,
     hour: "2-digit",
     minute: "2-digit",
     ...(segundos ? { second: "2-digit" } : {}),
     hourCycle: "h23",
-  }).format(fecha)} hs arg`;
+  }).format(fecha)} ${ETIQUETA_HORA_PLATAFORMA}`;
 }
 
 /** Fecha y hora visible para operación, en Argentina. */
@@ -36,14 +38,14 @@ export function fechaHoraArgentina(valor: Date | string | number | null): string
   const fecha = valor instanceof Date ? valor : new Date(valor);
   if (Number.isNaN(fecha.getTime())) return "—";
   return `${new Intl.DateTimeFormat("es-AR", {
-    timeZone: "America/Argentina/Buenos_Aires",
+    timeZone: ZONA_PLATAFORMA,
     day: "2-digit",
     month: "2-digit",
     year: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
-  }).format(fecha)} hs arg`;
+  }).format(fecha)} ${ETIQUETA_HORA_PLATAFORMA}`;
 }
 
 /** Diferencia en puntos porcentuales, con signo: `+2.1 pp`. */

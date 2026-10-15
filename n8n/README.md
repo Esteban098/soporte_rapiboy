@@ -1,6 +1,6 @@
 # Flujos de n8n
 
-Diecinueve workflows. Los tres primeros reemplazan al único que escribía en el
+Veinte workflows. Los tres primeros reemplazan al único que escribía en el
 Google Sheet; los siguientes cubren los botones Actualizar y la carga de datos
 de tienda desde Firefox. Se importan desde n8n con **Workflows ▸ Import from
 File**.
@@ -14,18 +14,19 @@ File**.
 | `05-refresco-cancelados-historico.json` | Ídem para las cancelaciones | Solo a pedido, desde **Cancelados históricos** |
 | `06-colectas.json` | Calcula quién colecta cada comercio y trae las colectas de 30 días | 12:00 de lunes a viernes, y desde **Colectas** |
 | `07-firefox-gestiones.json` | Interpreta el ID y los datos aportados por la tienda, y actualiza solo las columnas de soporte de `mensual` | Al enviar una selección desde la extensión de Firefox |
-| `08-tracker-drivers.json` | Repartidores de la ruta visible y su última posición conocida | 6:45; cada 30 min de 15:00 a 23:30, lunes a sábado; y desde **Actualizar** del live tracker, después de los paquetes |
-| `09-tracker-paquetes.json` | Actualiza la última ruta operativa —el sábado si es lunes— o reconcilia la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 7:15; cada 30 min de 15:00 a 23:30, lunes a sábado; y desde **Actualizar** del live tracker, antes de las posiciones |
+| `08-tracker-drivers.json` | Repartidores de la ruta visible y su última posición conocida | 9:45 ARG; cada 30 min de 18:00 a 02:30 ARG, lunes a sábado en el calendario operativo; y desde **Actualizar** del live tracker, después de los paquetes |
+| `09-tracker-paquetes.json` | Actualiza la última ruta operativa —el sábado si es lunes— o reconcilia la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 10:15 ARG; cada 30 min de 18:00 a 02:30 ARG, lunes a sábado en el calendario operativo; y desde **Actualizar** del live tracker, antes de las posiciones |
 | `10-tracker-diagnostico.json` | Inspección temporal del webhook del tracker | **Desechable e inactivo**; no importar en producción |
 | `11-historial-viaje.json` | Devuelve el estado y el historial de un viaje desde RapiboyData, para el asistente del tablero. Solo lee | Cada vez que alguien pregunta por un paquete en el asistente |
-| `12-colectas-vivo.json` | Las colectas de hoy con su estado, su historial y la última posición de cada repartidor, y guarda cada posición nueva para dibujar el recorrido, para el mapa de **Tiendas**. Solo lee SQL Server | Cada 5 min de 7:00 a 16:55, lunes a sábado, y desde **Actualizar posiciones y estados** en Tiendas |
-| `13-directorio-activos-whatsapp.json` | Sincroniza en Supabase los sellers activos de México, los drivers con reserva válida en los últimos 14 días y sus grupos de WhatsApp | 9:00 de lunes a sábado, manualmente desde n8n y desde los botones de Sellers/Drivers |
+| `12-colectas-vivo.json` | Las colectas de hoy con su estado, su historial y la última posición de cada repartidor, y guarda cada posición nueva para dibujar el recorrido, para el mapa de **Tiendas**. Solo lee SQL Server | Cada 5 min de 10:00 a 19:55 ARG, lunes a sábado, y desde **Actualizar posiciones y estados** en Tiendas |
+| `13-directorio-activos-whatsapp.json` | Sincroniza en Supabase los sellers activos de México, los drivers con reserva válida en los últimos 14 días y sus grupos de WhatsApp | 12:00 ARG de lunes a sábado, manualmente desde n8n y desde los botones de Sellers/Drivers |
 | `14-asistencia-supabase.json` | Plantilla de reemplazo: recibe el voto de la encuesta y lo registra en la plataforma; no usa Google Sheets | Webhook de votos |
 | `15-chat-sellers.json` | Procesa mensajes persistidos del chat y recupera eventos pendientes | Webhook interno y cada minuto; se activa después de configurar credenciales y variables |
-| `16-resumen-semanal-tiendas.json` | Agrupa por seller los paquetes entregados gracias a información cargada y agradece en su grupo de WhatsApp; los sellers sin grupo generan una notificación interna | 17:00 de cada lunes, horario de México, para la semana anterior |
-| `17-devoluciones-mensuales.json` | Acumula por mes los paquetes que pasaron por Procesando como devolución y actualiza sus estados actuales | 07:00 diario de México y botón Actualizar del período seleccionado |
-| `18-pendientes-manana.json` | Avisa al grupo del driver cuando tiene más de 5 paquetes no visitados cerca de su domicilio manual y, desde 16, avisa además al grupo operativo | 07:50 de lunes a sábado, hora de México; inactivo hasta configurar y validar |
-| `19-revision-evidencias-entrega.json` | Revisa toda evidencia fotográfica de México del día, salvo Cancelado, y conserva las dudas para soporte | Cada 10 min de 15:00 a 23:00; limpieza a las 23:15, horario de México |
+| `16-resumen-semanal-tiendas.json` | Agrupa por seller los paquetes entregados gracias a información cargada y agradece en su grupo de WhatsApp; los sellers sin grupo generan una notificación interna | 20:00 ARG de cada lunes, para la semana anterior |
+| `17-devoluciones-mensuales.json` | Acumula por mes los paquetes que pasaron por Procesando como devolución y actualiza sus estados actuales | 10:00 ARG diario y botón Actualizar del período seleccionado |
+| `18-pendientes-manana.json` | Avisa al grupo del driver cuando tiene más de 5 paquetes no visitados cerca de su domicilio manual y, desde 16, avisa además al grupo operativo | 10:50 ARG de lunes a sábado; inactivo hasta configurar y validar |
+| `19-revision-evidencias-entrega.json` | Revisa toda evidencia fotográfica de México del día, salvo Cancelado, y conserva las dudas para soporte | Cada 10 min de 18:00 a 02:00 ARG; limpieza a las 02:15 ARG |
+| `20-congelar-estadisticas-tracker.json` | Conserva la foto inmutable de la última ruta cerrada para SLA, inicios y fines de ruta | 10:30 ARG, lunes a sábado; después de la sincronización de paquetes de 10:15 |
 
 ## Resumen semanal a tiendas
 
@@ -66,7 +67,7 @@ Un cierre faltante queda null y no se interpreta como devolución instantánea.
 3. Configurar Header Auth del webhook: `X-Rapiboy-Token` con un secreto propio.
    Cargar el mismo valor en `N8N_TOKEN_DEVOLUCIONES` y la URL de producción
    `/webhook/actualizar-devoluciones` en `N8N_WEBHOOKS_DEVOLUCIONES`.
-4. Probar manualmente y activar: corre todos los días a las 07:00 de México,
+4. Probar manualmente y activar: corre todos los días a las 10:00 ARG,
    reconcilia mes actual y anterior para recuperar corridas omitidas y cruces
    de mes. El botón de plataforma envía `desde`/`hasta` y reconcilia esos meses.
 
@@ -419,12 +420,13 @@ select '{{ $json.sync_id }}'::uuid as sync_id, '{{ $json.dia }}'::date as dia;
 
 Cada flujo tiene entradas independientes que comparten la misma cadena de
 nodos: uno o más horarios y un webhook, que es el botón del tablero. El flujo
-de posiciones corre a las 06:45 y el de paquetes a las 07:15 para actualizar
-la ruta guardada. Entre las 15:00 y las 23:30, de lunes a sábado, ambos corren
+de posiciones corre a las 09:45 ARG y el de paquetes a las 10:15 ARG para actualizar
+la ruta guardada. Entre las 18:00 y las 02:30 ARG, de lunes a sábado en el
+calendario operativo, ambos corren
 cada 30 minutos para refrescar posiciones y paquetes de la ruta actual. Las
 entregas de ayer se conservan en la foto de la ruta; la actualización cambia
 su estado, no el total.
-Los dos workflows fijan `America/Mexico_City` en sus ajustes para que esos
+Los dos workflows fijan `America/Argentina/Buenos_Aires` en sus ajustes para que esos
 horarios no dependan de la zona configurada en el servidor de n8n.
 
 ### Cómo funciona una corrida
@@ -462,6 +464,20 @@ Si algo falla, la rama de error llama a `tracker_fallar_sync()`, que marca la
 corrida como `failed` **sin tocar ningún dato**. El mapa se queda con lo último
 que se supo, que es viejo pero cierto.
 
+### Estadísticas de una jornada cerrada
+
+`20-congelar-estadisticas-tracker.json` se importa con la misma credencial de
+Supabase del flujo 09, después de aplicar
+`web/supabase/migracion-43-tracker-estadisticas-cerradas.sql`. A las 10:30 ARG
+congela la última jornada operativa de México (el lunes, el sábado) mediante
+`tracker_congelar_estadisticas_cerradas()`.
+
+La inserción es idempotente: la primera foto queda fija y las ejecuciones
+posteriores no pueden reemplazarla. La pestaña **Estadísticas** usa esa tabla,
+por lo que un cambio de estado, una segunda visita o una reasignación del día
+siguiente no cambia el SLA ni el fin de ruta ya cerrado. Si aún no existe la
+foto, la pantalla lo advierte claramente y solo muestra la referencia viva.
+
 ### Lo que hay que saber antes de tocarlos
 
 - **La consulta de paquetes no lleva una lista de ids.** El universo son las
@@ -486,11 +502,11 @@ que se supo, que es viejo pero cierto.
   el nodo **Corregir zona de posición** del flujo 08 suma las tres horas
   después; el resultado es el correcto. El flujo 12 lo resuelve en la misma
   consulta con `AT TIME ZONE 'Argentina Standard Time'`.
-- **La zona de operación y la zona visible son distintas.** Los flujos y la
-  web siguen usando `America/Mexico_City` para elegir el día y los cortes de
-  ruta. Las horas que se muestran en la plataforma se convierten a
-  `America/Argentina/Buenos_Aires` y se rotulan con `hs arg`, por ejemplo
-  `13:29 hs arg`.
+- **Política horaria.** Argentina (`America/Argentina/Buenos_Aires`) es la
+  zona configurada en todos los workflows y la que ve el equipo. Los cron que
+  antes se documentaban en México se trasladan tres horas para conservar el
+  mismo instante real. México se conserva únicamente al resolver el calendario
+  de rutas y sus cortes: cambiarlo adelantaría la jornada logística tres horas.
 - **Ningún nodo lee a través del grafo.** No hay un solo `$('Otro nodo')`
   dentro de `{{ }}`, y no es casualidad: esa lectura depende de que n8n pueda
   rastrear la cadena de items hasta el nodo nombrado, y cuando la cadena se
@@ -617,14 +633,14 @@ entorno `WAHA_API_KEY` de n8n. La que estaba hardcodeada conviene rotarla.
 
 ## Revisión fotográfica de entregas
 
-`19-revision-evidencias-entrega.json` consulta cada diez minutos, de 15:00 a
-23:00 de Ciudad de México, únicamente `HistorialViaje.Foto` de eventos creados
+`19-revision-evidencias-entrega.json` consulta cada diez minutos, de 18:00 a
+02:00 ARG, únicamente `HistorialViaje.Foto` de eventos creados
 ese día para modalidades 5 y 7, en cualquier estado salvo `Cancelado`.
 `FotoViaje.Foto` y `Viaje.Foto` no entran porque no acreditan cuándo se cargó
 la imagen. El driver sale de `HistorialViaje.IdReserva` del evento asociado,
 enlazado con `ReservaxMotoboy` y `Motoboy`; `HistorialViaje.Repartidor` queda
 solo como nombre de respaldo. Nunca usa la asignación actual del viaje.
-Manda una imagen por vez al endpoint privado y a las 23:15 dispara la limpieza
+Manda una imagen por vez al endpoint privado y a las 02:15 ARG dispara la limpieza
 de copias vencidas. Instalación y operación: `web/docs/evidencias-entrega.md`.
 
 ## Cómo funciona el ciclo de AVISO

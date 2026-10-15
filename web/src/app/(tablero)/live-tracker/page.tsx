@@ -4,9 +4,15 @@ import { LiveTracker } from "@/components/LiveTracker";
 import { FondoCobertura } from "@/components/FondoCobertura";
 import { claveTomTom, flujosDe, modoDatos } from "@/lib/config";
 import { ventanaProyeccion } from "@/lib/cobertura";
-import { diaDePaquetes, diaOperativoAnterior } from "@/lib/tracker";
+import { diaDeOperacion, diaDePaquetes, diaOperativoAnterior } from "@/lib/tracker";
 import { TablaFaltante } from "@/lib/supabase";
-import { diaVigente, leerTracker, type DatosDelTracker } from "@/lib/tracker-datos";
+import {
+  diaVigente,
+  leerEstadisticasCerradas,
+  leerTracker,
+  type EstadisticasCerradasDelTracker,
+  type DatosDelTracker,
+} from "@/lib/tracker-datos";
 
 export const metadata = { title: "Live tracker" };
 
@@ -37,16 +43,16 @@ export default async function LiveTrackerPage() {
   }
 
   let datos: DatosDelTracker;
-  let datosEstadisticas: DatosDelTracker | undefined;
+  let datosEstadisticas: EstadisticasCerradasDelTracker | undefined;
   try {
     /*
-     * La jornada anterior es solo para Estadísticas: si no se puede leer, la
-     * pestaña cae a la jornada visible y lo avisa, pero el mapa sigue andando.
+     * Estadísticas usa una foto inmutable de la última jornada cerrada. No se
+     * reconstruye desde los paquetes vivos: esos estados pueden cambiar hoy.
      */
     [datos, datosEstadisticas] = await Promise.all([
       leerTracker(),
-      leerTracker(diaOperativoAnterior(diaDePaquetes())).catch((error) => {
-        console.error("No se pudo leer la jornada anterior para Estadísticas", error);
+      leerEstadisticasCerradas(diaOperativoAnterior(diaDeOperacion())).catch((error) => {
+        console.error("No se pudo leer la foto cerrada para Estadísticas", error);
         return undefined;
       }),
     ]);

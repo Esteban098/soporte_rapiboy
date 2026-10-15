@@ -177,7 +177,8 @@
   "active": false,
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires"
   },
   "tags": [],
   "versionId": "e8e52133-c694-4f56-b5da-0b3297338c0a"

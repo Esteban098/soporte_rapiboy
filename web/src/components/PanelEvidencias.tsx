@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { actualizarConfiguracionEvidencias, revisarEvidencia } from "@/app/evidencias";
 import type { DecisionEvidencia, EvidenciaPanel, ScoreDriver } from "@/lib/evidencias";
+import { ETIQUETA_HORA_PLATAFORMA, ZONA_PLATAFORMA } from "@/lib/zona-horaria";
 import estilos from "./evidencias.module.css";
 
 export function PanelEvidencias({ pendientes, scores, config, admin }: {
@@ -41,7 +42,7 @@ function Caso({ item }: { item: EvidenciaPanel }) {
     {item.fotoUrl ? <a href={item.fotoUrl} target="_blank" rel="noreferrer"><Image src={item.fotoUrl} alt={`Evidencia del viaje ${item.idViaje}`} width={360} height={240} unoptimized /></a> : <div className={estilos.sinFoto}>Vista previa no disponible</div>}
     <div className={estilos.cuerpo}><div className={estilos.meta}><strong>Viaje #{item.idViaje}</strong><span>{item.driver}{item.idMotoboy ? ` · #${item.idMotoboy}` : ""}</span></div>
       <p><b>{item.tipoProblema?.replaceAll("_", " ")}</b> · {item.motivo}</p>
-      <p className={estilos.detalle}>Confianza {item.confianza == null ? "—" : `${Math.round(item.confianza * 100)}%`} · {new Date(item.evidenciaEn).toLocaleString("es-MX", { timeZone: "America/Mexico_City" })}{item.observacion ? " · observación" : ""}</p>
+      <p className={estilos.detalle}>Confianza {item.confianza == null ? "—" : `${Math.round(item.confianza * 100)}%`} · {new Date(item.evidenciaEn).toLocaleString("es-AR", { timeZone: ZONA_PLATAFORMA })} {ETIQUETA_HORA_PLATAFORMA}{item.observacion ? " · observación" : ""}</p>
       <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} maxLength={1000} placeholder="Comentario opcional" />
       <div className={estilos.acciones}><button disabled={pendiente} onClick={() => decidir("CONFIRMADA")}>Confirmar problema</button><button disabled={pendiente} onClick={() => decidir("DESCARTADA")}>Descartar</button><button disabled={pendiente} onClick={() => decidir("INCONCLUSA")}>Inconclusa</button>{item.fotoUrl ? <a href={item.fotoUrl} target="_blank" rel="noreferrer">Abrir evidencia</a> : null}</div>
       {mensaje ? <p className={estilos.mensaje}>{mensaje}</p> : null}

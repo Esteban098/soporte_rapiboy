@@ -2,6 +2,7 @@ import "server-only";
 import {
   TABLA_DRIVERS_ACTIVOS,
   TABLA_TRACKER_DEMORAS,
+  TABLA_TRACKER_ESTADISTICAS_CERRADAS,
   TABLA_TRACKER_PAQUETES,
   TABLA_TRACKER_SYNC,
   VISTA_TRACKER_DRIVERS,
@@ -122,6 +123,41 @@ export type DatosDelTracker = {
 
   leidoEn: string;
 };
+
+/**
+ * Paquete tal como quedó al cerrar una jornada. No es una fila viva: nunca se
+ * actualiza con cambios posteriores del viaje.
+ */
+export type PaqueteEstadisticaCerrada = {
+  fecha_ruta: string;
+  id_viaje: number;
+  id_motoboy: number;
+  nombre_motoboy: string;
+  clasificacion: Clasificacion;
+  activo_en_ruta: boolean;
+  poligono: string | null;
+  latitud_destino: number | null;
+  longitud_destino: number | null;
+  fecha_programado: string | null;
+  fecha_visita: string | null;
+  fecha_cambio_estado: string | null;
+  congelado_en: string;
+};
+
+export type EstadisticasCerradasDelTracker = {
+  dia: string;
+  paquetes: PaqueteEstadisticaCerrada[];
+};
+
+/** Lee exclusivamente la foto cerrada: nunca reconstruye métricas con la ruta viva. */
+export async function leerEstadisticasCerradas(dia: string): Promise<EstadisticasCerradasDelTracker> {
+  const paquetes = await consultarTodo<PaqueteEstadisticaCerrada>(
+    TABLA_TRACKER_ESTADISTICAS_CERRADAS,
+    { fecha_ruta: `eq.${dia}` },
+    "id_motoboy.asc,id_viaje.asc",
+  );
+  return { dia, paquetes };
+}
 
 /** El día actual de posiciones: siempre hoy, en hora de México. */
 export function diaVigente(): string {

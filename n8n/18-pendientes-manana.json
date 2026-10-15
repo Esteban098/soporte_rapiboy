@@ -2,9 +2,9 @@
   "name": "18 - Pendientes de ruta por domicilio",
   "nodes": [
     {
-      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 50 7 * * 1-6" }] } },
+      "parameters": { "rule": { "interval": [{ "field": "cronExpression", "expression": "0 50 10 * * 1-6" }] } },
       "id": "e1d6db42-bd9f-4f1d-9b99-fce776d4eb01",
-      "name": "07:50 México · lun a sáb",
+      "name": "10:50 ARG · lun a sáb",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
       "position": [-620, 160]
@@ -87,7 +87,7 @@
     }
   ],
   "connections": {
-    "07:50 México · lun a sáb": { "main": [[{ "node": "Evaluar pendientes cercanos", "type": "main", "index": 0 }]] },
+    "10:50 ARG · lun a sáb": { "main": [[{ "node": "Evaluar pendientes cercanos", "type": "main", "index": 0 }]] },
     "Evaluar pendientes cercanos": { "main": [[{ "node": "Normalizar avisos", "type": "main", "index": 0 }]] },
     "Normalizar avisos": { "main": [[{ "node": "Esperar 1 s", "type": "main", "index": 0 }]] },
     "Esperar 1 s": { "main": [[{ "node": "Enviar aviso por WhatsApp", "type": "main", "index": 0 }]] },
@@ -95,6 +95,6 @@
   },
   "active": false,
   "pinData": {},
-  "settings": { "executionOrder": "v1", "timezone": "America/Mexico_City" },
+  "settings": { "executionOrder": "v1", "timezone": "America/Argentina/Buenos_Aires" },
   "tags": []
 }

@@ -524,7 +524,8 @@
   "active": false,
   "pinData": {},
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Buenos_Aires"
   },
   "tags": [],
   "versionId": "1734b5a6-7f61-528e-8df1-4f42f4507d35"

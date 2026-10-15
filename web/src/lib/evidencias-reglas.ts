@@ -1,4 +1,6 @@
-export const ZONA_MEXICO = "America/Mexico_City";
+import { ZONA_OPERACION_LOGISTICA } from "./zona-horaria";
+
+export const ZONA_MEXICO = ZONA_OPERACION_LOGISTICA;
 
 /** La ventana incluye la ejecución de las 23:00, pero no minutos posteriores. */
 export function enVentanaEvidencias(fecha = new Date()): boolean {

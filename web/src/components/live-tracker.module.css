@@ -730,6 +730,56 @@
   white-space: nowrap;
 }
 
+/* ---------- Ruta y contraste Rapiboy / MELI ---------- */
+
+.cruceEstados {
+  padding: 13px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radio-2);
+  box-shadow: var(--shadow);
+}
+
+.cruceEstadosHead {
+  display: flex;
+  gap: 12px;
+  align-items: start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.cruceEstadosHead h2 { margin: 0; font-size: 14px; color: var(--ink); }
+.cruceEstadosHead p, .cruceEstadosHead strong, .cruceEstadosVacio { margin: 3px 0 0; font-size: 11px; color: var(--muted); }
+.cruceEstadosHead strong { flex: none; color: var(--warning-ink); font-weight: 650; text-align: right; }
+
+.cruceEstadosLista { display: grid; gap: 7px; }
+.cruceDriver { border: 1px solid var(--rule); border-radius: var(--radio-3); overflow: hidden; }
+.cruceDriver summary { display: flex; gap: 8px; align-items: center; padding: 9px 10px; cursor: pointer; list-style: none; }
+.cruceDriver summary::-webkit-details-marker { display: none; }
+.cruceDriver summary::after { margin-left: auto; color: var(--muted); content: "▾"; }
+.cruceDriver:not([open]) summary::after { content: "▸"; }
+.cruceDriverNombre { font-size: 12px; font-weight: 650; color: var(--ink); }
+.cruceDriverDatos { overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+
+.crucePaquetes { margin: 0; padding: 0; border-top: 1px solid var(--rule); list-style: none; }
+.crucePaquetes li { display: grid; grid-template-columns: minmax(76px, auto) minmax(100px, 1fr) minmax(130px, 1fr) minmax(110px, 1fr) auto; gap: 8px; align-items: center; padding: 7px 10px; border-bottom: 1px solid var(--rule); color: var(--ink-2); font-size: 11px; }
+.crucePaquetes li:last-child { border-bottom: 0; }
+.crucePaquetes li > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crucePaquetes button { width: fit-content; padding: 0; color: var(--accent-ink); background: transparent; border: 0; font: inherit; font-weight: 700; cursor: pointer; }
+.crucePaquetes button:hover { text-decoration: underline; }
+.crucePaqueteDiferente { background: var(--warning-soft); }
+.crucePaquetes em { padding: 2px 5px; color: var(--warning-ink); background: color-mix(in srgb, var(--warning) 18%, transparent); border-radius: 4px; font-size: 10px; font-style: normal; font-weight: 700; }
+
+@media (max-width: 720px) {
+  .cruceEstadosHead { display: grid; }
+  .cruceEstadosHead strong { text-align: left; }
+  .cruceDriver summary { flex-wrap: wrap; }
+  .cruceDriverDatos { flex-basis: 100%; margin-left: 18px; }
+  .crucePaquetes li { grid-template-columns: auto 1fr; }
+  .crucePaquetes li > span { grid-column: 2; }
+  .crucePaquetes em { grid-column: 2; width: fit-content; }
+}
+
 /* ---------- Detalle por repartidor ---------- */
 
 .detalles {

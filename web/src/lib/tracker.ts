@@ -1,4 +1,5 @@
 import { colorEstado, type ColorEstado } from "./estados";
+import { ZONA_OPERACION_LOGISTICA } from "./zona-horaria";
 
 /**
  * Las reglas del live tracker, sin nada alrededor.
@@ -64,6 +65,8 @@ export type PaqueteFila = {
 
   id_estado: number | null;
   nombre_estado: string | null;
+  /** Estado original del mismo viaje informado por Mercado Libre. */
+  estado_meli: string | null;
   orden: number | null;
   direccion: string | null;
   telefono: string | null;
@@ -236,6 +239,44 @@ const DESENLACE: Record<ColorEstado, Desenlace> = {
 export function desenlaceDe(nombreEstado: string | null | undefined): Desenlace {
   if (!nombreEstado?.trim()) return "DESCONOCIDO";
   return DESENLACE[colorEstado(nombreEstado)];
+}
+
+/** Un cierre es un resultado final informado por Rapiboy, no una parada en curso. */
+export function estaCerradoEnRapiboy(nombreEstado: string | null | undefined): boolean {
+  const desenlace = desenlaceDe(nombreEstado);
+  return desenlace === "ENTREGADO" || desenlace === "NO_ENTREGADO" || desenlace === "CANCELADO";
+}
+
+/**
+ * Los estados se contrastan como texto operativo, sin completar equivalencias.
+ *
+ * MELI y Rapiboy los informan desde fuentes distintas. Igualar "Entregado" con
+ * otra etiqueta por intuición escondería precisamente el desfasaje que la
+ * operación viene a buscar. Los espacios, mayúsculas y acentos sí son ruido y
+ * no una diferencia de estado.
+ */
+export function estadoOperativoIgual(a: string | null | undefined, b: string | null | undefined): boolean {
+  const normalizar = (valor: string | null | undefined) =>
+    valor
+      ?.normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLocaleLowerCase("es") ?? "";
+
+  const izquierda = normalizar(a);
+  const derecha = normalizar(b);
+  return izquierda !== "" && derecha !== "" && izquierda === derecha;
+}
+
+export function paquetesCerradosConEstadoMeliDistinto<
+  TPaquete extends Pick<PaqueteFila, "nombre_estado" | "estado_meli">,
+>(paquetes: TPaquete[]): TPaquete[] {
+  return paquetes.filter(
+    (paquete) =>
+      estaCerradoEnRapiboy(paquete.nombre_estado) &&
+      !!paquete.estado_meli?.trim() &&
+      !estadoOperativoIgual(paquete.nombre_estado, paquete.estado_meli),
+  );
 }
 
 /** Lo mínimo que hace falta para clasificar. Así lo pueden llamar las pruebas. */
@@ -670,7 +711,7 @@ export function enlaceAlOperador(idViaje: number): string {
 /* ---------- Día de operación ---------- */
 
 /** La operación vive en esta zona, y es la única que decide qué día es. */
-export const ZONA_OPERACION = "America/Mexico_City";
+export const ZONA_OPERACION = ZONA_OPERACION_LOGISTICA;
 
 /**
  * El día de operación: la fecha que es **en México** en este momento.

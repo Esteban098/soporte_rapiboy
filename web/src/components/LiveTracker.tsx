@@ -7,6 +7,7 @@ import {
   entregadosPorHora,
   enlaceAlOperador,
   estadoDemoraDriver,
+  paquetesCerradosConEstadoMeliDistinto,
   estadosDelSistemaSinCategoria,
   normalizarBusqueda,
   paqueteCoincideConBusqueda,
@@ -19,7 +20,9 @@ import {
 import type {
   DatosDelTracker,
   DriverDelTracker,
+  EstadisticasCerradasDelTracker,
   PaqueteDelTracker,
+  PaqueteEstadisticaCerrada,
 } from "@/lib/tracker-datos";
 import { etiquetaPaquete, MapaTracker } from "./MapaTracker";
 import { ControlLluvia, useLluvia } from "./Lluvia";
@@ -62,7 +65,7 @@ export function LiveTracker({
   children,
 }: {
   inicial: DatosDelTracker;
-  estadisticas?: DatosDelTracker;
+  estadisticas?: EstadisticasCerradasDelTracker;
   ventana: Ventana;
   hayFlujoPosiciones: boolean;
   hayFlujoPaquetes: boolean;
@@ -461,7 +464,11 @@ export function LiveTracker({
           <button type="button" role="tab" aria-selected={pestana === "estadisticas"} className={pestana === "estadisticas" ? estilos.pestanaActiva : estilos.pestana} onClick={() => setPestana("estadisticas")}>Estadísticas</button>
         </div>
         {pestana === "estadisticas" ? (
-          <EstadisticasTracker drivers={(estadisticas ?? datos).drivers} ventana={ventana} dia={estadisticas?.dia ?? datos.dia} sinJornadaAnterior={!estadisticas} />
+          <EstadisticasTracker
+            estadisticas={estadisticas ?? estadisticasProvisorias(datos)}
+            ventana={ventana}
+            fotoCerrada={Boolean(estadisticas?.paquetes.length)}
+          />
         ) : null}
         {pestana === "mapa" ? <>
         {/*
@@ -542,6 +549,12 @@ export function LiveTracker({
         >
           {children}
         </MapaTracker>
+
+        <RutasConEstadosDistintos
+          drivers={datos.drivers}
+          paqueteActivo={paqueteEnMapa}
+          onPaquete={seleccionarPaquete}
+        />
 
         <EntregasPorHora horas={horas} acotado={elegidos.length > 0} />
 
@@ -659,17 +672,35 @@ function duracion(segundos: number): string {
   return `${horas} h ${String(minutos).padStart(2, "0")} m ${String(segundosRestantes).padStart(2, "0")} s`;
 }
 
+function estadisticasProvisorias(datos: DatosDelTracker): EstadisticasCerradasDelTracker {
+  return {
+    dia: datos.dia,
+    paquetes: datos.drivers.flatMap((driver) => driver.paquetes.map((paquete) => ({
+      fecha_ruta: datos.dia,
+      id_viaje: paquete.id_viaje,
+      id_motoboy: driver.id,
+      nombre_motoboy: driver.nombre,
+      clasificacion: paquete.clasificacion,
+      activo_en_ruta: paquete.activo_en_ruta,
+      poligono: paquete.poligono,
+      latitud_destino: paquete.latitud_destino,
+      longitud_destino: paquete.longitud_destino,
+      fecha_programado: paquete.fecha_programado,
+      fecha_visita: paquete.fecha_visita,
+      fecha_cambio_estado: paquete.fecha_cambio_estado,
+      congelado_en: paquete.sincronizado_en,
+    }))),
+  };
+}
+
 function EstadisticasTracker({
-  drivers,
+  estadisticas,
   ventana,
-  dia,
-  sinJornadaAnterior,
+  fotoCerrada,
 }: {
-  drivers: DriverDelTracker[];
+  estadisticas: EstadisticasCerradasDelTracker;
   ventana: Ventana;
-  dia: string;
-  /** No se pudo leer la jornada anterior y se resume la visible. */
-  sinJornadaAnterior: boolean;
+  fotoCerrada: boolean;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [ordenColumna, setOrdenColumna] = useState("entregas");
@@ -677,9 +708,19 @@ function EstadisticasTracker({
   const [ordenZona, setOrdenZona] = useState("promedio");
   const [ascendenteZona, setAscendenteZona] = useState(false);
   const [mostrarTodo, setMostrarTodo] = useState(false);
-  const paquetes = drivers.flatMap((d) => d.paquetes);
+  const paquetes = estadisticas.paquetes;
   const entregados = paquetes.filter((p) => p.clasificacion === "VISITADO_ENTREGADO");
-  const porDriver = drivers
+  const paquetesPorDriver = new Map<number, { id: number; nombre: string; paquetes: PaqueteEstadisticaCerrada[] }>();
+  for (const paquete of paquetes) {
+    const driver = paquetesPorDriver.get(paquete.id_motoboy) ?? {
+      id: paquete.id_motoboy,
+      nombre: paquete.nombre_motoboy,
+      paquetes: [],
+    };
+    driver.paquetes.push(paquete);
+    paquetesPorDriver.set(paquete.id_motoboy, driver);
+  }
+  const porDriver = [...paquetesPorDriver.values()]
     .map((driver) => {
       const entregas = driver.paquetes.filter((p) => p.clasificacion === "VISITADO_ENTREGADO");
       const visitas = driver.paquetes.filter(
@@ -693,7 +734,8 @@ function EstadisticasTracker({
       const marcas = visitas.map((p) => Date.parse(p.fecha_visita ?? p.fecha_cambio_estado ?? "")).filter(Number.isFinite);
       const inicio = marcas.length ? Math.min(...marcas) : null;
       const fin = marcas.length ? Math.max(...marcas) : null;
-      return { driver, entregas: entregas.length, total: driver.resumen.enRuta, porcentaje: porcentajeEntregado(driver.resumen) ?? 0, porHora: horas ? entregas.length / horas : 0, inicio, fin };
+      const total = driver.paquetes.filter((p) => p.activo_en_ruta).length;
+      return { driver, entregas: entregas.length, total, porcentaje: total ? (entregas.length / total) * 100 : 0, porHora: horas ? entregas.length / horas : 0, inicio, fin };
     })
     .filter((fila) => normalizarBusqueda(fila.driver.nombre).includes(normalizarBusqueda(busqueda)));
   porDriver.sort((a, b) => {
@@ -736,19 +778,15 @@ function EstadisticasTracker({
   const visibleDrivers = mostrarTodo ? porDriver : porDriver.slice(0, 8);
   const visibleZonas = mostrarTodo ? zonasOrdenadas : zonasOrdenadas.slice(0, 8);
   const maxEntregasDriver = Math.max(1, ...porDriver.map((fila) => fila.entregas));
-  const entregasHora = Array.from({ length: 24 }, (_, hora) => ({ hora, cantidad: entregados.filter((p) => {
-    const fecha = p.fecha_visita ?? p.fecha_cambio_estado;
-    if (!fecha) return false;
-    return Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Mexico_City", hour: "2-digit", hourCycle: "h23" }).format(new Date(fecha))) === hora;
-  }).length }));
+  const entregasHora = entregadosPorHora(entregados);
   const maxEntregasHora = Math.max(1, ...entregasHora.map((fila) => fila.cantidad));
 
   return (
     <section className={estilos.estadisticas} aria-label="Estadísticas de la jornada">
-      <p className={estilos.subtituloEstadisticas}>Resumen operativo del {dia}</p>
-      {sinJornadaAnterior ? (
+      <p className={estilos.subtituloEstadisticas}>Resumen operativo cerrado del {estadisticas.dia}</p>
+      {!fotoCerrada ? (
         <p className={estilos.subtituloEstadisticas}>
-          No se pudo leer la jornada anterior; se muestra la jornada visible, que todavía puede cambiar.
+          Todavía no existe la foto cerrada de esta jornada; se muestra una referencia viva que puede cambiar.
         </p>
       ) : null}
       <div className={estilos.filtrosEstadisticas}>
@@ -757,7 +795,7 @@ function EstadisticasTracker({
       <div className={estilos.kpis}>
         <Cifra etiqueta="Paquetes entregados" valor={entregados.length} />
         <Cifra etiqueta="Paquetes en ruta" valor={paquetes.filter((p) => p.activo_en_ruta).length} />
-        <Cifra etiqueta="Drivers visibles" valor={drivers.length} />
+        <Cifra etiqueta="Drivers" valor={porDriver.length} />
         <Cifra etiqueta="Tasa global" valor={`${paquetes.length ? Math.round((entregados.length / paquetes.length) * 100) : 0}%`} />
       </div>
       <div className={estilos.graficosGrid}>
@@ -928,6 +966,79 @@ function EntregasPorHora({
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+function RutasConEstadosDistintos({
+  drivers,
+  paqueteActivo,
+  onPaquete,
+}: {
+  drivers: DriverDelTracker[];
+  paqueteActivo: number | null;
+  onPaquete: (id: number | null) => void;
+}) {
+  const conRuta = drivers.filter((driver) => driver.paquetes.some((paquete) => paquete.activo_en_ruta));
+  const diferencias = conRuta.reduce(
+    (total, driver) => total + paquetesCerradosConEstadoMeliDistinto(driver.paquetes).length,
+    0,
+  );
+
+  return (
+    <section className={estilos.cruceEstados} aria-labelledby="cruce-estados-titulo">
+      <header className={estilos.cruceEstadosHead}>
+        <div>
+          <h2 id="cruce-estados-titulo">Ruta por repartidor</h2>
+          <p>Paquetes de la jornada agrupados por driver y contraste de estado entre Rapiboy y MELI.</p>
+        </div>
+        <strong>
+          {diferencias} cierre{diferencias === 1 ? "" : "s"} con estado distinto
+        </strong>
+      </header>
+
+      {conRuta.length === 0 ? (
+        <p className={estilos.cruceEstadosVacio}>No hay paquetes en ruta para esta jornada.</p>
+      ) : (
+        <div className={estilos.cruceEstadosLista}>
+          {conRuta.map((driver) => {
+            const paquetes = driver.paquetes.filter((paquete) => paquete.activo_en_ruta);
+            const cerradosDiferentes = paquetesCerradosConEstadoMeliDistinto(paquetes);
+
+            return (
+              <details key={driver.id} className={estilos.cruceDriver}>
+                <summary>
+                  <span className={estilos.chip} style={{ background: colorDeDriver(driver.id) }} aria-hidden="true" />
+                  <span className={estilos.cruceDriverNombre}>{driver.nombre}</span>
+                  <span className={estilos.cruceDriverDatos}>
+                    #{driver.id} · {paquetes.length} paq. en ruta · {cerradosDiferentes.length} con diferencia
+                  </span>
+                </summary>
+                <ul className={estilos.crucePaquetes}>
+                  {paquetes.map((paquete) => {
+                    const diferente = cerradosDiferentes.some((item) => item.id_viaje === paquete.id_viaje);
+                    return (
+                      <li key={paquete.id_viaje} className={diferente ? estilos.crucePaqueteDiferente : ""}>
+                        <button
+                          type="button"
+                          onClick={() => onPaquete(paqueteActivo === paquete.id_viaje ? null : paquete.id_viaje)}
+                          aria-pressed={paqueteActivo === paquete.id_viaje}
+                        >
+                          #{paquete.id_viaje}
+                        </button>
+                        <span>{paquete.tienda ?? "Sin tienda"}</span>
+                        <span>Rapiboy: {paquete.nombre_estado ?? "Sin estado"}</span>
+                        <span>MELI: {paquete.estado_meli ?? "Sin estado"}</span>
+                        {diferente ? <em>Revisar</em> : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
