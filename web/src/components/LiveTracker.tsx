@@ -979,11 +979,18 @@ function RutasConEstadosDistintos({
   paqueteActivo: number | null;
   onPaquete: (id: number | null) => void;
 }) {
-  const conRuta = drivers.filter((driver) => driver.paquetes.some((paquete) => paquete.activo_en_ruta));
-  const diferencias = conRuta.reduce(
-    (total, driver) => total + paquetesCerradosConEstadoMeliDistinto(driver.paquetes).length,
-    0,
-  );
+  // Esta lista es una cola de revisión, no el detalle entero de la ruta.
+  // Un estado MELI ausente no permite comparar y por eso no entra: tampoco se
+  // muestra como "Sin estado" junto a una diferencia real.
+  const conDiferencias = drivers
+    .map((driver) => ({
+      driver,
+      paquetes: paquetesCerradosConEstadoMeliDistinto(
+        driver.paquetes.filter((paquete) => paquete.activo_en_ruta),
+      ),
+    }))
+    .filter(({ paquetes }) => paquetes.length > 0);
+  const diferencias = conDiferencias.reduce((total, { paquetes }) => total + paquetes.length, 0);
 
   return (
     <section className={estilos.cruceEstados} aria-labelledby="cruce-estados-titulo">
@@ -997,28 +1004,26 @@ function RutasConEstadosDistintos({
         </strong>
       </header>
 
-      {conRuta.length === 0 ? (
-        <p className={estilos.cruceEstadosVacio}>No hay paquetes en ruta para esta jornada.</p>
+      {conDiferencias.length === 0 ? (
+        <p className={estilos.cruceEstadosVacio}>
+          No hay cierres con estados distintos entre Rapiboy y MELI para esta jornada.
+        </p>
       ) : (
         <div className={estilos.cruceEstadosLista}>
-          {conRuta.map((driver) => {
-            const paquetes = driver.paquetes.filter((paquete) => paquete.activo_en_ruta);
-            const cerradosDiferentes = paquetesCerradosConEstadoMeliDistinto(paquetes);
-
+          {conDiferencias.map(({ driver, paquetes }) => {
             return (
               <details key={driver.id} className={estilos.cruceDriver}>
                 <summary>
                   <span className={estilos.chip} style={{ background: colorDeDriver(driver.id) }} aria-hidden="true" />
                   <span className={estilos.cruceDriverNombre}>{driver.nombre}</span>
                   <span className={estilos.cruceDriverDatos}>
-                    #{driver.id} · {paquetes.length} paq. en ruta · {cerradosDiferentes.length} con diferencia
+                    #{driver.id} · {paquetes.length} con estado distinto
                   </span>
                 </summary>
                 <ul className={estilos.crucePaquetes}>
                   {paquetes.map((paquete) => {
-                    const diferente = cerradosDiferentes.some((item) => item.id_viaje === paquete.id_viaje);
                     return (
-                      <li key={paquete.id_viaje} className={diferente ? estilos.crucePaqueteDiferente : ""}>
+                      <li key={paquete.id_viaje} className={estilos.crucePaqueteDiferente}>
                         <button
                           type="button"
                           onClick={() => onPaquete(paqueteActivo === paquete.id_viaje ? null : paquete.id_viaje)}
@@ -1029,7 +1034,7 @@ function RutasConEstadosDistintos({
                         <span>{paquete.tienda ?? "Sin tienda"}</span>
                         <span>Rapiboy: {paquete.nombre_estado ?? "Sin estado"}</span>
                         <span>MELI: {paquete.estado_meli ?? "Sin estado"}</span>
-                        {diferente ? <em>Revisar</em> : null}
+                        <em>Revisar</em>
                       </li>
                     );
                   })}

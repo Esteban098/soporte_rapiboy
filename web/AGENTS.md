@@ -174,11 +174,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   operativa. En la tarjeta y el detalle de cada paquete se muestra y se agrupa
   por `EstadoViaje.NombreCompleto`; si el nombre falta, se indica «Estado no
   informado».
-- El bloque **Ruta por repartidor**, debajo del mapa, presenta cada paquete de
-  la jornada con `nombre_estado` (Rapiboy) y `estado_meli`
-  (`DetalleViaje.EstadoMeli`). Solo resalta cierres de Rapiboy cuyo estado MELI
-  esté cargado y sea distinto tras ignorar mayúsculas, espacios y acentos; no
-  inventar equivalencias entre vocabularios. Instalar
+- El bloque **Ruta por repartidor**, debajo del mapa, es una cola de revisión:
+  presenta únicamente repartidores y cierres de Rapiboy cuyo `estado_meli`
+  (`DetalleViaje.EstadoMeli`) esté cargado y sea distinto a `nombre_estado`,
+  tras ignorar mayúsculas, espacios y acentos. Un estado MELI vacío no es una
+  diferencia y no se muestra como «Sin estado»; no inventar equivalencias entre
+  vocabularios. Instalar
   `supabase/migracion-42-tracker-estado-meli.sql` y mantener el nodo activo
   **Paquetes y detalle del sistema** + su mapeo + el upsert alineados.
 
