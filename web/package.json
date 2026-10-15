@@ -25,7 +25,8 @@
     "test:directorio": "node --conditions=react-server --import tsx scripts/directorio.test.mts",
     "test:chat-sellers": "node --import tsx scripts/chat-sellers.test.mts",
     "test:resumen-tiendas": "node --import tsx scripts/resumen-tiendas.test.mts",
-    "test:pendientes-manana": "node --conditions=react-server --import tsx scripts/pendientes-manana.test.mts"
+    "test:pendientes-manana": "node --conditions=react-server --import tsx scripts/pendientes-manana.test.mts",
+    "test:evidencias": "node --import tsx scripts/evidencias.test.mts"
   },
   "dependencies": {
     "next": "16.3.3",

@@ -206,25 +206,25 @@ export async function actualizarFilaSi(
   return { filas: filas.length };
 }
 
-/** Actualiza solo siniestros y confirma que la fila no fue movida durante la edición. */
+/**
+ * Actualiza un siniestro de forma atómica, aunque rote entre Mensual e Histórico.
+ * La función SQL también registra el valor anterior, el nuevo y el operador.
+ */
 export async function actualizarCobroSiniestrado(
-  tabla: string,
   id: number,
   cobrado: boolean,
   quien: string,
 ): Promise<string | null> {
-  const filtro = new URLSearchParams({ id: `eq.${id}`, estado: "ilike.Siniestrado", select: "id,cobrado" });
-  const respuesta = await pedir(`${encodeURIComponent(tabla)}?${filtro}`, {
-    method: "PATCH",
-    body: JSON.stringify({ cobrado, editado_por: quien, editado_en: new Date().toISOString() }),
-    headers: { prefer: "return=representation" },
+  const respuesta = await pedir("rpc/marcar_cobro_siniestrado", {
+    method: "POST",
+    body: JSON.stringify({ p_id: id, p_cobrado: cobrado, p_quien: quien }),
     cache: "no-store",
     signal: AbortSignal.timeout(15_000),
   });
   if (!respuesta.ok) return motivoDeFalla(respuesta);
-  const filas = await respuesta.json() as { id: number; cobrado: boolean }[];
+  const filas = await respuesta.json() as { id: number; cobrado: boolean; origen: string }[];
   if (filas.length !== 1 || Number(filas[0].id) !== id || filas[0].cobrado !== cobrado) {
-    return "El caso cambió de estado o fue movido al Histórico. Actualizá la tabla.";
+    return "No se pudo confirmar el cobro guardado. Actualizá la tabla.";
   }
   return null;
 }
@@ -438,6 +438,33 @@ export async function borrarArchivos(bucket: string, rutas: string[]): Promise<s
 
   if (respuesta?.ok) return null;
   return `No se pudieron borrar los adjuntos (HTTP ${respuesta?.status ?? "sin respuesta"}).`;
+}
+
+/** Sube desde el servidor a un bucket privado usando únicamente service_role. */
+export async function subirArchivoServidor(
+  bucket: string,
+  ruta: string,
+  contenido: ArrayBuffer,
+  mime: string,
+): Promise<string | null> {
+  const { url, clave } = supabaseConfig();
+  const respuesta = await fetch(
+    `${url}/storage/v1/object/${encodeURIComponent(bucket)}/${rutaCodificada(ruta)}`,
+    {
+      method: "POST",
+      headers: {
+        apikey: clave,
+        authorization: `Bearer ${clave}`,
+        "content-type": mime,
+        "x-upsert": "true",
+      },
+      body: contenido,
+      cache: "no-store",
+    },
+  ).catch(() => null);
+  return respuesta?.ok
+    ? null
+    : `No se pudo guardar el archivo (HTTP ${respuesta?.status ?? "sin respuesta"}).`;
 }
 
 /** Codifica cada tramo de la ruta por separado, para no escapar las barras. */

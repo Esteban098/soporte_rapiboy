@@ -1,6 +1,6 @@
 # Flujos de n8n
 
-Dieciocho workflows. Los tres primeros reemplazan al único que escribía en el
+Diecinueve workflows. Los tres primeros reemplazan al único que escribía en el
 Google Sheet; los siguientes cubren los botones Actualizar y la carga de datos
 de tienda desde Firefox. Se importan desde n8n con **Workflows ▸ Import from
 File**.
@@ -25,6 +25,7 @@ File**.
 | `16-resumen-semanal-tiendas.json` | Agrupa por seller los paquetes entregados gracias a información cargada y agradece en su grupo de WhatsApp; los sellers sin grupo generan una notificación interna | 17:00 de cada lunes, horario de México, para la semana anterior |
 | `17-devoluciones-mensuales.json` | Acumula por mes los paquetes que pasaron por Procesando como devolución y actualiza sus estados actuales | 07:00 diario de México y botón Actualizar del período seleccionado |
 | `18-pendientes-manana.json` | Avisa al grupo del driver cuando tiene más de 5 paquetes no visitados cerca de su domicilio manual y, desde 16, avisa además al grupo operativo | 07:50 de lunes a sábado, hora de México; inactivo hasta configurar y validar |
+| `19-revision-evidencias-entrega.json` | Revisa toda evidencia fotográfica de México del día, salvo Cancelado, y conserva las dudas para soporte | Cada 10 min de 15:00 a 23:00; limpieza a las 23:15, horario de México |
 
 ## Resumen semanal a tiendas
 
@@ -613,6 +614,18 @@ mandado nada sacaría el caso de la cola sin que el repartidor se entere.
 
 La API key de WAHA ya no viaja escrita en el nodo: se lee de la variable de
 entorno `WAHA_API_KEY` de n8n. La que estaba hardcodeada conviene rotarla.
+
+## Revisión fotográfica de entregas
+
+`19-revision-evidencias-entrega.json` consulta cada diez minutos, de 15:00 a
+23:00 de Ciudad de México, únicamente `HistorialViaje.Foto` de eventos creados
+ese día para modalidades 5 y 7, en cualquier estado salvo `Cancelado`.
+`FotoViaje.Foto` y `Viaje.Foto` no entran porque no acreditan cuándo se cargó
+la imagen. El driver sale de `HistorialViaje.IdReserva` del evento asociado,
+enlazado con `ReservaxMotoboy` y `Motoboy`; `HistorialViaje.Repartidor` queda
+solo como nombre de respaldo. Nunca usa la asignación actual del viaje.
+Manda una imagen por vez al endpoint privado y a las 23:15 dispara la limpieza
+de copias vencidas. Instalación y operación: `web/docs/evidencias-entrega.md`.
 
 ## Cómo funciona el ciclo de AVISO
 

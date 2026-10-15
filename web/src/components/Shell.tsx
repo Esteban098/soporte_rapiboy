@@ -8,6 +8,7 @@ import { Asistente } from "./Asistente";
 import { SelectorTema } from "./SelectorTema";
 import { BotonMenu } from "./BotonMenu";
 import { CampanaNotificaciones } from "./CampanaNotificaciones";
+import { AlertasEvidencia } from "./AlertasEvidencia";
 import { NavegacionHorizontal } from "./NavegacionHorizontal";
 import { SECCIONES_PRINCIPALES, type SeccionPrincipal } from "@/lib/navegacion";
 import { flujosDe, variableDeFlujo, type ClaveFlujo, type ModoDatos } from "@/lib/config";
@@ -88,6 +89,7 @@ export function Shell({
         {/* El asistente consulta lo mismo que ven admin y operador; al
             comercial no le corresponde, igual que Seguimiento. */}
         {conSeguimiento ? <Asistente /> : null}
+        {conSeguimiento ? <AlertasEvidencia /> : null}
       </div>
     </div>
   );

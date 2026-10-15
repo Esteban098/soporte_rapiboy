@@ -36,6 +36,166 @@ create table if not exists public.cancelados_historico
 alter table public.mensual_historico enable row level security;
 alter table public.cancelados_historico enable row level security;
 
+-- Auditoría específica del checkbox. editado_en no alcanza para reconstruir
+-- cobros porque también cambia al editar otros datos de soporte.
+create table if not exists public.siniestrados_cobros_historial (
+  id                 bigint generated always as identity primary key,
+  viaje_id           bigint not null,
+  origen             text not null check (origen in ('mensual', 'mensual_historico')),
+  cobrado_anterior   boolean not null,
+  cobrado_nuevo      boolean not null,
+  cambiado_por       text not null,
+  cambiado_en        timestamptz not null default now(),
+  constraint siniestrados_cobros_cambio_real
+    check (cobrado_anterior is distinct from cobrado_nuevo)
+);
+
+create index if not exists siniestrados_cobros_historial_viaje_idx
+  on public.siniestrados_cobros_historial (viaje_id, cambiado_en desc);
+
+alter table public.siniestrados_cobros_historial enable row level security;
+revoke all on table public.siniestrados_cobros_historial from public, anon, authenticated;
+grant select, insert on table public.siniestrados_cobros_historial to service_role;
+grant usage, select on sequence public.siniestrados_cobros_historial_id_seq to service_role;
+
+-- Conserva como punto de partida cualquier cobro marcado antes de instalar la
+-- auditoría. No se atribuye a una persona porque no hay evidencia de quién lo
+-- cambió originalmente.
+insert into public.siniestrados_cobros_historial (
+  viaje_id, origen, cobrado_anterior, cobrado_nuevo, cambiado_por, cambiado_en
+)
+select distinct on (caso.viaje_id)
+  caso.viaje_id, caso.origen, false, true, 'instalacion-historico', caso.cambiado_en
+from (
+  select m.id as viaje_id, 'mensual'::text as origen,
+         coalesce(m.editado_en, now()) as cambiado_en
+    from public.mensual m where m.cobrado is true
+  union all
+  select h.id as viaje_id, 'mensual_historico'::text as origen,
+         coalesce(h.editado_en, now()) as cambiado_en
+    from public.mensual_historico h where h.cobrado is true
+) caso
+where not exists (
+  select 1 from public.siniestrados_cobros_historial previo
+   where previo.viaje_id = caso.viaje_id
+)
+order by caso.viaje_id, caso.cambiado_en desc;
+
+-- El último evento auditado es la autoridad. Los refrescos pueden actualizar
+-- estado e importe, pero aunque manden cobrado por error no pueden cambiarlo.
+create or replace function public.proteger_cobro_siniestrado()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  cobrado_auditado boolean;
+begin
+  select historial.cobrado_nuevo
+    into cobrado_auditado
+    from public.siniestrados_cobros_historial historial
+   where historial.viaje_id = new.id
+   order by historial.id desc
+   limit 1;
+
+  if found and new.cobrado is distinct from cobrado_auditado then
+    new.cobrado := cobrado_auditado;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists proteger_cobro_siniestrado_mensual on public.mensual;
+create trigger proteger_cobro_siniestrado_mensual
+before update of cobrado on public.mensual
+for each row execute function public.proteger_cobro_siniestrado();
+
+drop trigger if exists proteger_cobro_siniestrado_historico on public.mensual_historico;
+create trigger proteger_cobro_siniestrado_historico
+before update of cobrado on public.mensual_historico
+for each row execute function public.proteger_cobro_siniestrado();
+
+revoke all on function public.proteger_cobro_siniestrado() from public, anon, authenticated;
+
+-- Busca y bloquea la fila en cualquiera de las dos tablas. El bloqueo y la
+-- rotación usan la misma fila, por lo que un clic concurrente queda aplicado
+-- antes de copiarla o directamente sobre su destino histórico.
+create or replace function public.marcar_cobro_siniestrado(
+  p_id bigint,
+  p_cobrado boolean,
+  p_quien text
+)
+returns table (id bigint, cobrado boolean, origen text)
+language plpgsql
+security definer
+set search_path = public
+as $$
+#variable_conflict use_column
+declare
+  cobrado_previo boolean;
+  tabla_origen text;
+begin
+  if p_id is null or p_id <= 0 or p_cobrado is null then
+    raise exception 'Datos de cobro inválidos' using errcode = '22023';
+  end if;
+  if nullif(btrim(p_quien), '') is null then
+    raise exception 'Falta identificar al operador' using errcode = '22023';
+  end if;
+
+  select m.cobrado
+    into cobrado_previo
+    from public.mensual m
+   where m.id = p_id
+     and m.estado ilike 'Siniestrado'
+   for update;
+
+  if found then
+    tabla_origen := 'mensual';
+  else
+    select h.cobrado
+      into cobrado_previo
+      from public.mensual_historico h
+     where h.id = p_id
+       and h.estado ilike 'Siniestrado'
+     for update;
+
+    if not found then
+      raise exception 'El siniestro % no existe o cambió de estado', p_id
+        using errcode = 'P0002';
+    end if;
+    tabla_origen := 'mensual_historico';
+  end if;
+
+  if cobrado_previo is distinct from p_cobrado then
+    insert into public.siniestrados_cobros_historial (
+      viaje_id, origen, cobrado_anterior, cobrado_nuevo, cambiado_por
+    ) values (
+      p_id, tabla_origen, cobrado_previo, p_cobrado, btrim(p_quien)
+    );
+
+    if tabla_origen = 'mensual' then
+      update public.mensual
+         set cobrado = p_cobrado,
+             editado_por = btrim(p_quien),
+             editado_en = now()
+       where mensual.id = p_id;
+    else
+      update public.mensual_historico
+         set cobrado = p_cobrado,
+             editado_por = btrim(p_quien),
+             editado_en = now()
+       where mensual_historico.id = p_id;
+    end if;
+  end if;
+
+  return query select p_id, p_cobrado, tabla_origen;
+end;
+$$;
+
+revoke all on function public.marcar_cobro_siniestrado(bigint, boolean, text) from public, anon, authenticated;
+grant execute on function public.marcar_cobro_siniestrado(bigint, boolean, text) to postgres, service_role;
+
 -- Mueve todo lo anterior a una fecha de corte. Es una unidad atómica: si falla
 -- cualquier INSERT, PostgreSQL revierte también los DELETE.
 create or replace function public.mover_a_historico(fecha_corte date)

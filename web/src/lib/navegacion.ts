@@ -59,6 +59,7 @@ const FAMILIAS: Omit<FamiliaNavegacion, "rutas">[] = [
       { href: "/seguimiento", etiqueta: "Seguimiento" },
       { href: "/cobertura", etiqueta: "Cobertura" },
       { href: "/live-tracker", etiqueta: "Live tracker" },
+      { href: "/evidencias", etiqueta: "Evidencias" },
     ],
   },
   {

@@ -1,0 +1,40 @@
+.stack { display: grid; gap: 18px; }
+.card { background: var(--panel, #fff); border: 1px solid var(--border, #ddd); border-radius: 14px; padding: 20px; }
+.card h2 { margin: 0 0 6px; font-size: 18px; }
+.card > p, .head p { margin: 0 0 16px; color: var(--muted, #667085); }
+.head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.observacion, .activo { border-radius: 999px; padding: 5px 9px; font-size: 11px; font-weight: 800; letter-spacing: .04em; }
+.observacion { background: #fff3cd; color: #7a5200; }
+.activo { background: #dcfce7; color: #166534; }
+.grilla { display: grid; gap: 14px; }
+.caso { display: grid; grid-template-columns: 180px minmax(0, 1fr); overflow: hidden; border: 1px solid var(--border, #ddd); border-radius: 12px; }
+.caso img, .sinFoto { display: block; width: 100%; height: 100%; min-height: 180px; object-fit: cover; background: #eef1f4; }
+.sinFoto { display: grid; place-items: center; padding: 16px; color: #667085; text-align: center; }
+.cuerpo { padding: 16px; }
+.meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.cuerpo p { margin: 10px 0; }
+.detalle { color: #667085; font-size: 13px; }
+.cuerpo textarea { width: 100%; min-height: 64px; resize: vertical; border: 1px solid #cfd4dc; border-radius: 8px; padding: 9px; font: inherit; }
+.acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+.acciones button, .form button { border: 0; border-radius: 8px; padding: 9px 12px; background: #172b4d; color: white; cursor: pointer; }
+.acciones button:nth-child(2), .acciones button:nth-child(3) { background: #eef1f4; color: #172b4d; }
+.acciones a { color: inherit; font-weight: 650; }
+.mensaje { font-size: 13px; color: #166534; }
+.vacio { padding: 22px 0; color: #667085; }
+.tablaWrap { overflow-x: auto; }
+.tablaWrap table { width: 100%; border-collapse: collapse; }
+.tablaWrap th, .tablaWrap td { padding: 10px; border-bottom: 1px solid var(--border, #ddd); text-align: left; }
+.tablaWrap small { color: #667085; }
+.form { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.form label { display: grid; gap: 5px; font-size: 13px; }
+.form input, .form select { min-height: 38px; border: 1px solid #cfd4dc; border-radius: 8px; padding: 6px 8px; background: var(--panel, white); color: inherit; }
+.toast { position: fixed; right: 18px; bottom: 18px; z-index: 80; width: min(440px, calc(100vw - 36px)); box-shadow: 0 20px 50px #0003; background: #fff; color: #182230; border: 1px solid #f1c75b; border-radius: 14px; padding: 16px; }
+.toastHead { display: flex; justify-content: space-between; gap: 12px; }
+.toastHead h2 { margin: 0; font-size: 16px; }
+.toastHead button { background: transparent; border: 0; font-size: 20px; cursor: pointer; }
+.toast ul { margin: 12px 0; padding-left: 18px; }
+.toastItem { display: flex; gap: 10px; align-items: center; margin: 9px 0; }
+.toastItem img { display: block; border-radius: 7px; object-fit: cover; }
+.toastItem span { min-width: 0; font-size: 13px; line-height: 1.35; }
+.toast a { color: #174ea6; font-weight: 700; }
+@media (max-width: 700px) { .caso { grid-template-columns: 1fr; } .caso img, .sinFoto { max-height: 260px; } }

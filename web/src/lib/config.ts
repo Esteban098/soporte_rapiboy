@@ -174,6 +174,41 @@ export const TABLA_SELLERS_ACTIVOS =
 export const TABLA_DRIVERS_ACTIVOS =
   process.env.SUPABASE_TABLA_DRIVERS_ACTIVOS?.trim() || "drivers_activos";
 
+/* ---------- Revisión de evidencias de entrega ---------- */
+
+export const TABLA_EVIDENCIAS_REVISION =
+  process.env.SUPABASE_TABLA_EVIDENCIAS_REVISION?.trim() || "evidencias_entrega_revision";
+export const TABLA_EVIDENCIAS_HISTORIAL =
+  process.env.SUPABASE_TABLA_EVIDENCIAS_HISTORIAL?.trim() || "evidencias_entrega_historial";
+export const TABLA_EVIDENCIAS_CONFIG =
+  process.env.SUPABASE_TABLA_EVIDENCIAS_CONFIG?.trim() || "evidencias_entrega_config";
+export const VISTA_EVIDENCIAS_SCORE =
+  process.env.SUPABASE_VISTA_EVIDENCIAS_SCORE?.trim() || "evidencias_entrega_score_30d";
+export const BUCKET_EVIDENCIAS =
+  process.env.SUPABASE_BUCKET_EVIDENCIAS?.trim() || "evidencias-entrega";
+
+export function evidenciasConfig(): {
+  secretoN8n: string;
+  modelo: string;
+  hostsOrigen: Set<string>;
+  maxBytes: number;
+} | null {
+  const secretoN8n = process.env.EVIDENCIAS_WEBHOOK_SECRET?.trim();
+  const modelo = process.env.OPENAI_MODELO_EVIDENCIAS?.trim() || "gpt-4.1-mini";
+  const hosts = (process.env.EVIDENCIAS_ORIGEN_HOSTS || "")
+    .split(/[,;\s]+/)
+    .map((host) => host.trim().toLowerCase())
+    .filter(Boolean);
+  const maxBytes = Number(process.env.EVIDENCIAS_MAX_BYTES || 10 * 1024 * 1024);
+  if (!secretoN8n) return null;
+  return {
+    secretoN8n,
+    modelo,
+    hostsOrigen: new Set(hosts),
+    maxBytes: Number.isFinite(maxBytes) && maxBytes > 0 ? maxBytes : 10 * 1024 * 1024,
+  };
+}
+
 /** Vista que resuelve el grupo de WhatsApp de cada seller o driver. */
 export const VISTA_DIRECTORIO_CONTACTOS_WHATSAPP =
   process.env.SUPABASE_VISTA_DIRECTORIO_CONTACTOS_WHATSAPP?.trim() ||

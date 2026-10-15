@@ -18,7 +18,11 @@ export const proxy = auth((request) => {
   // internos sin sesión. Cada Route Handler valida su propio verify token,
   // firma HMAC o Bearer secreto antes de leer o modificar datos.
   const ruta = request.nextUrl.pathname;
-  if (ruta === "/api/whatsapp/webhook" || ruta.startsWith("/api/whatsapp/worker/")) {
+  if (
+    ruta === "/api/whatsapp/webhook" ||
+    ruta.startsWith("/api/whatsapp/worker/") ||
+    ruta.startsWith("/api/evidencias/")
+  ) {
     return NextResponse.next();
   }
 

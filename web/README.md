@@ -857,6 +857,26 @@ Para actualizar una instalación existente:
 Para habilitar motivo y comentario en una instalación existente, ejecutar
 `supabase/migracion-29-siniestrados-detalle.sql` después de la migración 03.
 
+Para evitar que el checkbox se pierda durante una rotación concurrente y dejar
+una auditoría específica, ejecutar después
+`supabase/migracion-39-cobros-auditoria.sql`. La web deja de actualizar una
+tabla elegida de antemano: `marcar_cobro_siniestrado` bloquea el caso, lo busca
+en Mensual o Histórico y guarda en la misma transacción el valor anterior, el
+nuevo, el operador y la fecha. La migración también reinstala la versión
+vigente de `mover_a_historico`, que copia `cobrado` explícitamente.
+
+Ejecutar a continuación
+`supabase/migracion-40-cobros-protegidos-refrescos.sql`. Esta migración toma los
+checks verdaderos que ya existan como punto de partida y agrega un trigger en
+Mensual e Histórico: si **Actualizar** o cualquier upsert automático intenta
+mandar un valor distinto, la base conserva el último valor auditado. Solo la
+función transaccional del checkbox puede registrar primero una nueva decisión y
+aplicarla.
+
+La migración no intenta reconstruir checks históricos perdidos. Para recuperar
+esos valores hace falta un backup o una lista confirmada de viajes cobrados;
+`editado_en` también cambia por otras ediciones y no es evidencia suficiente.
+
 La consulta de colectas suministrada se usa como referencia del campo de
 valor, no como reemplazo de las consultas: se conservan los filtros actuales
 de ingreso, modalidad y localidad, y el mes sigue siendo el de creación.

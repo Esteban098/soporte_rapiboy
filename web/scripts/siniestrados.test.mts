@@ -128,29 +128,36 @@ for (const [archivo, consulta, transformar, guardar] of flujos) {
   });
 }
 
-test("la migración y la instalación nueva usan la misma rotación y conservan el importe", () => {
+test("la migración vigente y la instalación nueva conservan todos los datos manuales", () => {
   const inicial = readFileSync(new URL("../supabase/historico.sql", import.meta.url), "utf8");
-  const migracion = readFileSync(new URL("../supabase/migracion-03-cobros-siniestrados.sql", import.meta.url), "utf8");
-  const vigente = readFileSync(new URL("../supabase/migracion-37-resumen-semanal-tiendas.sql", import.meta.url), "utf8");
+  const migracionBase = readFileSync(new URL("../supabase/migracion-03-cobros-siniestrados.sql", import.meta.url), "utf8");
+  const migracionResumen = readFileSync(new URL("../supabase/migracion-37-resumen-semanal-tiendas.sql", import.meta.url), "utf8");
+  const migracionVigente = readFileSync(new URL("../supabase/migracion-39-cobros-auditoria.sql", import.meta.url), "utf8");
   const patron = /create or replace function public\.mover_a_historico\(fecha_corte date\)[\s\S]*?\n\$\$;/;
   const funcion = inicial.match(patron)?.[0];
+  const funcionResumen = migracionResumen.match(patron)?.[0];
+  const funcionVigente = migracionVigente.match(patron)?.[0];
   assert.ok(funcion);
-  const funcionVigente = vigente.match(patron)?.[0];
+  assert.ok(funcionResumen);
   assert.ok(funcionVigente);
   const normalizar = (sql: string) => sql.replace(/#variable_conflict use_column\s*/g, "").replace(/\s+/g, "");
+  assert.equal(normalizar(funcionResumen), normalizar(funcion));
   assert.equal(normalizar(funcionVigente), normalizar(funcion));
-  assert.match(funcion, /id_usuario = excluded.id_usuario/);
-  assert.match(funcion, /visitas,\s+valor_producto,\s+cobrado,\s+motivo_siniestro,\s+comentario_siniestro,\s+reclamo_tienda/g);
-  assert.match(funcion, /valor_producto = excluded.valor_producto/);
-  assert.match(funcion, /cobrado = excluded.cobrado/);
-  assert.match(funcion, /for update\s+on conflict/);
-  assert.doesNotMatch(funcion, /valor_70/);
-  assert.match(migracion, /generated always as \(round\(valor_producto \* 0.70, 2\)\) stored/);
-  assert.match(migracion, /cobrado boolean not null default false/);
-  assert.doesNotMatch(migracion, /create table/i);
-  assert.match(migracion, /begin;/);
-  assert.match(migracion, /commit;/);
-  assert.doesNotMatch(migracion, /select \*\s+from public\.mover_a_historico/);
+  for (const version of [funcion, funcionResumen, funcionVigente]) {
+    assert.match(version, /id_usuario/);
+    assert.match(version, /valor_producto/);
+    assert.match(version, /cobrado/);
+    assert.match(version, /motivo_siniestro/);
+    assert.match(version, /comentario_siniestro/);
+    assert.match(version, /cobrado = excluded\.cobrado/);
+    assert.match(version, /for update\s+on conflict/);
+    assert.doesNotMatch(version, /valor_70/);
+  }
+  assert.match(migracionBase, /generated always as \(round\(valor_producto \* 0.70, 2\)\) stored/);
+  assert.match(migracionBase, /cobrado boolean not null default false/);
+  assert.match(migracionVigente, /begin;/);
+  assert.match(migracionVigente, /commit;/);
+  assert.doesNotMatch(migracionVigente, /select \*\s+from public\.mover_a_historico/);
 });
 
 test("las altas distinguen paquete, información de tienda y siniestro", () => {

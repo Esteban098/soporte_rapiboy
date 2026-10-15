@@ -66,8 +66,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   instalar `supabase/migracion-02-valor-producto.sql` antes de importar los flujos.
 - `valor_70` se genera en Postgres con `round(valor_producto * 0.70, 2)`.
   `cobrado` es booleano, empieza en `false` y solo lo modifica el equipo desde
-  las vistas de Siniestrados. Ambos viven en Mensual e Histórico, sin nuevas
-  tablas. Instalar `supabase/migracion-03-cobros-siniestrados.sql` para agregarlos.
+  las vistas de Siniestrados. Ambos viven en Mensual e Histórico. Los cambios
+  de cobro pasan por `marcar_cobro_siniestrado`: la función bloquea la fila,
+  resuelve si está en la tabla operativa o histórica y registra cada transición
+  real en `siniestrados_cobros_historial`. Un trigger restaura el último valor
+  auditado si un refresco intenta sobrescribirlo. Instalar primero la migración
+  03 y, en bases existentes, las migraciones 39 y 40 en ese orden.
   Siniestrados también permite editar `motivo_siniestro` (Perdido en Deposito,
   Roto, Perdido por driver, Mal entregado u Otros) y `comentario_siniestro`.
   Son campos manuales con CRUD desde el editor; n8n no los incluye y la
@@ -240,6 +244,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   de `tienda`— y resuelve el chat desde `sellers_activos.grupo_jid`. La clave
   `(semana_desde, id_usuario)` hace idempotente el envío. Si falta el grupo,
   genera `tienda_sin_grupo` para perfiles admin y operador, nunca Comercial.
+
+- La revisión fotográfica vive en `/evidencias`, la migración 38 y el flujo
+  n8n 17. Procesa cualquier evidencia del día salvo las asociadas con
+  `Cancelado`. La atribución usa `HistorialViaje.IdReserva` del evento
+  histórico asociado para resolver `ReservaxMotoboy.IdMotoboy`, con
+  `HistorialViaje.Repartidor` solo como nombre de respaldo; nunca usa la
+  asignación actual. Las fotos y filas
+  operativas vencen a los siete días, mientras el historial mínimo sin imagen
+  permanece para score y auditoría. El modo inicial es `OBSERVACION`.
 
 ## Límites entre flujos
 
