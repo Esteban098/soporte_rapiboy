@@ -273,7 +273,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   permanece para score y auditoría. La evidencia se acepta si aporta contexto
   visible de entrega —receptor, chat/llamada, domicilio o numeración— aunque la
   calidad sea imperfecta; un paquete aislado es `SOLO_PAQUETE` y se revisa. El
-  modo inicial es `OBSERVACION`.
+  modo inicial es `OBSERVACION`. La bandeja prioriza solo las pendientes del día
+  operativo de México; las pendientes de hasta siete días anteriores quedan en
+  un desplegable separado, y el histórico nunca expone imágenes.
 
 ## Límites entre flujos
 

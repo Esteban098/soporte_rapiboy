@@ -61,6 +61,10 @@ historial durable guarda solo driver, viaje, fechas, tipo de problema y decisió
 humana y una clave técnica de origen para impedir análisis repetidos: ninguna
 imagen, ruta o URL. No deben registrarse cuerpos HTTP, fotos,
 URLs de evidencia o secretos. Los enlaces de vista previa vencen en 15 minutos.
+La bandeja muestra por defecto solo los pendientes cuya evidencia pertenece al
+día operativo actual de México. Los pendientes de jornadas previas siguen
+disponibles en un desplegable separado hasta que se revisen o venza su retención;
+el historial no vuelve a exponer imágenes.
 
 ## Modelo, costo y decisión humana
 

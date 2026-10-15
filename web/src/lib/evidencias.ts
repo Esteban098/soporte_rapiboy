@@ -16,7 +16,7 @@ import {
   firmarArchivos,
   subirArchivoServidor,
 } from "./supabase";
-import { enVentanaEvidencias, extensionDeMime } from "./evidencias-reglas";
+import { diaEvidencias, enVentanaEvidencias, extensionDeMime } from "./evidencias-reglas";
 
 export type DecisionEvidencia = "CONFIRMADA" | "DESCARTADA" | "INCONCLUSA";
 export type TipoProblemaEvidencia =
@@ -239,23 +239,31 @@ function extraerTexto(cuerpo: Record<string, unknown>): string {
   throw new Error("modelo_sin_salida");
 }
 
-export async function cargarPanelEvidencias(): Promise<{ pendientes: EvidenciaPanel[]; scores: ScoreDriver[]; config: Configuracion }> {
+export async function cargarPanelEvidencias(): Promise<{
+  pendientesHoy: EvidenciaPanel[];
+  pendientesAnteriores: EvidenciaPanel[];
+  scores: ScoreDriver[];
+  config: Configuracion;
+}> {
   const [pendientes, scores, configFilas, drivers] = await Promise.all([
-    consultarFresco<RevisionFila>(TABLA_EVIDENCIAS_REVISION, { estado_proceso: "eq.PENDIENTE_REVISION", order: "evidencia_en.desc", limit: "100" }),
+    consultarTodo<RevisionFila>(TABLA_EVIDENCIAS_REVISION, { estado_proceso: "eq.PENDIENTE_REVISION" }, "evidencia_en.desc"),
     consultarFresco<Record<string, unknown>>(VISTA_EVIDENCIAS_SCORE, { order: "proporcion_malas.desc", limit: "200" }),
     consultarFresco<Configuracion>(TABLA_EVIDENCIAS_CONFIG, { id: "eq.true", limit: "1" }),
     consultarFresco<{ id_motoboy: number; nombre: string | null }>(TABLA_DRIVERS_ACTIVOS, { select: "id_motoboy,nombre", limit: "1000" }).catch(() => []),
   ]);
   const nombres = new Map(drivers.map((d) => [Number(d.id_motoboy), d.nombre?.trim() || `Driver #${d.id_motoboy}`]));
   const urls = await firmarArchivos(BUCKET_EVIDENCIAS, pendientes.flatMap((p) => p.foto_ruta ? [p.foto_ruta] : []), 900);
+  const paneles = pendientes.map((p) => ({
+    id: p.id, idViaje: Number(p.id_viaje), idMotoboy: p.id_motoboy == null ? null : Number(p.id_motoboy),
+    driver: p.driver_evento || (p.id_motoboy ? nombres.get(Number(p.id_motoboy)) : null) || "Driver sin resolver",
+    evidenciaEn: p.evidencia_en, tipoProblema: p.tipo_problema_modelo, motivo: p.motivo_modelo || "Sin detalle",
+    confianza: p.confianza_modelo == null ? null : Number(p.confianza_modelo), observacion: p.modo_observacion,
+    fotoUrl: p.foto_ruta ? urls.get(p.foto_ruta) ?? null : null,
+  }));
+  const hoy = diaEvidencias();
   return {
-    pendientes: pendientes.map((p) => ({
-      id: p.id, idViaje: Number(p.id_viaje), idMotoboy: p.id_motoboy == null ? null : Number(p.id_motoboy),
-      driver: p.driver_evento || (p.id_motoboy ? nombres.get(Number(p.id_motoboy)) : null) || "Driver sin resolver",
-      evidenciaEn: p.evidencia_en, tipoProblema: p.tipo_problema_modelo, motivo: p.motivo_modelo || "Sin detalle",
-      confianza: p.confianza_modelo == null ? null : Number(p.confianza_modelo), observacion: p.modo_observacion,
-      fotoUrl: p.foto_ruta ? urls.get(p.foto_ruta) ?? null : null,
-    })),
+    pendientesHoy: paneles.filter((p) => diaEvidencias(new Date(p.evidenciaEn)) === hoy),
+    pendientesAnteriores: paneles.filter((p) => diaEvidencias(new Date(p.evidenciaEn)) !== hoy),
     scores: scores.map((s) => ({
       idMotoboy: Number(s.id_motoboy), driver: nombres.get(Number(s.id_motoboy)) || `Driver #${s.id_motoboy}`,
       total: Number(s.total_revisadas), confirmadas: Number(s.problemas_confirmados), descartadas: Number(s.falsos_positivos),
@@ -271,7 +279,7 @@ export async function alertasEmergentes(): Promise<EvidenciaPanel[]> {
   const [config] = await consultarFresco<Configuracion>(TABLA_EVIDENCIAS_CONFIG, { id: "eq.true", limit: "1" });
   if (!config || config.modo !== "ACTIVO") return [];
   const panel = await cargarPanelEvidencias();
-  return panel.pendientes.slice(0, 20);
+  return panel.pendientesHoy.slice(0, 20);
 }
 
 export async function limpiarEvidenciasVencidas(): Promise<{ eliminadas: number; fallidas: number }> {

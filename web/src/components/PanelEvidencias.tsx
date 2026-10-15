@@ -8,18 +8,23 @@ import type { DecisionEvidencia, EvidenciaPanel, ScoreDriver } from "@/lib/evide
 import { ETIQUETA_HORA_PLATAFORMA, ZONA_PLATAFORMA } from "@/lib/zona-horaria";
 import estilos from "./evidencias.module.css";
 
-export function PanelEvidencias({ pendientes, scores, config, admin }: {
-  pendientes: EvidenciaPanel[]; scores: ScoreDriver[];
+export function PanelEvidencias({ pendientesHoy, pendientesAnteriores, scores, config, admin }: {
+  pendientesHoy: EvidenciaPanel[]; pendientesAnteriores: EvidenciaPanel[]; scores: ScoreDriver[];
   config: { modo: "OBSERVACION" | "ACTIVO"; minimo_muestra_score: number; maximo_por_corrida: number };
   admin: boolean;
 }) {
   return <div className={estilos.stack}>
     <section className={estilos.card}>
-      <div className={estilos.head}><div><h2>Revisión pendiente</h2><p>Una señal del modelo requiere criterio humano; no implica una entrega incorrecta.</p></div><span className={config.modo === "OBSERVACION" ? estilos.observacion : estilos.activo}>{config.modo}</span></div>
-      {pendientes.length === 0 ? <p className={estilos.vacio}>No hay fotografías pendientes de revisión.</p> : <div className={estilos.grilla}>
-        {pendientes.map((item) => <Caso key={item.id} item={item} />)}
+      <div className={estilos.head}><div><h2>Revisión pendiente · hoy</h2><p>Una señal del modelo requiere criterio humano; no implica una entrega incorrecta.</p></div><span className={config.modo === "OBSERVACION" ? estilos.observacion : estilos.activo}>{config.modo}</span></div>
+      {pendientesHoy.length === 0 ? <p className={estilos.vacio}>No hay fotografías de hoy pendientes de revisión.</p> : <div className={estilos.grilla}>
+        {pendientesHoy.map((item) => <Caso key={item.id} item={item} />)}
       </div>}
     </section>
+    {pendientesAnteriores.length ? <details className={estilos.anterior}>
+      <summary>{pendientesAnteriores.length} pendiente{pendientesAnteriores.length === 1 ? "" : "s"} de días anteriores</summary>
+      <p>Se conservan hasta siete días para completar su revisión. Las imágenes vencidas se eliminan; el historial sin foto se mantiene para auditoría.</p>
+      <div className={estilos.grilla}>{pendientesAnteriores.map((item) => <Caso key={item.id} item={item} />)}</div>
+    </details> : null}
     <section className={estilos.card}>
       <h2>Evidencias confirmadas por driver · últimos 30 días</h2>
       <p>Solo los problemas confirmados cuentan como malos. Sin sanciones automáticas.</p>

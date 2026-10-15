@@ -19,14 +19,15 @@ export default async function Evidencias() {
     if (error instanceof TablaFaltante) return <Callout tono="warning" titulo="Falta instalar la migración">Ejecutá <code>web/supabase/migracion-38-evidencias-entrega.sql</code>.</Callout>;
     throw error;
   }
-  const sinDriver = panel.pendientes.filter((p) => p.idMotoboy == null).length;
+  const sinDriver = panel.pendientesHoy.filter((p) => p.idMotoboy == null).length;
   return <>
     <PageHead eyebrow="Operación México · control de evidencias" titulo="Evidencias de entrega" dek="Revisión asistida de fotografías. El modelo señala falta de contexto o problemas visuales; soporte toma la decisión final." />
     <div className={estilos.kpis}>
-      <Kpi etiqueta="Pendientes" valor={String(panel.pendientes.length)} nota="requieren decisión humana" tono={panel.pendientes.length ? "warning" : "neutral"} />
+      <Kpi etiqueta="Pendientes de hoy" valor={String(panel.pendientesHoy.length)} nota="requieren decisión humana" tono={panel.pendientesHoy.length ? "warning" : "neutral"} />
+      <Kpi etiqueta="Anteriores" valor={String(panel.pendientesAnteriores.length)} nota="ocultos hasta abrir el desplegable" tono={panel.pendientesAnteriores.length ? "warning" : "neutral"} />
       <Kpi etiqueta="Driver sin resolver" valor={String(sinDriver)} nota="no entra al score" tono={sinDriver ? "warning" : "neutral"} />
       <Kpi etiqueta="Modo" valor={panel.config.modo === "OBSERVACION" ? "Observación" : "Activo"} nota="alertas y score según configuración" />
     </div>
-    <PanelEvidencias pendientes={panel.pendientes} scores={panel.scores} config={panel.config} admin={admin} />
+    <PanelEvidencias pendientesHoy={panel.pendientesHoy} pendientesAnteriores={panel.pendientesAnteriores} scores={panel.scores} config={panel.config} admin={admin} />
   </>;
 }

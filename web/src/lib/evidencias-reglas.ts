@@ -2,6 +2,18 @@ import { ZONA_OPERACION_LOGISTICA } from "./zona-horaria";
 
 export const ZONA_MEXICO = ZONA_OPERACION_LOGISTICA;
 
+/** Día calendario de la operación, sin depender de la zona del servidor. */
+export function diaEvidencias(fecha = new Date()): string {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ZONA_MEXICO,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(fecha);
+  const valor = (tipo: Intl.DateTimeFormatPartTypes) => partes.find((parte) => parte.type === tipo)?.value ?? "";
+  return `${valor("year")}-${valor("month")}-${valor("day")}`;
+}
+
 /** La ventana incluye la ejecución de las 23:00, pero no minutos posteriores. */
 export function enVentanaEvidencias(fecha = new Date()): boolean {
   const partes = new Intl.DateTimeFormat("en-CA", {

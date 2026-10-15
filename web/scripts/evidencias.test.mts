@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { enVentanaEvidencias, extensionDeMime } from "../src/lib/evidencias-reglas";
+import { diaEvidencias, enVentanaEvidencias, extensionDeMime } from "../src/lib/evidencias-reglas";
 
 assert.equal(enVentanaEvidencias(new Date("2026-10-14T20:59:00Z")), false);
 assert.equal(enVentanaEvidencias(new Date("2026-10-14T21:00:00Z")), true);
 assert.equal(enVentanaEvidencias(new Date("2026-10-15T05:00:00Z")), true);
 assert.equal(enVentanaEvidencias(new Date("2026-10-15T05:01:00Z")), false);
+assert.equal(diaEvidencias(new Date("2026-10-15T04:59:00Z")), "2026-10-14");
+assert.equal(diaEvidencias(new Date("2026-10-15T06:00:00Z")), "2026-10-15");
 assert.equal(extensionDeMime("image/jpeg"), "jpg");
 assert.equal(extensionDeMime("image/svg+xml"), null);
 
@@ -33,6 +35,7 @@ const historial = migracion.slice(migracion.indexOf("create table if not exists 
 assert.ok(!/foto_ruta|foto_mime|foto_bytes|url/i.test(historial), "el historial durable no conserva fotos o URLs");
 assert.ok(modelo.includes('detail: "low"') && modelo.includes("max_output_tokens: 180"));
 assert.ok(modelo.includes("no fraude") && modelo.includes("calidad_evidencia"));
+assert.ok(modelo.includes("pendientesHoy") && modelo.includes("pendientesAnteriores"), "la bandeja separa hoy de los pendientes retenidos");
 for (const criterio of ["SOLO_PAQUETE", "SIN_CONTEXTO_DE_ENTREGA", "persona que recibe", "registro de llamada", "numeración claramente identificable"]) {
   assert.ok(modelo.includes(criterio), `falta el criterio de calibración: ${criterio}`);
 }

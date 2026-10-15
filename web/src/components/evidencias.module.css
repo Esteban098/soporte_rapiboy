@@ -21,6 +21,9 @@
 .acciones a { color: inherit; font-weight: 650; }
 .mensaje { font-size: 13px; color: #166534; }
 .vacio { padding: 22px 0; color: #667085; }
+.anterior { background: var(--panel, #fff); border: 1px solid var(--border, #ddd); border-radius: 14px; padding: 16px 20px; }
+.anterior summary { cursor: pointer; font-weight: 750; }
+.anterior > p { margin: 12px 0 16px; color: var(--muted, #667085); }
 .tablaWrap { overflow-x: auto; }
 .tablaWrap table { width: 100%; border-collapse: collapse; }
 .tablaWrap th, .tablaWrap td { padding: 10px; border-bottom: 1px solid var(--border, #ddd); text-align: left; }
