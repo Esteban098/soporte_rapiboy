@@ -25,7 +25,9 @@ actual del viaje.
 
 ## Instalación
 
-1. Ejecutar `supabase/migracion-38-evidencias-entrega.sql` en Supabase.
+1. Ejecutar `supabase/migracion-38-evidencias-entrega.sql` en Supabase. En una
+   instalación que ya la ejecutó, aplicar después
+   `supabase/migracion-41-evidencias-valor-probatorio.sql`.
 2. Configurar `OPENAI_API_KEY`, `EVIDENCIAS_WEBHOOK_SECRET`,
    `OPENAI_MODELO_EVIDENCIAS`, `EVIDENCIAS_ORIGEN_HOSTS` y
    `EVIDENCIAS_MAX_BYTES`. `EVIDENCIAS_ORIGEN_HOSTS` debe contener el host real
@@ -69,9 +71,25 @@ tokens de entrada/salida para medir consumo, no el contenido. El costo se puede
 limitar bajando `maximo_por_corrida` o eligiendo otro
 `OPENAI_MODELO_EVIDENCIAS` compatible.
 
-`DUDOSA` solo describe calidad visual. No demuestra fraude ni una entrega
-incorrecta. Soporte confirma, descarta o marca inconclusa. No se avisa al
-comprador, seller o driver, ni se aplican sanciones automáticas.
+`DUDOSA` señala una debilidad visual o falta de contexto probatorio; no demuestra
+fraude ni una entrega incorrecta. Soporte confirma, descarta o marca inconclusa.
+No se avisa al comprador, seller o driver, ni se aplican sanciones automáticas.
+
+### Criterio de valor probatorio
+
+La clasificación no exige una foto perfecta. Es **aceptable** si se distingue
+al menos una prueba de la entrega: una persona que recibe o sostiene el
+paquete, un chat de confirmación o registro de llamada, o el domicilio/fachada
+o su numeración claramente identificable. Una escena con ese contexto no debe
+marcarse dudosa solo por iluminación baja, desenfoque leve o encuadre imperfecto.
+
+Es **dudosa** si solo muestra el paquete o su etiqueta (`SOLO_PAQUETE`), si no
+hay contexto que vincule la entrega (`SIN_CONTEXTO_DE_ENTREGA`), o si el único
+contexto probatorio es demasiado oscuro, borroso, cortado o ilegible. El modelo
+no transcribe ni repite nombres, teléfonos, direcciones ni textos de chats.
+
+Las muestras locales clasificadas por operación se usaron para calibrar este
+criterio; no se suben a Supabase, n8n ni al historial de producción.
 
 ## Score
 

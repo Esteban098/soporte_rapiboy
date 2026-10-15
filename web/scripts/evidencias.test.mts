@@ -11,6 +11,7 @@ assert.equal(extensionDeMime("image/svg+xml"), null);
 
 const flujo = await readFile(new URL("../../n8n/19-revision-evidencias-entrega.json", import.meta.url), "utf8");
 const migracion = await readFile(new URL("../supabase/migracion-38-evidencias-entrega.sql", import.meta.url), "utf8");
+const migracionValorProbatorio = await readFile(new URL("../supabase/migracion-41-evidencias-valor-probatorio.sql", import.meta.url), "utf8");
 const modelo = await readFile(new URL("../src/lib/evidencias.ts", import.meta.url), "utf8");
 const proxy = await readFile(new URL("../src/proxy.ts", import.meta.url), "utf8");
 
@@ -31,7 +32,11 @@ assert.ok(migracion.includes("decision_humana = 'CONFIRMADA'") && migracion.incl
 const historial = migracion.slice(migracion.indexOf("create table if not exists public.evidencias_entrega_historial"), migracion.indexOf("create index if not exists evidencias_historial_score_idx")).replace(/--.*$/gm, "");
 assert.ok(!/foto_ruta|foto_mime|foto_bytes|url/i.test(historial), "el historial durable no conserva fotos o URLs");
 assert.ok(modelo.includes('detail: "low"') && modelo.includes("max_output_tokens: 180"));
-assert.ok(modelo.includes("No determines fraude") && modelo.includes("calidad_evidencia"));
+assert.ok(modelo.includes("no fraude") && modelo.includes("calidad_evidencia"));
+for (const criterio of ["SOLO_PAQUETE", "SIN_CONTEXTO_DE_ENTREGA", "persona que recibe", "registro de llamada", "numeración claramente identificable"]) {
+  assert.ok(modelo.includes(criterio), `falta el criterio de calibración: ${criterio}`);
+}
+assert.ok(migracionValorProbatorio.includes("SOLO_PAQUETE") && migracionValorProbatorio.includes("SIN_CONTEXTO_DE_ENTREGA"));
 assert.ok(proxy.includes('ruta.startsWith("/api/evidencias/")'), "el webhook debe omitir la sesión y validar su propio Bearer");
 
 console.log("✓ ventana México, retención, atribución histórica y límites del modelo");

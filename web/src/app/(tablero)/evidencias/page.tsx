@@ -21,7 +21,7 @@ export default async function Evidencias() {
   }
   const sinDriver = panel.pendientes.filter((p) => p.idMotoboy == null).length;
   return <>
-    <PageHead eyebrow="Operación México · control de calidad" titulo="Evidencias de entrega" dek="Revisión asistida de fotografías. El modelo señala calidad visual; soporte toma la decisión final." />
+    <PageHead eyebrow="Operación México · control de evidencias" titulo="Evidencias de entrega" dek="Revisión asistida de fotografías. El modelo señala falta de contexto o problemas visuales; soporte toma la decisión final." />
     <div className={estilos.kpis}>
       <Kpi etiqueta="Pendientes" valor={String(panel.pendientes.length)} nota="requieren decisión humana" tono={panel.pendientes.length ? "warning" : "neutral"} />
       <Kpi etiqueta="Driver sin resolver" valor={String(sinDriver)} nota="no entra al score" tono={sinDriver ? "warning" : "neutral"} />

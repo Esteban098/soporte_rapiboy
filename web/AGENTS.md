@@ -245,14 +245,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `(semana_desde, id_usuario)` hace idempotente el envío. Si falta el grupo,
   genera `tienda_sin_grupo` para perfiles admin y operador, nunca Comercial.
 
-- La revisión fotográfica vive en `/evidencias`, la migración 38 y el flujo
-  n8n 17. Procesa cualquier evidencia del día salvo las asociadas con
+- La revisión fotográfica vive en `/evidencias`, las migraciones 38 y 41 y el
+  flujo n8n 19. Procesa cualquier evidencia del día salvo las asociadas con
   `Cancelado`. La atribución usa `HistorialViaje.IdReserva` del evento
   histórico asociado para resolver `ReservaxMotoboy.IdMotoboy`, con
   `HistorialViaje.Repartidor` solo como nombre de respaldo; nunca usa la
   asignación actual. Las fotos y filas
   operativas vencen a los siete días, mientras el historial mínimo sin imagen
-  permanece para score y auditoría. El modo inicial es `OBSERVACION`.
+  permanece para score y auditoría. La evidencia se acepta si aporta contexto
+  visible de entrega —receptor, chat/llamada, domicilio o numeración— aunque la
+  calidad sea imperfecta; un paquete aislado es `SOLO_PAQUETE` y se revisa. El
+  modo inicial es `OBSERVACION`.
 
 ## Límites entre flujos
 

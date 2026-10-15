@@ -20,7 +20,7 @@ export function PanelEvidencias({ pendientes, scores, config, admin }: {
       </div>}
     </section>
     <section className={estilos.card}>
-      <h2>Calidad por driver · últimos 30 días</h2>
+      <h2>Evidencias confirmadas por driver · últimos 30 días</h2>
       <p>Solo los problemas confirmados cuentan como malos. Sin sanciones automáticas.</p>
       <div className={estilos.tablaWrap}><table><thead><tr><th>Driver</th><th>Revisadas</th><th>Confirmadas</th><th>Proporción mala</th><th>Score</th></tr></thead><tbody>
         {scores.map((s) => <tr key={s.idMotoboy}><td>{s.driver} <small>#{s.idMotoboy}</small></td><td>{s.total}</td><td>{s.confirmadas}</td><td>{s.proporcionMalas.toFixed(1)}%</td><td>{s.muestraSuficiente ? `${s.score?.toFixed(1)} / 100` : `Sin mostrar (< ${s.minimo})`}</td></tr>)}

@@ -21,7 +21,8 @@ import { enVentanaEvidencias, extensionDeMime } from "./evidencias-reglas";
 export type DecisionEvidencia = "CONFIRMADA" | "DESCARTADA" | "INCONCLUSA";
 export type TipoProblemaEvidencia =
   | "BORROSA" | "OSCURA" | "CORTADA" | "ILEGIBLE"
-  | "PAQUETE_NO_DISTINGUIBLE" | "OTRO" | "NINGUNO";
+  | "PAQUETE_NO_DISTINGUIBLE" | "SOLO_PAQUETE" | "SIN_CONTEXTO_DE_ENTREGA"
+  | "OTRO" | "NINGUNO";
 
 export type EvidenciaEntrada = {
   claveOrigen: string;
@@ -195,14 +196,14 @@ async function analizarFoto(buffer: ArrayBuffer, mime: string, modelo: string): 
     body: JSON.stringify({
       model: modelo,
       input: [{ role: "user", content: [
-        { type: "input_text", text: "Evaluá solo la calidad visual de esta evidencia de entrega. Marcá DUDOSA si está borrosa, oscura, cortada, ilegible o si el paquete no se distingue suficientemente. No determines fraude, identidad ni si la entrega fue correcta. Si es utilizable, respondé ACEPTABLE y NINGUNO. El motivo debe ser breve, concreto y no contener datos personales." },
+        { type: "input_text", text: "Evaluá el valor probatorio de esta evidencia de entrega, no fraude ni identidad. Respondé ACEPTABLE y NINGUNO si se ve con claridad al menos una prueba contextual: una persona que recibe o sostiene el paquete; un chat de confirmación o registro de llamada; o el domicilio, fachada o numeración claramente identificable. Esa prueba sigue siendo válida aunque la foto tenga poca luz, algo de desenfoque o encuadre imperfecto, siempre que el contexto se distinga. Respondé DUDOSA si solo se ve el paquete o su etiqueta (SOLO_PAQUETE), si no hay contexto que vincule la entrega (SIN_CONTEXTO_DE_ENTREGA), o si la prueba contextual está demasiado borrosa, oscura, cortada o ilegible. No infieras datos, no leas ni repitas textos, nombres, teléfonos o direcciones. El motivo debe ser breve, concreto y sin datos personales." },
         { type: "input_image", image_url: `data:${mime};base64,${base64}`, detail: "low" },
       ] }],
       text: { format: { type: "json_schema", name: "calidad_evidencia", strict: true, schema: {
         type: "object", additionalProperties: false,
         properties: {
           calidad: { type: "string", enum: ["ACEPTABLE", "DUDOSA"] },
-          tipo_problema: { type: "string", enum: ["BORROSA", "OSCURA", "CORTADA", "ILEGIBLE", "PAQUETE_NO_DISTINGUIBLE", "OTRO", "NINGUNO"] },
+          tipo_problema: { type: "string", enum: ["BORROSA", "OSCURA", "CORTADA", "ILEGIBLE", "PAQUETE_NO_DISTINGUIBLE", "SOLO_PAQUETE", "SIN_CONTEXTO_DE_ENTREGA", "OTRO", "NINGUNO"] },
           motivo: { type: "string" }, confianza: { type: "number", minimum: 0, maximum: 1 },
         }, required: ["calidad", "tipo_problema", "motivo", "confianza"],
       } } },
@@ -214,7 +215,7 @@ async function analizarFoto(buffer: ArrayBuffer, mime: string, modelo: string): 
   const cuerpo = await respuesta.json() as Record<string, unknown>;
   const texto = extraerTexto(cuerpo);
   const resultado = JSON.parse(texto) as Omit<ResultadoVision, "tokensEntrada" | "tokensSalida">;
-  const tipos = ["BORROSA", "OSCURA", "CORTADA", "ILEGIBLE", "PAQUETE_NO_DISTINGUIBLE", "OTRO", "NINGUNO"];
+  const tipos = ["BORROSA", "OSCURA", "CORTADA", "ILEGIBLE", "PAQUETE_NO_DISTINGUIBLE", "SOLO_PAQUETE", "SIN_CONTEXTO_DE_ENTREGA", "OTRO", "NINGUNO"];
   if (!["ACEPTABLE", "DUDOSA"].includes(resultado.calidad) || !tipos.includes(resultado.tipo_problema) ||
       typeof resultado.motivo !== "string" || typeof resultado.confianza !== "number") throw new Error("respuesta_modelo_invalida");
   const usage = (cuerpo.usage ?? {}) as Record<string, unknown>;
