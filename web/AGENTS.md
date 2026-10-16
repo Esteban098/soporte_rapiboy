@@ -506,7 +506,11 @@ versionado y generado a mano con `scripts/cobertura.mts`.
 - El universo de paquetes se acota con `Usuario.IdModalidad = 5` y
   `Usuario.IdLocalidad = 9`, igual que el resto del tablero, para que los
   totales sean comparables entre pantallas.
-- La fuente de la posición es `dbo.Motoboy.Latitud` / `.Longitud`, y se muestra
+- La posición más reciente se elige entre `dbo.Motoboy` y los eventos válidos
+  de `HistorialViaje` de la jornada, atribuidos por `HistorialViaje.IdReserva`.
+  No rejuvenecer un GPS antiguo con eventos que copian sus coordenadas.
+  La migración 44 conserva la posición persistida si una corrida trae una
+  anterior o inválida, incluso al cambiar de jornada. Se muestra
   siempre como «última posición conocida». `Viaje.LatitudDestino` es a dónde va
   el paquete, no dónde está la persona: hay una prueba que falla si esa columna
   aparece en la consulta de repartidores.

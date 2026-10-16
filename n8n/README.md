@@ -489,7 +489,13 @@ foto, la pantalla lo advierte claramente y solo muestra la referencia viva.
   que le agregaron al repartidor a media mañana no aparecería nunca. Hay una
   prueba en `web/scripts/tracker.test.mts` que falla si alguien lo vuelve a
   poner.
-- **La posición sale de `Motoboy.Latitud` / `.Longitud`.**
+- **La posición sale del dato válido más reciente entre `Motoboy` e
+  `HistorialViaje`.** La consulta está en `tracker-ultima-ubicacion.sql` y se
+  incorpora al nodo Repartidores del día del flujo 08. Consulta eventos de la
+  jornada sobre viajes vinculados a reservas del día; atribuye el evento por
+  su propia reserva y descarta coordenadas iguales al GPS viejo para no
+  renovar artificialmente su antigüedad. La migración 44 impide reemplazar
+  una ubicación persistida por una anterior o inválida al cambiar de jornada.
   `Viaje.LatitudDestino` es a dónde va el paquete. También hay prueba.
 - **El punto del paquete es siempre el domicilio de entrega del viaje.**
   La web conserva `Viaje.LatitudDestino`, `Viaje.LongitudDestino` y `Viaje.Direccion`

@@ -1315,14 +1315,33 @@ test("la reconciliación de paquetes no parte de los ids ya guardados", () => {
   }
 });
 
-test("la posición del repartidor sale de Motoboy y nunca del destino del viaje", () => {
+test("la última posición sale de GPS o evento histórico y nunca del destino", () => {
   const drivers = sinComentarios(
     flujo("08-tracker-drivers.json").nodes
       .find((n: { name: string }) => n.name === "Repartidores del día").parameters.query);
 
   assert.match(drivers, /M\.Latitud/);
   assert.match(drivers, /M\.Longitud/);
+  assert.match(drivers, /dbo\.HistorialViaje/);
+  assert.match(drivers, /RH\.Id\s*=\s*H\.IdReserva/);
+  assert.match(drivers, /ORDER BY C\.Fecha DESC/);
+  assert.match(drivers, /ABS\(H\.Latitud-M\.Latitud\)/, "un evento no rejuvenece el mismo GPS viejo");
   assert.ok(!/LatitudDestino/.test(drivers), "eso es a dónde va el paquete, no dónde está él");
+
+  const fuente = readFileSync(new URL("../../n8n/tracker-ultima-ubicacion.sql", import.meta.url), "utf8");
+  assert.equal(
+    flujo("08-tracker-drivers.json").nodes
+      .find((n: { name: string }) => n.name === "Repartidores del día").parameters.query,
+    fuente,
+    "el flujo debe usar la consulta versionada",
+  );
+
+  const proteccion = readFileSync(
+    new URL("../supabase/migracion-44-tracker-ultima-ubicacion.sql", import.meta.url),
+    "utf8",
+  );
+  assert.match(proteccion, /new\.fecha_ultima_posicion < old\.fecha_ultima_posicion/);
+  assert.match(proteccion, /new\.fecha_ultima_posicion is null/);
 
   // Y el mapeo del tracker nunca escribe latitud del driver desde el destino.
   const mapeo = flujo("09-tracker-paquetes.json").nodes
