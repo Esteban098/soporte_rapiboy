@@ -196,14 +196,14 @@ async function analizarFoto(buffer: ArrayBuffer, mime: string, modelo: string): 
     body: JSON.stringify({
       model: modelo,
       input: [{ role: "user", content: [
-        { type: "input_text", text: "Evaluá el valor probatorio de esta evidencia de entrega, no fraude ni identidad. Respondé ACEPTABLE y NINGUNO si se ve con claridad al menos una prueba contextual: una persona que recibe o sostiene el paquete; un chat de confirmación o registro de llamada; o el domicilio, fachada o numeración claramente identificable. Esa prueba sigue siendo válida aunque la foto tenga poca luz, algo de desenfoque o encuadre imperfecto, siempre que el contexto se distinga. Respondé DUDOSA si solo se ve el paquete o su etiqueta (SOLO_PAQUETE), si no hay contexto que vincule la entrega (SIN_CONTEXTO_DE_ENTREGA), o si la prueba contextual está demasiado borrosa, oscura, cortada o ilegible. No infieras datos, no leas ni repitas textos, nombres, teléfonos o direcciones. El motivo debe ser breve, concreto y sin datos personales." },
+        { type: "input_text", text: "Evaluá si la imagen es una evidencia visual utilizable. No evalúes fraude, identidad ni si demuestra una entrega. Respondé ACEPTABLE y NINGUNO cuando se pueda distinguir al menos uno de estos elementos: un paquete o etiqueta reconocible; un chat o conversación; una captura de Mercado Libre; un registro o pantalla de llamada; o un domicilio, fachada, puerta o acceso. Para chats, Mercado Libre y llamadas basta con reconocer el tipo de captura: el texto puede ser ilegible o estar cortado y no necesita mencionar una entrega. Un domicilio visible es suficiente aunque no se vea numeración, persona ni paquete. No exijas contexto que vincule la imagen con una entrega ni una persona receptora. La poca luz, el desenfoque o el recorte solo justifican DUDOSA cuando son tan severos que impiden reconocer cualquier elemento útil. Respondé DUDOSA únicamente si la imagen completa es inutilizable o no permite distinguir qué muestra. No uses ILEGIBLE solo porque no pueda leerse el texto de una captura. No infieras datos ni repitas textos, nombres, teléfonos o direcciones. El motivo debe ser breve, concreto y sin datos personales." },
         { type: "input_image", image_url: `data:${mime};base64,${base64}`, detail: "low" },
       ] }],
       text: { format: { type: "json_schema", name: "calidad_evidencia", strict: true, schema: {
         type: "object", additionalProperties: false,
         properties: {
           calidad: { type: "string", enum: ["ACEPTABLE", "DUDOSA"] },
-          tipo_problema: { type: "string", enum: ["BORROSA", "OSCURA", "CORTADA", "ILEGIBLE", "PAQUETE_NO_DISTINGUIBLE", "SOLO_PAQUETE", "SIN_CONTEXTO_DE_ENTREGA", "OTRO", "NINGUNO"] },
+          tipo_problema: { type: "string", enum: ["BORROSA", "OSCURA", "CORTADA", "ILEGIBLE", "PAQUETE_NO_DISTINGUIBLE", "OTRO", "NINGUNO"] },
           motivo: { type: "string" }, confianza: { type: "number", minimum: 0, maximum: 1 },
         }, required: ["calidad", "tipo_problema", "motivo", "confianza"],
       } } },
@@ -215,7 +215,7 @@ async function analizarFoto(buffer: ArrayBuffer, mime: string, modelo: string): 
   const cuerpo = await respuesta.json() as Record<string, unknown>;
   const texto = extraerTexto(cuerpo);
   const resultado = JSON.parse(texto) as Omit<ResultadoVision, "tokensEntrada" | "tokensSalida">;
-  const tipos = ["BORROSA", "OSCURA", "CORTADA", "ILEGIBLE", "PAQUETE_NO_DISTINGUIBLE", "SOLO_PAQUETE", "SIN_CONTEXTO_DE_ENTREGA", "OTRO", "NINGUNO"];
+  const tipos = ["BORROSA", "OSCURA", "CORTADA", "ILEGIBLE", "PAQUETE_NO_DISTINGUIBLE", "OTRO", "NINGUNO"];
   if (!["ACEPTABLE", "DUDOSA"].includes(resultado.calidad) || !tipos.includes(resultado.tipo_problema) ||
       typeof resultado.motivo !== "string" || typeof resultado.confianza !== "number") throw new Error("respuesta_modelo_invalida");
   const usage = (cuerpo.usage ?? {}) as Record<string, unknown>;

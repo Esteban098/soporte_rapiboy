@@ -273,9 +273,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `HistorialViaje.Repartidor` solo como nombre de respaldo; nunca usa la
   asignación actual. Las fotos y filas
   operativas vencen a los siete días, mientras el historial mínimo sin imagen
-  permanece para score y auditoría. La evidencia se acepta si aporta contexto
-  visible de entrega —receptor, chat/llamada, domicilio o numeración— aunque la
-  calidad sea imperfecta; un paquete aislado es `SOLO_PAQUETE` y se revisa. El
+  permanece para score y auditoría. La evidencia se acepta si permite reconocer
+  un paquete o etiqueta, chat, captura de Mercado Libre, llamada o domicilio,
+  aunque el texto sea ilegible y no haya contexto visible de entrega. Solo se
+  revisa automáticamente cuando la degradación impide reconocer cualquier
+  elemento útil. `SOLO_PAQUETE` y `SIN_CONTEXTO_DE_ENTREGA` quedan únicamente
+  como valores históricos y no deben volver a generarse. El
   modo inicial es `OBSERVACION`. La bandeja prioriza solo las pendientes del día
   operativo de México; las pendientes de hasta siete días anteriores quedan en
   un desplegable separado, y el histórico nunca expone imágenes.

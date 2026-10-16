@@ -39,9 +39,10 @@ actual del viaje.
    header `Authorization` y valor `Bearer <EVIDENCIAS_WEBHOOK_SECRET>`. El
    servidor bloquea `$env` dentro de nodos, por lo que el secreto no debe
    escribirse directamente en el workflow.
-4. Confirmar la zona `America/Mexico_City`, probar manualmente y activar. Corre
-   cada 10 minutos de 15:00 a 22:50 y por última vez a las 23:00. La limpieza
-   corre a las 23:15.
+4. Confirmar la zona del workflow `America/Argentina/Buenos_Aires`, probar
+   manualmente y activar. Los cron argentinos equivalen a cada 10 minutos de
+   15:00 a 22:50 de México y una última vez a las 23:00. La limpieza corre a
+   las 23:15 de México.
 5. Mantener `OBSERVACION` inicialmente. Revisar una muestra y medir falsos
    positivos antes de pasar a `ACTIVO` desde `/evidencias`.
 
@@ -75,22 +76,26 @@ tokens de entrada/salida para medir consumo, no el contenido. El costo se puede
 limitar bajando `maximo_por_corrida` o eligiendo otro
 `OPENAI_MODELO_EVIDENCIAS` compatible.
 
-`DUDOSA` señala una debilidad visual o falta de contexto probatorio; no demuestra
-fraude ni una entrega incorrecta. Soporte confirma, descarta o marca inconclusa.
+`DUDOSA` señala que la imagen completa no permite reconocer una evidencia útil;
+no demuestra fraude ni una entrega incorrecta. Soporte confirma, descarta o marca inconclusa.
 No se avisa al comprador, seller o driver, ni se aplican sanciones automáticas.
 
-### Criterio de valor probatorio
+### Criterio de utilidad visual
 
-La clasificación no exige una foto perfecta. Es **aceptable** si se distingue
-al menos una prueba de la entrega: una persona que recibe o sostiene el
-paquete, un chat de confirmación o registro de llamada, o el domicilio/fachada
-o su numeración claramente identificable. Una escena con ese contexto no debe
-marcarse dudosa solo por iluminación baja, desenfoque leve o encuadre imperfecto.
+La clasificación no exige que la imagen demuestre una entrega. Es **aceptable**
+si permite reconocer un paquete o etiqueta, un chat, una captura de Mercado
+Libre, un registro o pantalla de llamada, o un domicilio, fachada, puerta o
+acceso. En chats, Mercado Libre y llamadas basta reconocer el tipo de captura:
+el texto puede ser ilegible o estar cortado y no necesita mencionar una
+entrega. Un domicilio visible también es suficiente sin numeración, persona o
+paquete.
 
-Es **dudosa** si solo muestra el paquete o su etiqueta (`SOLO_PAQUETE`), si no
-hay contexto que vincule la entrega (`SIN_CONTEXTO_DE_ENTREGA`), o si el único
-contexto probatorio es demasiado oscuro, borroso, cortado o ilegible. El modelo
-no transcribe ni repite nombres, teléfonos, direcciones ni textos de chats.
+La poca luz, el desenfoque y el recorte solo vuelven la evidencia **dudosa**
+cuando son tan severos que impiden reconocer cualquier elemento útil. No se
+exige contexto de entrega ni una persona receptora. El modelo no transcribe ni
+repite nombres, teléfonos, direcciones ni textos de chats. Los motivos
+`SOLO_PAQUETE` y `SIN_CONTEXTO_DE_ENTREGA` se conservan únicamente para leer el
+historial anterior; el clasificador nuevo ya no puede generarlos.
 
 Las muestras locales clasificadas por operación se usaron para calibrar este
 criterio; no se suben a Supabase, n8n ni al historial de producción.

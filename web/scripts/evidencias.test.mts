@@ -27,18 +27,26 @@ assert.ok(flujo.includes("INDEX(IX_HistorialViaje_IdViaje)") && flujo.includes("
 assert.ok(flujo.includes("R.Id = X.IdReserva") && flujo.includes("R.IdMotoboy"), "el driver debe salir de la reserva del evento histórico");
 assert.ok(!flujo.includes("V.IdReserva"), "no debe usar la asignación actual del viaje");
 assert.ok(flujo.includes("const lote = new Set()") && flujo.includes("lote.has(claveOrigen)"), "el lote deduplica la URL fuera de SQL");
-assert.ok(flujo.includes("America/Mexico_City") && flujo.includes("0 */10 15-22 * * *") && flujo.includes("0 0 23 * * *"));
+assert.ok(
+  flujo.includes('"timezone": "America/Argentina/Buenos_Aires"') &&
+    flujo.includes("0 */10 18-23 * * *") &&
+    flujo.includes("0 */10 0-1 * * *") &&
+    flujo.includes("0 0 2 * * *"),
+  "el cron argentino debe equivaler a cada 10 minutos de 15:00 a 22:50 y una última vez a las 23:00 de México",
+);
 assert.ok(flujo.includes('"genericAuthType": "httpHeaderAuth"') && !flujo.includes("$env.EVIDENCIAS_"), "n8n debe usar una credencial cifrada y no variables bloqueadas");
 assert.ok(migracion.includes("interval '7 days'") && migracion.includes("interval '30 days'"));
 assert.ok(migracion.includes("decision_humana = 'CONFIRMADA'") && migracion.includes("minimo_muestra_score"));
 const historial = migracion.slice(migracion.indexOf("create table if not exists public.evidencias_entrega_historial"), migracion.indexOf("create index if not exists evidencias_historial_score_idx")).replace(/--.*$/gm, "");
 assert.ok(!/foto_ruta|foto_mime|foto_bytes|url/i.test(historial), "el historial durable no conserva fotos o URLs");
 assert.ok(modelo.includes('detail: "low"') && modelo.includes("max_output_tokens: 180"));
-assert.ok(modelo.includes("no fraude") && modelo.includes("calidad_evidencia"));
+assert.ok(modelo.includes("No evalúes fraude") && modelo.includes("calidad_evidencia"));
 assert.ok(modelo.includes("pendientesHoy") && modelo.includes("pendientesAnteriores"), "la bandeja separa hoy de los pendientes retenidos");
-for (const criterio of ["SOLO_PAQUETE", "SIN_CONTEXTO_DE_ENTREGA", "persona que recibe", "registro de llamada", "numeración claramente identificable"]) {
+for (const criterio of ["captura de Mercado Libre", "texto puede ser ilegible", "Un domicilio visible es suficiente", "No exijas contexto", "paquete o etiqueta reconocible"]) {
   assert.ok(modelo.includes(criterio), `falta el criterio de calibración: ${criterio}`);
 }
+const analizador = modelo.slice(modelo.indexOf("async function analizarFoto"), modelo.indexOf("function extraerTexto"));
+assert.ok(!analizador.includes("SOLO_PAQUETE") && !analizador.includes("SIN_CONTEXTO_DE_ENTREGA"), "el modelo nuevo no debe rechazar fotos solo por falta de contexto de entrega");
 assert.ok(migracionValorProbatorio.includes("SOLO_PAQUETE") && migracionValorProbatorio.includes("SIN_CONTEXTO_DE_ENTREGA"));
 assert.ok(proxy.includes('ruta.startsWith("/api/evidencias/")'), "el webhook debe omitir la sesión y validar su propio Bearer");
 
