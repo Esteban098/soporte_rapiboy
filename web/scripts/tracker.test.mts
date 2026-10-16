@@ -1182,6 +1182,36 @@ test("las expresiones solo nombran nodos que existen, y la rama de error no nomb
   }
 });
 
+test("los disparadores programados conservan una salida conectada", () => {
+  for (const archivo of [
+    "08-tracker-drivers.json",
+    "09-tracker-paquetes.json",
+    "13-directorio-activos-whatsapp.json",
+    "17-devoluciones-mensuales.json",
+  ]) {
+    const f = flujo(archivo);
+    const existentes = new Set<string>(f.nodes.map((n: { name: string }) => n.name));
+
+    for (const origen of Object.keys(f.connections)) {
+      assert.ok(existentes.has(origen), `${archivo}: la conexión sale de un nodo inexistente «${origen}»`);
+    }
+
+    for (const [origen, tipos] of Object.entries(f.connections) as [string, Record<string, { node: string }[][]>][]) {
+      for (const salidas of Object.values(tipos)) {
+        for (const salida of salidas.flat()) {
+          assert.ok(existentes.has(salida.node), `${archivo}: ${origen} apunta al nodo inexistente «${salida.node}»`);
+        }
+      }
+    }
+
+    for (const nodo of f.nodes as { name: string; type: string }[]) {
+      if (!nodo.type.endsWith(".scheduleTrigger")) continue;
+      const salidas = Object.values(f.connections[nodo.name] ?? {}).flat(2);
+      assert.ok(salidas.length > 0, `${archivo}: el horario «${nodo.name}» quedó desconectado`);
+    }
+  }
+});
+
 test("el día viaja como texto, no como date", () => {
   /*
    * `'...'::date as dia` hacía que el driver de Postgres lo entregara como Date
@@ -1239,6 +1269,20 @@ test("la ficha del tracker se completa desde RapiboyData y no desde Mensual", ()
   for (const tabla of ["dbo.Viaje", "dbo.Direccion", "dbo.Poligono", "dbo.HistorialViaje", "dbo.FotoViaje"]) {
     assert.match(consulta, new RegExp(tabla.replace(/\./g, "\\.")));
   }
+  assert.match(consulta, /dbo\.DetalleViaje\s+DV/);
+  assert.match(consulta, /DV\.EstadoMeli\s+AS\s+EstadoMeli/);
+  assert.doesNotMatch(
+    consulta.slice(consulta.search(/\bWHERE\b/i)),
+    /EstadoMeli/,
+    "el estado MELI se carga, pero no filtra mapa, rutas ni estadísticas",
+  );
+  const columnas = flujoPaquetes.nodes
+    .find((n: { name: string }) => n.name === "Guardar paquetes").parameters.columns.value;
+  assert.equal(
+    "estado_meli" in columnas,
+    true,
+    "la sincronización debe persistir el EstadoMeli leído de DetalleViaje",
+  );
   assert.match(consulta, /COALESCE\(FV\.Foto, HF\.Foto/);
   assert.equal(flujoPaquetes.connections["Abrir sincronización"].main[0][0].node, "Paquetes y detalle del sistema");
 });

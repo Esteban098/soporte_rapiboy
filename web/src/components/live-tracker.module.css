@@ -753,7 +753,12 @@
 .cruceEstadosHead strong { flex: none; color: var(--warning-ink); font-weight: 650; text-align: right; }
 
 .cruceEstadosLista { display: grid; gap: 7px; }
-.cruceDriver { border: 1px solid var(--rule); border-radius: var(--radio-3); overflow: hidden; }
+.cruceDriver { border: 1px solid var(--rule); border-radius: var(--radio-2); overflow: hidden; }
+.cruceDriverPrioritario {
+  border-color: color-mix(in srgb, var(--critical) 55%, var(--rule));
+  box-shadow: inset 4px 0 var(--critical);
+}
+.cruceDriverPrioritario > summary { background: var(--critical-soft); }
 .cruceDriver summary { display: flex; gap: 8px; align-items: center; padding: 9px 10px; cursor: pointer; list-style: none; }
 .cruceDriver summary::-webkit-details-marker { display: none; }
 .cruceDriver summary::after { margin-left: auto; color: var(--muted); content: "▾"; }
@@ -768,7 +773,16 @@
 .crucePaquetes button { width: fit-content; padding: 0; color: var(--accent-ink); background: transparent; border: 0; font: inherit; font-weight: 700; cursor: pointer; }
 .crucePaquetes button:hover { text-decoration: underline; }
 .crucePaqueteDiferente { background: var(--warning-soft); }
+.crucePaqueteEntregaNoReflejada {
+  background: var(--critical-soft);
+  box-shadow: inset 4px 0 var(--critical);
+  font-weight: 600;
+}
 .crucePaquetes em { padding: 2px 5px; color: var(--warning-ink); background: color-mix(in srgb, var(--warning) 18%, transparent); border-radius: 4px; font-size: 10px; font-style: normal; font-weight: 700; }
+.crucePaqueteEntregaNoReflejada em {
+  color: #fff;
+  background: var(--critical);
+}
 
 @media (max-width: 720px) {
   .cruceEstadosHead { display: grid; }

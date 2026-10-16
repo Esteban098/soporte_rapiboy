@@ -176,12 +176,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   informado».
 - El bloque **Ruta por repartidor**, debajo del mapa, es una cola de revisión:
   presenta únicamente repartidores y cierres de Rapiboy cuyo `estado_meli`
-  (`DetalleViaje.EstadoMeli`) esté cargado y sea distinto a `nombre_estado`,
+  esté cargado y sea distinto a `nombre_estado`,
   tras ignorar mayúsculas, espacios y acentos. Un estado MELI vacío no es una
   diferencia y no se muestra como «Sin estado»; no inventar equivalencias entre
-  vocabularios. Instalar
-  `supabase/migracion-42-tracker-estado-meli.sql` y mantener el nodo activo
-  **Paquetes y detalle del sistema** + su mapeo + el upsert alineados.
+  vocabularios. El origen verificado es `DetalleViaje.EstadoMeli`: se carga en
+  `estado_meli`, pero no debe usarse para filtrar la consulta principal. Solo
+  la cola de contraste aplica el filtro; mapa, rutas y estadísticas deben
+  conservar todos los paquetes. Instalar
+  `supabase/migracion-42-tracker-estado-meli.sql` y mantener consulta, mapeo y
+  upsert alineados.
 
 - Las **colectas en vivo** del mapa de Tiendas viven en `colectas_vivo` (una
   fila por `Colecta.Id`) y `colectas_vivo_drivers` (una por `Motoboy.Id`), las

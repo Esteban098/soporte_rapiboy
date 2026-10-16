@@ -441,9 +441,10 @@ horarios no dependan de la zona configurada en el servidor de n8n.
    acá y no se toca ni una fila. El lock es por tipo: posiciones y paquetes
    pueden correr a la vez.
 3. **Consulta a SQL Server**, siempre de solo lectura. El flujo de paquetes
-   obtiene su ficha desde `Viaje`, `DetalleViaje`, `Direccion`, `Poligono`, `HistorialViaje` y
-   `FotoViaje`; no consulta `mensual`. `DetalleViaje.EstadoMeli` se guarda como
-   `estado_meli` para comparar únicamente cierres con ambos estados cargados.
+   obtiene su ficha desde `Viaje`, `DetalleViaje`, `Direccion`, `Poligono`,
+   `HistorialViaje` y `FotoViaje`; no consulta `mensual`.
+   `DetalleViaje.EstadoMeli` se guarda como `estado_meli`, pero solo se usa en
+   la cola de contraste: no filtra mapa, rutas, repartidores ni estadísticas.
    `Viaje.Id` es el identificador visible
    del paquete en la web; `ReferenciaExterna` queda guardada como trazabilidad.
 4. **A columnas**, que valida coordenadas y clasifica.

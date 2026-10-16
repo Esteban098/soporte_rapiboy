@@ -7,6 +7,7 @@ import {
   entregadosPorHora,
   enlaceAlOperador,
   estadoDemoraDriver,
+  estadoOperativoIgual,
   paquetesCerradosConEstadoMeliDistinto,
   estadosDelSistemaSinCategoria,
   normalizarBusqueda,
@@ -465,7 +466,7 @@ export function LiveTracker({
         </div>
         {pestana === "estadisticas" ? (
           <EstadisticasTracker
-            estadisticas={estadisticas ?? estadisticasProvisorias(datos)}
+            estadisticas={estadisticas?.paquetes.length ? estadisticas : estadisticasProvisorias(datos)}
             ventana={ventana}
             fotoCerrada={Boolean(estadisticas?.paquetes.length)}
           />
@@ -983,13 +984,23 @@ function RutasConEstadosDistintos({
   // Un estado MELI ausente no permite comparar y por eso no entra: tampoco se
   // muestra como "Sin estado" junto a una diferencia real.
   const conDiferencias = drivers
-    .map((driver) => ({
-      driver,
-      paquetes: paquetesCerradosConEstadoMeliDistinto(
+    .map((driver) => {
+      const paquetes = paquetesCerradosConEstadoMeliDistinto(
         driver.paquetes.filter((paquete) => paquete.activo_en_ruta),
-      ),
-    }))
-    .filter(({ paquetes }) => paquetes.length > 0);
+      );
+      return {
+        driver,
+        paquetes,
+        entregasNoReflejadas: paquetes.filter(esEntregaNoReflejada).length,
+      };
+    })
+    .filter(({ paquetes }) => paquetes.length > 0)
+    .sort(
+      (a, b) =>
+        b.entregasNoReflejadas - a.entregasNoReflejadas ||
+        b.paquetes.length - a.paquetes.length ||
+        a.driver.nombre.localeCompare(b.driver.nombre, "es"),
+    );
   const diferencias = conDiferencias.reduce((total, { paquetes }) => total + paquetes.length, 0);
 
   return (
@@ -1010,20 +1021,41 @@ function RutasConEstadosDistintos({
         </p>
       ) : (
         <div className={estilos.cruceEstadosLista}>
-          {conDiferencias.map(({ driver, paquetes }) => {
+          {conDiferencias.map(({ driver, paquetes, entregasNoReflejadas }) => {
             return (
-              <details key={driver.id} className={estilos.cruceDriver}>
+              <details
+                key={driver.id}
+                className={`${estilos.cruceDriver} ${
+                  entregasNoReflejadas > 0 ? estilos.cruceDriverPrioritario : ""
+                }`}
+              >
                 <summary>
                   <span className={estilos.chip} style={{ background: colorDeDriver(driver.id) }} aria-hidden="true" />
                   <span className={estilos.cruceDriverNombre}>{driver.nombre}</span>
                   <span className={estilos.cruceDriverDatos}>
                     #{driver.id} · {paquetes.length} con estado distinto
+                    {entregasNoReflejadas > 0
+                      ? ` · ${entregasNoReflejadas} entrega${entregasNoReflejadas === 1 ? "" : "s"} no reflejada${entregasNoReflejadas === 1 ? "" : "s"}`
+                      : ""}
                   </span>
                 </summary>
                 <ul className={estilos.crucePaquetes}>
                   {paquetes.map((paquete) => {
+                    const entregadoEnRapiboy = estadoOperativoIgual(paquete.nombre_estado, "Entregado");
+                    const entregadoEnMeli = estadoOperativoIgual(paquete.estado_meli, "Entregado");
+                    const entregaNoReflejada = esEntregaNoReflejada(paquete);
+                    const etiquetaRevision = entregadoEnRapiboy
+                      ? "Entrega no reflejada en MELI"
+                      : entregadoEnMeli
+                        ? "Entrega no reflejada en Rapiboy"
+                        : "Revisar";
                     return (
-                      <li key={paquete.id_viaje} className={estilos.crucePaqueteDiferente}>
+                      <li
+                        key={paquete.id_viaje}
+                        className={`${estilos.crucePaqueteDiferente} ${
+                          entregaNoReflejada ? estilos.crucePaqueteEntregaNoReflejada : ""
+                        }`}
+                      >
                         <button
                           type="button"
                           onClick={() => onPaquete(paqueteActivo === paquete.id_viaje ? null : paquete.id_viaje)}
@@ -1034,7 +1066,7 @@ function RutasConEstadosDistintos({
                         <span>{paquete.tienda ?? "Sin tienda"}</span>
                         <span>Rapiboy: {paquete.nombre_estado ?? "Sin estado"}</span>
                         <span>MELI: {paquete.estado_meli ?? "Sin estado"}</span>
-                        <em>Revisar</em>
+                        <em>{etiquetaRevision}</em>
                       </li>
                     );
                   })}
@@ -1045,6 +1077,15 @@ function RutasConEstadosDistintos({
         </div>
       )}
     </section>
+  );
+}
+
+function esEntregaNoReflejada(
+  paquete: Pick<PaqueteDelTracker, "nombre_estado" | "estado_meli">,
+): boolean {
+  return (
+    estadoOperativoIgual(paquete.nombre_estado, "Entregado") !==
+    estadoOperativoIgual(paquete.estado_meli, "Entregado")
   );
 }
 

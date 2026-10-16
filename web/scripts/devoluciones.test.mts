@@ -122,6 +122,6 @@ test("el almacenamiento es mensual e independiente y el webhook exige autorizaci
   assert.equal(nodo("Guardar devoluciones").parameters.table.value, "devoluciones_mensuales");
   assert.deepEqual(nodo("Guardar devoluciones").parameters.columns.matchingColumns, ["mes", "id"]);
   assert.equal(nodo("Actualizar desde plataforma").parameters.authentication, "headerAuth");
-  assert.equal(flujo.settings.timezone, "America/Mexico_City");
+  assert.equal(flujo.settings.timezone, "America/Argentina/Buenos_Aires");
   assert.equal(flujo.active, false);
 });
