@@ -39,12 +39,15 @@ assert.ok(migracion.includes("interval '7 days'") && migracion.includes("interva
 assert.ok(migracion.includes("decision_humana = 'CONFIRMADA'") && migracion.includes("minimo_muestra_score"));
 const historial = migracion.slice(migracion.indexOf("create table if not exists public.evidencias_entrega_historial"), migracion.indexOf("create index if not exists evidencias_historial_score_idx")).replace(/--.*$/gm, "");
 assert.ok(!/foto_ruta|foto_mime|foto_bytes|url/i.test(historial), "el historial durable no conserva fotos o URLs");
-assert.ok(modelo.includes('detail: "low"') && modelo.includes("max_output_tokens: 180"));
+assert.ok(modelo.includes('detalle: "low"') && modelo.includes('detalle: "high"') && modelo.includes("max_output_tokens: 180"));
 assert.ok(modelo.includes("No evalúes fraude") && modelo.includes("calidad_evidencia"));
+assert.ok(modelo.includes('if (primera.calidad === "ACEPTABLE") return primera'), "solo las dudas deben pagar una segunda evaluación");
+assert.ok(modelo.includes("sumarTokens(primera.tokensEntrada") && modelo.includes('calidad === "ACEPTABLE"') && modelo.includes('? "NINGUNO"'), "debe sumar consumo y normalizar resultados aceptables");
 assert.ok(modelo.includes("pendientesHoy") && modelo.includes("pendientesAnteriores"), "la bandeja separa hoy de los pendientes retenidos");
 for (const criterio of ["captura de Mercado Libre", "texto puede ser ilegible", "Un domicilio visible es suficiente", "No exijas contexto", "paquete o etiqueta reconocible"]) {
   assert.ok(modelo.includes(criterio), `falta el criterio de calibración: ${criterio}`);
 }
+assert.ok(modelo.includes("Si se distinguen una persona con un paquete o un domicilio, necesariamente es ACEPTABLE"), "la segunda pasada debe evitar el falso positivo observado");
 const analizador = modelo.slice(modelo.indexOf("async function analizarFoto"), modelo.indexOf("function extraerTexto"));
 assert.ok(!analizador.includes("SOLO_PAQUETE") && !analizador.includes("SIN_CONTEXTO_DE_ENTREGA"), "el modelo nuevo no debe rechazar fotos solo por falta de contexto de entrega");
 assert.ok(migracionValorProbatorio.includes("SOLO_PAQUETE") && migracionValorProbatorio.includes("SIN_CONTEXTO_DE_ENTREGA"));

@@ -49,6 +49,7 @@ import estilos from "./live-tracker.module.css";
  */
 
 type Sync = "posiciones" | "paquetes";
+type SyncEnCurso = Sync | "ambos";
 
 type Aviso = { tono: "ok" | "error"; texto: string };
 type ResultadoSync = { ok: boolean; texto: string; enCurso: boolean };
@@ -105,7 +106,7 @@ export function LiveTracker({
   const [paqueteActivo, setPaqueteActivo] = useState<number | null>(null);
   const [paqueteBuscado, setPaqueteBuscado] = useState<number | null>(null);
   const [poligonoActivo, setPoligonoActivo] = useState<{ nombre: string; zona: string } | null>(null);
-  const [corriendo, setCorriendo] = useState<Sync | null>(null);
+  const [corriendo, setCorriendo] = useState<SyncEnCurso | null>(null);
   const [aviso, setAviso] = useState<Aviso | null>(null);
   const [paquetesEnCurso, setPaquetesEnCurso] = useState(false);
   const [ahora, setAhora] = useState(() => Date.now());
@@ -255,13 +256,14 @@ export function LiveTracker({
   }, [paquetesEnCurso, releer]);
 
   /*
-   * Un solo botón corre las dos sincronizaciones, una detrás de la otra.
+   * Un solo botón inicia las dos sincronizaciones al mismo tiempo.
    *
-   * Primero los paquetes y después las posiciones: la de posiciones conserva
-   * a quienes aparecen por sus pendientes, así que un repartidor que recién
-   * sumó paquetes ya sale con su posición en la misma pasada. Son flujos
-   * independientes: si uno falla, el otro corre igual, y la jornada se relee
-   * una sola vez al final con lo que haya quedado guardado.
+   * La consulta de paquetes puede tardar varios minutos. Si esperáramos su
+   * respuesta antes de pedir posiciones, un timeout o una navegación del
+   * usuario impediría que la segunda llamada siquiera empezara. Los flujos son
+   * independientes y la consulta de posiciones obtiene los drivers desde las
+   * reservas del día, por lo que pueden correr en paralelo con locks separados.
+   * Si uno falla, el otro sigue y la jornada se relee con lo que haya quedado.
    */
   async function actualizar() {
     if (enVuelo.current) return;
@@ -273,9 +275,14 @@ export function LiveTracker({
     let paquetesPendientes = false;
 
     try {
-      for (const cual of ["paquetes", "posiciones"] as const) {
-        setCorriendo(cual);
-        const resultado = await sincronizar(cual);
+      setCorriendo("ambos");
+      const resultados = await Promise.all(
+        (["paquetes", "posiciones"] as const).map(async (cual) => ({
+          cual,
+          resultado: await sincronizar(cual),
+        })),
+      );
+      for (const { cual, resultado } of resultados) {
         if (!resultado.ok) fallo = true;
         if (resultado.enCurso && cual === "paquetes") paquetesPendientes = true;
         partes.push(resultado.texto);
@@ -376,11 +383,7 @@ export function LiveTracker({
             disabled={corriendo !== null}
             title={tituloActualizar(hayFlujoPaquetes, hayFlujoPosiciones)}
           >
-            {corriendo === "paquetes"
-              ? "Actualizando paquetes…"
-              : corriendo === "posiciones"
-                ? "Actualizando posiciones…"
-                : "Actualizar"}
+            {corriendo ? "Actualizando paquetes y posiciones…" : "Actualizar"}
           </button>
         </div>
 

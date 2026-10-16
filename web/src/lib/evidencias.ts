@@ -190,14 +190,43 @@ async function analizarFoto(buffer: ArrayBuffer, mime: string, modelo: string): 
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) throw new Error("falta_openai_api_key");
   const base64 = Buffer.from(buffer).toString("base64");
+  const primera = await solicitarAnalisisFoto({
+    apiKey, base64, mime, modelo, detalle: "low",
+    instruccion: "Evaluá si la imagen es una evidencia visual utilizable. No evalúes fraude, identidad ni si demuestra una entrega. Respondé ACEPTABLE y NINGUNO cuando se pueda distinguir al menos uno de estos elementos: un paquete o etiqueta reconocible; un chat o conversación; una captura de Mercado Libre; un registro o pantalla de llamada; o un domicilio, fachada, puerta o acceso. Para chats, Mercado Libre y llamadas basta con reconocer el tipo de captura: el texto puede ser ilegible o estar cortado y no necesita mencionar una entrega. Un domicilio visible es suficiente aunque no se vea numeración, persona ni paquete. No exijas contexto que vincule la imagen con una entrega ni una persona receptora. La poca luz, el desenfoque o el recorte solo justifican DUDOSA cuando son tan severos que impiden reconocer cualquier elemento útil. Respondé DUDOSA únicamente si la imagen completa es inutilizable o no permite distinguir qué muestra. No uses ILEGIBLE solo porque no pueda leerse el texto de una captura. No infieras datos ni repitas textos, nombres, teléfonos o direcciones. El motivo debe ser breve, concreto y sin datos personales.",
+  });
+  if (primera.calidad === "ACEPTABLE") return primera;
+
+  // Una duda en baja resolución no alcanza para alertar: se verifica nuevamente
+  // con más detalle para reducir falsos positivos sin encarecer todas las fotos.
+  const verificacion = await solicitarAnalisisFoto({
+    apiKey, base64, mime, modelo, detalle: "high",
+    instruccion: "Verificá de forma conservadora una posible falsa alerta de calidad. Hacé una evaluación independiente y no supongas que la imagen es mala. Respondé ACEPTABLE y NINGUNO si podés reconocer cualquier elemento visual útil, por ejemplo una persona, un paquete o etiqueta, una puerta, acceso, domicilio o fachada, un chat, una captura de Mercado Libre o una pantalla de llamada. La imagen no necesita demostrar una entrega y puede estar algo desenfocada, oscura, recortada o tener texto ilegible. DUDOSA se reserva exclusivamente para una degradación severa de toda la imagen que impida reconocer qué muestra. Si se distinguen una persona con un paquete o un domicilio, necesariamente es ACEPTABLE. No infieras datos ni repitas textos, nombres, teléfonos o direcciones. El motivo debe ser breve, concreto y sin datos personales.",
+  });
+  return {
+    ...verificacion,
+    tokensEntrada: sumarTokens(primera.tokensEntrada, verificacion.tokensEntrada),
+    tokensSalida: sumarTokens(primera.tokensSalida, verificacion.tokensSalida),
+  };
+}
+
+async function solicitarAnalisisFoto({
+  apiKey, base64, mime, modelo, detalle, instruccion,
+}: {
+  apiKey: string;
+  base64: string;
+  mime: string;
+  modelo: string;
+  detalle: "low" | "high";
+  instruccion: string;
+}): Promise<ResultadoVision> {
   const respuesta = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: modelo,
       input: [{ role: "user", content: [
-        { type: "input_text", text: "Evaluá si la imagen es una evidencia visual utilizable. No evalúes fraude, identidad ni si demuestra una entrega. Respondé ACEPTABLE y NINGUNO cuando se pueda distinguir al menos uno de estos elementos: un paquete o etiqueta reconocible; un chat o conversación; una captura de Mercado Libre; un registro o pantalla de llamada; o un domicilio, fachada, puerta o acceso. Para chats, Mercado Libre y llamadas basta con reconocer el tipo de captura: el texto puede ser ilegible o estar cortado y no necesita mencionar una entrega. Un domicilio visible es suficiente aunque no se vea numeración, persona ni paquete. No exijas contexto que vincule la imagen con una entrega ni una persona receptora. La poca luz, el desenfoque o el recorte solo justifican DUDOSA cuando son tan severos que impiden reconocer cualquier elemento útil. Respondé DUDOSA únicamente si la imagen completa es inutilizable o no permite distinguir qué muestra. No uses ILEGIBLE solo porque no pueda leerse el texto de una captura. No infieras datos ni repitas textos, nombres, teléfonos o direcciones. El motivo debe ser breve, concreto y sin datos personales." },
-        { type: "input_image", image_url: `data:${mime};base64,${base64}`, detail: "low" },
+        { type: "input_text", text: instruccion },
+        { type: "input_image", image_url: `data:${mime};base64,${base64}`, detail: detalle },
       ] }],
       text: { format: { type: "json_schema", name: "calidad_evidencia", strict: true, schema: {
         type: "object", additionalProperties: false,
@@ -219,11 +248,21 @@ async function analizarFoto(buffer: ArrayBuffer, mime: string, modelo: string): 
   if (!["ACEPTABLE", "DUDOSA"].includes(resultado.calidad) || !tipos.includes(resultado.tipo_problema) ||
       typeof resultado.motivo !== "string" || typeof resultado.confianza !== "number") throw new Error("respuesta_modelo_invalida");
   const usage = (cuerpo.usage ?? {}) as Record<string, unknown>;
+  const calidad = resultado.calidad;
   return {
-    ...resultado, motivo: resultado.motivo.replace(/\s+/g, " ").trim().slice(0, 500),
+    ...resultado,
+    calidad,
+    tipo_problema: calidad === "ACEPTABLE"
+      ? "NINGUNO"
+      : resultado.tipo_problema === "NINGUNO" ? "OTRO" : resultado.tipo_problema,
+    motivo: resultado.motivo.replace(/\s+/g, " ").trim().slice(0, 500),
     confianza: Math.max(0, Math.min(1, resultado.confianza)),
     tokensEntrada: Number(usage.input_tokens) || null, tokensSalida: Number(usage.output_tokens) || null,
   };
+}
+
+function sumarTokens(a: number | null, b: number | null): number | null {
+  return a == null && b == null ? null : (a ?? 0) + (b ?? 0);
 }
 
 function extraerTexto(cuerpo: Record<string, unknown>): string {

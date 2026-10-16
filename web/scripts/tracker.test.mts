@@ -2133,13 +2133,12 @@ test("con las tablas cargadas no se avisa nada", async (t) => {
   assert.deepEqual(datos.tablasFaltantes, []);
 });
 
-test("un solo botón actualiza paquetes y después posiciones", () => {
+test("un solo botón inicia paquetes y posiciones en paralelo", () => {
   const panel = readFileSync(new URL("../src/components/LiveTracker.tsx", import.meta.url), "utf8");
 
-  // Paquetes primero: la de posiciones conserva a quienes aparecen por sus
-  // pendientes, así que al revés un repartidor recién sumado quedaría sin
-  // posición hasta la próxima pasada.
-  assert.match(panel, /for \(const cual of \["paquetes", "posiciones"\] as const\)/);
+  // La consulta larga de paquetes no puede impedir que siquiera se inicie la
+  // actualización rápida de posiciones.
+  assert.match(panel, /Promise\.all\([\s\S]*\["paquetes", "posiciones"\] as const/);
   assert.equal((panel.match(/className=\{estilos\.sync\}/g) ?? []).length, 1, "tiene que haber un solo botón");
   assert.doesNotMatch(panel, />\s*Actualizar (posiciones|paquetes)\s*</);
 

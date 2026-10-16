@@ -339,9 +339,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   histórica controlada puede enviar `idMotoboy` y `fechaOperacion` directos;
   la entrada diaria normal resuelve el teléfono contra `asistencia_contactos`.
 - El live tracker tiene **un solo botón, Actualizar**: corre la sincronización
-  de paquetes y después la de posiciones —en ese orden, para que un
-  repartidor recién sumado salga con posición en la misma pasada—, sigue con
-  la segunda aunque la primera falle y relee la jornada una vez al final. Los
+  de paquetes y posiciones en paralelo para que la consulta larga de paquetes
+  no demore el inicio de posiciones. Cada flujo maneja su propio error y lock;
+  la pantalla relee la jornada una vez al final. Los
   dos endpoints siguen separados.
 - La sincronización de paquetes hace una **reconciliación completa del día**, no un
   refresco de lo guardado. La consulta del flujo 09 no lleva ningún
@@ -459,6 +459,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Algunas fotos vienen de la base con la barra de Windows
   (`Firma/202609\014d2c0.jpeg`). `files.rapiboy.com` las sirve igual, pero el
   modelo escapa la barra y rompe el enlace: `enlaceFoto()` las manda con `/`.
+- Evidencias se analizan primero con detalle bajo. Solo una `DUDOSA` se vuelve a
+  evaluar de manera independiente con detalle alto, y únicamente queda como
+  alerta si ambas pasadas coinciden. Se acumulan los tokens de las dos llamadas;
+  una `ACEPTABLE` siempre se persiste con tipo `NINGUNO`.
 - Colectas: `asignacion_colectas` y `colectas_realizadas` leen las mismas
   tablas que la pantalla, sin dirección, teléfono, correo ni precios.
 - Va con `fetch` a OpenAI, como el resumen de seguimiento. Modelo en

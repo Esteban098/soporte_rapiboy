@@ -69,10 +69,14 @@ el historial no vuelve a exponer imágenes.
 
 ## Modelo, costo y decisión humana
 
-Se envía una imagen por llamada, con detalle `low`, JSON estricto y hasta 180
-tokens de salida. Antes se aplican deduplicación, máximo configurable por
-corrida, allowlist HTTPS, límite de bytes y MIME JPEG/PNG/WebP. Se guardan los
-tokens de entrada/salida para medir consumo, no el contenido. El costo se puede
+Cada imagen se evalúa primero con detalle `low`, JSON estricto y hasta 180
+tokens de salida. Solo cuando esa primera pasada devuelve `DUDOSA` se hace una
+segunda evaluación independiente con detalle `high`; la alerta se conserva
+únicamente si esa verificación también la considera dudosa. Antes se aplican
+deduplicación, máximo configurable por corrida, allowlist HTTPS, límite de bytes
+y MIME JPEG/PNG/WebP. Se guardan los
+tokens acumulados de ambas llamadas para medir consumo, no el contenido. Así el
+costo de alta resolución se paga solo en posibles alertas. El costo se puede
 limitar bajando `maximo_por_corrida` o eligiendo otro
 `OPENAI_MODELO_EVIDENCIAS` compatible.
 
