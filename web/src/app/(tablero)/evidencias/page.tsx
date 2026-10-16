@@ -28,6 +28,6 @@ export default async function Evidencias() {
       <Kpi etiqueta="Driver sin resolver" valor={String(sinDriver)} nota="no entra al score" tono={sinDriver ? "warning" : "neutral"} />
       <Kpi etiqueta="Modo" valor={panel.config.modo === "OBSERVACION" ? "Observación" : "Activo"} nota="alertas y score según configuración" />
     </div>
-    <PanelEvidencias pendientesHoy={panel.pendientesHoy} pendientesAnteriores={panel.pendientesAnteriores} scores={panel.scores} config={panel.config} admin={admin} />
+    <PanelEvidencias pendientesHoy={panel.pendientesHoy} pendientesAnteriores={panel.pendientesAnteriores} revisadasRecientes={panel.revisadasRecientes} scores={panel.scores} config={panel.config} admin={admin} />
   </>;
 }

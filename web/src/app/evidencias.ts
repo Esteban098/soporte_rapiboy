@@ -20,6 +20,18 @@ export async function revisarEvidencia(id: string, decision: DecisionEvidencia, 
   return { ok: true } as const;
 }
 
+export async function reabrirEvidencia(id: string) {
+  const operador = await operadorActual();
+  if (!operador) return { ok: false, error: "No tenés permiso." } as const;
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return { ok: false, error: "Datos inválidos." } as const;
+  const actualizada = await ejecutarRpc<boolean>("evidencia_entrega_reabrir", {
+    p_id: id, p_reabierta_por: operador.email,
+  });
+  if (!actualizada) return { ok: false, error: "Ya no se puede reabrir esta evidencia." } as const;
+  revalidatePath("/evidencias");
+  return { ok: true } as const;
+}
+
 export async function actualizarConfiguracionEvidencias(datos: {
   modo: "OBSERVACION" | "ACTIVO"; minimo: number; maximo: number;
 }) {

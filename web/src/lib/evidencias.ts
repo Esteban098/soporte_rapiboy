@@ -55,6 +55,7 @@ type RevisionFila = {
   decision_humana: DecisionEvidencia | null;
   revisada_por: string | null;
   revisada_en: string | null;
+  comentario_revision: string | null;
 };
 
 type ResultadoVision = {
@@ -77,6 +78,10 @@ export type EvidenciaPanel = {
   confianza: number | null;
   observacion: boolean;
   fotoUrl: string | null;
+  decision: DecisionEvidencia | null;
+  revisadaPor: string | null;
+  revisadaEn: string | null;
+  comentarioRevision: string | null;
 };
 
 export type ScoreDriver = {
@@ -281,28 +286,38 @@ function extraerTexto(cuerpo: Record<string, unknown>): string {
 export async function cargarPanelEvidencias(): Promise<{
   pendientesHoy: EvidenciaPanel[];
   pendientesAnteriores: EvidenciaPanel[];
+  revisadasRecientes: EvidenciaPanel[];
   scores: ScoreDriver[];
   config: Configuracion;
 }> {
-  const [pendientes, scores, configFilas, drivers] = await Promise.all([
+  const [pendientes, revisadas, scores, configFilas, drivers] = await Promise.all([
     consultarTodo<RevisionFila>(TABLA_EVIDENCIAS_REVISION, { estado_proceso: "eq.PENDIENTE_REVISION" }, "evidencia_en.desc"),
+    consultarFresco<RevisionFila>(TABLA_EVIDENCIAS_REVISION, {
+      estado_proceso: "eq.REVISADA", vence_en: `gt.${new Date().toISOString()}`,
+      order: "revisada_en.desc", limit: "50",
+    }),
     consultarFresco<Record<string, unknown>>(VISTA_EVIDENCIAS_SCORE, { order: "proporcion_malas.desc", limit: "200" }),
     consultarFresco<Configuracion>(TABLA_EVIDENCIAS_CONFIG, { id: "eq.true", limit: "1" }),
     consultarFresco<{ id_motoboy: number; nombre: string | null }>(TABLA_DRIVERS_ACTIVOS, { select: "id_motoboy,nombre", limit: "1000" }).catch(() => []),
   ]);
   const nombres = new Map(drivers.map((d) => [Number(d.id_motoboy), d.nombre?.trim() || `Driver #${d.id_motoboy}`]));
-  const urls = await firmarArchivos(BUCKET_EVIDENCIAS, pendientes.flatMap((p) => p.foto_ruta ? [p.foto_ruta] : []), 900);
-  const paneles = pendientes.map((p) => ({
+  const filasConFoto = [...pendientes, ...revisadas];
+  const urls = await firmarArchivos(BUCKET_EVIDENCIAS, filasConFoto.flatMap((p) => p.foto_ruta ? [p.foto_ruta] : []), 900);
+  const aPanel = (p: RevisionFila): EvidenciaPanel => ({
     id: p.id, idViaje: Number(p.id_viaje), idMotoboy: p.id_motoboy == null ? null : Number(p.id_motoboy),
     driver: p.driver_evento || (p.id_motoboy ? nombres.get(Number(p.id_motoboy)) : null) || "Driver sin resolver",
     evidenciaEn: p.evidencia_en, tipoProblema: p.tipo_problema_modelo, motivo: p.motivo_modelo || "Sin detalle",
     confianza: p.confianza_modelo == null ? null : Number(p.confianza_modelo), observacion: p.modo_observacion,
     fotoUrl: p.foto_ruta ? urls.get(p.foto_ruta) ?? null : null,
-  }));
+    decision: p.decision_humana, revisadaPor: p.revisada_por, revisadaEn: p.revisada_en,
+    comentarioRevision: p.comentario_revision,
+  });
+  const paneles = pendientes.map(aPanel);
   const hoy = diaEvidencias();
   return {
     pendientesHoy: paneles.filter((p) => diaEvidencias(new Date(p.evidenciaEn)) === hoy),
     pendientesAnteriores: paneles.filter((p) => diaEvidencias(new Date(p.evidenciaEn)) !== hoy),
+    revisadasRecientes: revisadas.map(aPanel),
     scores: scores.map((s) => ({
       idMotoboy: Number(s.id_motoboy), driver: nombres.get(Number(s.id_motoboy)) || `Driver #${s.id_motoboy}`,
       total: Number(s.total_revisadas), confirmadas: Number(s.problemas_confirmados), descartadas: Number(s.falsos_positivos),

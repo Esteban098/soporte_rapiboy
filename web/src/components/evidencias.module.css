@@ -20,6 +20,9 @@
 .acciones button:nth-child(2), .acciones button:nth-child(3) { background: #eef1f4; color: #172b4d; }
 .acciones a { color: inherit; font-weight: 650; }
 .mensaje { font-size: 13px; color: #166534; }
+.confirmacion { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; padding: 10px; border: 1px solid #f1c75b; border-radius: 8px; background: #fff8dd; color: #5f4300; }
+.confirmacion button { border: 0; border-radius: 7px; padding: 7px 10px; cursor: pointer; }
+.confirmacion button:first-of-type { background: #172b4d; color: white; }
 .vacio { padding: 22px 0; color: #667085; }
 .anterior { background: var(--panel, #fff); border: 1px solid var(--border, #ddd); border-radius: 14px; padding: 16px 20px; }
 .anterior summary { cursor: pointer; font-weight: 750; }

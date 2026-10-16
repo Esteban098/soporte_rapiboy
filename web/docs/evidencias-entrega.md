@@ -27,7 +27,8 @@ actual del viaje.
 
 1. Ejecutar `supabase/migracion-38-evidencias-entrega.sql` en Supabase. En una
    instalación que ya la ejecutó, aplicar después
-   `supabase/migracion-41-evidencias-valor-probatorio.sql`.
+   `supabase/migracion-41-evidencias-valor-probatorio.sql` y
+   `supabase/migracion-45-evidencias-reabrir.sql`.
 2. Configurar `OPENAI_API_KEY`, `EVIDENCIAS_WEBHOOK_SECRET`,
    `OPENAI_MODELO_EVIDENCIAS`, `EVIDENCIAS_ORIGEN_HOSTS` y
    `EVIDENCIAS_MAX_BYTES`. `EVIDENCIAS_ORIGEN_HOSTS` debe contener el host real
@@ -83,6 +84,12 @@ limitar bajando `maximo_por_corrida` o eligiendo otro
 `DUDOSA` señala que la imagen completa no permite reconocer una evidencia útil;
 no demuestra fraude ni una entrega incorrecta. Soporte confirma, descarta o marca inconclusa.
 No se avisa al comprador, seller o driver, ni se aplican sanciones automáticas.
+
+Antes de guardar una decisión la interfaz exige una segunda confirmación. Las
+últimas 50 revisadas permanecen visibles mientras su copia operativa exista y
+pueden volver a pendientes durante esos siete días. Cada revisión y reapertura
+queda registrada en `evidencias_entrega_decisiones`, sin fotografía ni URL; así
+corregir un clic accidental no elimina la trazabilidad.
 
 ### Criterio de utilidad visual
 

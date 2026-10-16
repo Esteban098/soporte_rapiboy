@@ -14,7 +14,9 @@ assert.equal(extensionDeMime("image/svg+xml"), null);
 const flujo = await readFile(new URL("../../n8n/19-revision-evidencias-entrega.json", import.meta.url), "utf8");
 const migracion = await readFile(new URL("../supabase/migracion-38-evidencias-entrega.sql", import.meta.url), "utf8");
 const migracionValorProbatorio = await readFile(new URL("../supabase/migracion-41-evidencias-valor-probatorio.sql", import.meta.url), "utf8");
+const migracionReapertura = await readFile(new URL("../supabase/migracion-45-evidencias-reabrir.sql", import.meta.url), "utf8");
 const modelo = await readFile(new URL("../src/lib/evidencias.ts", import.meta.url), "utf8");
+const panel = await readFile(new URL("../src/components/PanelEvidencias.tsx", import.meta.url), "utf8");
 const proxy = await readFile(new URL("../src/proxy.ts", import.meta.url), "utf8");
 
 for (const fragmento of ["U.IdLocalidad = 9", "U.IdModalidad IN (5, 7)", "DriverEvento", "H.Foto", "H.Fecha >= @InicioUtc", "H.Fecha < @FinUtc", "Claves ya vistas hoy"]) {
@@ -52,5 +54,10 @@ const analizador = modelo.slice(modelo.indexOf("async function analizarFoto"), m
 assert.ok(!analizador.includes("SOLO_PAQUETE") && !analizador.includes("SIN_CONTEXTO_DE_ENTREGA"), "el modelo nuevo no debe rechazar fotos solo por falta de contexto de entrega");
 assert.ok(migracionValorProbatorio.includes("SOLO_PAQUETE") && migracionValorProbatorio.includes("SIN_CONTEXTO_DE_ENTREGA"));
 assert.ok(proxy.includes('ruta.startsWith("/api/evidencias/")'), "el webhook debe omitir la sesión y validar su propio Bearer");
+assert.ok(migracionReapertura.includes("evidencias_entrega_decisiones") && migracionReapertura.includes("evidencia_entrega_reabrir"));
+assert.ok(migracionReapertura.includes("estado_proceso = 'PENDIENTE_REVISION'") && migracionReapertura.includes("'REAPERTURA'"));
+assert.ok(!/foto_ruta|foto_mime|foto_bytes|url/i.test(migracionReapertura.slice(migracionReapertura.indexOf("create table"), migracionReapertura.indexOf("create index"))), "la auditoría de decisiones no guarda fotos ni URLs");
+assert.ok(modelo.includes("revisadasRecientes") && panel.includes("Volver a pendientes"));
+assert.ok(panel.includes("¿Guardar como") && panel.includes("Sí, guardar"), "una decisión debe exigir confirmación");
 
 console.log("✓ ventana México, retención, atribución histórica y límites del modelo");

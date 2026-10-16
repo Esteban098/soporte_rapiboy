@@ -3,13 +3,14 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { actualizarConfiguracionEvidencias, revisarEvidencia } from "@/app/evidencias";
+import { actualizarConfiguracionEvidencias, reabrirEvidencia, revisarEvidencia } from "@/app/evidencias";
 import type { DecisionEvidencia, EvidenciaPanel, ScoreDriver } from "@/lib/evidencias";
 import { ETIQUETA_HORA_PLATAFORMA, ZONA_PLATAFORMA } from "@/lib/zona-horaria";
 import estilos from "./evidencias.module.css";
 
-export function PanelEvidencias({ pendientesHoy, pendientesAnteriores, scores, config, admin }: {
+export function PanelEvidencias({ pendientesHoy, pendientesAnteriores, revisadasRecientes, scores, config, admin }: {
   pendientesHoy: EvidenciaPanel[]; pendientesAnteriores: EvidenciaPanel[]; scores: ScoreDriver[];
+  revisadasRecientes: EvidenciaPanel[];
   config: { modo: "OBSERVACION" | "ACTIVO"; minimo_muestra_score: number; maximo_por_corrida: number };
   admin: boolean;
 }) {
@@ -25,6 +26,11 @@ export function PanelEvidencias({ pendientesHoy, pendientesAnteriores, scores, c
       <p>Se conservan hasta siete días para completar su revisión. Las imágenes vencidas se eliminan; el historial sin foto se mantiene para auditoría.</p>
       <div className={estilos.grilla}>{pendientesAnteriores.map((item) => <Caso key={item.id} item={item} />)}</div>
     </details> : null}
+    <details className={estilos.anterior}>
+      <summary>Revisadas recientemente ({revisadasRecientes.length})</summary>
+      <p>Se muestran las últimas 50 mientras la copia de la foto siga disponible. Podés devolver cualquiera a pendientes; la decisión anterior y la reapertura quedan auditadas.</p>
+      {revisadasRecientes.length ? <div className={estilos.grilla}>{revisadasRecientes.map((item) => <CasoRevisado key={item.id} item={item} />)}</div> : <p className={estilos.vacio}>Todavía no hay revisiones recientes.</p>}
+    </details>
     <section className={estilos.card}>
       <h2>Evidencias confirmadas por driver · últimos 30 días</h2>
       <p>Solo los problemas confirmados cuentan como malos. Sin sanciones automáticas.</p>
@@ -39,6 +45,7 @@ export function PanelEvidencias({ pendientesHoy, pendientesAnteriores, scores, c
 
 function Caso({ item }: { item: EvidenciaPanel }) {
   const [comentario, setComentario] = useState(""); const [mensaje, setMensaje] = useState("");
+  const [porConfirmar, setPorConfirmar] = useState<DecisionEvidencia | null>(null);
   const [pendiente, iniciar] = useTransition(); const router = useRouter();
   function decidir(decision: DecisionEvidencia) {
     iniciar(async () => { const r = await revisarEvidencia(item.id, decision, comentario); setMensaje(r.ok ? "Revisión guardada." : r.error); if (r.ok) router.refresh(); });
@@ -49,10 +56,31 @@ function Caso({ item }: { item: EvidenciaPanel }) {
       <p><b>{item.tipoProblema?.replaceAll("_", " ")}</b> · {item.motivo}</p>
       <p className={estilos.detalle}>Confianza {item.confianza == null ? "—" : `${Math.round(item.confianza * 100)}%`} · {new Date(item.evidenciaEn).toLocaleString("es-AR", { timeZone: ZONA_PLATAFORMA })} {ETIQUETA_HORA_PLATAFORMA}{item.observacion ? " · observación" : ""}</p>
       <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} maxLength={1000} placeholder="Comentario opcional" />
-      <div className={estilos.acciones}><button disabled={pendiente} onClick={() => decidir("CONFIRMADA")}>Confirmar problema</button><button disabled={pendiente} onClick={() => decidir("DESCARTADA")}>Descartar</button><button disabled={pendiente} onClick={() => decidir("INCONCLUSA")}>Inconclusa</button>{item.fotoUrl ? <a href={item.fotoUrl} target="_blank" rel="noreferrer">Abrir evidencia</a> : null}</div>
+      <div className={estilos.acciones}><button disabled={pendiente} onClick={() => setPorConfirmar("CONFIRMADA")}>Confirmar problema</button><button disabled={pendiente} onClick={() => setPorConfirmar("DESCARTADA")}>Descartar</button><button disabled={pendiente} onClick={() => setPorConfirmar("INCONCLUSA")}>Inconclusa</button>{item.fotoUrl ? <a href={item.fotoUrl} target="_blank" rel="noreferrer">Abrir evidencia</a> : null}</div>
+      {porConfirmar ? <div className={estilos.confirmacion} role="alert"><span>¿Guardar como <strong>{etiquetaDecision(porConfirmar)}</strong>?</span><button disabled={pendiente} onClick={() => decidir(porConfirmar)}>Sí, guardar</button><button disabled={pendiente} onClick={() => setPorConfirmar(null)}>Cancelar</button></div> : null}
       {mensaje ? <p className={estilos.mensaje}>{mensaje}</p> : null}
     </div>
   </article>;
+}
+
+function CasoRevisado({ item }: { item: EvidenciaPanel }) {
+  const [mensaje, setMensaje] = useState("");
+  const [pendiente, iniciar] = useTransition();
+  const router = useRouter();
+  return <article className={estilos.caso}>
+    {item.fotoUrl ? <a href={item.fotoUrl} target="_blank" rel="noreferrer"><Image src={item.fotoUrl} alt={`Evidencia del viaje ${item.idViaje}`} width={360} height={240} unoptimized /></a> : <div className={estilos.sinFoto}>Vista previa no disponible</div>}
+    <div className={estilos.cuerpo}>
+      <div className={estilos.meta}><strong>Viaje #{item.idViaje}</strong><span>{item.driver}{item.idMotoboy ? ` · #${item.idMotoboy}` : ""}</span></div>
+      <p><b>{item.decision ? etiquetaDecision(item.decision) : "Revisada"}</b>{item.comentarioRevision ? ` · ${item.comentarioRevision}` : ""}</p>
+      <p className={estilos.detalle}>{item.revisadaEn ? new Date(item.revisadaEn).toLocaleString("es-AR", { timeZone: ZONA_PLATAFORMA }) : "—"} {ETIQUETA_HORA_PLATAFORMA}{item.revisadaPor ? ` · ${item.revisadaPor}` : ""}</p>
+      <div className={estilos.acciones}><button disabled={pendiente} onClick={() => iniciar(async () => { const r = await reabrirEvidencia(item.id); setMensaje(r.ok ? "Devuelta a pendientes." : r.error); if (r.ok) router.refresh(); })}>Volver a pendientes</button>{item.fotoUrl ? <a href={item.fotoUrl} target="_blank" rel="noreferrer">Abrir evidencia</a> : null}</div>
+      {mensaje ? <p className={estilos.mensaje}>{mensaje}</p> : null}
+    </div>
+  </article>;
+}
+
+function etiquetaDecision(decision: DecisionEvidencia): string {
+  return ({ CONFIRMADA: "problema confirmado", DESCARTADA: "descartada", INCONCLUSA: "inconclusa" } as const)[decision];
 }
 
 function Configuracion({ config }: { config: { modo: "OBSERVACION" | "ACTIVO"; minimo_muestra_score: number; maximo_por_corrida: number } }) {
