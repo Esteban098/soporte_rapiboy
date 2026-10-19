@@ -452,10 +452,12 @@ function columnasDe(tabla: string): string[] {
     .filter((c) => !["primary", "unique", "constraint"].includes(c));
 }
 
-test("el flujo se importa apagado, con credenciales por referencia y en hora de México", () => {
+test("el flujo se importa apagado, con credenciales por referencia y agenda en hora de Argentina", () => {
   const texto = JSON.stringify(FLUJO);
   assert.equal(FLUJO.active, false);
-  assert.equal(FLUJO.settings.timezone, "America/Mexico_City");
+  // n8n agenda en Argentina. El nodo de operación convierte explícitamente
+  // las fechas de México y la consulta al reloj de RapiboyData.
+  assert.equal(FLUJO.settings.timezone, "America/Argentina/Buenos_Aires");
   assert.ok(!/password|apikey|api_key|service_role|secret/i.test(texto));
   for (const n of FLUJO.nodes) {
     for (const cred of Object.values(n.credentials ?? {})) {

@@ -562,6 +562,29 @@ La consulta se limita al `IdUsuario` que el servidor encontró por teléfono; el
 único valor interpolado es ese entero confiable y el ID de viaje validado. No se
 acepta texto de WhatsApp como SQL. Solo se seleccionan estado, ID y fechas; no
 se envían teléfono, domicilio, coordenadas ni datos de destinatarios al LLM.
+El bot solo procesa números con una coincidencia única contra un seller activo;
+un número desconocido o ambiguo queda fuera del workflow del LLM. La excepción
+de pruebas exige un número y un seller activo configurados expresamente. Aunque
+el mensaje mencione un TrackingID válido, la consulta siempre filtra por el
+`IdUsuario` asociado al número y el ID exacto del paquete. Un envío de otra
+tienda no devuelve datos. Si el número no se puede vincular, el servidor envía
+un aviso fijo y deja la conversación pendiente para soporte, sin pasar el texto
+por SQL ni por el LLM. Si un TrackingID no existe dentro de la tienda
+vinculada, el workflow envía un aviso de seguridad y deriva el chat antes de
+llamar al modelo. Si la tienda pide evidencia, el workflow busca la última foto
+cargada en `HistorialViaje.Foto` para ese viaje y solo comparte enlaces HTTPS de
+`files.rapiboy.com`. El enlace se excluye del contexto del LLM; si no existe uno
+verificable, el bot deriva el caso a soporte.
+Cuando responde una consulta de estado o información de un TrackingID
+verificado, también adjunta el portal de envíos de la tienda:
+https://rapiboy.com/MisEnvios/Index#.
+Si en un mismo mensaje solicita información del paquete y su evidencia, la
+respuesta incluye en un solo envío el estado actual, el día de entrega (si
+figura en el historial), quién recibió (si está registrado), el enlace de la
+última foto verificada y el portal. Los datos ausentes se indican como “Sin
+registrar”; la fecha se toma del último evento `Entregado` y el receptor de
+`Viaje.NombreRecibe`. La rama de evidencia usa los mismos datos verificados y
+no depende de que el LLM los repita.
 El texto de la tienda se envía al modelo tras ocultar teléfonos, correos y
 enlaces; los demás datos que la tienda incluya en su mensaje aún pueden formar
 parte de esa consulta. El LLM conversa en forma general durante la beta; usa los paquetes como contexto
@@ -571,6 +594,18 @@ puede pedirlo, pero no deriva automáticamente. Conserva los límites técnicos 
 privacidad y no afirma haber realizado acciones. Next.js entrega a n8n los
 últimos ocho mensajes previos del mismo chat, descifrados en servidor; el
 workflow omite teléfonos, correos y enlaces antes de enviar el contexto a OpenAI.
+Al consultar el estado, reutiliza el último TrackingID explícito de la tienda
+si el mensaje actual dice “¿en qué estado está?” sin repetirlo. Con un ID
+detectado, SQL busca ese viaje exacto y siempre dentro de la tienda vinculada.
+Sin ID, la lista de hasta 30 paquetes recientes es parcial: el bot no debe
+interpretar que un paquete no existe por no aparecer en esa lista. Si una
+búsqueda exacta no devuelve una coincidencia de esa tienda, debe decir que no
+pudo confirmar el estado y pedir revisar el número, sin afirmar que el paquete
+no existe.
+Las instrucciones del bot van como mensaje `system` y el historial y mensaje de
+la tienda como `user`. La derivación es falsa por defecto: saludos, preguntas
+generales y pedidos de ayuda no pasan a soporte; solo se escala ante una petición
+explícita de una persona o una operación que requiere intervención operativa.
 La cola se recupera cada minuto y procesa un evento por iteración para mantener
 vinculados sus datos. En **Procesar un evento por vez** (Loop Over Items), la
 salida **loop** debe conectar con **Reclamar y descifrar evento**; la salida

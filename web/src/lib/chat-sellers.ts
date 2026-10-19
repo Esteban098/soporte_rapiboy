@@ -503,6 +503,23 @@ export async function responderComoBot(
   return enviarMensaje(chat, texto, "bot", null, tipo, eventoId);
 }
 
+/** Aviso fijo para un número no vinculado; nunca consulta datos ni llama al LLM. */
+export async function responderAvisoVinculacion(
+  conversacionId: string,
+  eventoId: string,
+): Promise<{ ok: boolean; error?: string; omitido?: boolean; ventanaCerrada?: boolean }> {
+  const chats = await consultarFresco<FilaChat>("seller_chat_conversaciones", {
+    id: `eq.${conversacionId}`,
+    limit: "1",
+  });
+  const chat = chats[0];
+  if (!chat || chat.seller_id !== null || chat.estado !== "pendiente" || chat.asignado_a !== null) {
+    return { ok: false, error: "El contacto ya no espera validación de seller." };
+  }
+  const texto = "No pude validar que este número esté asociado a una tienda activa de Rapiboy. Por seguridad, no puedo consultar paquetes hasta confirmar la vinculación. Ya derivé tu caso a soporte; una persona del equipo continuará por este chat.";
+  return enviarMensaje(chat, texto, "bot", null, "pendiente", eventoId);
+}
+
 export async function escalarChat(conversacionId: string): Promise<boolean> {
   return ejecutarRpc<boolean>("seller_chat_escalar", { p_conversacion_id: conversacionId });
 }

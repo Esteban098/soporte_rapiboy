@@ -1,4 +1,4 @@
-import { escalarChat, responderComoBot } from "@/lib/chat-sellers";
+import { escalarChat, responderAvisoVinculacion, responderComoBot } from "@/lib/chat-sellers";
 import { autorizadoN8n, jsonLimitado } from "@/lib/chat-interno";
 import { consultarFresco, ejecutarRpc } from "@/lib/supabase";
 
@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     conversacionId?: unknown;
     texto?: unknown;
     derivar?: unknown;
+    sinVincular?: unknown;
   } | null;
   const eventId = typeof entrada?.eventId === "string" ? entrada.eventId.trim() : "";
   const conversacionId = typeof entrada?.conversacionId === "string" ? entrada.conversacionId : "";
@@ -28,6 +29,22 @@ export async function POST(request: Request) {
     });
     if (eventos[0]?.conversacion_id !== conversacionId || eventos[0]?.estado !== "procesando") {
       return Response.json({ ok: false, error: "El evento no pertenece a esta conversación o ya no está reclamado." }, { status: 409 });
+    }
+
+    if (entrada.sinVincular === true) {
+      if (entrada.derivar !== true) return Response.json({ ok: false }, { status: 400 });
+      // El texto y la derivación son fijos en servidor: un contacto no vinculado
+      // nunca recibe contenido generado por el LLM ni datos de paquetes.
+      const resultado = await responderAvisoVinculacion(conversacionId, eventId);
+      if (resultado.ventanaCerrada) {
+        await ejecutarRpc("seller_chat_evento_finalizar", { p_proveedor_id: eventId });
+        return Response.json({ ok: true, omitido: true, derivado: true });
+      }
+      await ejecutarRpc("seller_chat_evento_finalizar", {
+        p_proveedor_id: eventId,
+        p_error_codigo: resultado.ok ? null : "envio_fallido",
+      });
+      return Response.json(resultado, { status: resultado.ok ? 200 : 502 });
     }
 
     let modo: "bot" | "pendiente" = "bot";

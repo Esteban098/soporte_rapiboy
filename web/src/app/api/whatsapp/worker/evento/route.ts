@@ -53,8 +53,20 @@ export async function POST(request: Request) {
     const conversacion = conversaciones[0];
     if (!mensaje || !conversacion) throw new Error("referencia_inexistente");
 
-    // En cola solo procesa el bot para sellers reconocidos. Los números no
-    // vinculados y contenidos no textuales quedan disponibles para atención humana.
+    // Un contacto no vinculado nunca recibe datos ni pasa por el LLM. Se permite
+    // únicamente el aviso fijo de vinculación mientras espera a soporte.
+    if (!conversacion.seller_id && conversacion.estado === "pendiente") {
+      return Response.json({
+        ok: true,
+        eventoId: eventId,
+        conversacionId: conversacion.id,
+        estado: conversacion.estado,
+        sellerId: null,
+        sinVincular: true,
+      }, { headers: { "cache-control": "no-store" } });
+    }
+    // Los chats tomados por una persona y cualquier estado inesperado quedan
+    // fuera del bot.
     if (conversacion.estado !== "bot" || !conversacion.seller_id) {
       await ejecutarRpc("seller_chat_evento_finalizar", { p_proveedor_id: eventId });
       return Response.json({ ok: true, omitido: true, estado: conversacion.estado });

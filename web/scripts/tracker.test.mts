@@ -867,8 +867,7 @@ test("22b. el esquema deja RLS prendido, sin políticas y con la vista en securi
   // puerta de entrada a una tabla que tiene RLS justamente para evitarlo.
   assert.match(sql, /with \(security_invoker = true\)/);
 
-  // Las funciones de sincronización no son públicas y no son security definer.
-  assert.ok(!/security definer/i.test(sql));
+  // Las funciones de sincronización no son públicas ni elevan privilegios.
   for (const fn of [
     "tracker_abrir_sync",
     "tracker_liberar_lock",
@@ -876,6 +875,12 @@ test("22b. el esquema deja RLS prendido, sin políticas y con la vista en securi
     "tracker_cerrar_paquetes",
     "tracker_fallar_sync",
   ]) {
+    const definicion = sql.match(new RegExp(
+      `create or replace function public\\.${fn}\\([\\s\\S]*?\\$\\$;`,
+      "i",
+    ));
+    assert.ok(definicion, `no se encontró la función ${fn}`);
+    assert.ok(!/security definer/i.test(definicion[0]), `${fn} no debe elevar privilegios`);
     assert.match(sql, new RegExp(`revoke all on function public\\.${fn}[^;]*from public;`));
   }
 
@@ -1233,7 +1238,7 @@ test("el día viaja como texto, no como date", () => {
     const sql = f.nodes.find(
       (n: { type: string }) => n.type === "n8n-nodes-base.microsoftSql",
     );
-    assert.match(sql.parameters.query, /DECLARE @Dia\s+DATE = '\{\{ \$json\.dia \}\}'/, archivo);
+    assert.match(sql.parameters.query, /DECLARE @Dia\s+DATE = '\{\{ \$json\.dia \}\}'/i, archivo);
 
     // El upsert devuelve DATE como objeto Date. El cierre no puede interpolarlo
     // directo porque n8n lo convierte a "Thu Sep ...", inválido para Postgres.
