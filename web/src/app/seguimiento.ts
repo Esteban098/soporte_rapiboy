@@ -8,7 +8,6 @@ import {
   TABLA_SEGUIMIENTO,
 } from "@/lib/config";
 import { notificarMenciones } from "@/lib/notificaciones";
-import { resumirComentario } from "@/lib/resumen";
 import { operadorActual, usuarioActual } from "@/lib/sesion";
 import {
   ESTADOS,
@@ -35,7 +34,7 @@ import {
  *
  * A diferencia de `casos.ts`, acá se escribe todo: esta tabla es del equipo y
  * n8n no la mira. Por eso también es la única que guarda texto libre y
- * archivos, y la única que llama a un servicio de afuera.
+ * archivos.
  */
 
 export type Resultado = { ok: true } | { ok: false; error: string };
@@ -160,12 +159,7 @@ async function responsablesDelCaso(
   };
 }
 
-/**
- * Guarda un reporte.
- *
- * Si el modelo no responde se guarda igual, sin resumen: ver `lib/resumen.ts`.
- * El comentario es el dato; el resumen es una comodidad.
- */
+/** Guarda el comentario original del reporte y sus responsables. */
 export async function crearSeguimiento(datos: DatosReporte): Promise<Resultado> {
   const quien = await usuarioActual();
   if (!quien) return { ok: false, error: "No tenés permiso para cargar reportes." };
@@ -193,10 +187,7 @@ export async function crearSeguimiento(datos: DatosReporte): Promise<Resultado> 
     return { ok: false, error: `Se pueden adjuntar hasta ${MAX_ARCHIVOS} archivos.` };
   }
 
-  const [resumen, encontrados] = await Promise.all([
-    resumirComentario(comentario),
-    responsablesDelCaso(casoId),
-  ]);
+  const encontrados = await responsablesDelCaso(casoId);
   const responsables = {
     driver: driver || encontrados.driver,
     seller: seller || encontrados.seller,
@@ -209,7 +200,6 @@ export async function crearSeguimiento(datos: DatosReporte): Promise<Resultado> 
     id,
     caso_id: casoId,
     comentario_original: comentario,
-    resumen_llm: resumen,
     archivos,
     estado: "abierto",
     creado_por: quien,
@@ -254,7 +244,7 @@ export async function reportesDelCaso(casoId: string): Promise<Previo> {
   return {
     total: filas.length,
     ultimo: {
-      texto: ultimo.resumen ?? ultimo.comentario,
+      texto: ultimo.comentario,
       estado: etapaDe(ultimo),
       cuando: ultimo.creado?.toISOString() ?? null,
     },
@@ -264,9 +254,7 @@ export async function reportesDelCaso(casoId: string): Promise<Previo> {
 /**
  * Corrige un reporte ya cargado.
  *
- * El resumen se rehace siempre que cambie el comentario: un resumen que
- * describe un texto que ya no está es peor que no tener resumen, porque se lee
- * igual de confiado. Los adjuntos no se tocan acá; para cambiarlos, se borra el
+ * Los adjuntos no se tocan acá; para cambiarlos, se borra el
  * reporte y se carga de nuevo.
  */
 export async function editarSeguimiento(id: string, datos: DatosReporte): Promise<Resultado> {
@@ -289,8 +277,7 @@ export async function editarSeguimiento(id: string, datos: DatosReporte): Promis
   }
 
   // El comentario anterior hace falta para avisar solo a las menciones nuevas.
-  const [resumen, encontrados, anterior] = await Promise.all([
-    resumirComentario(comentario),
+  const [encontrados, anterior] = await Promise.all([
     responsablesDelCaso(casoId),
     leerFila<FilaSeguimiento>(TABLA_SEGUIMIENTO, id),
   ]);
@@ -302,7 +289,6 @@ export async function editarSeguimiento(id: string, datos: DatosReporte): Promis
   const falla = await actualizarFila(TABLA_SEGUIMIENTO, id, {
     caso_id: casoId,
     comentario_original: comentario,
-    resumen_llm: resumen,
     ...responsables,
   });
   if (falla) return { ok: false, error: falla };

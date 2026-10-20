@@ -237,7 +237,6 @@ test("a OpenAI viajan nombres, no correos", () => {
     driver: null,
     seller: null,
     comentario: "Recuperar",
-    resumen: null,
     archivos: [],
     estado: "abierto",
     abiertoEn: null,

@@ -36,7 +36,6 @@ export type Seguimiento = {
   driver: string | null;
   seller: string | null;
   comentario: string;
-  resumen: string | null;
   archivos: string[];
   estado: EstadoSeguimiento;
   /** Inicio del período abierto actual; se reinicia si el caso se reabre. */
@@ -56,7 +55,6 @@ export type FilaSeguimiento = {
   driver: string | null;
   seller: string | null;
   comentario_original: string | null;
-  resumen_llm: string | null;
   archivos: string[] | null;
   estado: string | null;
   abierto_en: string | null;
@@ -90,7 +88,6 @@ export function parsearSeguimiento(fila: FilaSeguimiento): Seguimiento {
     driver: fila.driver?.trim() || null,
     seller: fila.seller?.trim() || null,
     comentario: (fila.comentario_original ?? "").trim(),
-    resumen: fila.resumen_llm?.trim() || null,
     archivos: (fila.archivos ?? []).filter(Boolean),
     estado: estado(fila.estado),
     abiertoEn: fecha(fila.abierto_en) ?? fecha(fila.created_at),

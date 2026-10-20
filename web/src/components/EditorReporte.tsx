@@ -80,8 +80,7 @@ export function EditorReporte({
       <div className={estilos.panel}>
         <h2 className={estilos.titulo}>Reporte del caso {reporte.casoId}</h2>
         <p className={estilos.nota}>
-          Lo cargó {reporte.creadoPor}. Al cambiar el comentario se rehace el resumen: uno que
-          describa un texto que ya no está se lee igual de confiado y por eso no puede quedar.
+          Lo cargó {reporte.creadoPor}.
         </p>
 
         <label className={estilos.campo}>

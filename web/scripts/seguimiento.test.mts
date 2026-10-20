@@ -27,7 +27,6 @@ function fila(cambios: Partial<FilaSeguimiento> = {}): FilaSeguimiento {
     driver: " Driver Uno ",
     seller: " Seller Uno ",
     comentario_original: "No pudo entregarse",
-    resumen_llm: null,
     archivos: [],
     estado: "abierto",
     abierto_en: "2026-09-07T06:00:00.000Z",
@@ -41,6 +40,14 @@ function fila(cambios: Partial<FilaSeguimiento> = {}): FilaSeguimiento {
 function reporte(id: string, creado: string | null): Seguimiento {
   return parsearSeguimiento(fila({ id, created_at: creado }));
 }
+
+// Una fila antigua con resumen no reemplaza el comentario original ni lo expone.
+const conResumenLegado = parsearSeguimiento({
+  ...fila({ comentario_original: "Comentario completo del equipo con @esteban" }),
+  ...{ resumen_llm: "Texto generado antiguo" },
+});
+assert.equal(conResumenLegado.comentario, "Comentario completo del equipo con @esteban");
+assert.ok(!("resumen" in conResumenLegado));
 
 // Un valor legado `tomado` en la columna estado sigue siendo trabajo pendiente.
 const legado = parsearSeguimiento(fila({ estado: "tomado" }));

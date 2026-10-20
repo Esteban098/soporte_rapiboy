@@ -595,9 +595,9 @@ export function canceladoParaModelo(cancelado: Cancelado) {
   };
 }
 
-/** El comentario original puede ser largo; el resumen, si hay, alcanza. */
+/** Limita el comentario original para acotar la respuesta de la herramienta. */
 export function reporteParaModelo(reporte: Seguimiento) {
-  const cuerpo = reporte.resumen ?? reporte.comentario;
+  const cuerpo = reporte.comentario;
   return {
     enlace_reporte: `/seguimiento?reporte=${reporte.id}`,
     caso_id: reporte.casoId,

@@ -258,18 +258,7 @@ export function claveTomTom(): string | null {
   return process.env.TOMTOM_API_KEY?.trim() || null;
 }
 
-/** Sin API key, los reportes se guardan sin resumen automático. */
-export function openaiConfig(): { clave: string; modelo: string } | null {
-  const clave = process.env.OPENAI_API_KEY?.trim();
-  if (!clave) return null;
-  return { clave, modelo: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini" };
-}
-
-/**
- * El asistente usa la misma clave pero su propio modelo: resumir dos oraciones
- * y elegir entre cinco herramientas son trabajos distintos, y un modelo chico
- * se equivoca de herramienta.
- */
+/** Configuración del asistente; comparte la clave con la revisión de evidencias. */
 export function asistenteConfig(): { clave: string; modelo: string } | null {
   const clave = process.env.OPENAI_API_KEY?.trim();
   if (!clave) return null;

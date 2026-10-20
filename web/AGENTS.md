@@ -133,6 +133,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   quedan vacíos, se buscan en Mensual o Histórico. `abierto_en` se reinicia al
   reabrir y el tiempo de resolución es la diferencia hasta `atendido_en`.
   Instalar `supabase/migracion-04-seguimiento-semanal.sql` en bases existentes.
+  Los reportes muestran y buscan solo el comentario original: no generar ni
+  utilizar resúmenes automáticos al crear, editar, previsualizar o consultar
+  desde el asistente. La migración 46 retira la columna heredada `resumen_llm`
+  después de desplegar la web; no elimina comentarios ni reportes.
 - El **live tracker** vive en sus tablas operativas —`tracker_drivers`,
   `tracker_paquetes`, `tracker_sincronizaciones`, `tracker_demoras`— y no toca ninguna de las
   anteriores. Es la foto de la jornada en curso, no un histórico: la clave de
@@ -488,7 +492,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   una `ACEPTABLE` siempre se persiste con tipo `NINGUNO`.
 - Colectas: `asignacion_colectas` y `colectas_realizadas` leen las mismas
   tablas que la pantalla, sin dirección, teléfono, correo ni precios.
-- Va con `fetch` a OpenAI, como el resumen de seguimiento. Modelo en
+- Va con `fetch` a OpenAI. Modelo en
   `OPENAI_MODELO_ASISTENTE` (por defecto `gpt-5-mini`); los modelos de
   razonamiento no aceptan `temperature` ni `max_tokens`. Cada respuesta deja
   en el log quién preguntó y los tokens usados.

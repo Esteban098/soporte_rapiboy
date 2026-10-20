@@ -36,14 +36,8 @@ create table if not exists public.seguimiento (
   driver              text,
   seller              text,
 
-  -- El comentario tal cual se escribió. No se toca nunca: es la fuente, y el
-  -- resumen es una lectura de esto.
+  -- Comentario original que carga y edita el equipo.
   comentario_original text not null,
-
-  -- El resumen del modelo. Nullable porque puede fallar la API, faltar la clave
-  -- o vencer el tiempo de espera, y nada de eso puede impedir que el reporte se
-  -- guarde: el dato que importa es el comentario.
-  resumen_llm         text,
 
   -- Rutas dentro del bucket, NO URLs. Las URLs firmadas vencen, así que
   -- guardarlas dejaría la tabla llena de links muertos en una hora; el tablero

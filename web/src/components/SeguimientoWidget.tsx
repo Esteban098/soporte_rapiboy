@@ -307,7 +307,7 @@ function IconoChat() {
   );
 }
 
-/** El giro dice que algo está pasando: la subida y el resumen tardan. */
+/** Indica que la subida de archivos o el guardado siguen en curso. */
 function Girando() {
   return (
     <svg className={estilos.girando} width="13" height="13" viewBox="0 0 16 16" aria-hidden="true">

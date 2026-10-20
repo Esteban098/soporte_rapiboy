@@ -543,7 +543,7 @@ async function reportesSeguimiento(args: Record<string, unknown>) {
       (!caso || r.casoId === caso) &&
       (!persona || [r.creadoPor, r.tomadoPor, r.atendidoPor].some((correo) => contiene(correo, persona))) &&
       (!buscado ||
-        [r.comentario, r.resumen, r.driver, r.seller].some((campo) => contiene(campo, buscado))),
+        [r.comentario, r.driver, r.seller].some((campo) => contiene(campo, buscado))),
   );
 
   const muestra = recortar(filtrados, limite(args));

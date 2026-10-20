@@ -112,7 +112,6 @@ export function TableroSeguimiento({
         reporte.driver,
         reporte.seller,
         reporte.comentario,
-        reporte.resumen,
         reporte.creadoPor,
         reporte.tomadoPor,
       ].some((valor) => (valor ?? "").toLowerCase().includes(texto));
@@ -456,8 +455,6 @@ function Tarjeta({
   const mio = Boolean(yo) && reporte.tomadoPor === yo;
   const puedeSoltar = mio || admin;
   const minutos = ahora === null ? null : minutosAbierto(reporte, ahora);
-  // El resumen es una comodidad; si falta se muestra el original, que es el dato.
-  const texto = desplegada ? reporte.comentario : (reporte.resumen ?? reporte.comentario);
 
   return (
     <article
@@ -492,7 +489,7 @@ function Tarjeta({
       </div>
 
       <p className={`${estilos.texto} ${desplegada ? "" : estilos.textoRecortado}`}>
-        <TextoConMenciones texto={texto} yo={yo} />
+        <TextoConMenciones texto={reporte.comentario} yo={yo} />
       </p>
 
       {reporte.driver || reporte.seller ? (

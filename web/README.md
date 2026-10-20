@@ -1054,7 +1054,7 @@ o mes calendario, a elección, con el calendario de Ciudad de México— es un
 carril plegable con tres columnas de color: **Abierto** (rojo), **Tomado**
 (índigo) y **Cerrado** (verde). Arriba hay un resumen con la proporción por
 etapa, y filtros por texto y por responsable (míos, sin tomar o una persona).
-Cada tarjeta muestra el caso, el resumen, driver y seller, cuánto lleva abierto
+Cada tarjeta muestra el caso, el comentario original, driver y seller, cuánto lleva abierto
 —ámbar desde 24 h, rojo desde 3 días— y un avatar de color por persona.
 
 Lo que conviene saber:
@@ -1069,13 +1069,11 @@ Lo que conviene saber:
 - **Las tarjetas no se arrastran.** Tomar y cerrar escriben en la base y dejan
   firmado quién lo hizo; un arrastre accidental no debería poder hacer eso.
 
-- **El resumen es opcional.** Con `OPENAI_API_KEY` cargada, cada comentario
-  largo pasa por el modelo (`OPENAI_MODEL`, por defecto `gpt-4o-mini`) y se
-  guarda un resumen de dos oraciones. Sin clave, con la API caída o con un
-  timeout, el reporte se guarda igual sin resumen y la tabla muestra el
-  comentario original. El dato que importa es lo que escribió la persona; el
-  resumen es una comodidad para leer la cola de un vistazo. Los comentarios de
-  menos de 120 caracteres no se resumen: ya son su propio resumen.
+- **Se utiliza el comentario original.** Crear o editar un reporte no llama a
+  OpenAI. Las tarjetas, búsquedas, avisos de reportes previos y consultas del
+  asistente usan lo que escribió el equipo. Para retirar la columna antigua
+  de resúmenes, ejecutar `supabase/migracion-46-seguimiento-sin-resumen.sql`
+  después de desplegar esta versión; se conservan reportes y comentarios.
 - **Los adjuntos van a un bucket privado, subidos desde el navegador.** El
   servidor no los toca: firma una URL de subida por archivo —válida para esa
   ruta y nada más— y el navegador manda el archivo directo a Supabase. Es lo que
@@ -1209,7 +1207,7 @@ devuelve como mucho 50 filas, y el log del servidor anota por respuesta quién
 preguntó y cuántos tokens usó (`[asistente]`). Conviene fijar además un límite
 mensual en la cuenta de OpenAI (Settings ▸ Limits).
 
-Usa la misma `OPENAI_API_KEY` que el resumen de seguimiento; sin ella la
+Usa la misma `OPENAI_API_KEY` que la revisión de evidencias; sin ella la
 pestaña aparece y explica que falta configurarla.
 
 **Uso y costo, para el administrador.** Al pie de *Perfiles* está **Uso del
