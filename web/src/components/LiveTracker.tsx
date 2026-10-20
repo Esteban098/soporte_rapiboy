@@ -30,6 +30,7 @@ import { ControlLluvia, useLluvia } from "./Lluvia";
 import { AtribucionTomTom, ControlesTomTom, useCiclo } from "./Trafico";
 import { REFRESCO_TRAFICO_MS } from "@/lib/trafico";
 import { NombreTienda } from "./ColorTiendas";
+import { Kpi } from "./Card";
 import { caminos, proyectar } from "@/lib/cobertura";
 import { horaArgentina } from "@/lib/formato";
 import estilos from "./live-tracker.module.css";
@@ -797,10 +798,10 @@ function EstadisticasTracker({
         <input className={estilos.buscador} value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar driver o zona" aria-label="Buscar en estadísticas" />
       </div>
       <div className={estilos.kpis}>
-        <Cifra etiqueta="Paquetes entregados" valor={entregados.length} />
-        <Cifra etiqueta="Paquetes en ruta" valor={paquetes.filter((p) => p.activo_en_ruta).length} />
-        <Cifra etiqueta="Drivers" valor={porDriver.length} />
-        <Cifra etiqueta="Tasa global" valor={`${paquetes.length ? Math.round((entregados.length / paquetes.length) * 100) : 0}%`} />
+        <Kpi etiqueta="Paquetes entregados" valor={String(entregados.length)} />
+        <Kpi etiqueta="Paquetes en ruta" valor={String(paquetes.filter((p) => p.activo_en_ruta).length)} />
+        <Kpi etiqueta="Drivers" valor={String(porDriver.length)} />
+        <Kpi etiqueta="Tasa global" valor={`${paquetes.length ? Math.round((entregados.length / paquetes.length) * 100) : 0}%`} />
       </div>
       <div className={estilos.graficosGrid}>
         <div className={estilos.grafico}><h2>Entregas por driver</h2><div className={estilos.barras}>{porDriver.slice(0, 8).map((fila) => <div className={estilos.barraFila} key={fila.driver.id}><span>{fila.driver.nombre}</span><i style={{ width: `${(fila.entregas / maxEntregasDriver) * 100}%` }} /><b>{fila.entregas}</b></div>)}</div></div>

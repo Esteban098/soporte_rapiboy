@@ -17,11 +17,11 @@
   align-items: center;
   gap: 9px;
 
-  background: var(--warning);
+  background: var(--warning-solid);
   /* Tinta oscura fija: el amarillo es claro en los dos temas, así que el texto
      no puede seguir al tema o se pierde en el modo oscuro. */
   color: var(--warning-ink);
-  border: 1px solid var(--warning);
+  border: 1px solid var(--warning-solid);
   border-bottom: none;
   border-radius: var(--radio) var(--radio) 0 0;
   box-shadow: 0 -2px 16px -6px rgba(176, 122, 30, 0.55), var(--shadow);
@@ -30,7 +30,7 @@
   font-family: var(--sans);
   font-weight: 600;
   font-size: 12.5px;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em + var(--tracking-boost));
   cursor: pointer;
   transition:
     filter var(--dur-corta) var(--ease),
@@ -89,7 +89,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 10px 14px 9px;
-  background: var(--warning);
+  background: var(--warning-solid);
   color: var(--warning-ink);
   /* Se queda arriba si el panel scrollea. */
   position: sticky;
@@ -99,9 +99,9 @@
 
 .titulo {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--heading);
   font-weight: 600;
-  letter-spacing: -0.022em;
+  letter-spacing: calc(-0.022em + var(--tracking-boost));
   font-size: 14px;
   color: inherit;
 }
@@ -159,7 +159,7 @@
 .etiqueta {
   display: block;
   font-size: 13px;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em + var(--tracking-boost));
   color: var(--ink-2);
   margin-bottom: 5px;
 }
@@ -285,7 +285,7 @@
   font-family: var(--sans);
   font-weight: 500;
   font-size: 12.5px;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em + var(--tracking-boost));
   cursor: pointer;
   transition:
     background-color var(--dur-corta) var(--ease),

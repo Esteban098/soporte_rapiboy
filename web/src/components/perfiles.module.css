@@ -17,7 +17,7 @@
 .etiqueta {
   display: block;
   font-size: 13px;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em + var(--tracking-boost));
   color: var(--ink-2);
   margin-bottom: 5px;
 }
@@ -46,12 +46,12 @@
   background: var(--accent);
   border: 0;
   border-radius: var(--radio-3);
-  color: #fff;
+  color: var(--on-primary);
   padding: 7px 15px;
   font-family: var(--sans);
   font-weight: 500;
   font-size: 12.5px;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em + var(--tracking-boost));
   cursor: pointer;
   transition:
     background-color var(--dur-corta) var(--ease),

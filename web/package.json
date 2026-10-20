@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:tema": "node --import tsx scripts/tema.test.mts",
     "test:devoluciones": "node --import tsx scripts/devoluciones.test.mts",
     "dev": "next dev",
     "build": "next build",

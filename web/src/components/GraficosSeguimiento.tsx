@@ -1,9 +1,10 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { etapaDe, nombreDePersona, type Seguimiento } from "@/lib/seguimiento";
 import { numero } from "@/lib/formato";
-import { CajaTooltip } from "./charts/Tooltip";
+import { CajaTooltip, Leyenda } from "./charts/Tooltip";
+import { ArcoDistribucion } from "./charts/ArcoDistribucion";
 import estilos from "./seguimiento-graficos.module.css";
 
 const COLORES_ETAPA = {
@@ -55,21 +56,10 @@ export function GraficosSeguimiento({ reportes }: { reportes: Seguimiento[] }) {
       <div className={estilos.grilla}>
         <article className={estilos.grafico}>
           <h3>Estado de los casos</h3>
-          {distribucion.length ? (
-            <ResponsiveContainer width="100%" height={210}>
-              <PieChart>
-                <Tooltip content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null;
-                  const dato = payload[0].payload as { etiqueta: string; casos: number };
-                  return <CajaTooltip titulo={dato.etiqueta} lineas={[{ etiqueta: "Casos", valor: numero(dato.casos) }]} />;
-                }} />
-                <Pie data={distribucion} dataKey="casos" nameKey="etiqueta" cx="50%" cy="50%" innerRadius={60} outerRadius={83} paddingAngle={4} cornerRadius={9} stroke="none">
-                  {distribucion.map((dato) => <Cell key={dato.etapa} fill={COLORES_ETAPA[dato.etapa]} />)}
-                </Pie>
-                <text x="50%" y="47%" textAnchor="middle" className={estilos.anilloValor}>{numero(reportes.length)}</text>
-                <text x="50%" y="59%" textAnchor="middle" className={estilos.anilloEtiqueta}>casos</text>
-              </PieChart>
-            </ResponsiveContainer>
+          {distribucion.length ? (<>
+            <ArcoDistribucion total={reportes.length} unidad="casos" datos={distribucion.map((dato) => ({ nombre: dato.etiqueta, valor: dato.casos, color: COLORES_ETAPA[dato.etapa] }))} />
+            <Leyenda series={distribucion.map((dato) => ({ nombre: dato.etiqueta, color: COLORES_ETAPA[dato.etapa] }))} />
+          </>
           ) : <p className={estilos.vacio}>No hay casos con este filtro.</p>}
         </article>
         <GraficoBarras titulo="Cerrados por tienda" datos={porTienda} color="var(--chart-secondary)" />

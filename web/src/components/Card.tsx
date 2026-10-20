@@ -1,5 +1,6 @@
 import type { ColorEstado } from "@/lib/estados";
 import estilos from "./ui.module.css";
+import { ValorMetrica } from "./ValorMetrica";
 
 export function Card({
   titulo,
@@ -90,10 +91,10 @@ export function Kpi({
     : "";
 
   return (
-    <div className={`${estilos.kpi} ${claseFondo}`}>
+    <div className={`${estilos.kpi} ${tono === "good" ? estilos.kpiToneGood : tono === "bad" ? estilos.kpiToneBad : tono === "warning" ? estilos.kpiToneWarning : ""} ${claseFondo}`}>
       <span className={estilos.kpiIcono} aria-hidden="true">{iconoDe(etiqueta)}</span>
       <div className={estilos.kpiLabel}>{etiqueta}</div>
-      <div className={`${estilos.kpiValue} ${claseValor}`}>{valor}</div>
+      <div className={`${estilos.kpiValue} ${claseValor}`}><ValorMetrica valor={valor} /></div>
       {nota ? <div className={estilos.kpiNote}>{nota}</div> : null}
     </div>
   );
@@ -129,9 +130,8 @@ export function TextoEstado({ estado, color }: { estado: string; color: ColorEst
 }
 
 /**
- * Caso cerrado o abierto. Es la única pill del proyecto: resuelto contra
- * pendiente es la métrica que la operación mira primero, así que conviene que
- * salte a la vista por encima del resto.
+ * Caso cerrado o abierto: resuelto contra pendiente conserva su propio color
+ * y degradado semántico dentro de la familia de cápsulas del sistema.
  */
 export function ChipCaso({ cerrado }: { cerrado: boolean }) {
   return (

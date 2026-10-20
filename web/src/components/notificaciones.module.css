@@ -46,8 +46,8 @@
   padding: 0 4px;
   border: 2px solid var(--glass);
   border-radius: var(--radio-3);
-  background: var(--critical);
-  color: #ffffff;
+  background: linear-gradient(120deg, var(--critical), color-mix(in srgb, var(--critical) 88%, #000));
+  color: var(--on-critical);
   font-size: 9.5px;
   font-weight: 700;
   line-height: 1;
@@ -83,7 +83,7 @@
   margin: 0;
   font-size: 13px;
   font-weight: 650;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em + var(--tracking-boost));
   color: var(--ink);
 }
 

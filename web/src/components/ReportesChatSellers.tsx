@@ -3,6 +3,7 @@
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ReporteChats } from "@/lib/chat-sellers";
 import estilos from "./chat-admin.module.css";
+import { Kpi } from "./Card";
 
 function duracion(segundos: number | null): string {
   if (segundos == null || !Number.isFinite(segundos)) return "—";
@@ -40,7 +41,7 @@ export function ReportesChatSellers({ reporte }: { reporte: ReporteChats }) {
       }}>Exportar CSV</button>
     </div>
     <section className={estilos.kpis} aria-label="Resumen del período">
-      {kpis.map(([etiqueta, valor]) => <article className={estilos.kpi} key={etiqueta}><span>{etiqueta}</span><strong>{valor.toLocaleString("es-AR")}</strong></article>)}
+      {kpis.map(([etiqueta, valor]) => <Kpi key={etiqueta} etiqueta={etiqueta} valor={valor.toLocaleString("es-AR")} />)}
     </section>
     <section className={estilos.tiempos} aria-label="Tiempos promedio">
       {tiempos.map(([etiqueta, valor]) => <article className={estilos.tiempo} key={etiqueta}><span>{etiqueta}</span><strong>{duracion(valor)}</strong></article>)}

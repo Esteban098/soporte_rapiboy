@@ -27,7 +27,7 @@
   font-family: var(--sans);
   font-weight: 600;
   font-size: 12.5px;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em + var(--tracking-boost));
   cursor: pointer;
   transition:
     filter var(--dur-corta) var(--ease),
@@ -128,12 +128,14 @@
   display: inline-block;
   margin-left: 6px;
   padding: 1px 6px;
-  border: 1px solid currentColor;
+  border: 1px solid color-mix(in srgb, var(--fuchsia) 75%, var(--surface));
+  background: linear-gradient(120deg, var(--fuchsia), color-mix(in srgb, var(--fuchsia) 84%, #000));
+  color: var(--on-fuchsia);
   border-radius: 999px;
   font-family: var(--sans);
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: calc(0.04em + var(--tracking-boost));
   text-transform: uppercase;
   vertical-align: middle;
   opacity: 0.85;
@@ -146,9 +148,9 @@
 
 .titulo {
   margin: 0;
-  font-family: var(--display);
+  font-family: var(--heading);
   font-weight: 600;
-  letter-spacing: -0.022em;
+  letter-spacing: calc(-0.022em + var(--tracking-boost));
   font-size: 14px;
   color: inherit;
 }

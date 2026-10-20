@@ -66,11 +66,19 @@ test("Esteban es azul y Candelaria rosa, y son distintos", () => {
   assert.match(CANDE.color, /--tienda-candelaria/);
   assert.notEqual(ESTEBAN.color, CANDE.color);
 
-  // Las variables tienen que existir en los tres bloques del tema: claro,
-  // oscuro por sistema y oscuro elegido a mano.
-  const css = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
-  assert.equal([...css.matchAll(/--tienda-esteban:/g)].length, 3);
-  assert.equal([...css.matchAll(/--tienda-candelaria:/g)].length, 3);
+  // Oscuro y claro comparten tokens; «Sistema» selecciona una de esas paletas.
+  const css = readFileSync(new URL("../src/app/theme.css", import.meta.url), "utf8");
+  const esteban = [...css.matchAll(/--tienda-esteban:\s*#([\da-f]{6})/g)];
+  const cande = [...css.matchAll(/--tienda-candelaria:\s*#([\da-f]{6})/g)];
+  assert.equal(esteban.length, 2);
+  assert.equal(cande.length, 2);
+  for (let i = 0; i < 2; i++) {
+    const rgb = (hex: string) => [0, 2, 4].map((inicio) => parseInt(hex.slice(inicio, inicio + 2), 16));
+    const [r, g, b] = rgb(esteban[i][1]);
+    assert.ok(b > r && b > g, "Esteban conserva el azul");
+    const [cr, cg, cb] = rgb(cande[i][1]);
+    assert.ok(cr > cg && cb > cg, "Candelaria conserva el rosa");
+  }
 });
 
 test("el dueño se encuentra por nombre o por cualquiera de sus alias", () => {

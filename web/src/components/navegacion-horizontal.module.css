@@ -1,4 +1,5 @@
-.nav{display:flex;gap:4px;margin:0 0 18px;padding:5px;border:1px solid var(--rule);border-radius:13px;background:var(--surface);overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;box-shadow:0 5px 18px color-mix(in srgb,var(--ink) 4%,transparent)}
-.nav a{padding:9px 14px;border-radius:9px;color:var(--ink-2);font-size:13px;font-weight:650;text-decoration:none;white-space:nowrap;transition:background var(--dur-corta) var(--ease),color var(--dur-corta) var(--ease)}
-.nav a:hover,.nav .activa{background:var(--primary-container);color:var(--on-primary-container)}
+.nav{display:flex;gap:6px;margin:0 0 18px;padding:0 0 4px;border-bottom:1px solid var(--rule);overflow-x:auto;overflow-y:hidden;scrollbar-width:thin}
+.nav a{padding:11px 14px;border-radius:10px 10px 0 0;border-bottom:2px solid transparent;color:var(--ink-2);font-size:13px;font-weight:600;text-decoration:none;white-space:nowrap;transition:background var(--dur-corta) var(--ease),color var(--dur-corta) var(--ease)}
+.nav a:hover{background:var(--surface-2);color:var(--ink)}
+.nav .activa{border-bottom-color:var(--primary);background:color-mix(in srgb,var(--primary) 5%,transparent);color:var(--primary)}
 @media(max-width:620px){.nav{margin-bottom:14px;padding:4px}.nav a{padding:8px 11px;font-size:12px}}

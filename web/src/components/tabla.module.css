@@ -14,7 +14,7 @@
 
 .filtroEtiqueta {
   font-size: var(--type-label-md);
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em + var(--tracking-boost));
   color: var(--ink-2);
 }
 
@@ -196,7 +196,7 @@
 
 .masFilas {
   margin-top: 14px;
-  background: var(--surface-2);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--primary) 15%, var(--surface-2)), var(--surface-2));
   border: 0;
   border-radius: var(--radio-3);
   padding: 6px 12px;
@@ -204,7 +204,7 @@
   font-family: var(--sans);
   font-weight: 500;
   font-size: 12px;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em + var(--tracking-boost));
   color: var(--accent);
   transition:
     background-color var(--dur-corta) var(--ease),
@@ -294,7 +294,7 @@
 .ocultasBadge {
   font-weight: 600;
   font-size: 11px;
-  background: var(--accent-soft);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--primary) 25%, var(--surface-2)), color-mix(in srgb, var(--primary) 8%, var(--surface-2)));
   color: var(--accent-ink);
   border-radius: var(--radio-3);
   padding: 1px 6px;
@@ -349,7 +349,7 @@
   cursor: pointer;
   font-family: var(--sans);
   font-size: 13px;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em + var(--tracking-boost));
   color: var(--accent);
 }
 
@@ -445,7 +445,7 @@
   font-family: var(--sans);
   font-weight: 500;
   font-size: 12px;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em + var(--tracking-boost));
   color: var(--on-primary);
   cursor: pointer;
   white-space: nowrap;

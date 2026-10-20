@@ -40,11 +40,27 @@
   font-size: var(--rail-rotulo);
   font-weight: 500;
   letter-spacing: var(--rail-tracking);
-  background: var(--surface-3);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--fuchsia) 13%, var(--surface-3)), var(--surface-3));
   border-radius: var(--radio-3);
   padding: 3px 10px;
   color: var(--muted);
   transition: color var(--dur-corta) var(--ease);
+}
+
+.icono { display: none; flex: none; }
+
+@media (min-width: 901px) {
+  :global(html[data-menu="corto"]) .boton {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+  }
+  :global(html[data-menu="corto"]) .icono { display: block; }
+  :global(html[data-menu="corto"]) .nombre,
+  :global(html[data-menu="corto"]) .salir { display: none; }
 }
 
 .boton:hover .salir {

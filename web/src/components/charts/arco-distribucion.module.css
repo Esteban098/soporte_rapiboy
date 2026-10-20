@@ -1,0 +1,4 @@
+.marco { position: relative; width: 100%; min-width: 0; height: 255px; container-type: inline-size; }
+.centro { position: absolute; left: 50%; top: 68%; display: grid; justify-items: center; gap: 2px; transform: translate(-50%, -50%); pointer-events: none; }
+.centro strong { color: var(--ink); font-family: var(--metric-font); font-size: clamp(23px, 10cqi, 31px); font-weight: 400; font-synthesis: none; line-height: 1; white-space: nowrap; }
+.centro > span { color: var(--muted); font-size: 11px; line-height: 1.2; }

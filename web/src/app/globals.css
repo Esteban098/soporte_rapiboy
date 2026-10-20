@@ -1,333 +1,4 @@
-/* Liquid Glass: superficies DOM translúcidas y reflejos de borde.
-   Los colores semánticos permanecen independientes del material. */
-
-:root {
-  color-scheme: light;
-
-  /* Semilla de marca. Los roles de color se derivan de este único valor para
-     que cambiar la identidad visual no obligue a perseguir hexadecimales por
-     cada componente. */
-  --seed: #5e5ce6;
-  --primary: var(--seed);
-  --on-primary: #ffffff;
-  --primary-container: color-mix(in srgb, var(--seed) 14%, white);
-  --on-primary-container: color-mix(in srgb, var(--seed) 78%, black);
-  --secondary: #14b8a6;
-  --secondary-container: color-mix(in srgb, var(--secondary) 14%, white);
-  --tertiary: #8b5e34;
-  --tertiary-container: color-mix(in srgb, var(--tertiary) 14%, white);
-  --outline: rgba(0, 0, 0, 0.22);
-
-  /* Escala tipográfica compartida. */
-  --type-display-lg: clamp(2.15rem, 3.4vw, 3.25rem);
-  --type-headline-md: clamp(1.4rem, 2vw, 1.75rem);
-  --type-title-lg: 1.125rem;
-  --type-title-md: 0.9375rem;
-  --type-body-lg: 0.875rem;
-  --type-body-md: 0.875rem;
-  --type-label-md: 0.75rem;
-
-  --plane: #f5f5f7;
-  --surface: #ffffff;
-  --surface-2: #f2f2f7;
-  --surface-3: #e6e6eb;
-
-  /* La barra lateral es del mismo papel que el resto, apenas translúcida: la
-     jerarquía la da el filete y el desenfoque, no un bloque de color. */
-  --rail: rgba(255, 255, 255, 0.72);
-  --rail-2: rgba(0, 0, 0, 0.045);
-  --rail-ink: #43434a;
-  --rail-ink-alta: #1d1d1f;
-  --rail-ink-dim: #8a8a8f;
-
-  --ink: #1d1d1f;
-  --ink-2: #55555c;
-  --muted: #86868b;
-
-  --rule: rgba(0, 0, 0, 0.09);
-  --rule-soft: rgba(0, 0, 0, 0.055);
-
-  --accent: var(--primary);
-  --accent-ink: var(--on-primary-container);
-  --accent-soft: var(--primary-container);
-  /* Paleta única para gráficas: índigo de marca, turquesa y rosa. */
-  --chart-primary: var(--dashboard-indigo);
-  --chart-secondary: var(--serie-2);
-  --chart-tertiary: var(--serie-3);
-  --serie-2: #14cdbf;
-  --serie-3: #ee9fc1;
-  --dashboard-indigo: #5e5ce6;
-  --dashboard-indigo-soft: color-mix(in srgb, var(--dashboard-indigo) 14%, var(--surface));
-
-  --good: #248a3d;
-  --good-soft: rgba(52, 199, 89, 0.14);
-  --warning: #ffe600;
-  --warning-soft: rgba(229, 245, 12, 0.16);
-  /* Texto, bordes y glifos sobre un fondo amarillo lleno. */
-  --warning-ink: #21180a;
-  --critical: #d70015;
-  --critical-soft: rgba(255, 59, 48, 0.11);
-
-  --grid: rgba(0, 0, 0, 0.07);
-  --axis: rgba(0, 0, 0, 0.22);
-
-  /*
-   * Una sola capa, chica. Había dos —un filo de contacto y una difusa y muy
-   * abierta— y el navegador rasteriza cada capa por separado: con una tarjeta
-   * o un KPI en cada esquina de la pantalla, duplicar la sombra duplica ese
-   * costo en cada una. Una capa alcanza para leer que algo está apoyado.
-   */
-  --segmento-activo: #ffffff;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  --shadow-alta: 0 2px 7px rgba(0, 0, 0, 0.12);
-  --radio: 18px;
-  --radio-2: 11px;
-  --radio-3: 999px;
-
-  /* ---- movimiento ----
-     Una sola curva para todo lo que entra y otra para lo que responde al
-     puntero. Son largas y sin rebote: el gesto se siente continuo en vez de
-     saltar, que es lo que separa una animación de un cambio de estado. */
-  --ease: cubic-bezier(0.28, 0.11, 0.32, 1);
-  --ease-salida: cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-corta: 0.2s;
-  --dur: 0.4s;
-  --dur-larga: 0.75s;
-
-  /* Un color por estado del paquete, pedido por la operación. */
-  --caso-cerrado: #248a3d;
-  --caso-cerrado-fondo: rgba(52, 199, 89, 0.14);
-  --caso-abierto: #d70015;
-  --caso-abierto-fondo: rgba(255, 59, 48, 0.11);
-  --caso-tomado: #5e5ce6;
-  --caso-tomado-fondo: rgba(94, 92, 230, 0.12);
-  --caso-demorado: #b25000;
-
-  --estado-entregado: #248a3d;
-  --estado-entregado-fondo: rgba(52, 199, 89, 0.14);
-  --estado-devuelto: #0a7d6d;
-  --estado-devuelto-fondo: rgba(48, 191, 164, 0.15);
-  --estado-devolucion: #ffe600;
-  --estado-devolucion-fondo: rgba(255, 159, 10, 0.16);
-  --estado-deposito: #0071e3;
-  --estado-deposito-fondo: rgba(0, 113, 227, 0.11);
-  --estado-retirado: #0f7a91;
-  --estado-retirado-fondo: rgba(50, 173, 230, 0.15);
-  --estado-pararetirar: #7d51c7;
-  --estado-pararetirar-fondo: rgba(169, 108, 245, 0.14);
-  --estado-siniestrado: #a2571c;
-  --estado-siniestrado-fondo: rgba(196, 130, 63, 0.16);
-  --estado-noentregado: #d70015;
-  --estado-noentregado-fondo: rgba(255, 59, 48, 0.11);
-  --estado-cancelado: #6c6c70;
-  --estado-cancelado-fondo: rgba(108, 108, 112, 0.13);
-
-  /* De quién es cada tienda: Grupo A de Esteban, Grupo B de Candelaria. */
-  --tienda-esteban: #1f5fd6;
-  --tienda-candelaria: #d6337f;
-
-  /* SF Pro. Los fallbacks son el mismo diseño resuelto por el sistema: en un
-     Mac o un iPhone la cara nativa entra sin descargar nada. */
-  --sans: var(--fuente-sans), -apple-system, BlinkMacSystemFont, "SF Pro Text",
-    "Helvetica Neue", system-ui, sans-serif;
-  --display: var(--fuente-display), -apple-system, BlinkMacSystemFont,
-    "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-
-    --plane: #000000;
-    --surface: #1c1c1e;
-    --surface-2: #2c2c2e;
-    --surface-3: #3a3a3c;
-
-    --rail: rgba(28, 28, 30, 0.72);
-    --rail-2: rgba(255, 255, 255, 0.07);
-    --rail-ink: #c7c7cc;
-    --rail-ink-alta: #f5f5f7;
-    --rail-ink-dim: #8e8e93;
-
-    --ink: #f5f5f7;
-    --ink-2: #aeaeb2;
-    --muted: #8e8e93;
-
-    --rule: rgba(255, 255, 255, 0.1);
-    --rule-soft: rgba(255, 255, 255, 0.06);
-
-    --primary-container: color-mix(in srgb, var(--seed) 28%, #1c1c1e);
-    --on-primary-container: color-mix(in srgb, var(--seed) 42%, white);
-    --accent: var(--seed);
-    --accent-ink: var(--on-primary-container);
-    --accent-soft: var(--primary-container);
-    --serie-2: #24d9c8;
-    --serie-3: #ffaccd;
-
-    --good: #30d158;
-    --good-soft: rgba(48, 209, 88, 0.18);
-    --warning: #ffe600;
-    --warning-soft: rgba(229, 245, 12, 0.18);
-    --warning-ink: #21180a;
-    --critical: #ff453a;
-    --critical-soft: rgba(255, 69, 58, 0.16);
-
-    --grid: rgba(255, 255, 255, 0.08);
-    --axis: rgba(255, 255, 255, 0.28);
-
-    --segmento-activo: #5b5b60;
-    --shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
-    --shadow-alta: 0 3px 10px rgba(0, 0, 0, 0.65);
-
-    --caso-cerrado: #30d158;
-    --caso-cerrado-fondo: rgba(48, 209, 88, 0.18);
-    --caso-abierto: #ff453a;
-    --caso-abierto-fondo: rgba(255, 69, 58, 0.16);
-    --caso-tomado: #8e8cff;
-    --caso-tomado-fondo: rgba(125, 122, 255, 0.2);
-    --caso-demorado: #ffb340;
-
-    --estado-entregado: #30d158;
-    --estado-entregado-fondo: rgba(48, 209, 88, 0.18);
-    --estado-devuelto: #40d6b8;
-    --estado-devuelto-fondo: rgba(64, 214, 184, 0.17);
-    --estado-devolucion: #ff9f0a;
-    --estado-devolucion-fondo: rgba(255, 159, 10, 0.18);
-    --estado-deposito: #0a84ff;
-    --estado-deposito-fondo: rgba(10, 132, 255, 0.18);
-    --estado-retirado: #64d2ff;
-    --estado-retirado-fondo: rgba(100, 210, 255, 0.17);
-    --estado-pararetirar: #bf5af2;
-    --estado-pararetirar-fondo: rgba(191, 90, 242, 0.18);
-    --estado-siniestrado: #d9a05b;
-    --estado-siniestrado-fondo: rgba(217, 160, 91, 0.17);
-    --estado-noentregado: #ff453a;
-    --estado-noentregado-fondo: rgba(255, 69, 58, 0.16);
-    --estado-cancelado: #aeaeb2;
-    --estado-cancelado-fondo: rgba(174, 174, 178, 0.17);
-
-    --tienda-esteban: #6ea1ff;
-    --tienda-candelaria: #ff70b0;
-  }
-}
-
-:root[data-theme="dark"] {
-  color-scheme: dark;
-
-  --plane: #000000;
-  --surface: #1c1c1e;
-  --surface-2: #2c2c2e;
-  --surface-3: #3a3a3c;
-
-  --rail: rgba(28, 28, 30, 0.72);
-  --rail-2: rgba(255, 255, 255, 0.07);
-  --rail-ink: #c7c7cc;
-  --rail-ink-alta: #f5f5f7;
-  --rail-ink-dim: #8e8e93;
-
-  --ink: #f5f5f7;
-  --ink-2: #aeaeb2;
-  --muted: #8e8e93;
-
-  --rule: rgba(255, 255, 255, 0.1);
-  --rule-soft: rgba(255, 255, 255, 0.06);
-
-  --accent: var(--seed);
-  --accent-ink: #4aa3ff;
-  --accent-soft: rgba(10, 132, 255, 0.18);
-  --serie-2: #24d9c8;
-  --serie-3: #ffaccd;
-
-  --good: #30d158;
-  --good-soft: rgba(48, 209, 88, 0.18);
-  --warning: #ffe600;
-  --warning-soft: rgba(229, 245, 12, 0.18);
-  --warning-ink: #21180a;
-  --critical: #ff453a;
-  --critical-soft: rgba(255, 69, 58, 0.16);
-
-  --grid: rgba(255, 255, 255, 0.08);
-  --axis: rgba(255, 255, 255, 0.28);
-
-  --segmento-activo: #5b5b60;
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 30px -14px rgba(0, 0, 0, 0.9);
-  --shadow-alta: 0 2px 6px rgba(0, 0, 0, 0.55), 0 20px 46px -18px rgba(0, 0, 0, 1);
-
-  --caso-cerrado: #30d158;
-  --caso-cerrado-fondo: rgba(48, 209, 88, 0.18);
-  --caso-abierto: #ff453a;
-  --caso-abierto-fondo: rgba(255, 69, 58, 0.16);
-  --caso-tomado: #8e8cff;
-  --caso-tomado-fondo: rgba(125, 122, 255, 0.2);
-  --caso-demorado: #ffb340;
-
-  --estado-entregado: #30d158;
-  --estado-entregado-fondo: rgba(48, 209, 88, 0.18);
-  --estado-devuelto: #40d6b8;
-  --estado-devuelto-fondo: rgba(64, 214, 184, 0.17);
-  --estado-devolucion: #ff9f0a;
-  --estado-devolucion-fondo: rgba(255, 159, 10, 0.18);
-  --estado-deposito: #0a84ff;
-  --estado-deposito-fondo: rgba(10, 132, 255, 0.18);
-  --estado-retirado: #64d2ff;
-  --estado-retirado-fondo: rgba(100, 210, 255, 0.17);
-  --estado-pararetirar: #bf5af2;
-  --estado-pararetirar-fondo: rgba(191, 90, 242, 0.18);
-  --estado-siniestrado: #d9a05b;
-  --estado-siniestrado-fondo: rgba(217, 160, 91, 0.17);
-  --estado-noentregado: #ff453a;
-  --estado-noentregado-fondo: rgba(255, 69, 58, 0.16);
-  --estado-cancelado: #aeaeb2;
-  --estado-cancelado-fondo: rgba(174, 174, 178, 0.17);
-
-  --tienda-esteban: #6ea1ff;
-  --tienda-candelaria: #ff70b0;
-}
-
-
-/*
- * Superficies opacas, sin desenfoque.
- *
- * Había un material "vidrio": fondo translúcido más `backdrop-filter: blur(24px)
- * saturate(145%)`, repetido en la barra lateral, la barra superior, cada
- * tarjeta y cada KPI. Cada una de esas es una región que el navegador tiene
- * que samplear y desenfocar por separado; con varias tarjetas y KPIs a la vez
- * en pantalla —lo normal acá— son varios desenfoques de 24px recalculándose
- * en cada scroll. `--glass` pasa a ser una superficie sólida más y las
- * variables quedan para no tener que tocar cada componente que las usa.
- */
-:root {
-  --plane: #eef2fa;
-  --muted: #626d80;
-  --glass: var(--surface);
-  --glass-edge: var(--rule);
-  --glass-glint: transparent;
-  --glass-shadow: var(--shadow);
-  --glass-filter: none;
-  --glass-sheen: none;
-}
-
-:root[data-theme="dark"] {
-  --plane: #101827;
-  --muted: #a5b2c7;
-  --primary-container: color-mix(in srgb, var(--seed) 28%, #1c1c1e);
-  --on-primary-container: color-mix(in srgb, var(--seed) 42%, white);
-  --accent: var(--seed);
-  --accent-ink: var(--on-primary-container);
-  --accent-soft: var(--primary-container);
-  --glass: var(--surface);
-  --glass-edge: var(--rule);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --plane: #101827;
-    --muted: #a5b2c7;
-    --glass: var(--surface);
-    --glass-edge: var(--rule);
-  }
-}
+@import "./theme.css";
 
 *,
 *::before,
@@ -344,8 +15,8 @@ html {
 body {
   margin: 0;
   background:
-    radial-gradient(720px 420px at 98% -8%, color-mix(in srgb, var(--chart-tertiary) 16%, transparent), transparent 68%),
-    radial-gradient(620px 380px at -10% 20%, color-mix(in srgb, var(--chart-secondary) 11%, transparent), transparent 70%),
+    radial-gradient(850px 550px at 90% 0%, color-mix(in srgb, var(--primary) 5%, transparent), transparent 75%),
+    radial-gradient(700px 480px at 0% 88%, color-mix(in srgb, var(--fuchsia) 7%, transparent), transparent 76%),
     var(--plane);
   background-attachment: fixed;
   min-height: 100vh;
@@ -353,29 +24,35 @@ body {
   font-family: var(--sans);
   font-size: var(--type-body-md);
   line-height: 1.55;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em + var(--tracking-boost));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 /*
- * SF Pro aprieta el espaciado a medida que crece el cuerpo. El `letter-spacing`
- * negativo por tamaño reproduce ese ajuste óptico, que es lo que hace que un
- * título grande se lea como un bloque y no como letras sueltas.
+ * El ajuste óptico original se conserva y `--tracking-boost` suma un espacio
+ * pequeño a cada nivel de texto, incluidos números y signos.
  */
 h1,
 h2,
-h3,
-h4 {
-  font-family: var(--display);
-  font-weight: 600;
-  letter-spacing: -0.022em;
+h3 {
+  font-family: var(--heading);
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: calc(-0.022em + var(--tracking-boost));
   margin: 0;
   text-wrap: balance;
 }
 
+h4 {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: calc(-0.022em + var(--tracking-boost));
+  margin: 0;
+}
+
 h1 {
-  letter-spacing: -0.03em;
+  letter-spacing: calc(-0.03em + var(--tracking-boost));
   font-size: var(--type-headline-md);
   line-height: 1.12;
 }
@@ -395,6 +72,10 @@ textarea {
 button:not(:disabled) {
   -webkit-tap-highlight-color: transparent;
 }
+
+input, select, textarea { accent-color: var(--primary); }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
+option { color: var(--ink); background: var(--surface); }
 
 button:focus-visible,
 input:focus-visible,
@@ -449,7 +130,7 @@ textarea:focus-visible {
 @media print {
 
   /* El papel es blanco: los colores del tema oscuro no tienen sentido acá. */
-  :root {
+  :root, :root[data-theme] {
     color-scheme: light;
     --plane: #ffffff;
     --surface: #ffffff;
@@ -461,6 +142,13 @@ textarea:focus-visible {
     --rule: rgba(0, 0, 0, 0.25);
     --rule-soft: rgba(0, 0, 0, 0.15);
     --shadow: none;
+    --primary: #284400;
+    --accent-ink: #284400;
+    --good: #21673b;
+    --warning: #875500;
+    --critical: #b53029;
+    --card-background: #fff;
+    --hero-background: #fff;
   }
 
   @page {

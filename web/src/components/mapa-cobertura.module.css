@@ -28,7 +28,7 @@
 
 .boton {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-primary);
   border: 0;
   border-radius: var(--radio-2);
   padding: 8px 14px;
@@ -83,12 +83,12 @@
   margin: 0;
   font-size: 13px;
   font-weight: 650;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em + var(--tracking-boost));
 }
 
 .veredictoDentro { color: var(--good); }
 .veredictoFuera { color: var(--critical); }
-.veredictoAviso { color: var(--warning-ink); }
+.veredictoAviso { color: var(--warning); }
 
 .detalle {
   margin: 5px 0 0;

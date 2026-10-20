@@ -10,6 +10,29 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # Tablero de soporte Rapiboy
 
+## Sistema visual
+
+- La identidad aprobada es **Grafito / Lima**, con tema «Sistema» por defecto. Los tokens
+  viven en `src/app/theme.css`, importado desde `globals.css`; no agregar
+  colores de marca propios en pantallas. Existe una alternativa clara y una
+  preferencia explícita `system`, resuelta antes del primer pintado; las
+  elecciones `light` y `dark` guardadas se conservan.
+- El fucsia es un acento secundario; no reemplaza los tonos de los estados.
+  KPI, badges y cápsulas usan degradados del propio color. El espaciado de texto
+  se aumenta con `--tracking-boost`; los marcos principales usan `--radio`.
+- Usar los tokens `--on-primary`, `--on-critical` y `--warning-solid` para
+  conservar el contraste de controles sólidos. Los estados operativos, colores
+  de responsables y repartidores no deben convertirse todos al acento lima.
+- Los KPI compartidos usan `ValorMetrica` (texto seleccionable en la fuente
+  LED para números, porcentajes y unidades; contraste reforzado en claro).
+  Los títulos `h1`–`h3` usan la fuente LED local; mantener `h4`, controles y
+  texto de lectura en SF Pro. La licencia de la fuente exige autorización para
+  uso comercial antes de publicar; está copiada junto al TTF.
+  Las tablas y los formularios conservan fuente normal. Las superficies deben
+  respetar el ancho disponible; tablas anchas scrollean dentro de su bloque.
+- Ver `docs/sistema-visual.md`. Al cambiar el tema ejecutar `test:tema` y
+  `test:responsables`, además de las validaciones habituales y revisión móvil.
+
 ## Modelo de datos
 
 - Devoluciones (`/devoluciones`) usa la tabla independiente

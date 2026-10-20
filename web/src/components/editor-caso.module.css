@@ -47,9 +47,9 @@
 }
 
 .titulo {
-  font-family: var(--display);
+  font-family: var(--heading);
   font-weight: 600;
-  letter-spacing: -0.022em;
+  letter-spacing: calc(-0.022em + var(--tracking-boost));
   font-size: var(--type-title-lg);
   color: var(--ink);
   margin: 0 0 4px;
@@ -70,7 +70,7 @@
 .etiqueta {
   display: block;
   font-size: var(--type-label-md);
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em + var(--tracking-boost));
   color: var(--ink-2);
   margin-bottom: 5px;
 }
@@ -126,7 +126,7 @@
   font-family: var(--sans);
   font-weight: 500;
   font-size: 13px;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em + var(--tracking-boost));
   cursor: pointer;
   border: 0;
   transition:
@@ -175,7 +175,7 @@
 
 .peligro {
   background: var(--critical);
-  color: var(--on-primary);
+  color: var(--on-critical);
 }
 
 .confirmar {

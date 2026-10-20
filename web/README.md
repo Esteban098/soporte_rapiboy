@@ -62,25 +62,31 @@ un sidebar propio. Así el tablero de entregas fallidas queda abierto para
 contrastar la operación mientras se trabaja sobre las colectas.
 
 Junto al indicador de la fuente («Base en vivo») hay un selector de tema:
-**Claro**, **Oscuro** o **Sistema**. Las paletas están en `globals.css`; el
-selector solo pone `data-theme` en `<html>`, y «Sistema» lo saca para que mande
-`prefers-color-scheme`. La elección se guarda en `localStorage` —es del
+**Claro**, **Oscuro** o **Sistema**. El tema predeterminado es **Sistema**:
+sigue el modo claro u oscuro del dispositivo. Las dos paletas están en `src/app/theme.css`, importado por
+`globals.css`. El selector pone `data-theme` en `<html>`; «Sistema» resuelve
+`prefers-color-scheme` y escucha sus cambios. La elección explícita se conserva,
+incluida «Sistema», en `localStorage` —es del
 navegador, no de la cuenta— y un script en `<head>` la aplica antes del primer
 pintado para que no destelle el tema equivocado.
 
-Al pie de la barra lateral, **Ocultar menú** la pliega a una columna de íconos
+Al pie de la barra lateral, **Ocultar menú** reduce su ancho conservando iconos y nombres
 para ganar ancho —pensado sobre todo para el mapa—. Funciona igual que el tema:
 pone `data-menu` en `<html>`, se recuerda en `localStorage` y un script en
-`<head>` lo aplica antes de pintar. Plegada, cada sección se nombra con su
-tooltip y todos los grupos quedan abiertos. El logo de la barra es el mismo
+`<head>` lo aplica antes de pintar. El logo de la barra es el mismo
 `src/app/icon.png` que Next sirve como ícono de la pestaña; el proxy lo deja
 pasar sin sesión para que la pantalla de acceso también lo tenga.
 
-La identidad visual parte de `--seed` en `globals.css`. Los roles `primary`,
-`secondary`, `tertiary` y sus contenedores se derivan de esa semilla; los
-componentes compartidos consumen esos roles y la escala tipográfica
-`display`/`headline`/`title`/`body`/`label`. Para cambiar la marca se modifica
-la semilla, conservando los estados operativos y sus contrastes.
+La identidad visual se define en `src/app/theme.css`: fondos grafito,
+superficies verde oscuro, acentos lima y fucsia, bordes finos y tarjetas redondeadas.
+Los componentes consumen roles semánticos, también en chat, Colectas,
+Evidencias, mapas, formularios y avisos. Los títulos principales usan la fuente
+local The Led Display St; su archivo de licencia requiere autorización para uso
+comercial antes de publicar. `ValorMetrica` muestra cifras, porcentajes y
+unidades de los KPI como texto seleccionable en la misma fuente LED; las tablas
+conservan tipografía convencional. Alertas, responsables y estados mantienen
+colores diferenciados. Ver [sistema visual](docs/sistema-visual.md) y ejecutar
+`npm run test:tema` para validar preferencias y contraste.
 
 Las familias con más de una pantalla usan una barra horizontal contextual al
 inicio del contenido. `NavegacionHorizontal.tsx` concentra las rutas de

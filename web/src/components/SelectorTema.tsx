@@ -1,16 +1,16 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { CLAVE_TEMA, type Tema } from "@/lib/tema";
+import { CLAVE_TEMA, TEMA_PREDETERMINADO, type Tema } from "@/lib/tema";
 import estilos from "./selector-tema.module.css";
 
 /**
  * Claro, oscuro o lo que diga el sistema.
  *
- * Las paletas ya están en `globals.css`: acá solo se pone o se saca
- * `data-theme` en `<html>`. «Sistema» no estampa nada y deja que decida
- * `prefers-color-scheme`, así un equipo que cambia solo al anochecer sigue
- * cambiando. La elección vive en `localStorage` porque es de este navegador y
+ * Las paletas están en `theme.css`: acá se resuelve y aplica
+ * `data-theme` en `<html>`. «Sistema» sigue `prefers-color-scheme`, incluso
+ * cuando cambia con la pantalla abierta. Sin elección se usa el sistema.
+ * La elección vive en `localStorage` porque es de este navegador y
  * no de la cuenta; el script de `layout.tsx` la aplica antes del primer
  * pintado para que no haya un destello del tema equivocado.
  */
@@ -25,9 +25,9 @@ const oyentes = new Set<() => void>();
 function leer(): Tema {
   try {
     const guardado = localStorage.getItem(CLAVE_TEMA);
-    return guardado === "light" || guardado === "dark" ? guardado : "system";
+    return guardado === "light" || guardado === "dark" || guardado === "system" ? guardado : TEMA_PREDETERMINADO;
   } catch {
-    return "system";
+    return TEMA_PREDETERMINADO;
   }
 }
 
@@ -41,21 +41,24 @@ function suscribir(avisar: () => void) {
     }
   };
   window.addEventListener("storage", alGuardar);
+  const media = window.matchMedia("(prefers-color-scheme: dark)");
+  const alCambiarSistema = () => { if (leer() === "system") aplicar("system"); };
+  media.addEventListener("change", alCambiarSistema);
   return () => {
     oyentes.delete(avisar);
     window.removeEventListener("storage", alGuardar);
+    media.removeEventListener("change", alCambiarSistema);
   };
 }
 
 function aplicar(tema: Tema) {
-  if (tema === "system") document.documentElement.removeAttribute("data-theme");
-  else document.documentElement.setAttribute("data-theme", tema);
+  const resuelto = tema === "system" ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : tema;
+  document.documentElement.setAttribute("data-theme", resuelto);
 }
 
 function elegir(tema: Tema) {
   try {
-    if (tema === "system") localStorage.removeItem(CLAVE_TEMA);
-    else localStorage.setItem(CLAVE_TEMA, tema);
+    localStorage.setItem(CLAVE_TEMA, tema);
   } catch {
     /* Sin almacenamiento el cambio vale hasta recargar. */
   }
@@ -64,7 +67,7 @@ function elegir(tema: Tema) {
 }
 
 export function SelectorTema() {
-  const tema = useSyncExternalStore(suscribir, leer, () => "system" as Tema);
+  const tema = useSyncExternalStore(suscribir, leer, () => TEMA_PREDETERMINADO);
 
   return (
     <div className={estilos.grupo} role="radiogroup" aria-label="Tema de la interfaz" data-noimprimir>

@@ -37,7 +37,7 @@
 .tooltipTitle {
   font-family: var(--display);
   font-weight: 600;
-  letter-spacing: -0.018em;
+  letter-spacing: calc(-0.018em + var(--tracking-boost));
   font-size: 12.5px;
   margin-bottom: 3px;
   color: var(--ink);
@@ -75,7 +75,7 @@
   font-size: 12.5px;
   color: var(--muted);
   margin: 0 0 10px;
-  letter-spacing: -0.005em;
+  letter-spacing: calc(-0.005em + var(--tracking-boost));
 }
 
 .pistaIcono {
@@ -96,10 +96,11 @@
 
 .anilloValor {
   fill: var(--ink);
-  font-family: var(--display);
-  font-size: 21px;
-  font-weight: 700;
-  letter-spacing: -0.055em;
+  font-family: var(--metric-font);
+  font-synthesis: none;
+  font-size: 19px;
+  font-weight: 400;
+  letter-spacing: calc(-0.055em + var(--tracking-boost));
 }
 
 .anilloEtiqueta {

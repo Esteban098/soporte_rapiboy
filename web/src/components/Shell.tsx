@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { NavLink } from "./NavLink";
+import { IconoSeccion } from "./IconoSeccion";
 import { SignOutButton } from "./SignOutButton";
 import { BotonActualizar } from "./BotonActualizar";
 import { SeguimientoWidget } from "./SeguimientoWidget";
@@ -46,13 +47,13 @@ export function Shell({
               <Image src={logo} alt="Rapiboy" width={28} height={28} priority />
             </span>
             <span className={estilos.marcaTexto} data-rail-texto>
-              <span className={estilos.marcaNombre}>Operación México - Entregas Fallidas.</span>
-              <span className={estilos.marcaSub}>Soporte</span>
+              <span className={estilos.marcaNombre}>rapiboy</span>
+              <span className={estilos.marcaSub}>Operación México · Soporte</span>
             </span>
           </Link>
 
           <div className={estilos.railCuerpo}>
-            {SECCIONES_PRINCIPALES.filter((entrada) => puedeVerRuta(rol, entrada.href)).map((entrada) => (
+            {SECCIONES_PRINCIPALES.filter((entrada) => entrada.href !== "/perfiles" && puedeVerRuta(rol, entrada.href)).map((entrada) => (
               <ul key={entrada.href} className={`${estilos.railLista} ${estilos.railSuelta}`}>
                 <li><Enlace seccion={entrada} esAdmin={esAdmin} /></li>
               </ul>
@@ -60,6 +61,9 @@ export function Shell({
           </div>
 
           <div className={estilos.railPie}>
+            {SECCIONES_PRINCIPALES.filter((entrada) => entrada.href === "/perfiles" && puedeVerRuta(rol, entrada.href)).map((entrada) => (
+              <ul key={entrada.href} className={estilos.railLista}><li><Enlace seccion={entrada} esAdmin={esAdmin} /></li></ul>
+            ))}
             <BotonMenu />
             {usuario ? <SignOutButton nombre={usuario} /> : null}
           </div>
@@ -106,8 +110,9 @@ function Enlace({ seccion, esAdmin }: { seccion: SeccionPrincipal; esAdmin: bool
       rutasActivas={seccion.rutasActivas}
       titulo={seccion.nuevaVentana ? `${etiqueta} · abrir en una nueva ventana` : etiqueta}
     >
-      {/* `data-rail-texto`: lo que desaparece con el menú plegado. */}
+      <IconoSeccion ruta={seccion.href} />
       <span data-rail-texto>{etiqueta}</span>
+      {seccion.nuevaVentana ? <span aria-hidden="true" className={estilos.railExterno}>↗</span> : null}
       {seccion.beta ? <span className={estilos.railBeta} aria-label="Beta">BETA</span> : null}
     </NavLink>
   );

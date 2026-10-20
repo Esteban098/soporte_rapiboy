@@ -17,7 +17,7 @@
 .titulo {
   font-size: 22px;
   font-weight: 600;
-  letter-spacing: -0.025em;
+  letter-spacing: calc(-0.025em + var(--tracking-boost));
   margin-bottom: 10px;
 }
 
@@ -45,11 +45,11 @@
   border-radius: var(--radio-3);
   border: 0;
   background: var(--accent);
-  color: #ffffff;
+  color: var(--on-primary);
   font-family: var(--sans);
   font-size: 14px;
   font-weight: 500;
-  letter-spacing: -0.01em;
+  letter-spacing: calc(-0.01em + var(--tracking-boost));
   cursor: pointer;
   transition:
     background-color var(--dur-corta) var(--ease),

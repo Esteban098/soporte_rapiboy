@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { agruparDevoluciones, duracionDevolucion, resumenDevoluciones, devolucionesPorDia } from "@/lib/devoluciones-metricas";
 import { numero, porcentaje } from "@/lib/formato";
 import { Card, Kpi } from "./Card";
 import { Tabla, type Columna, type Fila, type Filtro } from "./Tabla";
 import { useVista } from "./useVista";
 import { CajaTooltip, Leyenda } from "./charts/Tooltip";
+import { ArcoDistribucion } from "./charts/ArcoDistribucion";
 import estilos from "./ui.module.css";
 import controles from "./tabla.module.css";
 import grafico from "./charts/chart.module.css";
@@ -69,18 +70,7 @@ export function MetricasDevoluciones({ filas, columnas, filtros }: { filas: Fila
       <div className={estilos.dashboardDos}>
         <div>
           {torta.length ? <>
-            <ResponsiveContainer width="100%" height={245}>
-              <PieChart>
-                <Pie data={torta} dataKey="valor" nameKey="nombre" innerRadius={65} outerRadius={92} paddingAngle={3} cornerRadius={8} stroke="none">
-                  {torta.map((grupo) => <Cell key={grupo.nombre} fill={colorGrupo(grupo.nombre)} />)}
-                </Pie>
-                <Tooltip content={({ active, payload }) => active && payload?.length ? <CajaTooltip titulo={payload[0].payload.nombre}
-                  lineas={[{ etiqueta: "Registros", valor: numero(payload[0].payload.valor) },
-                    { etiqueta: "Del total", valor: porcentaje(payload[0].payload.valor / (resumen.registros || 1) * 100) }]} /> : null} />
-                <text x="50%" y="47%" textAnchor="middle" className={grafico.anilloValor}>{numero(resumen.registros)}</text>
-                <text x="50%" y="59%" textAnchor="middle" className={grafico.anilloEtiqueta}>registros</text>
-              </PieChart>
-            </ResponsiveContainer>
+            <ArcoDistribucion total={resumen.registros} unidad="registros" etiquetaCantidad="Registros" datos={torta.map((grupo) => ({ ...grupo, color: colorGrupo(grupo.nombre) }))} />
             <Leyenda series={torta.map((grupo) => ({ nombre: grupo.nombre, color: colorGrupo(grupo.nombre) }))} />
           </> : <p className={grafico.vacio}>No hay datos con estos filtros.</p>}
         </div>
