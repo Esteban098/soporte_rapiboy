@@ -14,7 +14,7 @@
   margin-bottom: 12px;
 }
 
-.encabezado h2, .grafico h3 { margin: 0; font-family: var(--heading); letter-spacing: calc(-.022em + var(--tracking-boost)); }
+.encabezado h2, .grafico h3 { margin: 0; font-family: var(--heading); letter-spacing: calc(-.022em + var(--tracking-boost) + var(--led-word-spacing)); }
 .encabezado h2 { font-size: var(--type-title-md); }
 .encabezado p { margin: 3px 0 0; color: var(--muted); font-size: var(--type-label-md); }
 .encabezado strong { padding: 5px 9px; border-radius: var(--radio-3); background: linear-gradient(120deg, color-mix(in srgb, var(--secondary) 22%, var(--surface-2)), color-mix(in srgb, var(--secondary) 7%, var(--surface-2))); color: var(--secondary); font-size: 11.5px; white-space: nowrap; }
@@ -22,7 +22,7 @@
 .grilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .grafico { min-width: 0; padding: 11px; border: 1px solid var(--rule-soft); border-radius: var(--radio-2); background: color-mix(in srgb, var(--surface-2) 74%, var(--surface)); }
 .grafico h3 { font-size: 12px; }
-.anilloValor { fill: var(--ink); font-family: var(--metric-font); font-synthesis: none; font-size: 20px; font-weight: 400; letter-spacing: calc(-.055em + var(--tracking-boost)); }
+.anilloValor { fill: var(--led-ink); font-family: var(--metric-font); font-synthesis: none; font-size: 18.5px; font-weight: 400; letter-spacing: calc(-.055em + var(--tracking-boost)); }
 .anilloEtiqueta { fill: var(--muted); font-family: var(--sans); font-size: 10px; }
 .vacio { display: grid; place-items: center; height: 184px; margin: 0; color: var(--muted); font-size: 11.5px; text-align: center; }
 

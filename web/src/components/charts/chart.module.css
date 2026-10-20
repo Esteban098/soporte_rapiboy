@@ -95,10 +95,10 @@
 }
 
 .anilloValor {
-  fill: var(--ink);
+  fill: var(--led-ink);
   font-family: var(--metric-font);
   font-synthesis: none;
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 400;
   letter-spacing: calc(-0.055em + var(--tracking-boost));
 }

@@ -53,6 +53,21 @@ const luminancia = (hex: string) => {
     .map((c) => c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4);
   return .2126 * r + .7152 * g + .0722 * b;
 };
+test("el tema claro separa el fondo general de las tarjetas", () => {
+  const claro = { ...bloques[0], ...bloques[1] };
+  const fondo = luminancia(claro["--plane"]);
+  const tarjeta = luminancia(claro["--surface"]);
+  assert.ok(tarjeta > fondo);
+  assert.ok((tarjeta + .05) / (fondo + .05) >= 1.3);
+});
+test("los textos secundarios del tema claro mantienen contraste alto", () => {
+  const claro = { ...bloques[0], ...bloques[1] };
+  const tarjeta = luminancia(claro["--surface"]);
+  for (const token of ["--ink-2", "--muted"]) {
+    const texto = luminancia(claro[token]);
+    assert.ok((tarjeta + .05) / (texto + .05) >= 7, `${token} debe tener contraste alto`);
+  }
+});
 for (const [nombre, paleta] of [["oscuro", bloques[0]], ["claro", { ...bloques[0], ...bloques[1] }]] as const) {
   test(`contraste de lectura y controles: ${nombre}`, () => {
     const resolver = (token: string): string => {
@@ -61,7 +76,7 @@ for (const [nombre, paleta] of [["oscuro", bloques[0]], ["claro", { ...bloques[0
       return variable ? resolver(variable[1]) : valor;
     };
     const pares = [
-      ["--ink", "--surface"], ["--ink-2", "--surface-2"], ["--muted", "--surface"],
+      ["--ink", "--surface"], ["--led-ink", "--surface"], ["--ink-2", "--surface-2"], ["--muted", "--surface"],
       ["--on-primary", "--primary"], ["--accent-ink", "--primary-container"],
       ["--warning", "--warning-soft"], ["--critical", "--critical-soft"], ["--good", "--good-soft"],
       ["--on-critical", "--critical"], ["--rail-active", "--rail-active-soft"],

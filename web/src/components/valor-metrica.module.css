@@ -2,15 +2,15 @@
   display: inline-block;
   max-width: 100%;
   font-family: var(--metric-font);
-  font-size: min(1em, 19cqi);
+  font-size: min(.94em, 18cqi);
   font-weight: 400;
   font-synthesis: none;
-  line-height: 1.15;
+  line-height: 1.08;
   letter-spacing: .015em;
   white-space: nowrap;
   user-select: text;
   -webkit-user-select: text;
 }
-.largo { font-size: min(.82em, 15cqi); white-space: normal; overflow-wrap: anywhere; }
-.muyLargo { font-size: min(.68em, 12cqi); white-space: normal; overflow-wrap: anywhere; }
+.largo { font-size: min(.78em, 14cqi); white-space: normal; overflow-wrap: anywhere; }
+.muyLargo { font-size: min(.64em, 11cqi); white-space: normal; overflow-wrap: anywhere; }
 .valor::selection { color: var(--ink); background: var(--fuchsia-soft); }

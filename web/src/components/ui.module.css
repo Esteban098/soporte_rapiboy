@@ -29,6 +29,7 @@
   --rail-ink-alta: #ffffff;
   --rail-ink-dim: #9eafa2;
   --ink: #ffffff;
+  --led-ink: var(--ink);
   --ink-2: rgba(255, 255, 255, 0.78);
   --muted: rgba(255, 255, 255, 0.55);
   --rule: rgba(255, 255, 255, 0.14);
@@ -433,8 +434,8 @@
   font-family: var(--heading);
   font-size: var(--type-headline-md);
   font-weight: 700;
-  letter-spacing: calc(-0.032em + var(--tracking-boost));
-  line-height: 1.1;
+  letter-spacing: calc(-0.032em + var(--tracking-boost) + var(--led-word-spacing));
+  line-height: 1.06;
   margin: 4px 0 5px;
 }
 
@@ -495,7 +496,7 @@
   font-family: var(--heading);
   font-size: var(--type-title-md);
   font-weight: 600;
-  letter-spacing: calc(-0.022em + var(--tracking-boost));
+  letter-spacing: calc(-0.022em + var(--tracking-boost) + var(--led-word-spacing));
 }
 
 .cardNote {
@@ -504,34 +505,6 @@
   margin: 3px 0 12px;
   max-width: 62ch;
   line-height: 1.45;
-}
-
-/* La foto cerrada de la ruta es una lectura distinta de la cola de casos:
-   este plano índigo permite reconocerla sin sumar otro separador ni etiqueta. */
-.resumenUltimaJornada {
-  background: var(--hero-background);
-  border-color: var(--rule);
-}
-
-.resumenUltimaJornada::before {
-  width: 132px;
-  height: 132px;
-  right: -48px;
-  top: -62px;
-  background: color-mix(in srgb, #fff 16%, transparent);
-}
-
-.resumenUltimaJornada .cardTitle { color: var(--ink); }
-.resumenUltimaJornada .cardNote { color: var(--ink-2); }
-
-/* La grilla ya queda contenida por la tarjeta: no necesita el margen inferior
-   que usa cuando aparece como bloque independiente entre secciones. */
-.resumenUltimaJornada .kpis { margin-bottom: 0; }
-
-/* Separa la foto de ruta de los indicadores de casos sin alterar el ritmo de
-   las grillas de KPI del resto de las pantallas. */
-.kpisCasosUltimaJornada {
-  border-top: 16px solid transparent;
 }
 
 /* --- kpis --- */
@@ -604,7 +577,7 @@
   font-synthesis: none;
   font-size: clamp(1.65rem, 2.3vw, 2.25rem);
   color: var(--metric-primary);
-  line-height: 1.08;
+  line-height: 1.04;
   letter-spacing: calc(-0.035em + var(--tracking-boost));
   font-variant-numeric: tabular-nums;
   margin: 6px 0 3px;
@@ -697,7 +670,7 @@
   font-family: var(--heading);
   font-size: var(--type-title-md);
   font-weight: 650;
-  letter-spacing: calc(-0.022em + var(--tracking-boost));
+  letter-spacing: calc(-0.022em + var(--tracking-boost) + var(--led-word-spacing));
 }
 
 .panelDatosNota {
@@ -731,10 +704,11 @@
 .dashboardDatoValor {
   margin: 0;
   font-family: var(--metric-font);
-  font-size: 20px;
+  font-size: 18.5px;
   font-weight: 400;
   font-synthesis: none;
   letter-spacing: calc(-0.04em + var(--tracking-boost));
+  color: var(--led-ink);
 }
 
 .stack {
@@ -1047,9 +1021,9 @@ details[open] > .summary::before {
 
 .calloutTitle {
   font-family: var(--heading);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: calc(-0.022em + var(--tracking-boost));
+  letter-spacing: calc(-0.022em + var(--tracking-boost) + var(--led-word-spacing));
   margin-bottom: 3px;
   color: var(--accent-ink);
 }
@@ -1080,8 +1054,8 @@ details[open] > .summary::before {
 .subtitulo {
   font-family: var(--heading);
   font-weight: 600;
-  font-size: 13px;
-  letter-spacing: calc(-0.018em + var(--tracking-boost));
+  font-size: 12.5px;
+  letter-spacing: calc(-0.018em + var(--tracking-boost) + var(--led-word-spacing));
   color: var(--ink-2);
   margin: 0 0 8px;
 }
@@ -1135,11 +1109,11 @@ details[open] > .summary::before {
   }
 
   .pageTitle {
-    font-size: 26px;
+    font-size: 24px;
   }
 
   .kpiValue {
-    font-size: 30px;
+    font-size: 28px;
   }
 }
 
@@ -1148,7 +1122,7 @@ details[open] > .summary::before {
   .card { padding: 18px 14px; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .kpi { padding: 16px 12px; }
-  .kpiValue { font-size: 26px; }
+  .kpiValue { font-size: 24px; }
   .pageHeadFila { flex-wrap: wrap; }
   .dashboardDos { grid-template-columns: 1fr; }
   .datosDivididos { grid-template-columns: 1fr; gap: 14px; }

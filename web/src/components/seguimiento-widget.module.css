@@ -101,8 +101,8 @@
   margin: 0;
   font-family: var(--heading);
   font-weight: 600;
-  letter-spacing: calc(-0.022em + var(--tracking-boost));
-  font-size: 14px;
+  letter-spacing: calc(-0.022em + var(--tracking-boost) + var(--led-word-spacing));
+  font-size: 13px;
   color: inherit;
 }
 

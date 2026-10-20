@@ -45,7 +45,7 @@ Tres decisiones que vale la pena tener presentes:
 | Ruta | Qué muestra |
 |---|---|
 | `/` | **Mes en curso**: abiertos contra cerrados —la métrica principal—, el desglose de estados, todos los casos de `Mensual`, las devoluciones por día de la semana y las visitas antes de cerrar. |
-| `/operacion` | **Última jornada**: los casos nuevos de la jornada anterior y, cuando el tracker está disponible, el resumen de ruta cerrado: total, entregados, no entregados, no visitados y SLA. |
+| `/operacion` | **Última jornada**: los casos nuevos de la jornada anterior, sus indicadores de resolución y el desglose por estado, repartidor, zona y comercio. |
 | `/demorados` | **Demorados**: la cola de escalamiento, derivada de `Mensual`. Entra todo caso que lleve más de 2 días sin cambiar de estado y todavía no haya cerrado. |
 | `/reclamos` | Casos donde la tienda aportó datos, con el dato tal cual y la información del viaje. Se filtra por avisado / no avisado. |
 | `/cobertura` | **Cobertura · BETA**: el contorno donde hay servicio y un verificador puntual por dirección o coordenadas que responde si un domicilio entra. No busca por ID de viaje. |

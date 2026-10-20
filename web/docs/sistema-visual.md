@@ -25,10 +25,14 @@ no incorpora los números, nombres, mapa ficticio ni otros datos de la imagen.
   mantienen SF Pro para conservar la legibilidad operativa.
 - Las cifras KPI se ajustan al ancho de su tarjeta; los valores largos pueden
   ocupar dos líneas. Los titulares y valores LED usan una escala ligeramente
-  más compacta para no dominar tarjetas y móviles. El tema claro usa tonos
-  métricos más oscuros para que los
-  puntos conserven contraste. Todos los KPI y badges llevan un degradado sutil que
-  deriva de su tono propio; el fucsia identifica acentos secundarios neutrales.
+  menor y menor altura de línea para no dominar tarjetas y móviles, sin
+  estrechar el espacio entre letras. Los títulos LCD suman un interletraje
+  leve (`--led-word-spacing`, 0,022 em) sin alterar el de las cifras; las tablas y
+  formularios conservan su tipografía. El tema claro oscurece levemente los
+  tonos LED dentro de cada color original para que los puntos conserven
+  contraste. Todos los KPI y
+  badges llevan un degradado sutil derivado de su tono propio; el fucsia
+  identifica acentos secundarios neutrales.
 - `charts/ArcoDistribucion.tsx`: semicírculo ampliado con pista rayada, arco
   grueso y borde exterior fino por categoría, total central y tooltip. El
   desglose de estados muestra hasta ocho categorías y agrupa el resto en
@@ -78,8 +82,13 @@ cambios de sistema y sincroniza pestañas mediante el evento `storage`.
 Sin acceso a almacenamiento el arranque también sigue al sistema. Si el navegador
 no ofrece `matchMedia`, se usa claro como fallback.
 
-La alternativa clara usa la misma estructura y familia de colores. La impresión
-mantiene papel blanco y texto oscuro; no imprime botones de control.
+La alternativa clara usa la misma estructura y familia de colores. Su fondo
+gris neutro (`--plane`) contrasta con tarjetas blancas (`--surface`); los
+bordes y las sombras delimitan las superficies anidadas. La tinta principal,
+secundaria y auxiliar es más intensa, y las métricas mantienen colores
+saturados sin perder contraste de lectura.
+
+La impresión mantiene papel blanco y texto oscuro; no imprime botones de control.
 
 ## Alcance y verificación
 

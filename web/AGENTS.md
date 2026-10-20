@@ -152,11 +152,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   cada repartidor visible y no retroceden junto con la fecha de la ruta. Los
   días viajan como texto a n8n porque la web, n8n y SQL Server pueden estar en
   zonas distintas. Nunca restar horas a mano.
-- La página **Última jornada** agrega el bloque opcional «Resumen ruta última
-  jornada» con la foto cerrada del tracker: total de paquetes, entregados, no
-  entregados, no visitados y SLA (entregados sobre el total). Es solo lectura y
-  no puede bloquear la cola de Ayer si las tablas `tracker_*` aún no están
-  instaladas o no responden.
+- La página **Última jornada** muestra solo la cola de Ayer y sus métricas de
+  casos. La foto cerrada de ruta y su SLA pertenecen a Estadísticas del Live
+  Tracker; no duplicarlos aquí ni consultar `tracker_*` para esta página.
 - La pestaña **Estadísticas** del Live Tracker no puede calcular SLA ni fin de
   ruta desde `tracker_paquetes`: esa tabla es viva y un viaje puede modificarse
   al día siguiente. `tracker_estadisticas_cerradas` conserva la primera foto de

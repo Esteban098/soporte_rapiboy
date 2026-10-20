@@ -11,7 +11,7 @@
 .usuario{display:flex;align-items:center;gap:10px}.avatar{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:var(--primary-container);color:var(--on-primary-container);font-weight:750}.usuario strong{display:block}.usuario small{display:block;color:var(--ink-2);margin-top:2px}
 @media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.kpi{border-bottom:1px solid var(--rule)}.tiempos,.graficos{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.toolbar{align-items:stretch;flex-direction:column}.toolbar input{width:100%}.kpis,.tiempos,.graficos{grid-template-columns:1fr}.kpi,.tiempo{border-right:0;border-bottom:1px solid var(--rule)}}
-.tiempo strong{font-family:var(--metric-font);font-size:18px;font-weight:400;font-synthesis:none}
+.tiempo strong{font-family:var(--metric-font);font-size:17px;font-weight:400;font-synthesis:none}
 
 /* Insignias con matiz propio; nunca se sustituye un estado por el color de marca. */
 .activo,.inactivo,.guardando{--pill-gradient:linear-gradient(120deg,color-mix(in srgb,var(--pill-tone) 22%,var(--surface-2)),color-mix(in srgb,var(--pill-tone) 7%,var(--surface-2)));background:var(--pill-gradient)}

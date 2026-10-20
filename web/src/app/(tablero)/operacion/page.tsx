@@ -7,24 +7,11 @@ import { EstadosTable } from "@/components/EstadosTable";
 import { PanelCasos } from "@/components/PanelCasos";
 import { ConteoTable } from "@/components/ConteoTable";
 import estilos from "@/components/ui.module.css";
-import { modoDatos } from "@/lib/config";
-import { diaDePaquetes, diaOperativoAnterior } from "@/lib/tracker";
-import { leerTracker, type DatosDelTracker } from "@/lib/tracker-datos";
 
 export const metadata = { title: "Última jornada" };
 
 export default async function Ayer() {
-  const [casos, tracker] = await Promise.all([
-    cargarAyer(),
-    modoDatos() === "supabase"
-      ? leerTracker(diaOperativoAnterior(diaDePaquetes())).catch((error) => {
-          // El resumen mejora Ayer, pero una tabla de tracker ausente no puede
-          // impedir abrir la cola que viene de la ingesta diaria.
-          console.error("No se pudo leer el resumen de ruta para Ayer", error);
-          return null;
-        })
-      : Promise.resolve(null),
-  ]);
+  const casos = await cargarAyer();
   const ayer = casos.pedidos;
   const estados = porEstado(ayer);
   const resolucion = cierre(ayer);
@@ -43,9 +30,7 @@ export default async function Ayer() {
         dek="Los casos que entraron nuevos en la jornada anterior: los que no estaban ya en Mensual ni en Cancelados. Un caso aparece acá una sola vez, el día que falló por primera vez; si sigue abierto después, se lo sigue en Mes en curso."
       />
 
-      {tracker ? <PulsoRuta datos={tracker} /> : null}
-
-      <div className={`${estilos.kpis} ${estilos.kpisCasosUltimaJornada}`}>
+      <div className={estilos.kpis}>
         <Kpi
           etiqueta="Casos de la jornada"
           valor={numero(ayer.length)}
@@ -120,37 +105,5 @@ export default async function Ayer() {
         </Card>
       </div>
     </>
-  );
-}
-
-/** Foto compacta de la ruta cerrada: las mismas clasificaciones del tracker. */
-function PulsoRuta({ datos }: { datos: DatosDelTracker }) {
-  const paquetes = [...datos.drivers.flatMap((driver) => driver.paquetes), ...datos.huerfanos];
-  const entregados = paquetes.filter((paquete) => paquete.clasificacion === "VISITADO_ENTREGADO").length;
-  const noEntregados = paquetes.filter((paquete) => paquete.clasificacion === "VISITADO_NO_ENTREGADO").length;
-  /* `PROXIMO` es también un paquete sin visita: solo se distingue en el mapa
-     para resaltar la siguiente parada del recorrido. */
-  const noVisitados = paquetes.filter(
-    (paquete) =>
-      paquete.clasificacion === "PENDIENTE_NO_VISITADO" ||
-      paquete.clasificacion === "PROXIMO",
-  ).length;
-  const total = paquetes.length;
-  const sla = total ? Math.round((entregados * 100) / total) : 0;
-
-  return (
-    <Card
-      titulo="Resumen ruta última jornada"
-      nota={`Resumen de la jornada ${datos.dia}, con la misma foto que usa Live tracker.`}
-      className={estilos.resumenUltimaJornada}
-    >
-      <div className={estilos.kpis}>
-        <Kpi etiqueta="Total de la jornada" valor={numero(total)} nota="paquetes de ayer" />
-        <Kpi etiqueta="Entregados" valor={numero(entregados)} nota="visitas entregadas" tono="good" relleno />
-        <Kpi etiqueta="No entregados" valor={numero(noEntregados)} nota="visitas no entregadas" tono={noEntregados ? "bad" : "good"} />
-        <Kpi etiqueta="No visitados" valor={numero(noVisitados)} nota="sin visita registrada" tono={noVisitados ? "warning" : "good"} />
-        <Kpi etiqueta="SLA" valor={`${sla}%`} nota="entregados sobre el total" tono={sla >= 95 ? "good" : sla >= 80 ? "warning" : "bad"} />
-      </div>
-    </Card>
   );
 }
