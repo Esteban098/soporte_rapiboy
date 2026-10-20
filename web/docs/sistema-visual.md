@@ -8,28 +8,29 @@ no incorpora los números, nombres, mapa ficticio ni otros datos de la imagen.
 
 - `src/app/theme.css`: paletas, estados, superficies, mapas, tipografía,
   radios y movimiento. `globals.css` la importa desde el layout raíz.
-- Los títulos de página y sección (`h1`–`h3`) usan The Led Display St, alojada
-  localmente y cargada con `next/font/local`; los rótulos pequeños (`h4`),
-  controles y texto de lectura conservan SF Pro. La fuente sigue siendo texto
-  seleccionable. Su licencia, incluida junto al TTF, permite uso gratuito
-  personal y sin fines de lucro, pero exige contactar al autor para uso
-  comercial. Verificar esa autorización antes de publicar.
+- Los títulos de página y sección (`h1`–`h3`) usan Avilock Bold en su TTF
+  original, alojado localmente y cargado con `next/font/local`; los rótulos
+  pequeños (`h4`), controles y texto de lectura conservan SF Pro. La fuente
+  sigue siendo texto seleccionable. El propietario confirmó permiso de uso;
+  verificar que cubra distribución del TTF en el repositorio y despliegue antes
+  de publicar. No convertir ni modificar el archivo original.
 - `ui.module.css` y `Card.tsx`: estructura general, sidebar, encabezados,
   tarjetas, KPI, tablas compartidas y avisos.
 - `IconoSeccion.tsx`: iconos decorativos; los destinos y permisos siguen en
   `lib/navegacion.ts` y `lib/permisos.ts`.
 - `ValorMetrica.tsx`: los KPI muestran texto real, seleccionable y copiable;
   cifras, porcentajes, signos y unidades (horas, minutos, etc.) usan la misma
-  fuente LED de los títulos. También se aplica a los totales destacados de
+  fuente Avilock de los títulos. También se aplica a los totales destacados de
   gráficos y tarjetas. Los números de tablas, ejes y texto de lectura
   mantienen SF Pro para conservar la legibilidad operativa.
 - Las cifras KPI se ajustan al ancho de su tarjeta; los valores largos pueden
-  ocupar dos líneas. Los titulares y valores LED usan una escala ligeramente
-  menor y menor altura de línea para no dominar tarjetas y móviles, sin
-  estrechar el espacio entre letras. Los títulos LCD suman un interletraje
-  leve (`--led-word-spacing`, 0,022 em) sin alterar el de las cifras; las tablas y
-  formularios conservan su tipografía. El tema claro oscurece levemente los
-  tonos LED dentro de cada color original para que los puntos conserven
+  ocupar dos líneas. Las cifras Avilock tienen mayor tamaño en KPI, totales y
+  centros de gráficos, con límites proporcionales al contenedor para evitar
+  recortes en móvil; los títulos mantienen su escala compacta. Estos suman un
+  interletraje leve (`--display-word-spacing`, 0,022 em) sin alterar el de las
+  cifras; tablas y formularios conservan su tipografía. El tema claro oscurece
+  levemente los
+  tonos de la fuente de exhibición dentro de cada color original para conservar
   contraste. Todos los KPI y
   badges llevan un degradado sutil derivado de su tono propio; el fucsia
   identifica acentos secundarios neutrales.

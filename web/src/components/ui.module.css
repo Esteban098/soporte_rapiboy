@@ -29,7 +29,7 @@
   --rail-ink-alta: #ffffff;
   --rail-ink-dim: #9eafa2;
   --ink: #ffffff;
-  --led-ink: var(--ink);
+  --display-ink: var(--ink);
   --ink-2: rgba(255, 255, 255, 0.78);
   --muted: rgba(255, 255, 255, 0.55);
   --rule: rgba(255, 255, 255, 0.14);
@@ -434,7 +434,7 @@
   font-family: var(--heading);
   font-size: var(--type-headline-md);
   font-weight: 700;
-  letter-spacing: calc(-0.032em + var(--tracking-boost) + var(--led-word-spacing));
+  letter-spacing: calc(-0.032em + var(--tracking-boost) + var(--display-word-spacing));
   line-height: 1.06;
   margin: 4px 0 5px;
 }
@@ -496,7 +496,7 @@
   font-family: var(--heading);
   font-size: var(--type-title-md);
   font-weight: 600;
-  letter-spacing: calc(-0.022em + var(--tracking-boost) + var(--led-word-spacing));
+  letter-spacing: calc(-0.022em + var(--tracking-boost) + var(--display-word-spacing));
 }
 
 .cardNote {
@@ -575,7 +575,7 @@
   font-family: var(--metric-font);
   font-weight: 400;
   font-synthesis: none;
-  font-size: clamp(1.65rem, 2.3vw, 2.25rem);
+  font-size: clamp(1.8rem, 2.6vw, 2.45rem);
   color: var(--metric-primary);
   line-height: 1.04;
   letter-spacing: calc(-0.035em + var(--tracking-boost));
@@ -670,7 +670,7 @@
   font-family: var(--heading);
   font-size: var(--type-title-md);
   font-weight: 650;
-  letter-spacing: calc(-0.022em + var(--tracking-boost) + var(--led-word-spacing));
+  letter-spacing: calc(-0.022em + var(--tracking-boost) + var(--display-word-spacing));
 }
 
 .panelDatosNota {
@@ -704,11 +704,11 @@
 .dashboardDatoValor {
   margin: 0;
   font-family: var(--metric-font);
-  font-size: 18.5px;
+  font-size: 21px;
   font-weight: 400;
   font-synthesis: none;
   letter-spacing: calc(-0.04em + var(--tracking-boost));
-  color: var(--led-ink);
+  color: var(--display-ink);
 }
 
 .stack {
@@ -1023,7 +1023,7 @@ details[open] > .summary::before {
   font-family: var(--heading);
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: calc(-0.022em + var(--tracking-boost) + var(--led-word-spacing));
+  letter-spacing: calc(-0.022em + var(--tracking-boost) + var(--display-word-spacing));
   margin-bottom: 3px;
   color: var(--accent-ink);
 }
@@ -1055,7 +1055,7 @@ details[open] > .summary::before {
   font-family: var(--heading);
   font-weight: 600;
   font-size: 12.5px;
-  letter-spacing: calc(-0.018em + var(--tracking-boost) + var(--led-word-spacing));
+  letter-spacing: calc(-0.018em + var(--tracking-boost) + var(--display-word-spacing));
   color: var(--ink-2);
   margin: 0 0 8px;
 }
@@ -1113,7 +1113,7 @@ details[open] > .summary::before {
   }
 
   .kpiValue {
-    font-size: 28px;
+    font-size: 31px;
   }
 }
 
@@ -1122,7 +1122,7 @@ details[open] > .summary::before {
   .card { padding: 18px 14px; }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .kpi { padding: 16px 12px; }
-  .kpiValue { font-size: 24px; }
+  .kpiValue { font-size: 27px; }
   .pageHeadFila { flex-wrap: wrap; }
   .dashboardDos { grid-template-columns: 1fr; }
   .datosDivididos { grid-template-columns: 1fr; gap: 14px; }

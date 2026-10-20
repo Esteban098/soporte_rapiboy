@@ -2,7 +2,7 @@
   display: inline-block;
   max-width: 100%;
   font-family: var(--metric-font);
-  font-size: min(.94em, 18cqi);
+  font-size: min(1.08em, 21cqi);
   font-weight: 400;
   font-synthesis: none;
   line-height: 1.08;
@@ -11,6 +11,6 @@
   user-select: text;
   -webkit-user-select: text;
 }
-.largo { font-size: min(.78em, 14cqi); white-space: normal; overflow-wrap: anywhere; }
-.muyLargo { font-size: min(.64em, 11cqi); white-space: normal; overflow-wrap: anywhere; }
+.largo { font-size: min(.9em, 16cqi); white-space: normal; overflow-wrap: anywhere; }
+.muyLargo { font-size: min(.75em, 13cqi); white-space: normal; overflow-wrap: anywhere; }
 .valor::selection { color: var(--ink); background: var(--fuchsia-soft); }

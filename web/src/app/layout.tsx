@@ -38,10 +38,10 @@ const display = localFont({
   display: "swap",
 });
 
-const led = localFont({
-  src: "./fonts/The-Led-Display-St.ttf",
-  variable: "--fuente-led",
-  weight: "400",
+const avilock = localFont({
+  src: "./fonts/Avilock-Bold.ttf",
+  variable: "--fuente-avilock",
+  weight: "700",
   style: "normal",
   display: "swap",
 });
@@ -59,7 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     /* `suppressHydrationWarning` porque los scripts de tema y menú estampan
        `data-theme` y `data-menu` en `<html>` antes de hidratar y React vería
        atributos que no renderizó. */
-    <html lang="es-MX" className={`${sans.variable} ${display.variable} ${led.variable}`} suppressHydrationWarning>
+    <html lang="es-MX" className={`${sans.variable} ${display.variable} ${avilock.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
         <script dangerouslySetInnerHTML={{ __html: SCRIPT_MENU }} />

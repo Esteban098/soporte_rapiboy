@@ -987,7 +987,7 @@
 .cifraValor {
   font-family: var(--metric-font);
   font-synthesis: none;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 400;
   color: var(--ink);
   font-variant-numeric: tabular-nums;

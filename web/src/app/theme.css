@@ -20,7 +20,7 @@
   --surface-2: #1c2921;
   --surface-3: #2d3d32;
   --ink: #f1f5ef;
-  --led-ink: var(--ink);
+  --display-ink: var(--ink);
   --ink-2: #c2cec4;
   --muted: #9eafa2;
   --outline: #526653;
@@ -120,9 +120,9 @@
   --type-label-md: 0.8125rem;
   --sans: var(--fuente-sans), -apple-system, BlinkMacSystemFont, "Helvetica Neue", system-ui, sans-serif;
   --display: var(--fuente-display), var(--sans);
-  --heading: var(--fuente-led), var(--display);
-  --metric-font: var(--fuente-led), var(--display);
-  --led-word-spacing: .022em;
+  --heading: var(--fuente-avilock), var(--display);
+  --metric-font: var(--fuente-avilock), var(--display);
+  --display-word-spacing: .022em;
   --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --ease: cubic-bezier(0.28, 0.11, 0.32, 1);
   --ease-salida: cubic-bezier(0.16, 1, 0.3, 1);
@@ -156,7 +156,7 @@
   --surface-2: #f2f5f4;
   --surface-3: #e1e8e6;
   --ink: #101c16;
-  --led-ink: #09170e;
+  --display-ink: #09170e;
   --ink-2: #2b4533;
   --muted: #3d5744;
   --outline: #718781;

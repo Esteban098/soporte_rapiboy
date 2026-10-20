@@ -23,11 +23,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Usar los tokens `--on-primary`, `--on-critical` y `--warning-solid` para
   conservar el contraste de controles sólidos. Los estados operativos, colores
   de responsables y repartidores no deben convertirse todos al acento lima.
-- Los KPI compartidos usan `ValorMetrica` (texto seleccionable en la fuente
-  LED para números, porcentajes y unidades; contraste reforzado en claro).
-  Los títulos `h1`–`h3` usan la fuente LED local; mantener `h4`, controles y
-  texto de lectura en SF Pro. La licencia de la fuente exige autorización para
-  uso comercial antes de publicar; está copiada junto al TTF.
+- Los KPI compartidos usan `ValorMetrica` (texto seleccionable en Avilock
+  para números, porcentajes y unidades; contraste reforzado en claro).
+  Los títulos `h1`–`h3` usan la fuente Avilock local; mantener `h4`, controles y
+  texto de lectura en SF Pro. El propietario confirmó que dispone de licencia
+  para Avilock; el Read Me del ZIP es solo para uso personal y no sustituye esa
+  autorización. Verificar sus condiciones antes de publicar el TTF.
   Las tablas y los formularios conservan fuente normal. Las superficies deben
   respetar el ancho disponible; tablas anchas scrollean dentro de su bloque.
 - Ver `docs/sistema-visual.md`. Al cambiar el tema ejecutar `test:tema` y

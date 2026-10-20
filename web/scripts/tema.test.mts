@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import { SCRIPT_TEMA, TEMA_PREDETERMINADO } from "../src/lib/tema";
@@ -44,6 +44,15 @@ test("sin matchMedia el fallback de sistema es claro", () => {
 });
 
 const css = readFileSync(new URL("../src/app/theme.css", import.meta.url), "utf8");
+test("Avilock reemplaza la fuente LCD en títulos y métricas", () => {
+  const layout = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
+  assert.ok(existsSync(new URL("../src/app/fonts/Avilock-Bold.ttf", import.meta.url)));
+  assert.match(layout, /Avilock-Bold\.ttf/);
+  assert.match(layout, /--fuente-avilock/);
+  assert.match(css, /--heading:\s*var\(--fuente-avilock\)/);
+  assert.match(css, /--metric-font:\s*var\(--fuente-avilock\)/);
+  assert.doesNotMatch(layout + css, /The-Led-Display-St|Good-Times-Regular|--fuente-led|--fuente-good-times/);
+});
 const bloques = [...css.matchAll(/:root(?:\[data-theme="light"\])?\s*\{([^}]+)\}/g)].map((m) =>
   Object.fromEntries([...m[1].matchAll(/(--[\w-]+):\s*([^;]+);/g)].map((v) => [v[1], v[2].trim()])),
 );
@@ -76,7 +85,7 @@ for (const [nombre, paleta] of [["oscuro", bloques[0]], ["claro", { ...bloques[0
       return variable ? resolver(variable[1]) : valor;
     };
     const pares = [
-      ["--ink", "--surface"], ["--led-ink", "--surface"], ["--ink-2", "--surface-2"], ["--muted", "--surface"],
+      ["--ink", "--surface"], ["--display-ink", "--surface"], ["--ink-2", "--surface-2"], ["--muted", "--surface"],
       ["--on-primary", "--primary"], ["--accent-ink", "--primary-container"],
       ["--warning", "--warning-soft"], ["--critical", "--critical-soft"], ["--good", "--good-soft"],
       ["--on-critical", "--critical"], ["--rail-active", "--rail-active-soft"],

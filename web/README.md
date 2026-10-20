@@ -81,9 +81,10 @@ La identidad visual se define en `src/app/theme.css`: fondos grafito,
 superficies verde oscuro, acentos lima y fucsia, bordes finos y tarjetas redondeadas.
 Los componentes consumen roles semánticos, también en chat, Colectas,
 Evidencias, mapas, formularios y avisos. Los títulos principales usan la fuente
-local The Led Display St; su archivo de licencia requiere autorización para uso
-comercial antes de publicar. `ValorMetrica` muestra cifras, porcentajes y
-unidades de los KPI como texto seleccionable en la misma fuente LED; las tablas
+local Avilock. El propietario confirmó que dispone de permiso de uso; antes de
+publicar el TTF se deben verificar sus condiciones de distribución.
+`ValorMetrica` muestra cifras, porcentajes y unidades de los KPI como texto
+seleccionable en la misma fuente; las tablas
 conservan tipografía convencional. Alertas, responsables y estados mantienen
 colores diferenciados. Ver [sistema visual](docs/sistema-visual.md) y ejecutar
 `npm run test:tema` para validar preferencias y contraste.

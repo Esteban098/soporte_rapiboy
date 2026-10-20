@@ -49,7 +49,7 @@
 .titulo {
   font-family: var(--heading);
   font-weight: 600;
-  letter-spacing: calc(-0.022em + var(--tracking-boost) + var(--led-word-spacing));
+  letter-spacing: calc(-0.022em + var(--tracking-boost) + var(--display-word-spacing));
   font-size: var(--type-title-lg);
   color: var(--ink);
   margin: 0 0 4px;
