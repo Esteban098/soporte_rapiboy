@@ -15,7 +15,7 @@
 }
 
 .encabezado h2, .grafico h3 { margin: 0; font-family: var(--heading); letter-spacing: calc(-.022em + var(--tracking-boost) + var(--display-word-spacing)); }
-.encabezado h2 { font-size: var(--type-title-md); }
+.encabezado h2 { font-size: var(--type-title-lg); }
 .encabezado p { margin: 3px 0 0; color: var(--muted); font-size: var(--type-label-md); }
 .encabezado strong { padding: 5px 9px; border-radius: var(--radio-3); background: linear-gradient(120deg, color-mix(in srgb, var(--secondary) 22%, var(--surface-2)), color-mix(in srgb, var(--secondary) 7%, var(--surface-2))); color: var(--secondary); font-size: 11.5px; white-space: nowrap; }
 

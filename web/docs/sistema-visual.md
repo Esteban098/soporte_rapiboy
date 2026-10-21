@@ -1,4 +1,4 @@
-# Sistema visual · Grafito / Lima / Fucsia
+# Sistema visual · Grafito / Marfil / Lima
 
 La referencia aprobada es la primera propuesta oscura de Live Tracker. La
 implementación aplica su material, color y jerarquía al producto existente;
@@ -16,6 +16,8 @@ no incorpora los números, nombres, mapa ficticio ni otros datos de la imagen.
   de publicar. No convertir ni modificar el archivo original.
 - `ui.module.css` y `Card.tsx`: estructura general, sidebar, encabezados,
   tarjetas, KPI, tablas compartidas y avisos.
+- La barra lateral comparte la fuente Avilock con los encabezados y comienza
+  compacta en escritorio; solo queda abierta cuando el usuario lo elige.
 - `IconoSeccion.tsx`: iconos decorativos; los destinos y permisos siguen en
   `lib/navegacion.ts` y `lib/permisos.ts`.
 - `ValorMetrica.tsx`: los KPI muestran texto real, seleccionable y copiable;
@@ -83,11 +85,12 @@ cambios de sistema y sincroniza pestañas mediante el evento `storage`.
 Sin acceso a almacenamiento el arranque también sigue al sistema. Si el navegador
 no ofrece `matchMedia`, se usa claro como fallback.
 
-La alternativa clara usa la misma estructura y familia de colores. Su fondo
-gris neutro (`--plane`) contrasta con tarjetas blancas (`--surface`); los
-bordes y las sombras delimitan las superficies anidadas. La tinta principal,
-secundaria y auxiliar es más intensa, y las métricas mantienen colores
-saturados sin perder contraste de lectura.
+Ambos modos comparten la misma identidad neutral y los mismos acentos: el oscuro
+usa grafito y azul tinta; el claro, marfil y azul humo. Lima identifica acciones
+y fucsia queda como acento secundario, sin teñir las superficies. La barra
+lateral usa en ambos casos un degradado translúcido equivalente, adaptado solo
+a la luminosidad. El desenfoque, los bordes y las sombras mantienen separadas
+las superficies sin volverlas opacas.
 
 La impresión mantiene papel blanco y texto oscuro; no imprime botones de control.
 

@@ -58,6 +58,11 @@ h1 {
   line-height: 1.08;
 }
 
+h2 {
+  font-size: var(--type-title-lg);
+  line-height: 1.18;
+}
+
 a {
   color: inherit;
 }

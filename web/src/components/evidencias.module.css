@@ -1,6 +1,6 @@
 .stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; min-width: 0; }
 .card { min-width: 0; background: var(--card-background); border: 1px solid var(--rule); border-radius: var(--radio); padding: 20px; }
-.card h2 { margin: 0 0 6px; font-size: 18px; }
+.card h2 { margin: 0 0 6px; font-size: var(--type-title-lg); }
 .card > p, .head p { margin: 0 0 16px; color: var(--muted); }
 .head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .observacion, .activo { --pill-gradient: linear-gradient(120deg, color-mix(in srgb, var(--pill-tone) 22%, var(--surface-2)), color-mix(in srgb, var(--pill-tone) 7%, var(--surface-2))); border-radius: 999px; padding: 5px 9px; font-size: 11px; font-weight: 800; letter-spacing: calc(.04em + var(--tracking-boost)); background: var(--pill-gradient); }
@@ -36,7 +36,7 @@
 .form input, .form select { min-height: 38px; border: 1px solid var(--outline); border-radius: 8px; padding: 6px 8px; background: var(--surface); color: inherit; }
 .toast { position: fixed; right: 18px; bottom: 18px; z-index: 80; width: min(440px, calc(100vw - 36px)); box-shadow: 0 20px 50px #0003; background: var(--surface); color: var(--ink); border: 1px solid var(--warning); border-radius: var(--radio); padding: 16px; }
 .toastHead { display: flex; justify-content: space-between; gap: 12px; }
-.toastHead h2 { margin: 0; font-size: 16px; }
+.toastHead h2 { margin: 0; font-size: var(--type-title-lg); }
 .toastHead button { background: transparent; border: 0; color: var(--ink); font-size: 20px; cursor: pointer; }
 .toast ul { margin: 12px 0; padding-left: 18px; }
 .toastItem { display: flex; gap: 10px; align-items: center; margin: 9px 0; }

@@ -1,24 +1,23 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { CLAVE_MENU, MENU_CORTO } from "@/lib/menu";
+import { CLAVE_MENU, MENU_ABIERTO, MENU_CORTO } from "@/lib/menu";
 import estilos from "./ui.module.css";
 
 /**
  * Pliega la barra lateral a una columna de íconos.
  *
  * Igual que el tema, solo pone o saca un atributo en `<html>` (`data-menu`) y
- * todo lo demás lo resuelve `ui.module.css`. Se recuerda en `localStorage`:
- * quien lo plegó para ganar ancho en el mapa lo quiere plegado en la próxima
- * pantalla también.
+ * todo lo demás lo resuelve `ui.module.css`. Por defecto queda reducido a
+ * iconos; `localStorage` solo conserva la elección explícita de abrirlo.
  */
 const oyentes = new Set<() => void>();
 
 function leer(): boolean {
   try {
-    return localStorage.getItem(CLAVE_MENU) === MENU_CORTO;
+    return localStorage.getItem(CLAVE_MENU) !== MENU_ABIERTO;
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -45,8 +44,8 @@ function suscribir(avisar: () => void) {
 function alternar() {
   const corto = !leer();
   try {
-    if (corto) localStorage.setItem(CLAVE_MENU, MENU_CORTO);
-    else localStorage.removeItem(CLAVE_MENU);
+    if (corto) localStorage.removeItem(CLAVE_MENU);
+    else localStorage.setItem(CLAVE_MENU, MENU_ABIERTO);
   } catch {
     /* Sin almacenamiento el cambio vale hasta recargar. */
   }
@@ -55,7 +54,7 @@ function alternar() {
 }
 
 export function BotonMenu() {
-  const corto = useSyncExternalStore(suscribir, leer, () => false);
+  const corto = useSyncExternalStore(suscribir, leer, () => true);
   const etiqueta = corto ? "Mostrar menú" : "Ocultar menú";
 
   return (

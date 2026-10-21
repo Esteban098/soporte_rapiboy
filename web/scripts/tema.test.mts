@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import { SCRIPT_TEMA, TEMA_PREDETERMINADO } from "../src/lib/tema";
+import { MENU_CORTO, SCRIPT_MENU } from "../src/lib/menu";
 
 test("primer pintado sigue al sistema salvo elección explícita", () => {
   assert.equal(TEMA_PREDETERMINADO, "system");
@@ -43,6 +44,17 @@ test("sin matchMedia el fallback de sistema es claro", () => {
   assert.equal(tema, "light");
 });
 
+test("la barra lateral comienza oculta y recuerda si se abre", () => {
+  for (const [guardado, esperado] of [[null, MENU_CORTO], ["corto", MENU_CORTO], ["abierto", null]] as const) {
+    let menu: string | null = null;
+    runInNewContext(SCRIPT_MENU, {
+      localStorage: { getItem: () => guardado },
+      document: { documentElement: { setAttribute: (_: string, valor: string) => { menu = valor; } } },
+    });
+    assert.equal(menu, esperado);
+  }
+});
+
 const css = readFileSync(new URL("../src/app/theme.css", import.meta.url), "utf8");
 test("Avilock reemplaza la fuente LCD en títulos y métricas", () => {
   const layout = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
@@ -67,7 +79,29 @@ test("el tema claro separa el fondo general de las tarjetas", () => {
   const fondo = luminancia(claro["--plane"]);
   const tarjeta = luminancia(claro["--surface"]);
   assert.ok(tarjeta > fondo);
-  assert.ok((tarjeta + .05) / (fondo + .05) >= 1.3);
+  assert.ok((tarjeta + .05) / (fondo + .05) >= 1.2);
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(claro["--plane"].slice(i, i + 2), 16));
+  assert.ok(r > g && g > b, "el fondo claro debe ser marfil cálido, no gris ni verde");
+});
+test("la barra lateral es translúcida y responde al tema", () => {
+  const componentes = readFileSync(new URL("../src/components/ui.module.css", import.meta.url), "utf8");
+  const claro = { ...bloques[0], ...bloques[1] };
+  assert.match(css, /--rail-background:\s*linear-gradient/g);
+  assert.notEqual(claro["--rail-background"], bloques[0]["--rail-background"]);
+  assert.match(componentes, /background:\s*var\(--rail-fondo\)/);
+  assert.match(componentes, /backdrop-filter:\s*var\(--rail-filter\)/);
+  assert.doesNotMatch(componentes, /\.railFijo\s*\{[\s\S]*?color-scheme:\s*dark/);
+});
+test("ambos temas conservan una base neutral y el mismo acento de navegación", () => {
+  const oscuro = bloques[0];
+  const claro = { ...bloques[0], ...bloques[1] };
+  const canales = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const [ro, go, bo] = canales(oscuro["--surface"]);
+  const [rc, gc, bc] = canales(claro["--ink"]);
+  assert.ok(bo >= go && go >= ro, "el tema oscuro debe ser grafito azulado, no verde");
+  assert.ok(bc >= gc && gc >= rc, "el tema claro debe usar tinta neutral, no violeta");
+  assert.ok(canales(oscuro["--rail-active"])[1] > canales(oscuro["--rail-active"])[2]);
+  assert.ok(canales(claro["--rail-active"])[1] > canales(claro["--rail-active"])[2]);
 });
 test("los textos secundarios del tema claro mantienen contraste alto", () => {
   const claro = { ...bloques[0], ...bloques[1] };

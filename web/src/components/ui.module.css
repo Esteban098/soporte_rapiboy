@@ -13,29 +13,18 @@
   min-width: 0;
 }
 
-/*
- * Panel flotante grafito, igual en tema claro y oscuro: la navegación es un
- * objeto aparte del contenido y se lee como tal sin depender del fondo.
- *
- * Los tokens se redefinen acá adentro y no en cada regla: así lo que se monta
- * dentro de la barra —el botón de salir, por ejemplo— toma los colores
- * oscuros sin saber que está en ella.
- */
+/* Panel flotante translúcido: toma degradado y tinta de cada tema. */
 .railFijo {
-  color-scheme: dark;
-  --rail-fondo: var(--rail);
-  --rail-2: rgba(255, 255, 255, 0.08);
-  --rail-ink: rgba(255, 255, 255, 0.78);
-  --rail-ink-alta: #ffffff;
-  --rail-ink-dim: #9eafa2;
-  --ink: #ffffff;
+  color-scheme: inherit;
+  --rail-fondo: var(--rail-background);
+  --ink: var(--rail-ink-alta);
   --display-ink: var(--ink);
-  --ink-2: rgba(255, 255, 255, 0.78);
-  --muted: rgba(255, 255, 255, 0.55);
-  --rule: rgba(255, 255, 255, 0.14);
-  --rule-soft: rgba(255, 255, 255, 0.09);
-  --surface-2: rgba(255, 255, 255, 0.08);
-  --surface-3: rgba(255, 255, 255, 0.14);
+  --ink-2: var(--rail-ink);
+  --muted: var(--rail-ink-dim);
+  --rule: var(--rail-border);
+  --rule-soft: var(--rail-border);
+  --surface-2: var(--rail-2);
+  --surface-3: var(--rail-3);
 
   /* Dos tamaños para toda la barra: texto (secciones, títulos de grupo, marca,
      usuario) y rótulo (subtítulo, «Salir»). */
@@ -44,10 +33,14 @@
   --rail-peso: 500;
   --rail-tracking: .01em;
 
-  background-color: var(--rail-fondo);
-  border: 1px solid var(--rule-soft);
-  box-shadow: var(--shadow-alta);
+  font-family: var(--heading);
+
+  background: var(--rail-fondo);
+  border: 1px solid var(--rail-border);
+  box-shadow: var(--rail-shadow);
   color: var(--rail-ink);
+  -webkit-backdrop-filter: var(--rail-filter);
+  backdrop-filter: var(--rail-filter);
 
   position: sticky;
   top: 12px;
@@ -129,7 +122,7 @@
   border: 0;
   text-align: left;
   cursor: pointer;
-  font-family: var(--sans);
+  font-family: var(--heading);
   font-weight: var(--rail-peso);
   font-size: var(--rail-texto);
   letter-spacing: var(--rail-tracking);
@@ -206,7 +199,7 @@
   color: var(--rail-ink);
   text-decoration: none;
   text-align: left;
-  font-family: var(--sans);
+  font-family: var(--heading);
   font-size: var(--rail-texto);
   font-weight: var(--rail-peso);
   letter-spacing: var(--rail-tracking);
@@ -494,7 +487,7 @@
 
 .cardTitle {
   font-family: var(--heading);
-  font-size: var(--type-title-md);
+  font-size: var(--type-title-lg);
   font-weight: 600;
   letter-spacing: calc(-0.022em + var(--tracking-boost) + var(--display-word-spacing));
 }
@@ -668,7 +661,7 @@
 .panelDatosTitulo {
   margin: 0 0 3px;
   font-family: var(--heading);
-  font-size: var(--type-title-md);
+  font-size: var(--type-title-lg);
   font-weight: 650;
   letter-spacing: calc(-0.022em + var(--tracking-boost) + var(--display-word-spacing));
 }

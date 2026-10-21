@@ -8,7 +8,7 @@
   padding: 5px 6px 5px 13px;
   cursor: pointer;
   color: var(--ink-2);
-  font-family: var(--sans);
+  font-family: var(--heading);
   /* Vive en la barra lateral y toma su escala (ver `.railFijo`). */
   font-size: var(--rail-texto);
   font-weight: var(--rail-peso);
