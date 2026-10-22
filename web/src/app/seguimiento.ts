@@ -3,8 +3,6 @@
 import { updateTag } from "next/cache";
 import {
   BUCKET_SEGUIMIENTO,
-  TABLA_MENSUAL,
-  TABLA_MENSUAL_HISTORICO,
   TABLA_SEGUIMIENTO,
 } from "@/lib/config";
 import { notificarMenciones } from "@/lib/notificaciones";
@@ -14,10 +12,12 @@ import {
   etapaDe,
   nombreDePersona,
   parsearSeguimiento,
+  responsablesDesdeRapiboyData,
   type EstadoSeguimiento,
   type EtapaSeguimiento,
   type FilaSeguimiento,
 } from "@/lib/seguimiento";
+import { consultarRapiboyData } from "@/lib/rapiboy-data";
 import {
   actualizarFila,
   actualizarFilaSi,
@@ -133,30 +133,23 @@ export type DatosReporte = {
   archivos: string[];
 };
 
-type FilaPedido = {
-  repartidor?: string | null;
-  tienda?: string | null;
-};
-
 /**
- * Busca primero en la ventana operativa y también en el histórico físico.
+ * Completa los responsables directamente desde RapiboyData mediante el flujo
+ * autenticado de solo lectura. No consulta las copias operativas de Supabase.
  *
- * Se leen las dos en paralelo porque durante los días de rotación el pedido
- * puede estar en cualquiera. Guardar una copia en Seguimiento evita que el
- * driver y el seller desaparezcan de un reporte cuando Mensual se archive.
+ * Un fallo de enriquecimiento no bloquea un reporte urgente: queda registrado
+ * sin el dato que faltaba y el error se deja en los logs del servidor.
  */
 async function responsablesDelCaso(
   casoId: string,
 ): Promise<{ driver: string | null; seller: string | null }> {
-  const [mensual, historico] = await Promise.all([
-    leerFila<FilaPedido>(TABLA_MENSUAL, casoId),
-    leerFila<FilaPedido>(TABLA_MENSUAL_HISTORICO, casoId),
-  ]);
-
-  return {
-    driver: mensual?.repartidor?.trim() || historico?.repartidor?.trim() || null,
-    seller: mensual?.tienda?.trim() || historico?.tienda?.trim() || null,
-  };
+  if (!/^\d{1,12}$/.test(casoId)) return { driver: null, seller: null };
+  const resultado = await consultarRapiboyData({ id: casoId, origen: "seguimiento" });
+  if (!resultado.ok) {
+    console.error(`[seguimiento] No se pudieron completar responsables: ${resultado.codigo}`);
+    return { driver: null, seller: null };
+  }
+  return responsablesDesdeRapiboyData(resultado.datos);
 }
 
 /** Guarda el comentario original del reporte y sus responsables. */
@@ -187,7 +180,9 @@ export async function crearSeguimiento(datos: DatosReporte): Promise<Resultado> 
     return { ok: false, error: `Se pueden adjuntar hasta ${MAX_ARCHIVOS} archivos.` };
   }
 
-  const encontrados = await responsablesDelCaso(casoId);
+  const encontrados = driver && seller
+    ? { driver: null, seller: null }
+    : await responsablesDelCaso(casoId);
   const responsables = {
     driver: driver || encontrados.driver,
     seller: seller || encontrados.seller,
@@ -278,7 +273,9 @@ export async function editarSeguimiento(id: string, datos: DatosReporte): Promis
 
   // El comentario anterior hace falta para avisar solo a las menciones nuevas.
   const [encontrados, anterior] = await Promise.all([
-    responsablesDelCaso(casoId),
+    driver && seller
+      ? Promise.resolve({ driver: null, seller: null })
+      : responsablesDelCaso(casoId),
     leerFila<FilaSeguimiento>(TABLA_SEGUIMIENTO, id),
   ]);
   const responsables = {

@@ -1,10 +1,16 @@
 import assert from "node:assert/strict";
 import {
   agruparSeguimientos,
+  agruparPorResponsableSeguimiento,
+  colorDePersona,
   etapaDe,
   inicialesDePersona,
   minutosAbierto,
+  moverPeriodo,
   parsearSeguimiento,
+  periodoActual,
+  periodoValido,
+  responsablesDesdeRapiboyData,
   resumirSeguimientos,
   seguimientoVencido,
   tiempoResolucionMinutos,
@@ -56,6 +62,29 @@ assert.equal(etapaDe(legado), "abierto");
 assert.equal(legado.driver, "Driver Uno");
 assert.equal(legado.seller, "Seller Uno");
 
+// Si faltan responsables, se toman de la respuesta vigente de RapiboyData:
+// tienda del viaje y último repartidor no vacío del historial.
+assert.deepEqual(
+  responsablesDesdeRapiboyData({
+    encontrado: true,
+    viaje: { tienda: " Seller Sistema ", id_modalidad: 5, id_localidad: 9 },
+    historial: [
+      { repartidor: "Driver Anterior" },
+      { repartidor: null },
+      { repartidor: " Driver Vigente " },
+    ],
+  }),
+  { driver: "Driver Vigente", seller: "Seller Sistema" },
+);
+assert.deepEqual(
+  responsablesDesdeRapiboyData({
+    encontrado: true,
+    viaje: { tienda: "Fuera de alcance", id_modalidad: 7, id_localidad: 9 },
+    historial: [{ repartidor: "Otro driver" }],
+  }),
+  { driver: null, seller: null },
+);
+
 // Tomado es `tomado_por` sobre un abierto: cuenta como abierto en los totales.
 const tomado = parsearSeguimiento(
   fila({ id: "tomado", tomado_por: "esteban.larcher@rapiboy.com", tomado_en: "2026-09-07T07:00:00.000Z" }),
@@ -95,6 +124,31 @@ assert.deepEqual(resumirSeguimientos([legado, tomado, cerrado]), {
   resolucionPromedioMinutos: 150,
 });
 
+// Lista y tablero usan quien tomó para pendientes y quien cerró para cerrados,
+// sin atribuirle responsable a un registro legado que no lo guardó.
+const gruposResponsable = agruparPorResponsableSeguimiento([
+  legado,
+  tomado,
+  { ...cerrado, id: "cerrado-tomado", tomadoPor: "esteban.larcher@rapiboy.com", atendidoPor: "operador@rapiboy.com" },
+  { ...cerrado, id: "cerrado-sin-responsable", atendidoPor: null },
+]);
+assert.deepEqual(
+  gruposResponsable.map((grupo) => [grupo.etiqueta, grupo.reportes.map((item) => item.id)]),
+  [
+    ["Sin tomar", ["reporte-1"]],
+    ["Cerrado por operador", ["cerrado-tomado"]],
+    ["Tomado por esteban.larcher", ["tomado"]],
+    ["Sin cierre registrado", ["cerrado-sin-responsable"]],
+  ],
+);
+assert.deepEqual(
+  gruposResponsable.map((grupo) => grupo.responsable),
+  [null, "operador@rapiboy.com", "esteban.larcher@rapiboy.com", null],
+);
+assert.match(colorDePersona("esteban.larcher@rapiboy.com"), /--persona-esteban/);
+assert.match(colorDePersona("candelaria@rapiboy.com"), /--persona-candelaria/);
+assert.notEqual(colorDePersona("esteban@rapiboy.com"), colorDePersona("cande@rapiboy.com"));
+
 // El corte semanal usa Ciudad de México: ambos instantes están en UTC, pero el
 // primero todavía es domingo local y el segundo ya es lunes local.
 const semanas = agruparSeguimientos([
@@ -110,6 +164,16 @@ assert.deepEqual(
     ["2026-08-31", ["domingo"]],
   ],
 );
+
+// El selector navega períodos calendario estables y solo acepta lunes como
+// clave semanal, para que una URL manual no produzca semanas desplazadas.
+assert.equal(periodoActual("semana", new Date("2026-09-08T12:00:00Z")), "2026-09-07");
+assert.equal(periodoActual("mes", new Date("2026-09-01T03:00:00Z")), "2026-08");
+assert.equal(moverPeriodo("semana", "2026-09-07", -1), "2026-08-31");
+assert.equal(moverPeriodo("mes", "2026-01", -1), "2025-12");
+assert.equal(periodoValido("semana", "2026-09-07"), true);
+assert.equal(periodoValido("semana", "2026-09-08"), false);
+assert.equal(periodoValido("mes", "2026-13"), false);
 
 // El corte mensual también: 1 de septiembre 03:00 UTC sigue siendo agosto en México.
 const meses = agruparSeguimientos(

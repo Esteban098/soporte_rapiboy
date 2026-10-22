@@ -1050,13 +1050,28 @@ Se carga el id del caso, driver, seller, un comentario y, si hace falta, fotos o
 reporte queda **abierto** hasta que alguien lo cierra; al cerrarlo se registra
 quién fue.
 
-La pantalla es un tablero de tarjetas. Cada período —semana de lunes a domingo
-o mes calendario, a elección, con el calendario de Ciudad de México— es un
-carril plegable con tres columnas de color: **Abierto** (rojo), **Tomado**
-(índigo) y **Cerrado** (verde). Arriba hay un resumen con la proporción por
-etapa, y filtros por texto y por responsable (míos, sin tomar o una persona).
-Cada tarjeta muestra el caso, el comentario original, driver y seller, cuánto lleva abierto
-—ámbar desde 24 h, rojo desde 3 días— y un avatar de color por persona.
+La pantalla ofrece tres vistas sobre la misma cola: **Resumen** reúne KPI
+—incluido **Casos abiertos**, que suma los reportes sin tomar y tomados—,
+actividad reciente, carga del equipo y gráficas; **Lista** presenta los campos
+operativos en una tabla con acciones; **Tablero** distribuye las tarjetas entre
+**Abierto** (rojo), **Tomado** (índigo) y **Cerrado** (verde). Las tres
+comparten búsqueda y filtro por responsable (míos, sin tomar o una persona).
+Lista y Tablero agrupan además los pendientes por quien los tomó y los cerrados
+por quien los cerró, con divisores punteados sutiles. Los pendientes sin tomar
+y los cierres antiguos sin un cierre registrado permanecen diferenciados. Cada
+responsable conserva un color estable en su avatar, grupo, tarjetas y filas;
+Esteban usa azul eléctrico y Candelaria fucsia. En tema oscuro los tintes,
+bordes y separadores ganan intensidad para distinguirlos con rapidez; en tema
+claro se mantienen más suaves para no competir con el estado.
+
+El historial cerrado se acota por semana —lunes a domingo— o mes calendario,
+según Ciudad de México, con controles para avanzar o retroceder. En Resumen,
+**Todos** permite calcular métricas y gráficas sobre el historial completo; al
+pasar a Lista o Tablero se vuelve a la semana actual para no montar toda la
+historia operativa en pantalla. Los reportes
+abiertos se incluyen siempre aunque sean anteriores al período seleccionado:
+así la pantalla no crece indefinidamente sin esconder trabajo pendiente. Una
+notificación también incorpora su reporte aunque esté fuera del período.
 
 Lo que conviene saber:
 
@@ -1092,8 +1107,11 @@ Lo que conviene saber:
   `supabase/seguimiento.sql` y se corre una vez; hasta entonces la sección
   aparece con un aviso en vez de fallar.
 - **Driver y seller quedan guardados con el reporte.** Al cargarlo, el servidor
-  acepta ambos valores desde el formulario; si alguno queda vacío, busca el
-  pedido en `mensual` y `mensual_historico` y lo completa.
+  acepta ambos valores desde el formulario; si alguno queda vacío, consulta el
+  viaje directamente en RapiboyData mediante el webhook autenticado del flujo
+  11. El seller sale de la tienda vigente y el driver del último movimiento
+  que informe repartidor; no se usan `mensual` ni `mensual_historico` como
+  respaldo.
   Así no desaparecen cuando el pedido rota al histórico. En una base existente,
   ejecutar `supabase/migracion-04-seguimiento-semanal.sql`: también devuelve los
   valores `tomado` antiguos de la columna `estado` a `abierto` y bloquea nuevas
@@ -1103,10 +1121,9 @@ Lo que conviene saber:
   marca el final. Así un segundo ciclo abierto/cerrado no suma el tiempo de un
   cierre anterior.
 
-Esta sección no usa el componente `Tabla`: vive en `TableroSeguimiento`, porque
-cada tarjeta tiene acciones que escriben en la base, adjuntos que abrir y un
-comentario que se despliega, y meter eso en la tabla común la llenaría de casos
-especiales de una sola pantalla.
+Esta sección vive en `TableroSeguimiento`: sus vistas comparten filtros y
+acciones que escriben en la base. La tabla de Lista es propia porque además de
+leer permite tomar, soltar, editar, cerrar y reabrir cada reporte.
 
 ### Menciones y notificaciones
 

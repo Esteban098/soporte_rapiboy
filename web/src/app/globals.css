@@ -59,6 +59,7 @@ h1 {
 }
 
 h2 {
+  letter-spacing: var(--h2-letter-spacing);
   font-size: var(--type-title-lg);
   line-height: 1.18;
 }

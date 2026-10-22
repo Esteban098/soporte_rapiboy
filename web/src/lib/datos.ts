@@ -15,11 +15,15 @@ import {
   type Cancelado,
 } from "./cancelados";
 import {
+  clavePeriodo,
   parsearSeguimiento,
+  periodoActual,
+  periodoValido,
   type FilaSeguimiento,
+  type PeriodoSeguimiento,
   type Seguimiento,
 } from "./seguimiento";
-import { consultar, leerTabla, TablaFaltante } from "./supabase";
+import { consultar, consultarTodo, leerFila, leerTabla, TablaFaltante } from "./supabase";
 import {
   parsearAsignaciones,
   parsearColectas,
@@ -140,6 +144,73 @@ export const cargarSeguimientos = cache(async (): Promise<ColaSeguimiento> => {
     throw error;
   }
 });
+
+/**
+ * Vista acotada del seguimiento: conserva todos los pendientes y trae solamente
+ * los cerrados creados en la semana o mes elegido. Así el trabajo antiguo no
+ * desaparece, pero el historial resuelto tampoco alarga la página para siempre.
+ */
+export async function cargarSeguimientosPeriodo(
+  agrupacion: PeriodoSeguimiento,
+  claveSolicitada?: string,
+  foco?: string | null,
+): Promise<ColaSeguimiento & { clave: string }> {
+  const clave = agrupacion === "todos"
+    ? "todos"
+    : claveSolicitada && periodoValido(agrupacion, claveSolicitada)
+      ? claveSolicitada
+      : periodoActual(agrupacion);
+  if (modoDatos() !== "supabase") return { reportes: [], sinTabla: false, clave };
+
+  try {
+    if (agrupacion === "todos") {
+      // El resumen histórico no muestra ni firma adjuntos: evita transferir
+      // sus rutas, pero conserva los campos necesarios para filtros y gráficas.
+      const filas = await consultarTodo<FilaSeguimiento>(TABLA_SEGUIMIENTO, {
+        select: "id,created_at,caso_id,driver,seller,comentario_original,estado,abierto_en,creado_por,tomado_por,tomado_en,atendido_por,atendido_en",
+      }, "created_at.desc");
+      return { reportes: filas.map(parsearSeguimiento), sinTabla: false, clave };
+    }
+
+    const inicio = new Date(`${agrupacion === "mes" ? `${clave}-01` : clave}T00:00:00Z`);
+    const fin = new Date(inicio);
+    if (agrupacion === "mes") fin.setUTCMonth(fin.getUTCMonth() + 1);
+    else fin.setUTCDate(fin.getUTCDate() + 7);
+
+    // La zona operativa puede quedar de un lado u otro de UTC. Se consulta un
+    // día extra y luego se aplica el corte exacto con el calendario de México.
+    const desde = new Date(inicio);
+    desde.setUTCDate(desde.getUTCDate() - 1);
+    const hasta = new Date(fin);
+    hasta.setUTCDate(hasta.getUTCDate() + 1);
+
+    const [abiertos, cerrados, enfocado] = await Promise.all([
+      consultarTodo<FilaSeguimiento>(TABLA_SEGUIMIENTO, { estado: "eq.abierto" }, "created_at.desc"),
+      consultarTodo<FilaSeguimiento>(TABLA_SEGUIMIENTO, {
+        estado: "eq.cerrado",
+        and: `(created_at.gte.${desde.toISOString()},created_at.lt.${hasta.toISOString()})`,
+      }, "created_at.desc"),
+      foco ? leerFila<FilaSeguimiento>(TABLA_SEGUIMIENTO, foco) : Promise.resolve(null),
+    ]);
+
+    const filas = [
+      ...abiertos,
+      ...cerrados.filter((fila) => {
+        const reporte = parsearSeguimiento(fila);
+        return reporte.creado ? clavePeriodo(reporte.creado, agrupacion) === clave : false;
+      }),
+      ...(enfocado ? [enfocado] : []),
+    ];
+    const unicos = new Map(filas.map((fila) => [fila.id, parsearSeguimiento(fila)]));
+    const reportes = [...unicos.values()].sort(
+      (a, b) => (b.creado?.getTime() ?? 0) - (a.creado?.getTime() ?? 0),
+    );
+    return { reportes, sinTabla: false, clave };
+  } catch (error) {
+    if (error instanceof TablaFaltante) return { reportes: [], sinTabla: true, clave };
+    throw error;
+  }
+}
 
 /**
  * Colectas y asignaciones, disponibles solo en Supabase.

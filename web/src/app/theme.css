@@ -71,6 +71,7 @@
   --radio-2: 16px;
   --radio-3: 999px;
   --tracking-boost: .02em;
+  --h2-letter-spacing: .05em;
   --pill-base: var(--surface-2);
   --pill-tone: var(--tertiary);
   --glass: var(--surface);
@@ -115,10 +116,19 @@
   --estado-cancelado-fondo: #2d3630;
   --tienda-esteban: #88b8ff;
   --tienda-candelaria: #ff97c7;
+  --persona-esteban: #45a3ff;
+  --persona-candelaria: #ff4fb2;
+  --responsable-tinte-cabecera: 18%;
+  --responsable-tinte-fila: 8%;
+  --responsable-tinte-hover: 14%;
+  --responsable-tinte-grupo: 13%;
+  --responsable-tinte-tarjeta: 11%;
+  --responsable-borde: 38%;
+  --responsable-linea: 72%;
 
   --type-display-lg: clamp(2.15rem, 3.4vw, 3.25rem);
   --type-headline-md: clamp(1.5rem, 2.15vw, 2.04rem);
-  --type-title-lg: clamp(1.22rem, 1.05rem + .45vw, 1.42rem);
+  --type-title-lg: clamp(1.05rem, .98rem + .25vw, 1.25rem);
   --type-title-md: .94rem;
   --type-body-lg: 0.9375rem;
   --type-body-md: 0.875rem;
@@ -204,6 +214,15 @@
   --estado-cancelado-fondo: #e4e9e2;
   --tienda-esteban: #205dbe;
   --tienda-candelaria: #b72973;
+  --persona-esteban: #165fc7;
+  --persona-candelaria: #bd176b;
+  --responsable-tinte-cabecera: 11%;
+  --responsable-tinte-fila: 4%;
+  --responsable-tinte-hover: 9%;
+  --responsable-tinte-grupo: 7%;
+  --responsable-tinte-tarjeta: 6%;
+  --responsable-borde: 24%;
+  --responsable-linea: 58%;
   --map-background: #e8efe4;
   --map-land: #d7e6ce;
   --map-outline: #7d9975;

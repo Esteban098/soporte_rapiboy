@@ -65,6 +65,13 @@ test("Avilock reemplaza la fuente LCD en títulos y métricas", () => {
   assert.match(css, /--metric-font:\s*var\(--fuente-avilock\)/);
   assert.doesNotMatch(layout + css, /The-Led-Display-St|Good-Times-Regular|--fuente-led|--fuente-good-times/);
 });
+test("los títulos h2 comparten un espaciado amplio en toda la plataforma", () => {
+  const globales = readFileSync(new URL("../src/app/globals.css", import.meta.url), "utf8");
+  assert.match(css, /--h2-letter-spacing:\s*\.05em/);
+  assert.match(css, /--type-title-lg:\s*clamp\(1\.05rem,[^;]+1\.25rem\)/);
+  assert.match(globales, /h2\s*\{[\s\S]*?letter-spacing:\s*var\(--h2-letter-spacing\)/);
+  assert.match(globales, /h2\s*\{[\s\S]*?font-size:\s*var\(--type-title-lg\)/);
+});
 const bloques = [...css.matchAll(/:root(?:\[data-theme="light"\])?\s*\{([^}]+)\}/g)].map((m) =>
   Object.fromEntries([...m[1].matchAll(/(--[\w-]+):\s*([^;]+);/g)].map((v) => [v[1], v[2].trim()])),
 );
@@ -102,6 +109,14 @@ test("ambos temas conservan una base neutral y el mismo acento de navegación", 
   assert.ok(bc >= gc && gc >= rc, "el tema claro debe usar tinta neutral, no violeta");
   assert.ok(canales(oscuro["--rail-active"])[1] > canales(oscuro["--rail-active"])[2]);
   assert.ok(canales(claro["--rail-active"])[1] > canales(claro["--rail-active"])[2]);
+});
+test("Esteban y Candelaria conservan colores personales distinguibles", () => {
+  const oscuro = bloques[0];
+  const claro = { ...bloques[0], ...bloques[1] };
+  assert.notEqual(oscuro["--persona-esteban"], oscuro["--persona-candelaria"]);
+  assert.notEqual(claro["--persona-esteban"], claro["--persona-candelaria"]);
+  assert.equal(oscuro["--responsable-tinte-tarjeta"], "11%");
+  assert.equal(claro["--responsable-tinte-tarjeta"], "6%");
 });
 test("los textos secundarios del tema claro mantienen contraste alto", () => {
   const claro = { ...bloques[0], ...bloques[1] };

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cambiarEstado, tomarSeguimiento, type Resultado } from "@/app/seguimiento";
 import { EditorReporte } from "./EditorReporte";
 import { NombreTienda } from "./ColorTiendas";
@@ -12,33 +12,41 @@ import { aliasDeCorreo, tramosConMenciones } from "@/lib/menciones";
 import {
   ETAPAS,
   ETIQUETA_ETAPA,
-  agruparSeguimientos,
+  agruparPorResponsableSeguimiento,
   colorDePersona,
   etapaDe,
   inicialesDePersona,
   minutosAbierto,
   nombreDePersona,
+  moverPeriodo,
   resumirSeguimientos,
   tiempoResolucionMinutos,
-  type Agrupacion,
   type EstadoSeguimiento,
   type EtapaSeguimiento,
-  type GrupoSeguimiento,
+  type PeriodoSeguimiento,
   type Seguimiento,
 } from "@/lib/seguimiento";
 import tabla from "./tabla.module.css";
 import estilos from "./seguimiento-tablero.module.css";
 
 /**
- * La cola de reportes como tablero de tarjetas.
+ * Espacio de trabajo de reportes con resumen, lista y tablero.
  *
- * Cada semana o mes es un carril con tres columnas —Abierto, Tomado,
- * Cerrado—. Las columnas son la etapa y no se arrastra entre ellas: tomar es
- * un checkbox y cerrar un botón, porque cada cambio escribe en la base y deja
- * firmado quién lo hizo, y un arrastre accidental no debería poder hacer eso.
+ * El período acota el histórico cerrado, pero los pendientes siguen visibles.
+ * En el tablero las columnas son la etapa y no se arrastra entre ellas: tomar
+ * es un checkbox y cerrar un botón, porque cada cambio escribe en la base y
+ * deja firmado quién lo hizo, y un arrastre accidental no debería poder
+ * hacerlo.
  */
 
 const UN_DIA = 24 * 60;
+type VistaSeguimiento = "resumen" | "lista" | "tablero";
+
+type EstiloResponsable = CSSProperties & { "--responsable-color": string };
+
+function tinteDeResponsable(correo: string | null): EstiloResponsable | undefined {
+  return correo ? { "--responsable-color": colorDePersona(correo) } : undefined;
+}
 
 export function TableroSeguimiento({
   reportes,
@@ -46,6 +54,10 @@ export function TableroSeguimiento({
   yo,
   admin,
   foco = null,
+  vistaInicial,
+  agrupacion,
+  clavePeriodo,
+  etiquetaPeriodo,
 }: {
   reportes: Seguimiento[];
   /**
@@ -58,17 +70,21 @@ export function TableroSeguimiento({
   admin: boolean;
   /** Id del reporte a mostrar abierto y resaltado, al llegar desde una notificación. */
   foco?: string | null;
+  vistaInicial: VistaSeguimiento;
+  agrupacion: PeriodoSeguimiento;
+  clavePeriodo: string;
+  etiquetaPeriodo: string;
 }) {
-  const [agrupacion, setAgrupacion] = useState<Agrupacion>("semana");
   const [busqueda, setBusqueda] = useState("");
   const [responsable, setResponsable] = useState("todos");
-  const [plegados, setPlegados] = useState<Record<string, boolean>>({});
   const [pendiente, setPendiente] = useState<string | null>(null);
   const [editando, setEditando] = useState<Seguimiento | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ahora, setAhora] = useState<number | null>(null);
   const [, iniciar] = useTransition();
   const router = useRouter();
+  const pathname = usePathname();
+  const parametros = useSearchParams();
 
   // La antigüedad se calcula recién en el navegador y se refresca cada minuto:
   // calcularla también en el servidor haría que los textos no coincidan al hidratar.
@@ -80,12 +96,6 @@ export function TableroSeguimiento({
       clearInterval(intervalo);
     };
   }, []);
-
-  const resumen = useMemo(() => resumirSeguimientos(reportes), [reportes]);
-  const mios = useMemo(
-    () => reportes.filter((r) => yo && etapaDe(r) === "tomado" && r.tomadoPor === yo).length,
-    [reportes, yo],
-  );
 
   const personas = useMemo(() => {
     const correos = new Set<string>();
@@ -117,8 +127,11 @@ export function TableroSeguimiento({
       ].some((valor) => (valor ?? "").toLowerCase().includes(texto));
     });
   }, [reportes, responsable, busqueda, yo]);
-
-  const grupos = useMemo(() => agruparSeguimientos(visibles, agrupacion), [visibles, agrupacion]);
+  const resumen = useMemo(() => resumirSeguimientos(visibles), [visibles]);
+  const mios = useMemo(
+    () => visibles.filter((r) => yo && etapaDe(r) === "tomado" && r.tomadoPor === yo).length,
+    [visibles, yo],
+  );
 
   function ejecutar(id: string, accion: () => Promise<Resultado>) {
     setPendiente(id);
@@ -136,11 +149,38 @@ export function TableroSeguimiento({
     });
   }
 
+  function navegar(cambios: Record<string, string | null>) {
+    const siguientes = new URLSearchParams(parametros.toString());
+    for (const [clave, valor] of Object.entries(cambios)) {
+      if (valor === null) siguientes.delete(clave);
+      else siguientes.set(clave, valor);
+    }
+    router.replace(`${pathname}?${siguientes.toString()}`, { scroll: false });
+  }
+
   return (
     <div className={estilos.tablero}>
       {editando ? <EditorReporte reporte={editando} alCerrar={() => setEditando(null)} /> : null}
 
-      <Resumen resumen={resumen} mios={yo ? mios : null} />
+      <NavegacionVistas
+        vista={vistaInicial}
+        alCambiar={(vista) => navegar({
+          vista,
+          ...(vista !== "resumen" && agrupacion === "todos" ? { periodo: "semana", fecha: null } : {}),
+        })}
+      />
+
+      <ControlesPeriodo
+        agrupacion={agrupacion}
+        clave={clavePeriodo}
+        etiqueta={etiquetaPeriodo}
+        permitirTodos={vistaInicial === "resumen"}
+        alCambiarAgrupacion={(periodo) => navegar({ periodo, fecha: null })}
+        alMover={(cantidad) => {
+          if (agrupacion !== "todos") navegar({ fecha: moverPeriodo(agrupacion, clavePeriodo, cantidad) });
+        }}
+        alHoy={() => navegar({ fecha: null })}
+      />
 
       <div className={estilos.herramientas} data-noimprimir>
         <input
@@ -151,25 +191,6 @@ export function TableroSeguimiento({
           placeholder="Buscar caso, driver, seller, comentario…"
           aria-label="Buscar reportes"
         />
-
-        <div className={estilos.segmentado} role="group" aria-label="Agrupar por">
-          {(
-            [
-              ["semana", "Semana"],
-              ["mes", "Mes"],
-            ] as const
-          ).map(([valor, etiqueta]) => (
-            <button
-              key={valor}
-              type="button"
-              className={`${estilos.segmento} ${agrupacion === valor ? estilos.segmentoActivo : ""}`}
-              onClick={() => setAgrupacion(valor)}
-              aria-pressed={agrupacion === valor}
-            >
-              {etiqueta}
-            </button>
-          ))}
-        </div>
 
         <select
           className={`${tabla.buscador} ${estilos.selector}`}
@@ -210,51 +231,272 @@ export function TableroSeguimiento({
             : "Ningún reporte coincide con el filtro."}
         </p>
       ) : (
-        <div className={estilos.carriles}>
-          {grupos.map((grupo, indice) => (
-            <Carril
-              key={grupo.clave}
-              grupo={grupo}
-              plegado={plegados[grupo.clave] ?? !abrePorDefecto(grupo, indice, foco)}
-              alternar={(plegado) => setPlegados((previo) => ({ ...previo, [grupo.clave]: plegado }))}
-            >
-              {(reporte) => (
-                <Tarjeta
-                  // Cambiar la clave al enfocarla la vuelve a montar desplegada,
-                  // aunque la notificación llegue con la pantalla ya abierta.
-                  key={foco === reporte.id ? `${reporte.id}:foco` : reporte.id}
-                  enfocada={foco === reporte.id}
-                  reporte={reporte}
-                  urls={urls}
-                  yo={yo}
-                  admin={admin}
-                  ahora={ahora}
-                  ocupado={pendiente === reporte.id}
-                  alTomar={(tomar) => ejecutar(reporte.id, () => tomarSeguimiento(reporte.id, tomar))}
-                  alCambiarEstado={(estado: EstadoSeguimiento) =>
-                    ejecutar(reporte.id, () => cambiarEstado(reporte.id, estado))
-                  }
-                  alEditar={() => setEditando(reporte)}
-                />
-              )}
-            </Carril>
-          ))}
-        </div>
+        vistaInicial === "resumen" ? (
+          <VistaResumen reportes={visibles} resumen={resumen} mios={yo ? mios : null} ahora={ahora} />
+        ) : vistaInicial === "lista" ? (
+          <VistaLista
+            reportes={visibles}
+            yo={yo}
+            admin={admin}
+            ahora={ahora}
+            pendiente={pendiente}
+            alTomar={(reporte, tomar) => ejecutar(reporte.id, () => tomarSeguimiento(reporte.id, tomar))}
+            alCambiarEstado={(reporte, estado) => ejecutar(reporte.id, () => cambiarEstado(reporte.id, estado))}
+            alEditar={setEditando}
+          />
+        ) : (
+          <VistaTablero
+            reportes={visibles}
+            urls={urls}
+            yo={yo}
+            admin={admin}
+            ahora={ahora}
+            pendiente={pendiente}
+            foco={foco}
+            alTomar={(reporte, tomar) => ejecutar(reporte.id, () => tomarSeguimiento(reporte.id, tomar))}
+            alCambiarEstado={(reporte, estado) => ejecutar(reporte.id, () => cambiarEstado(reporte.id, estado))}
+            alEditar={setEditando}
+          />
+        )
       )}
-
-      <GraficosSeguimiento reportes={visibles} />
     </div>
   );
 }
 
-/**
- * El período más reciente, cualquiera con algo pendiente y el que tiene el
- * reporte enfocado arrancan abiertos.
- */
-function abrePorDefecto(grupo: GrupoSeguimiento, indice: number, foco: string | null): boolean {
+function NavegacionVistas({
+  vista,
+  alCambiar,
+}: {
+  vista: VistaSeguimiento;
+  alCambiar: (vista: VistaSeguimiento) => void;
+}) {
   return (
-    indice === 0 ||
-    grupo.reportes.some((reporte) => reporte.estado === "abierto" || reporte.id === foco)
+    <nav className={estilos.vistas} aria-label="Vistas de seguimiento" data-noimprimir>
+      {(["resumen", "lista", "tablero"] as const).map((opcion) => (
+        <button
+          key={opcion}
+          type="button"
+          className={`${estilos.vista} ${vista === opcion ? estilos.vistaActiva : ""}`}
+          onClick={() => alCambiar(opcion)}
+          aria-current={vista === opcion ? "page" : undefined}
+        >
+          <IconoVista vista={opcion} />
+          {opcion[0].toUpperCase() + opcion.slice(1)}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+function ControlesPeriodo({
+  agrupacion,
+  clave,
+  etiqueta,
+  permitirTodos,
+  alCambiarAgrupacion,
+  alMover,
+  alHoy,
+}: {
+  agrupacion: PeriodoSeguimiento;
+  clave: string;
+  etiqueta: string;
+  permitirTodos: boolean;
+  alCambiarAgrupacion: (agrupacion: PeriodoSeguimiento) => void;
+  alMover: (cantidad: number) => void;
+  alHoy: () => void;
+}) {
+  const opciones: PeriodoSeguimiento[] = permitirTodos
+    ? ["semana", "mes", "todos"]
+    : ["semana", "mes"];
+  return (
+    <section className={estilos.periodo} aria-label="Período del historial" data-noimprimir>
+      <div className={estilos.segmentado} role="group" aria-label="Agrupar historial por">
+        {opciones.map((opcion) => (
+          <button
+            key={opcion}
+            type="button"
+            className={`${estilos.segmento} ${agrupacion === opcion ? estilos.segmentoActivo : ""}`}
+            onClick={() => alCambiarAgrupacion(opcion)}
+            aria-pressed={agrupacion === opcion}
+          >
+            {opcion === "semana" ? "Semana" : opcion === "mes" ? "Mes" : "Todos"}
+          </button>
+        ))}
+      </div>
+      <div className={estilos.periodoNavegacion}>
+        {agrupacion !== "todos" ? <button type="button" className={estilos.periodoFlecha} onClick={() => alMover(-1)} aria-label="Período anterior">←</button> : null}
+        <strong title={clave}>{etiqueta}</strong>
+        {agrupacion !== "todos" ? <button type="button" className={estilos.periodoFlecha} onClick={() => alMover(1)} aria-label="Período siguiente">→</button> : null}
+      </div>
+      {agrupacion !== "todos" ? <button type="button" className={estilos.periodoHoy} onClick={alHoy}>Actual</button> : null}
+      <span className={estilos.periodoNota}>{agrupacion === "todos" ? "Métricas de todo el historial." : "Los pendientes antiguos permanecen visibles."}</span>
+    </section>
+  );
+}
+
+function VistaResumen({
+  reportes,
+  resumen,
+  mios,
+  ahora,
+}: {
+  reportes: Seguimiento[];
+  resumen: ReturnType<typeof resumirSeguimientos>;
+  mios: number | null;
+  ahora: number | null;
+}) {
+  const tiempoActividad = (reporte: Seguimiento) =>
+    (reporte.atendidoEn ?? reporte.tomadoEn ?? reporte.creado)?.getTime() ?? 0;
+  const recientes = [...reportes]
+    .sort((a, b) => tiempoActividad(b) - tiempoActividad(a))
+    .slice(0, 6);
+  return (
+    <div className={estilos.resumenVista}>
+      <Resumen resumen={resumen} mios={mios} />
+      <div className={estilos.resumenColumnas}>
+        <section className={estilos.actividadPanel}>
+          <div className={estilos.panelCabeza}>
+            <div><h2>Actividad reciente</h2><p>Últimos movimientos del período y pendientes visibles.</p></div>
+          </div>
+          <ol className={estilos.actividadLista}>
+            {recientes.map((reporte) => {
+              const etapa = etapaDe(reporte);
+              const persona = etapa === "cerrado" ? reporte.atendidoPor : reporte.tomadoPor ?? reporte.creadoPor;
+              const fecha = etapa === "cerrado" ? reporte.atendidoEn : reporte.tomadoEn ?? reporte.creado;
+              return (
+                <li key={reporte.id}>
+                  <Avatar correo={persona || reporte.creadoPor} />
+                  <span><strong>{nombreDePersona(persona)}</strong> {etapa === "cerrado" ? "cerró" : etapa === "tomado" ? "tomó" : "reportó"} <a href={enlaceViaje(reporte.casoId)} target="_blank" rel="noreferrer">#{reporte.casoId}</a><small>{cuando(fecha)}</small></span>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+        <CargaEquipo reportes={reportes} />
+      </div>
+      <GraficosSeguimiento reportes={reportes} />
+      {ahora !== null ? <p className={estilos.actualizado}>Antigüedad actualizada automáticamente cada minuto.</p> : null}
+    </div>
+  );
+}
+
+function CargaEquipo({ reportes }: { reportes: Seguimiento[] }) {
+  const tomados = reportes.filter((reporte) => etapaDe(reporte) === "tomado" && reporte.tomadoPor);
+  const conteos = new Map<string, number>();
+  for (const reporte of tomados) conteos.set(reporte.tomadoPor!, (conteos.get(reporte.tomadoPor!) ?? 0) + 1);
+  const carga = [...conteos.entries()].sort((a, b) => b[1] - a[1]);
+  const maximo = Math.max(1, ...carga.map(([, cantidad]) => cantidad));
+  return (
+    <section className={estilos.actividadPanel}>
+      <div className={estilos.panelCabeza}><div><h2>Carga del equipo</h2><p>Seguimientos abiertos tomados por cada persona.</p></div></div>
+      {carga.length ? (
+        <ul className={estilos.cargaLista}>
+          {carga.map(([correo, cantidad]) => (
+            <li key={correo}>
+              <span><Avatar correo={correo} /> {nombreDePersona(correo)}</span>
+              <span className={estilos.cargaBarra}><i style={{ width: `${(cantidad / maximo) * 100}%` }} /></span>
+              <strong>{numero(cantidad)}</strong>
+            </li>
+          ))}
+        </ul>
+      ) : <p className={estilos.vacioPanel}>No hay reportes tomados.</p>}
+    </section>
+  );
+}
+
+type AccionesVista = {
+  reportes: Seguimiento[];
+  yo: string | null;
+  admin: boolean;
+  ahora: number | null;
+  pendiente: string | null;
+  alTomar: (reporte: Seguimiento, tomar: boolean) => void;
+  alCambiarEstado: (reporte: Seguimiento, estado: EstadoSeguimiento) => void;
+  alEditar: (reporte: Seguimiento) => void;
+};
+
+function VistaLista({ reportes, yo, admin, ahora, pendiente, alTomar, alCambiarEstado, alEditar }: AccionesVista) {
+  const [mostrarTodos, setMostrarTodos] = useState(false);
+  const filas = mostrarTodos ? reportes : reportes.slice(0, 10);
+  const grupos = agruparPorResponsableSeguimiento(filas);
+
+  return (
+    <div className={estilos.listaMarco}>
+      <table className={estilos.lista}>
+        <thead><tr><th>Caso</th><th>Comentario</th><th>Driver</th><th>Seller</th><th>Estado</th><th>Responsable</th><th>Creado</th><th>Tiempo</th><th aria-label="Acciones" /></tr></thead>
+        {grupos.map((grupo) => (
+          <tbody
+            key={grupo.clave}
+            className={grupo.responsable ? estilos.responsableTintado : undefined}
+            style={tinteDeResponsable(grupo.responsable)}
+          >
+            <tr className={estilos.grupoLista}>
+              <th colSpan={9} scope="rowgroup"><span>{grupo.etiqueta}</span></th>
+            </tr>
+            {grupo.reportes.map((reporte) => {
+          const etapa = etapaDe(reporte);
+          const mio = reporte.tomadoPor === yo;
+          const puedeSoltar = mio || admin;
+          const minutos = ahora === null ? null : minutosAbierto(reporte, ahora);
+          return (
+            <tr key={reporte.id} className={estilos[etapa]} aria-busy={pendiente === reporte.id}>
+              <td><a className={estilos.caso} href={enlaceViaje(reporte.casoId)} target="_blank" rel="noreferrer">#{reporte.casoId}</a></td>
+              <td className={estilos.listaComentario}>{reporte.comentario}</td>
+              <td>{reporte.driver ?? "—"}</td>
+              <td>{reporte.seller ? <NombreTienda nombre={reporte.seller} /> : "—"}</td>
+              <td><span className={`${estilos.estadoPill} ${estilos[etapa]}`}><i className={estilos.punto} />{ETIQUETA_ETAPA[etapa]}</span></td>
+              <td>{reporte.tomadoPor ? nombreDePersona(reporte.tomadoPor) : reporte.atendidoPor ? nombreDePersona(reporte.atendidoPor) : "Sin asignar"}</td>
+              <td>{cuando(reporte.creado)}</td>
+              <td>{etapa === "cerrado" ? duracion(tiempoResolucionMinutos(reporte)) : minutos === null ? "—" : compacto(minutos)}</td>
+              <td><div className={estilos.listaAcciones}>
+                {etapa !== "cerrado" ? <button type="button" disabled={pendiente === reporte.id || (etapa === "tomado" && !puedeSoltar)} onClick={() => alTomar(reporte, etapa !== "tomado")}>{etapa === "tomado" ? "Soltar" : "Tomar"}</button> : null}
+                <button type="button" onClick={() => alEditar(reporte)}>Editar</button>
+                <button type="button" disabled={pendiente === reporte.id} onClick={() => alCambiarEstado(reporte, etapa === "cerrado" ? "abierto" : "cerrado")}>{etapa === "cerrado" ? "Reabrir" : "Cerrar"}</button>
+              </div></td>
+            </tr>
+          );
+            })}
+          </tbody>
+        ))}
+      </table>
+      {reportes.length > 10 ? (
+        <button
+          type="button"
+          className={estilos.mostrarTodos}
+          onClick={() => setMostrarTodos((valor) => !valor)}
+        >
+          {mostrarTodos ? "Mostrar menos" : `Mostrar todos (${numero(reportes.length)})`}
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function VistaTablero({ reportes, urls, yo, admin, ahora, pendiente, foco, alTomar, alCambiarEstado, alEditar }: AccionesVista & { urls: Record<string, string>; foco: string | null }) {
+  return (
+    <div className={estilos.columnas}>
+      {ETAPAS.map((etapa) => {
+        const columna = ordenarColumna(reportes.filter((reporte) => etapaDe(reporte) === etapa), etapa);
+        const grupos = agruparPorResponsableSeguimiento(columna);
+        return (
+          <section key={etapa} className={`${estilos.columna} ${estilos[etapa]}`}>
+            <h2 className={estilos.columnaCabeza}><i className={estilos.punto} />{ETIQUETA_ETAPA[etapa]}<span className={estilos.columnaConteo}>{numero(columna.length)}</span></h2>
+            {columna.length ? <div className={estilos.gruposTomador}>{grupos.map((grupo) => (
+              <section
+                key={grupo.clave}
+                className={`${estilos.grupoTomador} ${grupo.responsable ? estilos.responsableTintado : ""}`}
+                style={tinteDeResponsable(grupo.responsable)}
+              >
+                <h3 className={estilos.grupoTomadorTitulo}><span>{grupo.etiqueta}</span></h3>
+                <div className={estilos.tarjetas}>{grupo.reportes.map((reporte) => (
+                  <Tarjeta key={foco === reporte.id ? `${reporte.id}:foco` : reporte.id} enfocada={foco === reporte.id} reporte={reporte} urls={urls} yo={yo} admin={admin} ahora={ahora} ocupado={pendiente === reporte.id} alTomar={(tomar) => alTomar(reporte, tomar)} alCambiarEstado={(estado) => alCambiarEstado(reporte, estado)} alEditar={() => alEditar(reporte)} />
+                ))}</div>
+              </section>
+            ))}</div> : <p className={estilos.columnaVacia}>Sin reportes</p>}
+          </section>
+        );
+      })}
+    </div>
   );
 }
 
@@ -271,7 +513,7 @@ function Resumen({
         <div className={`${estilos.cifra} ${estilos.abierto}`}>
           <dt>
             <i className={estilos.punto} />
-            Abiertos
+            Casos abiertos
           </dt>
           <dd>{numero(resumen.abiertos)}</dd>
           <dd className={estilos.cifraNota}>
@@ -336,78 +578,6 @@ function Proporcion({
   );
 }
 
-function Carril({
-  grupo,
-  plegado,
-  alternar,
-  children,
-}: {
-  grupo: GrupoSeguimiento;
-  plegado: boolean;
-  alternar: (plegado: boolean) => void;
-  children: (reporte: Seguimiento) => React.ReactNode;
-}) {
-  const columnas = ETAPAS.map((etapa) => ({
-    etapa,
-    reportes: ordenarColumna(
-      grupo.reportes.filter((reporte) => etapaDe(reporte) === etapa),
-      etapa,
-    ),
-  }));
-  const conteos = Object.fromEntries(
-    columnas.map(({ etapa, reportes }) => [etapa, reportes.length]),
-  ) as Record<EtapaSeguimiento, number>;
-
-  return (
-    <section className={estilos.carril}>
-      <button
-        type="button"
-        className={estilos.carrilCabeza}
-        onClick={() => alternar(!plegado)}
-        aria-expanded={!plegado}
-      >
-        <IconoChevron className={`${estilos.chevron} ${plegado ? estilos.chevronPlegado : ""}`} />
-        <span className={estilos.carrilTitulo}>{grupo.etiqueta}</span>
-        <span className={estilos.carrilConteos}>
-          {ETAPAS.map((etapa) =>
-            conteos[etapa] > 0 ? (
-              <span
-                key={etapa}
-                className={`${estilos.carrilConteo} ${estilos[etapa]}`}
-                title={ETIQUETA_ETAPA[etapa]}
-              >
-                <i className={estilos.punto} />
-                {numero(conteos[etapa])}
-                <span className={estilos.oculto}> {ETIQUETA_ETAPA[etapa]}</span>
-              </span>
-            ) : null,
-          )}
-        </span>
-        <Proporcion conteos={conteos} className={estilos.carrilProporcion} />
-      </button>
-
-      {plegado ? null : (
-        <div className={estilos.columnas}>
-          {columnas.map(({ etapa, reportes }) => (
-            <div key={etapa} className={`${estilos.columna} ${estilos[etapa]}`}>
-              <h3 className={estilos.columnaCabeza}>
-                <i className={estilos.punto} />
-                {ETIQUETA_ETAPA[etapa]}
-                <span className={estilos.columnaConteo}>{numero(reportes.length)}</span>
-              </h3>
-              {reportes.length === 0 ? (
-                <p className={estilos.columnaVacia}>Sin reportes</p>
-              ) : (
-                <div className={estilos.tarjetas}>{reportes.map(children)}</div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
 /**
  * Lo pendiente, del más viejo al más nuevo: lo que lleva más tiempo esperando
  * va arriba. Lo cerrado, del último cierre para atrás.
@@ -455,11 +625,13 @@ function Tarjeta({
   const mio = Boolean(yo) && reporte.tomadoPor === yo;
   const puedeSoltar = mio || admin;
   const minutos = ahora === null ? null : minutosAbierto(reporte, ahora);
+  const responsableVisual = etapa === "cerrado" ? reporte.atendidoPor : reporte.tomadoPor;
 
   return (
     <article
       ref={articulo}
-      className={`${estilos.tarjeta} ${estilos[etapa]} ${enfocada ? estilos.enfocada : ""}`}
+      className={`${estilos.tarjeta} ${estilos[etapa]} ${responsableVisual ? estilos.responsableTintado : ""} ${enfocada ? estilos.enfocada : ""}`}
+      style={tinteDeResponsable(responsableVisual)}
       aria-busy={ocupado}
     >
       <div className={estilos.tarjetaCabeza}>
@@ -709,6 +881,18 @@ function compacto(minutos: number): string {
 /** Fecha y hora visible en Argentina. */
 function cuando(fecha: Date | null): string {
   return fechaHoraArgentina(fecha);
+}
+
+function IconoVista({ vista }: { vista: VistaSeguimiento }) {
+  if (vista === "resumen") return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><circle cx="8" cy="8" r="5.5" /><path d="M8 2.5V8h5.5" /></svg>
+  );
+  if (vista === "lista") return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5" /><path d="M2 6.5h12M5.5 3v10" /></svg>
+  );
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="2" y="3" width="12" height="10" rx="1.5" /><path d="M6 3v10m4-10v10" /></svg>
+  );
 }
 
 function IconoChevron({ className = "" }: { className?: string }) {

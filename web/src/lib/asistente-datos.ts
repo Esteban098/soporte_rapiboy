@@ -48,7 +48,6 @@ import {
   TABLA_TRACKER_DRIVERS,
   TABLA_TRACKER_PAQUETES,
   TABLA_TRACKER_TIENDAS,
-  historialViajeConfig,
   modoDatos,
 } from "./config";
 import {
@@ -65,6 +64,7 @@ import { cierre, demorados, porEstado, resumen } from "./metricas";
 import type { Pedido } from "./normalizar";
 import { mesEnCurso } from "./periodos";
 import { etapaDe } from "./seguimiento";
+import { consultarRapiboyData } from "./rapiboy-data";
 import { consultarFresco, TablaFaltante } from "./supabase";
 import type { DriverFila, PaqueteFila } from "./tracker";
 import { leerTracker } from "./tracker-datos";
@@ -217,16 +217,6 @@ async function paqueteEnRuta(id: number) {
    historial_viaje: flujo 11 de n8n
    --------------------------------------------------------------------------- */
 
-/** El flujo es una sola consulta de solo lectura; si tarda más, algo anda mal. */
-const TIMEOUT_HISTORIAL_MS = 30_000;
-
-/**
- * El encabezado que espera la credencial Header Auth del webhook en n8n. Es
- * su campo «Name»: si no coincide letra por letra, n8n responde 403 con
- * «Authorization data is wrong!» aunque el valor sea el correcto.
- */
-const ENCABEZADO_TOKEN_HISTORIAL = "ChatBot-Rapiboy-Token";
-
 /**
  * Le pide a n8n el historial de un viaje en RapiboyData.
  *
@@ -235,43 +225,38 @@ const ENCABEZADO_TOKEN_HISTORIAL = "ChatBot-Rapiboy-Token";
  * misma respuesta (`Response Mode: Last Node`).
  */
 async function historialViaje(id: string, maxMovimientos = 60, opciones: { entidad?: string; fecha?: string } = {}) {
-  const config = historialViajeConfig();
-  if (!config) {
-    return { error: "La consulta al sistema no está configurada (falta N8N_WEBHOOK_HISTORIAL_VIAJE)." };
-  }
+  const entidad = opciones.entidad === "colectas" || opciones.entidad === "motoboy"
+    ? opciones.entidad
+    : "viaje";
+  const resultado = await consultarRapiboyData({
+    id,
+    entidad,
+    fecha: opciones.fecha,
+    origen: "asistente",
+  });
 
-  try {
-    const respuesta = await fetch(config.url, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...(config.token ? { [ENCABEZADO_TOKEN_HISTORIAL]: config.token } : {}),
-      },
-      body: JSON.stringify({ origen: "asistente", id, entidad: opciones.entidad ?? "viaje", fecha: opciones.fecha ?? null }),
-      cache: "no-store",
-      signal: AbortSignal.timeout(TIMEOUT_HISTORIAL_MS),
-    });
-
-    if (!respuesta.ok) {
-      const detalle = await respuesta.text().catch(() => "");
-      console.error(`[asistente] El flujo de historial respondió ${respuesta.status}:`, detalle.slice(0, 300));
-      return {
-        error:
-          respuesta.status === 404
-            ? "El flujo de historial no está activo en n8n."
-            : respuesta.status === 401 || respuesta.status === 403
-              ? "n8n rechazó el token del flujo de historial."
-              : "El sistema de Rapiboy no respondió bien.",
-      };
+  if (!resultado.ok) {
+    if (resultado.estado) {
+      console.error(`[asistente] El flujo de historial respondió ${resultado.estado}:`, resultado.detalle);
+    } else if (resultado.codigo !== "sin_configuracion") {
+      console.error(`[asistente] No se pudo consultar el historial: ${resultado.codigo}`);
     }
-    const crudo = await respuesta.json();
-    return opciones.entidad && opciones.entidad !== "viaje"
-      ? sistemaParaModelo(crudo)
-      : historialParaModelo(crudo, maxMovimientos);
-  } catch (error) {
-    console.error("[asistente] No se pudo consultar el historial:", error);
-    return { error: "No se pudo consultar el sistema de Rapiboy en este momento." };
+    return {
+      error: resultado.codigo === "sin_configuracion"
+        ? "La consulta al sistema no está configurada (falta N8N_WEBHOOK_HISTORIAL_VIAJE)."
+        : resultado.codigo === "flujo_inactivo"
+          ? "El flujo de historial no está activo en n8n."
+          : resultado.codigo === "token_rechazado"
+            ? "n8n rechazó el token del flujo de historial."
+            : resultado.codigo === "respuesta_invalida"
+              ? "El sistema de Rapiboy no respondió bien."
+              : "No se pudo consultar el sistema de Rapiboy en este momento.",
+    };
   }
+
+  return entidad !== "viaje"
+    ? sistemaParaModelo(resultado.datos)
+    : historialParaModelo(resultado.datos, maxMovimientos);
 }
 
 async function consultarSistema(args: Record<string, unknown>) {

@@ -23,6 +23,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Usar los tokens `--on-primary`, `--on-critical` y `--warning-solid` para
   conservar el contraste de controles sólidos. Los estados operativos, colores
   de responsables y repartidores no deben convertirse todos al acento lima.
+  En Seguimiento, Esteban conserva azul eléctrico y Candelaria fucsia mediante
+  `--persona-esteban` / `--persona-candelaria`; los tintes de responsable son
+  más intensos en oscuro y más suaves en claro para mantener su identificación.
 - Los KPI compartidos usan `ValorMetrica` (texto seleccionable en Avilock
   para números, porcentajes y unidades; contraste reforzado en claro).
   Los títulos `h1`–`h3` usan la fuente Avilock local; mantener `h4`, controles y
@@ -112,8 +115,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `estado`; cualquier `tomado` legado ahí se migra a abierto. **Tomado** es
   `tomado_por` / `tomado_en` sobre un reporte abierto: cuenta como abierto en
   totales y tiempo de resolución, se toma y suelta con un PATCH condicional
-  (solo quien lo tomó o un admin lo suelta) y se limpia al reabrir. El tablero
-  lo muestra como una tercera columna de tarjetas y agrupa por semana o mes.
+  (solo quien lo tomó o un admin lo suelta) y se limpia al reabrir. Seguimiento
+  ofrece Resumen, Lista y Tablero. Los cerrados se consultan por semana o mes
+  de México; todos los abiertos permanecen visibles aunque sean anteriores al
+  período para que ningún pendiente desaparezca de la operación. Resumen suma
+  la opción Todos para métricas históricas; Lista y Tablero no cargan el
+  historial entero. Si driver o
+  seller quedan vacíos al crear o editar, se completan directamente desde
+  RapiboyData con el webhook 11 —último repartidor del historial y tienda del
+  viaje—; no volver a usar `mensual` o `mensual_historico` como respaldo.
   Instalar `supabase/migracion-11-seguimiento-tomado.sql`.
   Los comentarios aceptan menciones `@alias` —la parte local del correo en
   minúsculas, `src/lib/menciones.ts`, compartido por servidor y navegador—.
@@ -131,8 +141,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `supabase/migracion-31-agrupar-alertas-demora.sql` después de la migración 12.
   Cada reporte conserva `driver` y `seller`
   como foto del pedido al momento del alta; se pueden cargar manualmente y, si
-  quedan vacíos, se buscan en Mensual o Histórico. `abierto_en` se reinicia al
-  reabrir y el tiempo de resolución es la diferencia hasta `atendido_en`.
+  quedan vacíos, se buscan en RapiboyData mediante el flujo 11. `abierto_en` se
+  reinicia al reabrir y el tiempo de resolución es la diferencia hasta `atendido_en`.
   Instalar `supabase/migracion-04-seguimiento-semanal.sql` en bases existentes.
   Los reportes muestran y buscan solo el comentario original: no generar ni
   utilizar resúmenes automáticos al crear, editar, previsualizar o consultar

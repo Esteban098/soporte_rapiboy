@@ -1,5 +1,6 @@
 import { BUCKET_SEGUIMIENTO, FIRMA_SEGUNDOS, modoDatos } from "@/lib/config";
-import { cargarSeguimientos } from "@/lib/datos";
+import { cargarSeguimientosPeriodo } from "@/lib/datos";
+import { etiquetaPeriodo, type PeriodoSeguimiento } from "@/lib/seguimiento";
 import { operadorActual } from "@/lib/sesion";
 import { firmarArchivos } from "@/lib/supabase";
 import { PageHead } from "@/components/Shell";
@@ -13,18 +14,29 @@ export default async function Seguimiento({
   searchParams,
 }: {
   /** `?reporte=<id>`: lo usa la campana para abrir el reporte que te menciona. */
-  searchParams: Promise<{ reporte?: string | string[] }>;
+  searchParams: Promise<{
+    reporte?: string | string[];
+    vista?: string;
+    periodo?: string;
+    fecha?: string;
+  }>;
 }) {
-  const [{ reportes, sinTabla }, operador, parametros] = await Promise.all([
-    cargarSeguimientos(),
-    operadorActual(),
-    searchParams,
-  ]);
+  const parametros = await searchParams;
+  const vistaInicial = parametros.vista === "lista" || parametros.vista === "tablero"
+    ? parametros.vista
+    : "resumen";
+  const agrupacion: PeriodoSeguimiento = parametros.periodo === "todos" && vistaInicial === "resumen"
+    ? "todos"
+    : parametros.periodo === "mes" ? "mes" : "semana";
   const foco = typeof parametros.reporte === "string" ? parametros.reporte : null;
+  const [{ reportes, sinTabla, clave }, operador] = await Promise.all([
+    cargarSeguimientosPeriodo(agrupacion, parametros.fecha, foco),
+    operadorActual(),
+  ]);
 
   // Todos los adjuntos de la página se firman de una sola vez, antes de pintar:
   // el bucket es privado y cada URL vale una hora.
-  const rutas = reportes.flatMap((reporte) => reporte.archivos);
+  const rutas = vistaInicial === "tablero" ? reportes.flatMap((reporte) => reporte.archivos) : [];
   const firmadas = await firmarArchivos(BUCKET_SEGUIMIENTO, rutas, FIRMA_SEGUNDOS);
 
   return (
@@ -58,12 +70,15 @@ export default async function Seguimiento({
           yo={operador?.email ?? null}
           admin={operador?.rol === "admin"}
           foco={foco}
+          vistaInicial={vistaInicial}
+          agrupacion={agrupacion}
+          clavePeriodo={clave}
+          etiquetaPeriodo={agrupacion === "todos" ? "Todo el historial" : etiquetaPeriodo(agrupacion, clave)}
         />
 
         {foco && !reportes.some((reporte) => reporte.id === foco) ? (
           <Callout titulo="Ese reporte ya no está">
-            La notificación apunta a un reporte que fue borrado o que quedó fuera de los últimos
-            500.
+            La notificación apunta a un reporte que fue borrado.
           </Callout>
         ) : null}
       </div>

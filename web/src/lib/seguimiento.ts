@@ -99,6 +99,39 @@ export function parsearSeguimiento(fila: FilaSeguimiento): Seguimiento {
   };
 }
 
+/**
+ * Extrae los responsables de la respuesta autenticada del flujo 11.
+ *
+ * Seller es la tienda vigente del viaje. Driver es el último repartidor no
+ * vacío del historial, que el flujo devuelve en orden cronológico. No se usan
+ * datos de otra localidad o modalidad aunque RapiboyData encuentre el viaje.
+ */
+export function responsablesDesdeRapiboyData(crudo: unknown): {
+  driver: string | null;
+  seller: string | null;
+} {
+  const datos = crudo && typeof crudo === "object" ? crudo as Record<string, unknown> : {};
+  if (datos.encontrado !== true) return { driver: null, seller: null };
+
+  const viaje = datos.viaje && typeof datos.viaje === "object"
+    ? datos.viaje as Record<string, unknown>
+    : {};
+  if (Number(viaje.id_modalidad) !== 5 || Number(viaje.id_localidad) !== 9) {
+    return { driver: null, seller: null };
+  }
+
+  const texto = (valor: unknown) =>
+    typeof valor === "string" && valor.trim() ? valor.trim() : null;
+  const historial = Array.isArray(datos.historial) ? datos.historial : [];
+  let driver: string | null = null;
+  for (const movimiento of historial) {
+    if (!movimiento || typeof movimiento !== "object") continue;
+    driver = texto((movimiento as Record<string, unknown>).repartidor) ?? driver;
+  }
+
+  return { driver, seller: texto(viaje.tienda) };
+}
+
 export function etapaDe(reporte: Seguimiento): EtapaSeguimiento {
   if (reporte.estado === "cerrado") return "cerrado";
   return reporte.tomadoPor ? "tomado" : "abierto";
@@ -108,6 +141,45 @@ export function nombreDePersona(correo: string | null): string {
   if (!correo) return "Sin asignar";
   const local = correo.split("@")[0]?.trim();
   return local || correo;
+}
+
+export type GrupoResponsableSeguimiento = {
+  clave: string;
+  etiqueta: string;
+  responsable: string | null;
+  reportes: Seguimiento[];
+};
+
+/**
+ * Agrupa sin perder el orden que decidió la vista.
+ *
+ * Los pendientes se atribuyen a quien los tomó y los cerrados a quien los
+ * cerró. Son responsabilidades distintas y en Lista conservan grupos separados
+ * aunque las dos acciones las haya realizado la misma persona.
+ */
+export function agruparPorResponsableSeguimiento(
+  reportes: Seguimiento[],
+): GrupoResponsableSeguimiento[] {
+  const grupos = new Map<string, GrupoResponsableSeguimiento>();
+  for (const reporte of reportes) {
+    const cerrado = reporte.estado === "cerrado";
+    const correo = (cerrado ? reporte.atendidoPor : reporte.tomadoPor)?.trim() || null;
+    const accion = cerrado ? "cierre" : "toma";
+    const clave = correo ? `${accion}:${correo.toLowerCase()}` : `__sin_${accion}__`;
+    const etiqueta = correo
+      ? `${cerrado ? "Cerrado" : "Tomado"} por ${nombreDePersona(correo)}`
+      : cerrado ? "Sin cierre registrado" : "Sin tomar";
+    const grupo = grupos.get(clave) ?? { clave, etiqueta, responsable: correo, reportes: [] };
+    grupo.reportes.push(reporte);
+    grupos.set(clave, grupo);
+  }
+
+  const prioridad = (clave: string) =>
+    clave === "__sin_toma__" ? 0 : clave === "__sin_cierre__" ? 2 : 1;
+  return [...grupos.values()].sort((a, b) =>
+    prioridad(a.clave) - prioridad(b.clave)
+      || a.etiqueta.localeCompare(b.etiqueta, "es", { sensitivity: "base" }),
+  );
 }
 
 /** `esteban.larcher@…` -> `EL`. Para el avatar de las tarjetas. */
@@ -136,6 +208,10 @@ const COLORES_PERSONA = [
  * conserva el suyo en todas las tarjetas y en todos los filtros.
  */
 export function colorDePersona(correo: string): string {
+  const local = correo.trim().toLowerCase().split("@")[0] ?? "";
+  if (/^esteban(?:[._-]|$)/.test(local)) return "var(--persona-esteban, #45a3ff)";
+  if (/^(?:candelaria|cande)(?:[._-]|$)/.test(local)) return "var(--persona-candelaria, #ff4fb2)";
+
   let hash = 0;
   for (const caracter of correo) hash = (hash * 31 + caracter.charCodeAt(0)) >>> 0;
   return COLORES_PERSONA[hash % COLORES_PERSONA.length];
@@ -196,6 +272,35 @@ export function resumirSeguimientos(reportes: Seguimiento[]): ResumenSeguimiento
 }
 
 export type Agrupacion = "semana" | "mes";
+export type PeriodoSeguimiento = Agrupacion | "todos";
+
+export function clavePeriodo(fecha: Date, por: Agrupacion): string {
+  const inicio = por === "mes" ? inicioDeMes(fecha) : inicioDeSemana(fecha);
+  return inicio.toISOString().slice(0, por === "mes" ? 7 : 10);
+}
+
+export function periodoActual(por: Agrupacion, ahora = new Date()): string {
+  return clavePeriodo(ahora, por);
+}
+
+export function periodoValido(por: Agrupacion, clave: string): boolean {
+  if (por === "mes") return /^\d{4}-(0[1-9]|1[0-2])$/.test(clave);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(clave)) return false;
+  const fecha = new Date(`${clave}T00:00:00Z`);
+  return !Number.isNaN(fecha.getTime()) && fecha.toISOString().slice(0, 10) === clave && fecha.getUTCDay() === 1;
+}
+
+export function moverPeriodo(por: Agrupacion, clave: string, cantidad: number): string {
+  const fecha = new Date(`${por === "mes" ? `${clave}-01` : clave}T00:00:00Z`);
+  if (por === "mes") fecha.setUTCMonth(fecha.getUTCMonth() + cantidad);
+  else fecha.setUTCDate(fecha.getUTCDate() + cantidad * 7);
+  return fecha.toISOString().slice(0, por === "mes" ? 7 : 10);
+}
+
+export function etiquetaPeriodo(por: Agrupacion, clave: string): string {
+  const inicio = new Date(`${por === "mes" ? `${clave}-01` : clave}T00:00:00Z`);
+  return por === "mes" ? etiquetaMes(inicio) : etiquetaSemana(inicio);
+}
 
 export type GrupoSeguimiento = {
   /** Lunes de la semana (AAAA-MM-DD) o mes (AAAA-MM), según la agrupación. */
@@ -275,7 +380,7 @@ export function agruparSeguimientos(
         ? inicioDeMes(reporte.creado)
         : inicioDeSemana(reporte.creado)
       : null;
-    const clave = inicio ? inicio.toISOString().slice(0, por === "mes" ? 7 : 10) : "sin-fecha";
+    const clave = inicio ? clavePeriodo(reporte.creado!, por) : "sin-fecha";
     const grupo = grupos.get(clave) ?? {
       clave,
       etiqueta: inicio ? (por === "mes" ? etiquetaMes(inicio) : etiquetaSemana(inicio)) : "Sin fecha",

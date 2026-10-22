@@ -148,13 +148,17 @@ test("ninguna herramienta escribe", () => {
     assert.match(nombre, /^(buscar|historial|metricas|reportes|repartidor|asignacion|colectas|consultar)_/, nombre);
   }
 
-  // La capa de datos solo importa lecturas de Supabase.
+  // La capa de datos solo importa lecturas de Supabase. La consulta al sistema
+  // vive en un cliente compartido con Seguimiento y también es solo lectura.
   const datos = fuente("../src/lib/asistente-datos.ts");
+  const sistema = fuente("../src/lib/rapiboy-data.ts");
   for (const escritura of ["insertarFila", "actualizarFila", "borrarFila", "actualizarCobroSiniestrado", "method: \"PATCH\"", "method: \"DELETE\""]) {
     assert.ok(!datos.includes(escritura), escritura);
+    assert.ok(!sistema.includes(escritura), escritura);
   }
   // El único POST es al flujo 11 de n8n, y ese flujo solo lee.
-  assert.equal(datos.match(/method: "POST"/g)?.length ?? 0, 1);
+  assert.equal(sistema.match(/method: "POST"/g)?.length ?? 0, 1);
+  assert.match(datos, /consultarRapiboyData/);
 });
 
 test("el flujo 11 solo lee y valida el ID antes de interpolarlo", () => {
