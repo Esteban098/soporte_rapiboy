@@ -62,6 +62,16 @@ assert.equal(etapaDe(legado), "abierto");
 assert.equal(legado.driver, "Driver Uno");
 assert.equal(legado.seller, "Seller Uno");
 
+// Una edición del comentario conserva quién la hizo y cuándo para destacarla
+// en la tarjeta; las filas anteriores a la migración siguen siendo válidas.
+const actualizado = parsearSeguimiento(fila({
+  comentario_actualizado_por: "agustin@rapiboy.com",
+  comentario_actualizado_en: "2026-09-07T07:30:00.000Z",
+}));
+assert.equal(actualizado.comentarioActualizadoPor, "agustin@rapiboy.com");
+assert.equal(actualizado.comentarioActualizadoEn?.toISOString(), "2026-09-07T07:30:00.000Z");
+assert.equal(legado.comentarioActualizadoEn, null);
+
 // Si faltan responsables, se toman de la respuesta vigente de RapiboyData:
 // tienda del viaje y último repartidor no vacío del historial.
 assert.deepEqual(

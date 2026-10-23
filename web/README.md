@@ -1041,6 +1041,13 @@ el doble clic, porque el estado de React se aplica un render tarde.
 
 ## Seguimiento
 
+Cuando alguien edita el texto de un reporte existente, la tarjeta destaca
+**Comentario actualizado** con el nombre y la hora de quien hizo el cambio.
+Tomar, soltar, cerrar o modificar solamente driver/seller no genera esa marca.
+En instalaciones existentes hay que aplicar
+`supabase/migracion-47-seguimiento-actualizaciones.sql` antes de desplegar esta
+versión.
+
 La única parte del tablero donde el equipo escribe texto libre. La pestaña de
 abajo a la derecha está en **todas** las pantallas, porque el momento de
 reportar algo casi nunca coincide con estar parado en la pantalla de reportes:

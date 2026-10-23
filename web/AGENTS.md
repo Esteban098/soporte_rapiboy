@@ -148,6 +148,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   utilizar resúmenes automáticos al crear, editar, previsualizar o consultar
   desde el asistente. La migración 46 retira la columna heredada `resumen_llm`
   después de desplegar la web; no elimina comentarios ni reportes.
+  La migración 47 agrega `comentario_actualizado_por` y
+  `comentario_actualizado_en`: se escriben únicamente cuando cambia el texto,
+  no al tomar, soltar, cerrar o editar solo responsables. La tarjeta usa esos
+  campos para hacer visible que otra persona agregó información.
 - El **live tracker** vive en sus tablas operativas —`tracker_drivers`,
   `tracker_paquetes`, `tracker_sincronizaciones`, `tracker_demoras`— y no toca ninguna de las
   anteriores. Es la foto de la jornada en curso, no un histórico: la clave de
@@ -221,6 +225,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   conservar todos los paquetes. Instalar
   `supabase/migracion-42-tracker-estado-meli.sql` y mantener consulta, mapeo y
   upsert alineados.
+  La cola muestra hasta seis repartidores al abrir, permite filtrar por uno y
+  despliega el resto a pedido. El límite es solo visual: no cambia el universo
+  comparado ni la cantidad informada.
 
 - Las **colectas en vivo** del mapa de Tiendas viven en `colectas_vivo` (una
   fila por `Colecta.Id`) y `colectas_vivo_drivers` (una por `Motoboy.Id`), las

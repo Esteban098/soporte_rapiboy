@@ -245,6 +245,8 @@ test("a OpenAI viajan nombres, no correos", () => {
     estado: "abierto",
     abiertoEn: null,
     creadoPor: "candelaria@rapiboy.com",
+    comentarioActualizadoPor: null,
+    comentarioActualizadoEn: null,
     tomadoPor: "esteban@rapiboy.com",
     tomadoEn: null,
     atendidoPor: null,

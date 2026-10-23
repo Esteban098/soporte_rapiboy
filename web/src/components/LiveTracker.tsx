@@ -984,6 +984,8 @@ function RutasConEstadosDistintos({
   paqueteActivo: number | null;
   onPaquete: (id: number | null) => void;
 }) {
+  const [driverSeleccionado, setDriverSeleccionado] = useState("todos");
+  const [mostrarTodos, setMostrarTodos] = useState(false);
   // Esta lista es una cola de revisión, no el detalle entero de la ruta.
   // Un estado MELI ausente no permite comparar y por eso no entra: tampoco se
   // muestra como "Sin estado" junto a una diferencia real.
@@ -1006,6 +1008,20 @@ function RutasConEstadosDistintos({
         a.driver.nombre.localeCompare(b.driver.nombre, "es"),
     );
   const diferencias = conDiferencias.reduce((total, { paquetes }) => total + paquetes.length, 0);
+  const LIMITE_INICIAL = 6;
+  // Una actualización puede sacar al driver elegido de la cola. En ese caso
+  // volvemos visualmente a Todos sin dejar un select apuntando a una opción inexistente.
+  const seleccionVigente = driverSeleccionado === "todos" ||
+    conDiferencias.some(({ driver }) => String(driver.id) === driverSeleccionado)
+    ? driverSeleccionado
+    : "todos";
+  const filtrados = seleccionVigente === "todos"
+    ? conDiferencias
+    : conDiferencias.filter(({ driver }) => String(driver.id) === seleccionVigente);
+  const visibles = seleccionVigente === "todos" && !mostrarTodos
+    ? filtrados.slice(0, LIMITE_INICIAL)
+    : filtrados;
+  const ocultos = Math.max(0, filtrados.length - visibles.length);
 
   return (
     <section className={estilos.cruceEstados} aria-labelledby="cruce-estados-titulo">
@@ -1024,15 +1040,39 @@ function RutasConEstadosDistintos({
           No hay cierres con estados distintos entre Rapiboy y MELI para esta jornada.
         </p>
       ) : (
-        <div className={estilos.cruceEstadosLista}>
-          {conDiferencias.map(({ driver, paquetes, entregasNoReflejadas }) => {
-            return (
-              <details
-                key={driver.id}
-                className={`${estilos.cruceDriver} ${
-                  entregasNoReflejadas > 0 ? estilos.cruceDriverPrioritario : ""
-                }`}
+        <>
+          <div className={estilos.cruceControles}>
+            <label>
+              <span>Repartidor</span>
+              <select
+                value={seleccionVigente}
+                onChange={(evento) => {
+                  setDriverSeleccionado(evento.target.value);
+                  setMostrarTodos(false);
+                }}
               >
+                <option value="todos">Todos ({conDiferencias.length})</option>
+                {conDiferencias.map(({ driver, paquetes }) => (
+                  <option key={driver.id} value={driver.id}>
+                    {driver.nombre} · {paquetes.length}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span aria-live="polite">
+              Mostrando {visibles.length} de {filtrados.length} repartidores
+            </span>
+          </div>
+
+          <div className={estilos.cruceEstadosLista}>
+            {visibles.map(({ driver, paquetes, entregasNoReflejadas }) => {
+              return (
+                <details
+                  key={driver.id}
+                  className={`${estilos.cruceDriver} ${
+                    entregasNoReflejadas > 0 ? estilos.cruceDriverPrioritario : ""
+                  }`}
+                >
                 <summary>
                   <span className={estilos.chip} style={{ background: colorDeDriver(driver.id) }} aria-hidden="true" />
                   <span className={estilos.cruceDriverNombre}>{driver.nombre}</span>
@@ -1067,18 +1107,33 @@ function RutasConEstadosDistintos({
                         >
                           #{paquete.id_viaje}
                         </button>
-                        <span>{paquete.tienda ?? "Sin tienda"}</span>
-                        <span>Rapiboy: {paquete.nombre_estado ?? "Sin estado"}</span>
-                        <span>MELI: {paquete.estado_meli ?? "Sin estado"}</span>
+                        <span className={estilos.cruceTienda}>{paquete.tienda ?? "Sin tienda"}</span>
+                        <span className={estilos.cruceEstado}>
+                          <small>Rapiboy</small>{paquete.nombre_estado ?? "Sin estado"}
+                        </span>
+                        <span className={estilos.cruceEstado}>
+                          <small>MELI</small>{paquete.estado_meli ?? "Sin estado"}
+                        </span>
                         <em>{etiquetaRevision}</em>
                       </li>
                     );
                   })}
                 </ul>
-              </details>
-            );
-          })}
-        </div>
+                </details>
+              );
+            })}
+          </div>
+
+          {seleccionVigente === "todos" && filtrados.length > LIMITE_INICIAL ? (
+            <button
+              type="button"
+              className={estilos.cruceMostrar}
+              onClick={() => setMostrarTodos((actual) => !actual)}
+            >
+              {mostrarTodos ? "Mostrar menos" : `Ver ${ocultos} repartidor${ocultos === 1 ? "" : "es"} más`}
+            </button>
+          ) : null}
+        </>
       )}
     </section>
   );

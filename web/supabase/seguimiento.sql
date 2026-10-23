@@ -38,6 +38,10 @@ create table if not exists public.seguimiento (
 
   -- Comentario original que carga y edita el equipo.
   comentario_original text not null,
+  -- Última edición real del comentario. Cambiar estado o responsable no toca
+  -- estos campos: la tarjeta los usa como señal operativa de información nueva.
+  comentario_actualizado_por text,
+  comentario_actualizado_en  timestamptz,
 
   -- Rutas dentro del bucket, NO URLs. Las URLs firmadas vencen, así que
   -- guardarlas dejaría la tabla llena de links muertos en una hora; el tablero
@@ -74,6 +78,17 @@ alter table public.seguimiento alter column abierto_en set default now();
 alter table public.seguimiento alter column abierto_en set not null;
 alter table public.seguimiento add column if not exists tomado_por text;
 alter table public.seguimiento add column if not exists tomado_en timestamptz;
+alter table public.seguimiento add column if not exists comentario_actualizado_por text;
+alter table public.seguimiento add column if not exists comentario_actualizado_en timestamptz;
+
+alter table public.seguimiento drop constraint if exists seguimiento_comentario_actualizado_check;
+alter table public.seguimiento
+  add constraint seguimiento_comentario_actualizado_check
+  check (
+    (comentario_actualizado_por is null and comentario_actualizado_en is null)
+    or
+    (nullif(btrim(comentario_actualizado_por), '') is not null and comentario_actualizado_en is not null)
+  );
 
 alter table public.seguimiento drop constraint if exists seguimiento_tomado_check;
 alter table public.seguimiento

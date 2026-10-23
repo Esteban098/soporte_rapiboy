@@ -41,6 +41,9 @@ export type Seguimiento = {
   /** Inicio del período abierto actual; se reinicia si el caso se reabre. */
   abiertoEn: Date | null;
   creadoPor: string;
+  /** Última modificación real del texto, distinta de cambios de estado o responsable. */
+  comentarioActualizadoPor: string | null;
+  comentarioActualizadoEn: Date | null;
   tomadoPor: string | null;
   tomadoEn: Date | null;
   atendidoPor: string | null;
@@ -59,6 +62,9 @@ export type FilaSeguimiento = {
   estado: string | null;
   abierto_en: string | null;
   creado_por: string | null;
+  /** Opcionales hasta aplicar `migracion-47-seguimiento-actualizaciones.sql`. */
+  comentario_actualizado_por?: string | null;
+  comentario_actualizado_en?: string | null;
   /** Opcionales: no existen hasta correr `migracion-11-seguimiento-tomado.sql`. */
   tomado_por?: string | null;
   tomado_en?: string | null;
@@ -92,6 +98,8 @@ export function parsearSeguimiento(fila: FilaSeguimiento): Seguimiento {
     estado: estado(fila.estado),
     abiertoEn: fecha(fila.abierto_en) ?? fecha(fila.created_at),
     creadoPor: (fila.creado_por ?? "").trim(),
+    comentarioActualizadoPor: fila.comentario_actualizado_por?.trim() || null,
+    comentarioActualizadoEn: fecha(fila.comentario_actualizado_en),
     tomadoPor: fila.tomado_por?.trim() || null,
     tomadoEn: fecha(fila.tomado_en),
     atendidoPor: fila.atendido_por?.trim() || null,

@@ -167,7 +167,7 @@ export async function cargarSeguimientosPeriodo(
       // El resumen histórico no muestra ni firma adjuntos: evita transferir
       // sus rutas, pero conserva los campos necesarios para filtros y gráficas.
       const filas = await consultarTodo<FilaSeguimiento>(TABLA_SEGUIMIENTO, {
-        select: "id,created_at,caso_id,driver,seller,comentario_original,estado,abierto_en,creado_por,tomado_por,tomado_en,atendido_por,atendido_en",
+        select: "id,created_at,caso_id,driver,seller,comentario_original,comentario_actualizado_por,comentario_actualizado_en,estado,abierto_en,creado_por,tomado_por,tomado_en,atendido_por,atendido_en",
       }, "created_at.desc");
       return { reportes: filas.map(parsearSeguimiento), sinTabla: false, clave };
     }

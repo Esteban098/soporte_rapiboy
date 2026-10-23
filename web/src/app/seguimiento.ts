@@ -283,10 +283,17 @@ export async function editarSeguimiento(id: string, datos: DatosReporte): Promis
     seller: seller || encontrados.seller,
   };
 
+  const comentarioCambio = comentario !== (anterior?.comentario_original ?? "").trim();
   const falla = await actualizarFila(TABLA_SEGUIMIENTO, id, {
     caso_id: casoId,
     comentario_original: comentario,
     ...responsables,
+    ...(comentarioCambio
+      ? {
+          comentario_actualizado_por: quien,
+          comentario_actualizado_en: new Date().toISOString(),
+        }
+      : {}),
   });
   if (falla) return { ok: false, error: falla };
 

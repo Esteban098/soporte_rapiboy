@@ -441,7 +441,16 @@ function VistaLista({ reportes, yo, admin, ahora, pendiente, alTomar, alCambiarE
           return (
             <tr key={reporte.id} className={estilos[etapa]} aria-busy={pendiente === reporte.id}>
               <td><a className={estilos.caso} href={enlaceViaje(reporte.casoId)} target="_blank" rel="noreferrer">#{reporte.casoId}</a></td>
-              <td className={estilos.listaComentario}>{reporte.comentario}</td>
+              <td className={estilos.listaComentario}>
+                {reporte.comentarioActualizadoEn ? (
+                  <span
+                    className={estilos.listaActualizada}
+                    title={`Comentario actualizado por ${nombreDePersona(reporte.comentarioActualizadoPor)} · ${cuando(reporte.comentarioActualizadoEn)}`}
+                    aria-label="Comentario actualizado"
+                  />
+                ) : null}
+                {reporte.comentario}
+              </td>
               <td>{reporte.driver ?? "—"}</td>
               <td>{reporte.seller ? <NombreTienda nombre={reporte.seller} /> : "—"}</td>
               <td><span className={`${estilos.estadoPill} ${estilos[etapa]}`}><i className={estilos.punto} />{ETIQUETA_ETAPA[etapa]}</span></td>
@@ -660,6 +669,18 @@ function Tarjeta({
         ) : null}
       </div>
 
+      {reporte.comentarioActualizadoEn ? (
+        <div className={estilos.avisoActualizacion} role="status">
+          <span className={estilos.avisoActualizacionIcono} aria-hidden="true">✦</span>
+          <span>
+            <strong>Comentario actualizado</strong>
+            <small>
+              por {nombreDePersona(reporte.comentarioActualizadoPor)} · {cuando(reporte.comentarioActualizadoEn)}
+            </small>
+          </span>
+        </div>
+      ) : null}
+
       <p className={`${estilos.texto} ${desplegada ? "" : estilos.textoRecortado}`}>
         <TextoConMenciones texto={reporte.comentario} yo={yo} />
       </p>
@@ -767,6 +788,14 @@ function Detalle({ reporte, urls }: { reporte: Seguimiento; urls: Record<string,
           <dt>Tomó</dt>
           <dd>
             {nombreDePersona(reporte.tomadoPor)} · {cuando(reporte.tomadoEn)}
+          </dd>
+        </div>
+      ) : null}
+      {reporte.comentarioActualizadoEn ? (
+        <div>
+          <dt>Actualizó</dt>
+          <dd>
+            {nombreDePersona(reporte.comentarioActualizadoPor)} · {cuando(reporte.comentarioActualizadoEn)}
           </dd>
         </div>
       ) : null}

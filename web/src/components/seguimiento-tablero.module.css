@@ -116,6 +116,15 @@
 .lista tbody.responsableTintado td { background: color-mix(in srgb, var(--responsable-color) var(--responsable-tinte-fila), var(--surface)); }
 .lista tbody.responsableTintado tr:hover td { background: color-mix(in srgb, var(--responsable-color) var(--responsable-tinte-hover), var(--surface)); }
 .listaComentario { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink) !important; }
+.listaActualizada {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  background: var(--caso-tomado);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--caso-tomado-fondo);
+}
 .estadoPill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; background: linear-gradient(120deg, color-mix(in srgb, var(--tono) 18%, var(--surface-2)), color-mix(in srgb, var(--tono) 6%, var(--surface-2))); color: var(--tono); font-weight: 650; white-space: nowrap; }
 .listaAcciones { display: inline-flex; gap: 4px; }
 .listaAcciones button { padding: 4px 7px; border: 1px solid var(--rule); border-radius: 7px; background: var(--surface); color: var(--ink-2); font: 600 10.5px/1 var(--sans); cursor: pointer; }
@@ -540,6 +549,31 @@
   justify-content: space-between;
   gap: 8px;
 }
+
+.avisoActualizacion {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+  color: var(--caso-tomado);
+  background: linear-gradient(120deg, var(--caso-tomado-fondo), color-mix(in srgb, var(--caso-tomado) 7%, var(--surface)));
+  border: 1px solid color-mix(in srgb, var(--caso-tomado) 38%, var(--rule-soft));
+  border-radius: 8px;
+}
+.avisoActualizacionIcono {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 21px;
+  height: 21px;
+  color: var(--on-primary);
+  background: var(--caso-tomado);
+  border-radius: 50%;
+  font-size: 11px;
+}
+.avisoActualizacion > span:last-child { display: grid; min-width: 0; line-height: 1.25; }
+.avisoActualizacion strong { font-size: 11.5px; }
+.avisoActualizacion small { overflow: hidden; color: var(--ink-2); font-size: 10.5px; text-overflow: ellipsis; white-space: nowrap; }
 
 .caso {
   font-family: var(--mono);
