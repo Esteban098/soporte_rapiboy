@@ -33,17 +33,20 @@ export async function reabrirEvidencia(id: string) {
 }
 
 export async function actualizarConfiguracionEvidencias(datos: {
-  modo: "OBSERVACION" | "ACTIVO"; minimo: number; maximo: number;
+  modo: "OBSERVACION" | "ACTIVO"; minimo: number; maximo: number; radio: number;
 }) {
   const operador = await operadorActual();
   if (!operador || !await esAdmin()) return { ok: false, error: "Solo un administrador puede cambiar la configuración." } as const;
-  if (!Number.isInteger(datos.minimo) || datos.minimo < 1 || datos.minimo > 10_000 ||
+  if (!["OBSERVACION", "ACTIVO"].includes(datos.modo) ||
+      !Number.isInteger(datos.radio) || datos.radio < 50 || datos.radio > 5000 ||
+      !Number.isInteger(datos.minimo) || datos.minimo < 1 || datos.minimo > 10_000 ||
       !Number.isInteger(datos.maximo) || datos.maximo < 1 || datos.maximo > 100) {
     return { ok: false, error: "Configuración inválida." } as const;
   }
   const error = await actualizarFilas(TABLA_EVIDENCIAS_CONFIG, { id: "eq.true" }, {
     modo: datos.modo, minimo_muestra_score: datos.minimo,
-    maximo_por_corrida: datos.maximo, actualizado_en: new Date().toISOString(), actualizado_por: operador.email,
+    maximo_por_corrida: datos.maximo, radio_geografico_m: datos.radio,
+    actualizado_en: new Date().toISOString(), actualizado_por: operador.email,
   });
   if (error) return { ok: false, error } as const;
   revalidatePath("/evidencias");

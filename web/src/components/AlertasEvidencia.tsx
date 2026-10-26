@@ -27,7 +27,7 @@ export function AlertasEvidencia() {
     <div className={estilos.toastHead}><h2>{nuevas.length} evidencia{nuevas.length === 1 ? "" : "s"} para revisar</h2><button onClick={cerrar} aria-label="Cerrar">×</button></div>
     <ul>{nuevas.slice(0, 3).map((item) => <li key={item.id} className={estilos.toastItem}>
       {item.fotoUrl ? <a href={item.fotoUrl} target="_blank" rel="noreferrer"><Image src={item.fotoUrl} alt="Vista previa de evidencia" width={64} height={52} unoptimized /></a> : null}
-      <span><strong>Viaje #{item.idViaje} · {item.driver}</strong><br />{item.motivo}<br />{item.fotoUrl ? <a href={item.fotoUrl} target="_blank" rel="noreferrer">Abrir evidencia</a> : null}</span>
+      <span><strong>Viaje #{item.idViaje} · {item.driver}</strong><br />{item.estadoGeografico === "FUERA_DEL_RANGO" ? `Fuera del rango: ${item.distanciaM?.toLocaleString("es-MX")} m del destino (rango ${item.radioM} m).` : item.motivo}<br />{item.fotoUrl ? <a href={item.fotoUrl} target="_blank" rel="noreferrer">Abrir evidencia</a> : null}</span>
     </li>)}</ul>
     {nuevas.length > 3 ? <p>Y {nuevas.length - 3} más.</p> : null}<Link href="/evidencias" onClick={cerrar}>Abrir bandeja de revisión</Link>
   </aside>;

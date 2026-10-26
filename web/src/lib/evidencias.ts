@@ -17,6 +17,7 @@ import {
   subirArchivoServidor,
 } from "./supabase";
 import { diaEvidencias, enVentanaEvidencias, extensionDeMime } from "./evidencias-reglas";
+import { distanciaEvidencia, puntoEvidencia, type EstadoGeografico } from "./evidencias-geografia";
 
 export type DecisionEvidencia = "CONFIRMADA" | "DESCARTADA" | "INCONCLUSA";
 export type TipoProblemaEvidencia =
@@ -32,12 +33,14 @@ export type EvidenciaEntrada = {
   driverEvento: string | null;
   evidenciaEn: string;
   fotoUrl: string;
+  geografia?: { estadoEvento: string; distanciaM: number | null };
 };
 
 type Configuracion = {
   modo: "OBSERVACION" | "ACTIVO";
   minimo_muestra_score: number;
   maximo_por_corrida: number;
+  radio_geografico_m?: number;
 };
 
 type RevisionFila = {
@@ -56,6 +59,9 @@ type RevisionFila = {
   revisada_por: string | null;
   revisada_en: string | null;
   comentario_revision: string | null;
+  estado_geografico?: EstadoGeografico;
+  distancia_entrega_m?: number | null;
+  radio_geografico_m?: number | null;
 };
 
 type ResultadoVision = {
@@ -82,6 +88,9 @@ export type EvidenciaPanel = {
   revisadaPor: string | null;
   revisadaEn: string | null;
   comentarioRevision: string | null;
+  estadoGeografico: EstadoGeografico;
+  distanciaM: number | null;
+  radioM: number | null;
 };
 
 export type ScoreDriver = {
@@ -123,6 +132,16 @@ export function validarEntrada(valor: unknown): EvidenciaEntrada {
     claveOrigen, idViaje, historialEventoId, idMotoboy,
     driverEvento: String(x.driverEvento ?? "").trim().slice(0, 200) || null,
     evidenciaEn: new Date(evidenciaEn).toISOString(), fotoUrl,
+    ...(x.geografia && typeof x.geografia === "object" ? {
+      geografia: (() => {
+        const g = x.geografia as Record<string, unknown>;
+        return {
+          estadoEvento: String(g.estadoEvento ?? "").trim().slice(0, 100),
+          distanciaM: distanciaEvidencia(puntoEvidencia(g.latitudEvento, g.longitudEvento),
+            puntoEvidencia(g.latitudDestino, g.longitudDestino)),
+        };
+      })(),
+    } : {}),
   };
 }
 
@@ -150,15 +169,18 @@ export async function procesarEvidencia(entrada: EvidenciaEntrada): Promise<{ es
     if (!configEntorno) throw new Error("falta_evidencias_webhook_secret");
     const { modelo } = configEntorno;
     const resultado = await analizarFoto(foto.buffer, foto.mime, modelo);
-    const terminada = await ejecutarRpc<boolean>("evidencia_entrega_finalizar", {
+    const terminada = await ejecutarRpc<{ ok: boolean; estado?: EstadoGeografico }>("evidencia_entrega_finalizar_geo", {
       p_id: id, p_foto_ruta: ruta, p_foto_mime: foto.mime, p_foto_bytes: foto.buffer.byteLength,
       p_calidad: resultado.calidad, p_tipo_problema: resultado.tipo_problema,
       p_motivo: resultado.motivo, p_confianza: resultado.confianza, p_modelo: modelo,
       p_tokens_entrada: resultado.tokensEntrada, p_tokens_salida: resultado.tokensSalida,
+      p_geografia_recibida: entrada.geografia != null,
+      p_estado_evento: entrada.geografia?.estadoEvento ?? null,
+      p_distancia_m: entrada.geografia?.distanciaM ?? null,
     });
-    if (!terminada) throw new Error("reclamo_perdido");
+    if (!terminada?.ok) throw new Error("reclamo_perdido");
 
-    return { estado: resultado.calidad === "DUDOSA" ? "pendiente_revision" : "analizada", id };
+    return { estado: resultado.calidad === "DUDOSA" || terminada.estado === "FUERA_DEL_RANGO" ? "pendiente_revision" : "analizada", id };
   } catch (error) {
     await ejecutarRpc("evidencia_entrega_fallar", { p_id: id, p_codigo: codigoDeError(error) }).catch(() => false);
     throw error;
@@ -287,10 +309,11 @@ export async function cargarPanelEvidencias(): Promise<{
   pendientesHoy: EvidenciaPanel[];
   pendientesAnteriores: EvidenciaPanel[];
   revisadasRecientes: EvidenciaPanel[];
+  geografiaReciente: EvidenciaPanel[];
   scores: ScoreDriver[];
   config: Configuracion;
 }> {
-  const [pendientes, revisadas, scores, configFilas, drivers] = await Promise.all([
+  const [pendientes, revisadas, scores, configFilas, drivers, recientes] = await Promise.all([
     consultarTodo<RevisionFila>(TABLA_EVIDENCIAS_REVISION, { estado_proceso: "eq.PENDIENTE_REVISION" }, "evidencia_en.desc"),
     consultarFresco<RevisionFila>(TABLA_EVIDENCIAS_REVISION, {
       estado_proceso: "eq.REVISADA", vence_en: `gt.${new Date().toISOString()}`,
@@ -299,6 +322,10 @@ export async function cargarPanelEvidencias(): Promise<{
     consultarFresco<Record<string, unknown>>(VISTA_EVIDENCIAS_SCORE, { order: "proporcion_malas.desc", limit: "200" }),
     consultarFresco<Configuracion>(TABLA_EVIDENCIAS_CONFIG, { id: "eq.true", limit: "1" }),
     consultarFresco<{ id_motoboy: number; nombre: string | null }>(TABLA_DRIVERS_ACTIVOS, { select: "id_motoboy,nombre", limit: "1000" }).catch(() => []),
+    consultarFresco<RevisionFila>(TABLA_EVIDENCIAS_REVISION, {
+      estado_proceso: "in.(ANALIZADA,PENDIENTE_REVISION,REVISADA)",
+      vence_en: `gt.${new Date().toISOString()}`, order: "analizada_en.desc,id.desc", limit: "50",
+    }),
   ]);
   const nombres = new Map(drivers.map((d) => [Number(d.id_motoboy), d.nombre?.trim() || `Driver #${d.id_motoboy}`]));
   const filasConFoto = [...pendientes, ...revisadas];
@@ -311,6 +338,9 @@ export async function cargarPanelEvidencias(): Promise<{
     fotoUrl: p.foto_ruta ? urls.get(p.foto_ruta) ?? null : null,
     decision: p.decision_humana, revisadaPor: p.revisada_por, revisadaEn: p.revisada_en,
     comentarioRevision: p.comentario_revision,
+    estadoGeografico: p.estado_geografico ?? "NO_EVALUADA",
+    distanciaM: p.distancia_entrega_m == null ? null : Number(p.distancia_entrega_m),
+    radioM: p.radio_geografico_m == null ? null : Number(p.radio_geografico_m),
   });
   const paneles = pendientes.map(aPanel);
   const hoy = diaEvidencias();
@@ -318,6 +348,7 @@ export async function cargarPanelEvidencias(): Promise<{
     pendientesHoy: paneles.filter((p) => diaEvidencias(new Date(p.evidenciaEn)) === hoy),
     pendientesAnteriores: paneles.filter((p) => diaEvidencias(new Date(p.evidenciaEn)) !== hoy),
     revisadasRecientes: revisadas.map(aPanel),
+    geografiaReciente: recientes.map(aPanel),
     scores: scores.map((s) => ({
       idMotoboy: Number(s.id_motoboy), driver: nombres.get(Number(s.id_motoboy)) || `Driver #${s.id_motoboy}`,
       total: Number(s.total_revisadas), confirmadas: Number(s.problemas_confirmados), descartadas: Number(s.falsos_positivos),

@@ -324,6 +324,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   modo inicial es `OBSERVACION`. La bandeja prioriza solo las pendientes del día
   operativo de México; las pendientes de hasta siete días anteriores quedan en
   un desplegable separado, y el histórico nunca expone imágenes.
+  La migración 48 agrega validación geográfica separada de la visual: flujo 19
+  envía coordenadas del mismo evento de la foto y del destino, nunca el GPS
+  actual del driver. Solo compara eventos Entregado; si el ID tiene ubicación
+  o teléfono en Mensual o Histórico se omite. Radio inicial 300 m, configurable
+  por admin (50–5.000 m). Fuera de rango genera revisión humana incluso si la
+  foto es aceptable; sin GPS no acusa. Finalización atómica en
+  `evidencia_entrega_finalizar_geo`; no persiste coordenadas ni las manda al
+  modelo. Conservar orden de instalación: migración, web, flujo 19. Las filas
+  antiguas quedan sin evaluación, sin reanalizar ni alertar retroactivamente.
 
 ## Límites entre flujos
 

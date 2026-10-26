@@ -28,7 +28,13 @@ actual del viaje.
 1. Ejecutar `supabase/migracion-38-evidencias-entrega.sql` en Supabase. En una
    instalación que ya la ejecutó, aplicar después
    `supabase/migracion-41-evidencias-valor-probatorio.sql` y
-   `supabase/migracion-45-evidencias-reabrir.sql`.
+   `supabase/migracion-45-evidencias-reabrir.sql` y
+   `supabase/migracion-48-evidencias-geografia.sql`.
+   Orden del cambio geográfico: migración 48, despliegue de la web y, por último,
+   importar el flujo 19 actualizado. No actualizar el flujo activo antes.
+   La RPC nueva debe permitir ejecución solo a `service_role`: se revocan
+   explícitamente `PUBLIC`, `anon` y `authenticated`, porque los permisos
+   predeterminados de Supabase pueden otorgar acceso directo a esos roles.
 2. Configurar `OPENAI_API_KEY`, `EVIDENCIAS_WEBHOOK_SECRET`,
    `OPENAI_MODELO_EVIDENCIAS`, `EVIDENCIAS_ORIGEN_HOSTS` y
    `EVIDENCIAS_MAX_BYTES`. `EVIDENCIAS_ORIGEN_HOSTS` debe contener el host real
@@ -110,6 +116,53 @@ historial anterior; el clasificador nuevo ya no puede generarlos.
 
 Las muestras locales clasificadas por operación se usaron para calibrar este
 criterio; no se suben a Supabase, n8n ni al historial de producción.
+
+## Validación geográfica
+
+La revisión visual sigue evaluándose por separado. El flujo 19 agrega
+`HistorialViaje.Latitud/Longitud` del **mismo evento que contiene la foto**,
+el nombre del estado de ese evento y `Viaje.LatitudDestino/LongitudDestino`.
+Estos campos ya se usan en las consultas del tracker. No se ha realizado una
+consulta nueva contra SQL Server para este cambio: debe validarse una corrida
+manual del flujo antes de activarlo. No se usa la posición actual de Motoboy,
+EXIF ni geocodificación externa; el GPS histórico es una señal, no una prueba
+de presencia ni de precisión del dispositivo.
+
+El servidor calcula la distancia en línea recta y la RPC de finalización
+consulta por ID Mensual e Histórico. Si cualquiera tiene **ubicación o teléfono
+no vacío**, guarda `OMITIDA_DATOS_TIENDA` sin distancia; un reclamo tipificado
+sin esos datos no provoca la omisión, igual que `tieneDatosTienda` en la web.
+La presencia del ID, por sí sola, no impide comparar; no hace falta que el
+paquete esté registrado en esas tablas.
+
+Solo se compara cuando el evento de la foto se llama **Entregado**. Otros
+eventos quedan `NO_ES_ENTREGA`, los pares ausentes/inválidos o `(0,0)` quedan
+`SIN_COORDENADAS`, y las entradas del flujo anterior sin el objeto geográfico
+quedan `NO_EVALUADA`. No se infiere una entrega fallida por falta de GPS.
+
+El radio inicial es **300 metros**, ajustable por admin entre 50 y 5.000 en
+Configuración. Una distancia igual al límite está dentro. El radio aplicado y
+el resultado quedan guardados; cambiarlo no recalcula evaluaciones antiguas.
+`FUERA_DEL_RANGO` genera revisión humana incluso con una foto visualmente
+aceptable; no cambia `calidad_modelo`, no notifica automáticamente a terceros
+ni afecta el score hasta que se confirma el problema según la regla existente.
+El cálculo no usa OpenAI ni le envía coordenadas. Finalizar foto y geografía
+ocurre en la misma transacción; errores al consultar información de tienda
+interrumpen el guardado y permiten reintentar, no se interpretan como ausencia.
+
+Las tarjetas pendientes/revisadas muestran el resultado. El desplegable de
+geografía presenta las últimas 50 procesadas con retención vigente en una
+tabla ordenable y compacta. El historial durable guarda únicamente resultado,
+distancia y radio: **ninguna coordenada**, dirección ni teléfono. Las filas
+anteriores a la migración no se reanalizan ni generan alertas retroactivas.
+
+Pruebas: `npm run test:evidencias` verifica distancia, puntos inválidos y el
+contrato del flujo. `scripts/evidencias-geografia-sql.test.mts` prueba la
+migración real en PostgreSQL en memoria sin credenciales de Supabase:
+instalar `@electric-sql/pglite` en un directorio temporal y ejecutar desde
+`web/` con `PGLITE_MODULE=<directorio>/node_modules/@electric-sql/pglite/dist/index.js
+node --import tsx scripts/evidencias-geografia-sql.test.mts`. Cubre
+idempotencia, omisiones, límite exacto, cambio de radio, rollback y permisos.
 
 ## Score
 

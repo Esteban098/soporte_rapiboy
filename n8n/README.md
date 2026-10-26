@@ -690,6 +690,11 @@ ese día para modalidades 5 y 7, en cualquier estado salvo `Cancelado`.
 la imagen. El driver sale de `HistorialViaje.IdReserva` del evento asociado,
 enlazado con `ReservaxMotoboy` y `Motoboy`; `HistorialViaje.Repartidor` queda
 solo como nombre de respaldo. Nunca usa la asignación actual del viaje.
+Envía también coordenadas del evento de la foto y del destino. La web compara
+solo eventos Entregado y omite IDs con ubicación o teléfono en Mensual o
+Histórico. El rango inicial es 300 m, configurable por admin; fuera de rango
+genera revisión humana, separada de la calidad visual. No importar este cambio
+en el flujo activo antes de aplicar la migración 48 y desplegar la web.
 Manda una imagen por vez al endpoint privado y a las 02:15 ARG dispara la limpieza
 de copias vencidas. Instalación y operación: `web/docs/evidencias-entrega.md`.
 

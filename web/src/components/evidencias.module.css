@@ -14,6 +14,7 @@
 .meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
 .cuerpo p { margin: 10px 0; }
 .detalle { color: var(--muted); font-size: 13px; }
+.geografiaAlerta { color: var(--warning); background: var(--warning-soft); border-radius: 8px; padding: 10px; font-size: 13px; }
 .cuerpo textarea { width: 100%; min-height: 64px; resize: vertical; border: 1px solid var(--outline); border-radius: 8px; padding: 9px; background: var(--surface-2); color: var(--ink); font: inherit; }
 .acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
 .acciones button, .form button { border: 0; border-radius: 8px; padding: 9px 12px; background: var(--primary); color: var(--on-primary); cursor: pointer; }
