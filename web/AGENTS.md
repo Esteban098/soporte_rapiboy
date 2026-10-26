@@ -244,6 +244,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   los repartidores elegidos; el camino ya hecho (`recorridoHecho`) junta tiendas
   visitadas y posiciones guardadas en orden de hora, y se pide aparte con
   `recorridosDeRepartidores()`, que exige `operadorActual()`.
+  La posición usa el mismo criterio del flujo 08: el punto válido más reciente
+  entre `Motoboy` y los eventos de `HistorialViaje` de la jornada, atribuidos
+  mediante `H.IdReserva -> ReservaxMotoboy.IdMotoboy`. Un evento con las mismas
+  coordenadas del GPS no rejuvenece ese punto; se descartan fechas futuras.
+  La consulta del 12 convierte directamente la fecha de origen con
+  `AT TIME ZONE`, sin aplicar luego la corrección de tres horas del flujo 08.
+  Instalar `supabase/migracion-50-colectas-ultima-ubicacion.sql` antes del flujo
+  12 actualizado: preserva la última posición válida ante upserts viejos,
+  inválidos o nulos, incluso al cambiar de jornada. No comparte escrituras ni
+  depende de que se ejecute Live Tracker; siguen vigentes las tres tablas
+  propias y el filtro de posiciones para Comercial.
 
 - La **asistencia** vive en `asistencia_votos`: una respuesta vigente por
   `fecha_operacion` de México e `id_motoboy`, siempre con FK a
@@ -563,6 +574,11 @@ Además, validar los workflows con `jq empty ../n8n/*.json`. El build no sale a
 la red: la tipografía son archivos locales en `src/app/fonts/` cargados con
 `next/font/local`, y el polígono de cobertura es `src/lib/cobertura.json`,
 versionado y generado a mano con `scripts/cobertura.mts`.
+
+Para cambios en la protección de posiciones de Colectas, ejecutar también
+`PGLITE_MODULE=/ruta/temporal/node_modules/@electric-sql/pglite/dist/index.js node --import tsx scripts/colectas-ubicacion-sql.test.mts`.
+Usa PostgreSQL aislado en memoria, sin credenciales ni escrituras en Supabase;
+comprueba upserts atrasados o inválidos, cambio de jornada, idempotencia y permisos.
 
 ## Live tracker
 

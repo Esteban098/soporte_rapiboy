@@ -362,18 +362,20 @@ este comercio»— y además hace que el upsert sea idempotente sin depender de 
 ## Colectas en vivo
 
 `12-colectas-vivo.json` alimenta la pestaña **Colectas de hoy** del mapa de
-Tiendas. Antes de importarlo hay que crear sus dos tablas con
+Tiendas. Antes de importarlo hay que crear sus tres tablas con
 `web/supabase/migracion-15-colectas-vivo.sql` y
-`web/supabase/migracion-16-colectas-vivo-recorrido.sql`. Escribe **solo** sus
+`web/supabase/migracion-16-colectas-vivo-recorrido.sql` e instalar
+`web/supabase/migracion-50-colectas-ultima-ubicacion.sql`. Escribe **solo** sus
 tres tablas —`colectas_vivo`, `colectas_vivo_drivers` y
-`colectas_vivo_posiciones`— y no comparte nada con el flujo 06
+`colectas_vivo_posiciones`— y no comparte escrituras con el flujo 06
 ni con el live tracker, así que se puede importar, apagar o rehacer sin mirar el
 resto.
 
 Es una sola consulta a SQL Server: las colectas del día en México
 (`Usuario.IdLocalidad = 9`, modalidades 5 y 7), con la tienda, el repartidor de
-la colecta o de su reserva, la última posición de ese repartidor
-(`Motoboy.Latitud/Longitud`) y, del historial, la primera vez que la colecta
+la colecta o de su reserva, la última posición válida de ese repartidor
+(GPS de `Motoboy` o evento de `HistorialViaje`, igual que Live Tracker) y,
+del historial de colectas, la primera vez que la colecta
 entró a cada estado. De ahí salen tres ramas que hacen upsert: una fila por
 colecta, una por repartidor y una por cada **reporte de posición nuevo** —clave
 (repartidor, `posicion_en`), así que si el teléfono no volvió a reportar no se
@@ -381,6 +383,24 @@ agrega nada—. Esa última es el recorrido del mapa, porque RapiboyData no guar
 historial de posiciones; solo entran posiciones válidas reportadas ese día en
 México. Después, **Recortar recorrido viejo** borra de esa tabla —y solo de esa—
 lo de más de 30 días.
+
+La selección del punto compara la hora real de ambos orígenes, descarta
+coordenadas inválidas y fechas futuras, y atribuye cada evento a su driver
+por `H.IdReserva -> ReservaxMotoboy.IdMotoboy`. Si un evento copia las
+coordenadas del GPS, no se usa su hora para hacer parecer reciente el punto.
+Las reservas y viajes de la jornada se materializan antes de acceder al
+historial por `IX_HistorialViaje_IdViaje`, como en el flujo 08. Si las filas de
+un mismo driver difieren dentro de una corrida, el mapeo conserva la más
+reciente. La migración 50 impide que un upsert posterior sustituya una
+posición guardada por otra vieja, inválida o nula; no cambia la fecha del
+reporte al sincronizar. El flujo sigue siendo independiente del 08: no lee
+ni escribe tablas de Live Tracker.
+La consulta está versionada en `colectas-ultima-ubicacion.sql`; su contenido
+debe coincidir con el nodo **Colectas del día** del JSON (lo verifica el test).
+Al actualizar un flujo existente, reemplazar solo esa consulta y los tres
+mapeos Code, conservando conexiones, credenciales y agenda. El archivo ofrece
+una agenda cada cinco minutos; la instalación activa conserva su agenda de
+cada diez minutos en horario de colectas.
 
 Tres cosas que conviene saber antes de tocarlo:
 
@@ -390,7 +410,9 @@ Tres cosas que conviene saber antes de tocarlo:
   `America/Mexico_City` y lo convierte al reloj del sistema con `Intl` (el 21 en
   México va de las 03:00 del 21 a las 03:00 del 22), y la consulta devuelve cada
   fecha como instante con `AT TIME ZONE 'Argentina Standard Time'`. Si algún día
-  la base pasara a guardar otra zona, se cambia en esos dos lugares.
+  la base pasara a guardar otra zona, se cambia en esos dos lugares. A diferencia
+  del flujo 08, acá no se aplica después la corrección de tres horas: el SQL ya
+  devuelve el instante correcto.
 - **El historial.** `HistorialColecta` es un heap de millones de filas con un
   solo índice, por `Id`. La consulta lo acota a los últimos 50.000 ids antes de
   filtrar por colecta —un día de México deja unas 5.000— y lo agrega antes de

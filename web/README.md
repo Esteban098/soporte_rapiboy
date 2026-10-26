@@ -506,8 +506,8 @@ PostgreSQL a las 10:00 de Argentina de lunes a sábado.
 
 La pestaña **Colectas de hoy** muestra la jornada en curso: qué repartidor va a
 qué tienda, en qué estado está cada colecta y dónde anda cada repartidor. La
-escribe el flujo 12 de n8n en `colectas_vivo` y `colectas_vivo_drivers`, cada
-cinco minutos en horario de colectas y cuando alguien aprieta **Actualizar
+escribe el flujo 12 de n8n en `colectas_vivo` y `colectas_vivo_drivers`, según
+su agenda (actualmente cada diez minutos en horario de colectas) y cuando alguien aprieta **Actualizar
 posiciones y estados**. Con **En vivo** prendido la página relee lo guardado cada
 minuto mientras está a la vista.
 
@@ -526,7 +526,7 @@ minuto mientras está a la vista.
 - **Sobre el camino recorrido.** RapiboyData no guarda un historial de
   posiciones —`Motoboy` se pisa en cada reporte y los eventos de colecta vienen
   sin coordenadas—, así que el flujo 12 guarda cada posición nueva en
-  `colectas_vivo_posiciones` (una cada 5 minutos como mucho, 30 días de
+  `colectas_vivo_posiciones` (una por corrida como máximo, 30 días de
   historia). El camino tiene esa resolución, arranca el día en que se instala
   la migración 16 y une los puntos en línea recta, no por calles. Sin esa tabla
   el camino se dibuja igual, solo con las tiendas visitadas. El recorrido no
@@ -552,6 +552,12 @@ minuto mientras está a la vista.
 
 Reglas que conviene conocer:
 
+- La posición sigue la misma regla de Live Tracker: el dato válido más reciente
+  entre GPS y eventos del historial de viajes de la jornada. Los eventos se
+  atribuyen al driver que los realizó; copiar un GPS viejo no renueva su hora.
+  Si una sincronización trae una posición vieja, nula o inválida, se conserva
+  la última válida, también al cambiar de jornada. La antigüedad siempre se
+  calcula desde el reporte real, no desde la última sincronización.
 - El estado sale de `Colecta.IdEstado` (1 Asignada, 2 En camino, 3 Retirada,
   4 Finalizada, 5 Finalizada parcial, 6 En local, 7 Aceptada, 8 En depósito) y
   la cancelación, de `FechaCancelada`: el catálogo no tiene un estado Cancelada.
@@ -569,8 +575,9 @@ Reglas que conviene conocer:
   en la capa Repartidores, y la acción que entrega el recorrido le contesta
   vacío. Su camino recorrido es solo el de las tiendas visitadas.
 
-Instalación: correr `supabase/migracion-15-colectas-vivo.sql` y
-`supabase/migracion-16-colectas-vivo-recorrido.sql`, importar
+Instalación: correr `supabase/migracion-15-colectas-vivo.sql`,
+`supabase/migracion-16-colectas-vivo-recorrido.sql` y
+`supabase/migracion-50-colectas-ultima-ubicacion.sql`, importar
 `../n8n/12-colectas-vivo.json`, asignarle las credenciales, activarlo y cargar su
 URL de producción en `N8N_WEBHOOKS_COLECTAS_VIVO`. Sin la migración, la pantalla
 avisa qué falta y el mapa de tiendas funciona igual.

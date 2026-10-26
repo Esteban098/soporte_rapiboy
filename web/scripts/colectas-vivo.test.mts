@@ -499,16 +499,21 @@ test("el flujo solo escribe sus tres tablas, con upsert y todas las columnas de 
 test("la consulta lee sin bloquear, convierte las fechas y no usa el destino del paquete", () => {
   const sql = sinComentarios(nodo("Colectas del día").parameters.query as string);
 
-  assert.ok(!/\b(insert|update|delete|merge|drop|alter|exec)\b/i.test(sql), "la consulta solo lee");
+  assert.ok(!/\b(insert|update|delete|merge|drop|alter|exec)\b/i.test(sql), "la consulta solo lee datos persistentes");
+  const temporales = ["#ColectasHoy", "#DriversHoy", "#ReservasGPS", "#ViajesGPS", "#EventosGPS"];
+  assert.deepEqual([...sql.matchAll(/\bINTO\s+(\S+)/g)].map((m) => m[1]), temporales);
+  for (const m of sql.matchAll(/CREATE\s+(?:UNIQUE\s+)?(?:CLUSTERED\s+)?INDEX\s+\w+\s+ON\s+(\S+)/g)) {
+    assert.ok(temporales.includes(m[1]), "solo crea índices de tablas temporales");
+  }
   assert.ok(!/LatitudDestino/i.test(sql), "la posición del repartidor no sale de Viaje");
-  assert.match(sql, /M\.Latitud\s+AS LatitudRepartidor/);
+  assert.match(sql, /COALESCE\(P\.Latitud,[\s\S]*?THEN M\.Latitud END\) AS LatitudRepartidor/);
   assert.match(sql, /AT TIME ZONE @Zona/);
   assert.match(sql, /DECLARE @Zona\s+VARCHAR\(60\) = 'Argentina Standard Time'/);
   assert.match(sql, /C\.Fecha >= @Desde\s+AND C\.Fecha <\s+@Hasta/, "rango semiabierto contra la columna sin envolver");
   assert.ok(!/CAST\(C\.Fecha AS DATE\)/i.test(sql));
 
   // Cada tabla del sistema con NOLOCK.
-  const tablas = [...sql.matchAll(/(?:FROM|JOIN)\s+dbo\.(\w+)(?:\s+(?!WITH\b)\w+)?(\s+WITH \(NOLOCK\))?/g)];
+  const tablas = [...sql.matchAll(/(?:FROM|JOIN)\s+dbo\.(\w+)(?:\s+(?!WITH\b)\w+)?(\s+WITH \(NOLOCK\b)?/g)];
   assert.ok(tablas.length >= 6);
   for (const m of tablas) assert.ok(m[2], `dbo.${m[1]} sin NOLOCK`);
 
@@ -519,6 +524,31 @@ test("la consulta lee sin bloquear, convierte las fechas y no usa el destino del
   // Solo tres valores entran por expresión, y los tres los arma el nodo anterior.
   const expresiones = [...(nodo("Colectas del día").parameters.query as string).matchAll(/\{\{\s*([^}]+?)\s*\}\}/g)].map((m) => m[1]);
   assert.deepEqual([...new Set(expresiones)].sort(), ["$json.desde", "$json.dia", "$json.hasta", "$json.sincronizado_en"]);
+});
+
+test("Colectas elige la posición como Live Tracker, sin rejuvenecer puntos copiados", () => {
+  assert.equal(nodo("Colectas del día").parameters.query,
+    readFileSync(new URL("../../n8n/colectas-ultima-ubicacion.sql", import.meta.url), "utf8"),
+    "el flujo debe usar la consulta versionada");
+  const sql = sinComentarios(nodo("Colectas del día").parameters.query as string);
+  assert.match(sql, /INNER LOOP JOIN dbo\.HistorialViaje H WITH \(NOLOCK, INDEX\(IX_HistorialViaje_IdViaje\)\)/);
+  assert.match(sql, /RH\.Id = H\.IdReserva/);
+  assert.match(sql, /M\.IdMotoboy = RH\.IdMotoboy/);
+  assert.match(sql, /PARTITION BY RH\.IdMotoboy ORDER BY H\.Fecha DESC, H\.Id DESC/);
+  assert.match(sql, /H\.Fecha >= @Desde AND H\.Fecha < @Hasta AND H\.Fecha <= @AhoraOrigen/);
+  assert.match(sql, /ABS\(H\.Latitud - M\.Latitud\) > 0\.00001/);
+  assert.match(sql, /ABS\(H\.Longitud - M\.Longitud\) > 0\.00001/);
+  assert.match(sql, /M\.UltimaActualizacion <= @AhoraOrigen/);
+  assert.match(sql, /ORDER BY Candidato\.Fecha DESC, Candidato\.Prioridad/);
+  assert.match(sql, /CAST\(P\.Fecha AS DATETIME2\(0\)\) AT TIME ZONE @Zona/);
+  assert.ok(!/AS PosicionEn[^;]*GETDATE\(/i.test(sql));
+
+  const proteccion = readFileSync(new URL("../supabase/migracion-50-colectas-ultima-ubicacion.sql", import.meta.url), "utf8");
+  assert.match(proteccion, /before update on public\.colectas_vivo_drivers/);
+  assert.match(proteccion, /new\.posicion_en < old\.posicion_en/);
+  assert.match(proteccion, /new\.posicion_en is null/);
+  assert.match(proteccion, /new\.posicion_en := old\.posicion_en/);
+  assert.ok(!/new\.fecha_operacion\s*:=/.test(proteccion), "conservar posición no impide cambiar de jornada");
 });
 
 test("el día de operación se convierte al reloj del sistema y no deja pasar texto libre", () => {
@@ -596,6 +626,32 @@ test("un repartidor con diez colectas es una sola fila, y sin señal queda sin p
   assert.equal(salida[0].posicion_en, "2026-09-21T18:58:00.000Z");
   assert.equal(salida[1].latitud, null);
   assert.equal(salida[1].posicion_en, null, "sin punto, la fecha del punto no significa nada");
+});
+
+test("entre filas repetidas del driver gana el punto más reciente, no la primera colecta", () => {
+  const recientes = { ...FILA_SQL, PosicionEn: "2026-09-21T19:05:00-03:00", LatitudRepartidor: 19.5 };
+  const sinGPS = { ...FILA_SQL, PosicionEn: null, LatitudRepartidor: 0, LongitudRepartidor: 0 };
+  for (const filas of [[FILA_SQL, recientes, sinGPS], [recientes, sinGPS, FILA_SQL], [sinGPS, FILA_SQL, recientes]]) {
+    for (const nombre of ["A columnas · repartidores", "A columnas · recorrido"]) {
+      const salida = correr(nombre, null, filas).map((s) => s.json);
+      assert.equal(salida.length, 1);
+      assert.equal(salida[0].posicion_en, "2026-09-21T22:05:00.000Z", "la zona ya viene en el instante; no sumar otras tres horas");
+      assert.equal(salida[0].latitud, 19.5);
+    }
+  }
+});
+
+test("un campo GPS vacío no se interpreta como coordenada cero", () => {
+  for (const nombre of ["A columnas · repartidores", "A columnas · recorrido"]) {
+    for (const datos of [{ LatitudRepartidor: "" }, { LongitudRepartidor: "" }]) {
+      const salida = correr(nombre, null, [{ ...FILA_SQL, ...datos }]).map((s) => s.json);
+      if (nombre === "A columnas · recorrido") assert.deepEqual(salida, []);
+      else {
+        assert.equal(salida[0].latitud, null);
+        assert.equal(salida[0].posicion_en, null);
+      }
+    }
+  }
 });
 
 test("los nodos Code leen su entrada y ninguna expresión cruza el grafo", () => {
