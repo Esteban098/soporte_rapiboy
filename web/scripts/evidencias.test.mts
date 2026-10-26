@@ -33,18 +33,22 @@ const modelo = await readFile(new URL("../src/lib/evidencias.ts", import.meta.ur
 const panel = await readFile(new URL("../src/components/PanelEvidencias.tsx", import.meta.url), "utf8");
 const proxy = await readFile(new URL("../src/proxy.ts", import.meta.url), "utf8");
 const geo = await readFile(new URL("../supabase/migracion-48-evidencias-geografia.sql", import.meta.url), "utf8");
+const visitas = await readFile(new URL("../supabase/migracion-49-evidencias-visitas-domicilio.sql", import.meta.url), "utf8");
 const workflow = JSON.parse(flujo);
 const consulta = workflow.nodes.find((n: { type: string }) => n.type === "n8n-nodes-base.microsoftSql").parameters.query;
 assert.ok(consulta.includes("H.Latitud AS LatitudEvento") && consulta.includes("H.Longitud AS LongitudEvento"));
 assert.ok(consulta.includes("V.LatitudDestino") && consulta.includes("V.LongitudDestino"));
 assert.ok(consulta.includes("E.NombreCompleto AS EstadoEvento") && consulta.includes("E.Id = X.IdEstado"));
+assert.ok(consulta.includes("H.VisitadoMotoboy AS VisitadoEvento") && consulta.includes("V.Direccion AS DomicilioDestino"));
 assert.ok(!consulta.includes("M.Latitud") && !consulta.includes("M.Longitud"), "no sustituir GPS histórico por la posición actual del driver");
 const code = workflow.nodes.find((n: { type: string }) => n.type === "n8n-nodes-base.code").parameters.jsCode;
 const ejecutar = new Function("$input", "$", code);
-const salida = ejecutar({ all: () => [{ json: { IdViaje: 1, HistorialEventoId: 2, FotoUrl: "https://files.rapiboy.com/test.jpg", EvidenciaEn: "2026-10-26T23:00:00Z", EstadoEvento: "Entregado", LatitudEvento: 19.4, LongitudEvento: -99.1, LatitudDestino: 19.401, LongitudDestino: -99.1 } }] },
+const salida = ejecutar({ all: () => [{ json: { IdViaje: 1, HistorialEventoId: 2, FotoUrl: "https://files.rapiboy.com/test.jpg", EvidenciaEn: "2026-10-26T23:00:00Z", EstadoEvento: "Pedido no entregado", VisitadoEvento: 1, DomicilioDestino: "Calle de prueba 100", LatitudEvento: 19.4, LongitudEvento: -99.1, LatitudDestino: 19.401, LongitudDestino: -99.1 } }] },
   (nombre: string) => ({ first: () => ({ json: nombre === "Claves ya vistas hoy" ? { claves: [] } : { maximo_por_corrida: 20 } }) }));
 assert.equal(salida[0].json.geografia.latitudEvento, 19.4);
-assert.equal(salida[0].json.geografia.estadoEvento, "Entregado");
+assert.equal(salida[0].json.geografia.estadoEvento, "Pedido no entregado");
+assert.equal(salida[0].json.geografia.visitadoEvento, true);
+assert.equal(salida[0].json.domicilioDestino, "Calle de prueba 100");
 assert.ok(geo.includes("public.mensual where id = v_viaje") && geo.includes("public.mensual_historico where id = v_viaje"));
 assert.ok(geo.includes("nullif(btrim(ubicacion), '')") && geo.includes("nullif(btrim(telefono), '')"));
 assert.ok(geo.includes("if v_con_datos then") && geo.includes("'OMITIDA_DATOS_TIENDA'"));
@@ -53,7 +57,12 @@ assert.ok(geo.includes("'SIN_COORDENADAS'") && geo.includes("'NO_EVALUADA'") && 
 assert.ok(geo.includes("for update") && geo.includes("public.evidencia_entrega_finalizar("));
 assert.ok(geo.includes("v_estado = 'FUERA_DEL_RANGO' then 'PENDIENTE_REVISION'"));
 assert.ok(!/latitud|longitud/.test(geo), "no persistir coordenadas crudas en Supabase");
-assert.ok(modelo.includes('"evidencia_entrega_finalizar_geo"') && modelo.includes("p_geografia_recibida: entrada.geografia != null"));
+assert.ok(modelo.includes('"evidencia_entrega_finalizar_visita"') && modelo.includes("p_geografia_recibida: entrada.geografia != null"));
+assert.ok(visitas.includes("and not coalesce(p_visitado_evento, false)"));
+assert.ok(visitas.includes("add column if not exists domicilio_destino text") && visitas.includes("from public, anon, authenticated"));
+assert.ok(!visitas.slice(visitas.indexOf("update public.evidencias_entrega_historial")).includes("domicilio_destino"), "el historial durable no guarda domicilios");
+assert.ok(panel.includes("enlaceViaje(id)") && panel.includes('titulo: "Domicilio"') && panel.includes("Domicilio de destino"));
+for (const tab of ["Pendientes", "Coordenadas", "Revisadas", "Drivers"]) assert.ok(panel.includes(`nombre: "${tab}"`));
 assert.ok(panel.includes("ETIQUETAS_GEOGRAFIA") && panel.includes("Rango geográfico (metros)"));
 
 for (const fragmento of ["U.IdLocalidad = 9", "U.IdModalidad IN (5, 7)", "DriverEvento", "H.Foto", "H.Fecha >= @InicioUtc", "H.Fecha < @FinUtc", "Claves ya vistas hoy"]) {

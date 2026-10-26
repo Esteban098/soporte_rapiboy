@@ -6,6 +6,7 @@ import {
   TABLA_EVIDENCIAS_CONFIG,
   TABLA_EVIDENCIAS_REVISION,
   VISTA_EVIDENCIAS_SCORE,
+  TABLA_TRACKER_PAQUETES,
   evidenciasConfig,
 } from "./config";
 import {
@@ -33,7 +34,8 @@ export type EvidenciaEntrada = {
   driverEvento: string | null;
   evidenciaEn: string;
   fotoUrl: string;
-  geografia?: { estadoEvento: string; distanciaM: number | null };
+  domicilioDestino?: string | null;
+  geografia?: { estadoEvento: string; distanciaM: number | null; visitadoEvento: boolean };
 };
 
 type Configuracion = {
@@ -62,6 +64,10 @@ type RevisionFila = {
   estado_geografico?: EstadoGeografico;
   distancia_entrega_m?: number | null;
   radio_geografico_m?: number | null;
+  domicilio_destino?: string | null;
+  estado_evento?: string | null;
+  visitado_evento?: boolean | null;
+  calidad_modelo?: "ACEPTABLE" | "DUDOSA" | null;
 };
 
 type ResultadoVision = {
@@ -91,6 +97,11 @@ export type EvidenciaPanel = {
   estadoGeografico: EstadoGeografico;
   distanciaM: number | null;
   radioM: number | null;
+  domicilio: string | null;
+  estadoEvento: string | null;
+  visitadoEvento: boolean | null;
+  calidadVisual: "ACEPTABLE" | "DUDOSA" | null;
+  domicilioActual: boolean;
 };
 
 export type ScoreDriver = {
@@ -132,11 +143,13 @@ export function validarEntrada(valor: unknown): EvidenciaEntrada {
     claveOrigen, idViaje, historialEventoId, idMotoboy,
     driverEvento: String(x.driverEvento ?? "").trim().slice(0, 200) || null,
     evidenciaEn: new Date(evidenciaEn).toISOString(), fotoUrl,
+    domicilioDestino: typeof x.domicilioDestino === "string" ? x.domicilioDestino.trim().slice(0, 500) || null : null,
     ...(x.geografia && typeof x.geografia === "object" ? {
       geografia: (() => {
         const g = x.geografia as Record<string, unknown>;
         return {
           estadoEvento: String(g.estadoEvento ?? "").trim().slice(0, 100),
+          visitadoEvento: g.visitadoEvento === true || g.visitadoEvento === 1 || g.visitadoEvento === "1",
           distanciaM: distanciaEvidencia(puntoEvidencia(g.latitudEvento, g.longitudEvento),
             puntoEvidencia(g.latitudDestino, g.longitudDestino)),
         };
@@ -169,7 +182,7 @@ export async function procesarEvidencia(entrada: EvidenciaEntrada): Promise<{ es
     if (!configEntorno) throw new Error("falta_evidencias_webhook_secret");
     const { modelo } = configEntorno;
     const resultado = await analizarFoto(foto.buffer, foto.mime, modelo);
-    const terminada = await ejecutarRpc<{ ok: boolean; estado?: EstadoGeografico }>("evidencia_entrega_finalizar_geo", {
+    const terminada = await ejecutarRpc<{ ok: boolean; estado?: EstadoGeografico }>("evidencia_entrega_finalizar_visita", {
       p_id: id, p_foto_ruta: ruta, p_foto_mime: foto.mime, p_foto_bytes: foto.buffer.byteLength,
       p_calidad: resultado.calidad, p_tipo_problema: resultado.tipo_problema,
       p_motivo: resultado.motivo, p_confianza: resultado.confianza, p_modelo: modelo,
@@ -177,6 +190,8 @@ export async function procesarEvidencia(entrada: EvidenciaEntrada): Promise<{ es
       p_geografia_recibida: entrada.geografia != null,
       p_estado_evento: entrada.geografia?.estadoEvento ?? null,
       p_distancia_m: entrada.geografia?.distanciaM ?? null,
+      p_visitado_evento: entrada.geografia?.visitadoEvento ?? false,
+      p_domicilio_destino: entrada.domicilioDestino ?? null,
     });
     if (!terminada?.ok) throw new Error("reclamo_perdido");
 
@@ -328,7 +343,18 @@ export async function cargarPanelEvidencias(): Promise<{
     }),
   ]);
   const nombres = new Map(drivers.map((d) => [Number(d.id_motoboy), d.nombre?.trim() || `Driver #${d.id_motoboy}`]));
-  const filasConFoto = [...pendientes, ...revisadas];
+  const filasConFoto = [...pendientes, ...revisadas, ...recientes];
+  // Solo completa la dirección visible; jamás usa estado, visita o GPS actuales
+  // para recalcular una evidencia histórica. Consultas acotadas, no una por ID.
+  const sinDomicilio = [...new Set(filasConFoto.filter((p) => !p.domicilio_destino?.trim()).map((p) => Number(p.id_viaje)))];
+  const direccionesActuales = new Map<number, string>();
+  for (let i = 0; i < sinDomicilio.length; i += 100) {
+    const ids = sinDomicilio.slice(i, i + 100);
+    const referencias = await consultarFresco<{ id_viaje: number; direccion: string | null }>(TABLA_TRACKER_PAQUETES, {
+      select: "id_viaje,direccion", id_viaje: `in.(${ids.join(",")})`, limit: String(ids.length),
+    });
+    for (const referencia of referencias) if (referencia.direccion?.trim()) direccionesActuales.set(Number(referencia.id_viaje), referencia.direccion.trim());
+  }
   const urls = await firmarArchivos(BUCKET_EVIDENCIAS, filasConFoto.flatMap((p) => p.foto_ruta ? [p.foto_ruta] : []), 900);
   const aPanel = (p: RevisionFila): EvidenciaPanel => ({
     id: p.id, idViaje: Number(p.id_viaje), idMotoboy: p.id_motoboy == null ? null : Number(p.id_motoboy),
@@ -341,6 +367,11 @@ export async function cargarPanelEvidencias(): Promise<{
     estadoGeografico: p.estado_geografico ?? "NO_EVALUADA",
     distanciaM: p.distancia_entrega_m == null ? null : Number(p.distancia_entrega_m),
     radioM: p.radio_geografico_m == null ? null : Number(p.radio_geografico_m),
+    domicilio: p.domicilio_destino?.trim() || direccionesActuales.get(Number(p.id_viaje)) || null,
+    domicilioActual: !p.domicilio_destino?.trim() && direccionesActuales.has(Number(p.id_viaje)),
+    estadoEvento: p.estado_evento?.trim() || null,
+    visitadoEvento: p.visitado_evento ?? null,
+    calidadVisual: p.calidad_modelo ?? null,
   });
   const paneles = pendientes.map(aPanel);
   const hoy = diaEvidencias();

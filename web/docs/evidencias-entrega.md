@@ -2,7 +2,7 @@
 
 ## Fuentes verificadas
 
-El flujo 17 busca exclusivamente fotografías no vacías de
+El flujo 19 busca exclusivamente fotografías no vacías de
 `dbo.HistorialViaje.Foto` cuyo propio evento ocurrió ese día en México. Enlaza
 `HistorialViaje.IdViaje -> Viaje.Id` y `Viaje.IdUsuario -> Usuario.Id`, filtra
 `Usuario.IdLocalidad = 9` y `Usuario.IdModalidad IN (5, 7)`. No exige
@@ -29,8 +29,9 @@ actual del viaje.
    instalación que ya la ejecutó, aplicar después
    `supabase/migracion-41-evidencias-valor-probatorio.sql` y
    `supabase/migracion-45-evidencias-reabrir.sql` y
-   `supabase/migracion-48-evidencias-geografia.sql`.
-   Orden del cambio geográfico: migración 48, despliegue de la web y, por último,
+   `supabase/migracion-48-evidencias-geografia.sql` y
+   `supabase/migracion-49-evidencias-visitas-domicilio.sql`.
+   Orden del cambio geográfico: migraciones 48 y 49, despliegue de la web y, por último,
    importar el flujo 19 actualizado. No actualizar el flujo activo antes.
    La RPC nueva debe permitir ejecución solo a `service_role`: se revocan
    explícitamente `PUBLIC`, `anon` y `authenticated`, porque los permisos
@@ -135,8 +136,12 @@ sin esos datos no provoca la omisión, igual que `tieneDatosTienda` en la web.
 La presencia del ID, por sí sola, no impide comparar; no hace falta que el
 paquete esté registrado en esas tablas.
 
-Solo se compara cuando el evento de la foto se llama **Entregado**. Otros
-eventos quedan `NO_ES_ENTREGA`, los pares ausentes/inválidos o `(0,0)` quedan
+Se compara cuando el evento de la foto se llama **Entregado**, o cuando ese
+mismo evento tiene **`HistorialViaje.VisitadoMotoboy = 1`**, aunque no haya
+terminado entregado. No se usa `Viaje.VisitadoMotoboy`, porque una visita
+posterior no debe convertir retroactivamente otro evento en una visita.
+Los eventos sin esa condición quedan `NO_ES_ENTREGA` (etiqueta «sin visita
+evaluable» por compatibilidad), los pares ausentes/inválidos o `(0,0)` quedan
 `SIN_COORDENADAS`, y las entradas del flujo anterior sin el objeto geográfico
 quedan `NO_EVALUADA`. No se infiere una entrega fallida por falta de GPS.
 
@@ -156,13 +161,34 @@ tabla ordenable y compacta. El historial durable guarda únicamente resultado,
 distancia y radio: **ninguna coordenada**, dirección ni teléfono. Las filas
 anteriores a la migración no se reanalizan ni generan alertas retroactivas.
 
+La migración 49 conserva la RPC 48 para clientes anteriores y añade
+`evidencia_entrega_finalizar_visita`. En la fila operativa guarda el domicilio
+de `Viaje.Direccion`, el nombre del estado y la marca de visita del evento.
+Estos datos vencen junto con la fila a los siete días; **el historial durable
+no guarda domicilios**. En entradas anteriores sin domicilio se consulta por
+lotes el ID en `tracker_paquetes` y, si hay dirección, se muestra como
+**referencia actual del tracker**: no se presenta como dato histórico ni se
+usa su GPS, estado o visita para recalcular. Sin coincidencia se indica no
+informado, sin inventar ni geocodificar direcciones.
+
+La pantalla se organiza en Pendientes (hoy por defecto, anteriores opcionales),
+Coordenadas (últimas 50 procesadas), Revisadas (últimas 50) y Drivers (score
+30 días). La búsqueda por ID/driver/domicilio/estado y el filtro por alerta
+visual, geográfica o ambas se comparten entre las tres primeras vistas. Las
+tarjetas muestran foto completa sin recorte, domicilio, estado del evento y
+dos señales separadas; confirman cada decisión antes de guardar. Los IDs de
+tarjetas y tablas abren el operador Rapiboy en una nueva pestaña. Listas de
+tarjetas y tablas comienzan con hasta diez filas; se amplían a pedido. Las
+explicaciones extensas y la configuración quedan plegadas.
+
 Pruebas: `npm run test:evidencias` verifica distancia, puntos inválidos y el
 contrato del flujo. `scripts/evidencias-geografia-sql.test.mts` prueba la
 migración real en PostgreSQL en memoria sin credenciales de Supabase:
 instalar `@electric-sql/pglite` en un directorio temporal y ejecutar desde
 `web/` con `PGLITE_MODULE=<directorio>/node_modules/@electric-sql/pglite/dist/index.js
 node --import tsx scripts/evidencias-geografia-sql.test.mts`. Cubre
-idempotencia, omisiones, límite exacto, cambio de radio, rollback y permisos.
+idempotencia, omisiones, límite exacto, cambio de radio, rollback, permisos,
+no entregados visitados/no visitados y retención del domicilio solo operativa.
 
 ## Score
 

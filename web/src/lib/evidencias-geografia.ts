@@ -7,7 +7,7 @@ export const ETIQUETAS_GEOGRAFIA: Record<EstadoGeografico, string> = {
   FUERA_DEL_RANGO: "Fuera del rango · revisar",
   SIN_COORDENADAS: "Sin coordenadas válidas",
   OMITIDA_DATOS_TIENDA: "Omitida por información de tienda",
-  NO_ES_ENTREGA: "No aplica: el evento no es una entrega",
+  NO_ES_ENTREGA: "No aplica: sin visita evaluable",
 };
 
 /** No convierte vacíos, booleanos ni puntos (0, 0) en una ubicación real. */
