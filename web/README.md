@@ -494,13 +494,13 @@ asistencia salen de esa misma tabla. Los votos son **Ruta y colecta**, **Ruta**
 y **No asiste**. Cada driver activo sin fila para la jornada se muestra como
 **No votó**, nunca como una ausencia inferida.
 
-Se instala con `supabase/migracion-27-asistencia.sql`. El webhook de encuesta
-entra por `/api/asistencia/votos`, requiere `ASISTENCIA_WEBHOOK_SECRET` y
-resuelve el teléfono internamente con `asistencia_contactos`. Los teléfonos no
-se exponen en la pantalla ni se copian a los votos. La guía de importación del
-flujo sin Sheets está en `../n8n/README.md`. Para conservar el webhook ya
-activo, se reemplaza el nodo final de Sheets dentro del flujo existente; no se
-activan dos workflows con el mismo path `encuestacande`.
+Se instala con `supabase/migracion-27-asistencia.sql`. La importación llama a
+`/api/asistencia/votos`, requiere `ASISTENCIA_WEBHOOK_SECRET` y recibe el
+`IdMotoboy` desde `public.votos.id_chofer` de la base externa de solo lectura;
+si otra integración envía solo teléfono, usa `asistencia_contactos` como
+respaldo. Los teléfonos no se exponen en la pantalla ni se copian a los votos.
+El workflow no usa Google Sheets ni mantiene un webhook escuchando: importa
+PostgreSQL a las 10:00 de Argentina de lunes a sábado.
 
 ### Colectas de hoy
 

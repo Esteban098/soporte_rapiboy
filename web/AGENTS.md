@@ -252,10 +252,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   como ausencia. `asistencia_contactos` es el vínculo privado teléfono ->
   `id_motoboy`, nunca forma parte del DTO del navegador ni se duplica en los
   votos. El endpoint `/api/asistencia/votos` verifica
-  `ASISTENCIA_WEBHOOK_SECRET`; no recibe ni expone la service_role. El flujo de
-  n8n que ya escucha `encuestacande` reemplaza su escritura a Sheets por el
-  POST a la plataforma. No activar dos workflows con el mismo webhook; para
-  una transición se bifurca el mismo flujo y se retira Sheets luego de validar.
+  `ASISTENCIA_WEBHOOK_SECRET`; no recibe ni expone la service_role. El workflow
+  de n8n no escucha webhooks ni usa Sheets: consulta la base externa con un rol
+  de solo lectura y hace el POST a la plataforma según su cron.
 
 - El directorio operativo de contactos vive en `sellers_activos` para sellers y
   `drivers_activos` para drivers; se instala con las migraciones 17-19, 24 y
@@ -378,9 +377,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   de que WAHA confirma cada envío; no duplicar ese cálculo en n8n ni marcar un
   aviso antes de enviar el mensaje.
 - El flujo de asistencia escribe únicamente a través de `/api/asistencia/votos`.
-  No consulta ni mantiene Google Sheets como fuente operativa. Una importación
-  histórica controlada puede enviar `idMotoboy` y `fechaOperacion` directos;
-  la entrada diaria normal resuelve el teléfono contra `asistencia_contactos`.
+  El proxy deja pasar esa ruta sin sesión porque el Route Handler exige su
+  propio `ASISTENCIA_WEBHOOK_SECRET`; no exponer ninguna otra ruta de la familia.
+  El workflow `YhE6J0J8XZ4oBp33` no usa Google Sheets ni webhook. A las 10:00
+  ARG de lunes a sábado lee `public.votos` de la base externa con el rol
+  `lector_votos`, toma `id_chofer` como IdMotoboy y envía la respuesta más
+  reciente del día anterior a la plataforma. No modifica la base externa.
+  Integraciones sin ID resuelven el teléfono contra `asistencia_contactos`.
 - El live tracker tiene **un solo botón, Actualizar**: corre la sincronización
   de paquetes y posiciones en paralelo para que la consulta larga de paquetes
   no demore el inicio de posiciones. Cada flujo maneja su propio error y lock;

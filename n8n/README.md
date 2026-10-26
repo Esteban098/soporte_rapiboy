@@ -17,10 +17,10 @@ File**.
 | `08-tracker-drivers.json` | Repartidores de la ruta visible y su última posición conocida | 9:45 ARG; cada 30 min de 18:00 a 02:30 ARG, lunes a sábado en el calendario operativo; y desde **Actualizar** del live tracker, después de los paquetes |
 | `09-tracker-paquetes.json` | Actualiza la última ruta operativa —el sábado si es lunes— o reconcilia la ruta de hoy, y copia el detalle del viaje desde RapiboyData | 10:15 ARG; cada 30 min de 18:00 a 02:30 ARG, lunes a sábado en el calendario operativo; y desde **Actualizar** del live tracker, antes de las posiciones |
 | `10-tracker-diagnostico.json` | Inspección temporal del webhook del tracker | **Desechable e inactivo**; no importar en producción |
-| `11-historial-viaje.json` | Devuelve el estado y el historial de un viaje desde RapiboyData, para el asistente del tablero. Solo lee | Cada vez que alguien pregunta por un paquete en el asistente |
+| `11-historial-viaje.json` | Devuelve el estado y el historial de un viaje desde RapiboyData para el asistente y completa driver/seller de Seguimiento. Solo lee | Al consultar un paquete o cargar un seguimiento sin responsables |
 | `12-colectas-vivo.json` | Las colectas de hoy con su estado, su historial y la última posición de cada repartidor, y guarda cada posición nueva para dibujar el recorrido, para el mapa de **Tiendas**. Solo lee SQL Server | Cada 5 min de 10:00 a 19:55 ARG, lunes a sábado, y desde **Actualizar posiciones y estados** en Tiendas |
 | `13-directorio-activos-whatsapp.json` | Sincroniza en Supabase los sellers activos de México, los drivers con reserva válida en los últimos 14 días y sus grupos de WhatsApp | 12:00 ARG de lunes a sábado, manualmente desde n8n y desde los botones de Sellers/Drivers |
-| `14-asistencia-supabase.json` | Plantilla de reemplazo: recibe el voto de la encuesta y lo registra en la plataforma; no usa Google Sheets | Webhook de votos |
+| `14-asistencia-supabase.json` | Importa a las 10:00 los votos del PostgreSQL externo hacia la plataforma, sin Google Sheets | Lun-sáb 10:00 |
 | `15-chat-sellers.json` | Procesa mensajes persistidos del chat y recupera eventos pendientes | Webhook interno y cada minuto; se activa después de configurar credenciales y variables |
 | `16-resumen-semanal-tiendas.json` | Agrupa por seller los paquetes entregados gracias a información cargada y agradece en su grupo de WhatsApp; los sellers sin grupo generan una notificación interna | 20:00 ARG de cada lunes, para la semana anterior |
 | `17-devoluciones-mensuales.json` | Acumula por mes los paquetes que pasaron por Procesando como devolución y actualiza sus estados actuales | 10:00 ARG diario y botón Actualizar del período seleccionado |
@@ -97,36 +97,40 @@ colecta esa mañana.
    después de una respuesta exitosa de WAHA, por lo que reintentar no duplica
    mensajes ya confirmados.
 
-## Asistencia sin Google Sheets
+## Asistencia desde PostgreSQL
 
 1. Ejecutar `web/supabase/migracion-27-asistencia.sql`. Si se instaló una
    versión inicial que guardaba `SI`/`NO`, ejecutar también la migración 28.
-2. Cargar en `asistencia_contactos` la relación verificada entre cada teléfono y
-   su `id_motoboy`. Esa tabla es privada: el teléfono no viaja a la pantalla ni
-   queda duplicado en los votos.
+2. Crear en n8n la credencial PostgreSQL **Supabase - votos asistencia
+   (lector)** con el rol restringido `lector_votos` y conexión SSL al pooler.
+   No guardar la contraseña en este repositorio. El workflow consulta solamente
+   `public.votos` y toma `id_chofer` como `id_motoboy`.
 3. Configurar en **n8n** `ASISTENCIA_PLATAFORMA_URL` con
    `https://TU-DOMINIO/api/asistencia/votos` y el mismo
    `ASISTENCIA_WEBHOOK_SECRET` largo y aleatorio en n8n y en la web.
-4. La opción recomendada es editar el workflow activo **[MX-SD] - Asistencia**:
-   reemplazar su último nodo **agregar a sheets** por el HTTP Request
-   **Guardar voto en plataforma** de `14-asistencia-supabase.json`. Conserva el
-   webhook `encuestacande`, que ya recibe los votos.
-5. No activar el flujo 14 mientras el anterior siga activo: los dos usan
-   `POST /encuestacande` y n8n solo permite un workflow activo por método y
-   path. Para una transición corta se puede bifurcar desde `limpiar datos` a
-   Sheets y a la plataforma; después se elimina la rama de Sheets.
+4. Actualizar el workflow `YhE6J0J8XZ4oBp33` con
+   `14-asistencia-supabase.json`. El flujo ya no contiene webhook ni nodos de
+   Google Sheets. Su única cadena es **10:00 lun a sáb** → **Leer votos PostgreSQL** →
+   **Validar votos PostgreSQL** → **Guardar voto en plataforma**.
+5. El cron usa `America/Argentina/Buenos_Aires`, lee los votos del día anterior
+   y guarda la jornada vigente de México. Si un chofer votó más de una vez,
+   importa solamente su respuesta más reciente. La API hace upsert por jornada
+   e IdMotoboy, así que una reejecución no duplica filas.
+6. La importación no escucha permanentemente ningún webhook: solamente corre
+   con el cron o mediante una ejecución manual controlada en n8n.
 
-El endpoint valida el secreto, normaliza el teléfono y resuelve su IdMotoboy
-en Supabase. Si el teléfono no tiene vínculo, responde 422 y no inventa una
+El endpoint valida el secreto y acepta el IdMotoboy proveniente de PostgreSQL
+o, para otras integraciones, normaliza el teléfono y lo busca en
+`asistencia_contactos`. Si no hay vínculo, responde 422 y no inventa una
 asistencia. Cada nuevo voto del mismo repartidor para la misma jornada actualiza
 esa respuesta de forma atómica. Los votos permitidos son **Ruta y colecta**,
 **Ruta** y **No asiste**; los drivers activos sin fila aparecen en la plataforma
 como **No votó**.
 
-Los votos históricos ya existentes en la hoja se importan una sola vez con el
+Los votos históricos pueden importarse una sola vez desde `public.votos` con el
 mismo endpoint, enviando `idMotoboy`, `voto`, `timestamp`, `idPoll` y la
-`fechaOperacion` correcta. El endpoint acepta el ID directo para esa migración
-controlada; la operación diaria continúa resolviendo teléfono a ID en Supabase.
+`fechaOperacion` correcta. La base fuente es de solo lectura y la operación
+diaria no depende de Google Sheets.
 
 ## Antes de importar
 
@@ -636,10 +640,12 @@ n8n no necesita nodos nuevos para Contactos, Usuarios, Mensajes rápidos ni Repo
 
 ## Historial de viaje para el asistente (beta)
 
-`11-historial-viaje.json` lo usa la pestaña **Asistente** del tablero, que
-está en beta, cada vez
-que alguien pregunta por un paquete: es la primera consulta, y el tablero
-cruza el resultado con lo suyo (siniestro, cobro, seguimiento). Es un webhook
+`11-historial-viaje.json` lo usan la pestaña **Asistente** del tablero y
+**Seguimiento**. El asistente lo consulta cada vez que alguien pregunta por un
+paquete y cruza el resultado con lo suyo (siniestro, cobro, seguimiento).
+Seguimiento lo consulta únicamente cuando se crea o edita un reporte con
+driver o seller vacío, para completar esos datos directamente desde
+RapiboyData. Es un webhook
 que recibe `{ "id": "30543375" }` y devuelve, en la misma respuesta
 (`Response Mode: Last Node`), el estado actual del viaje, su tienda y zona, y
 sus últimos 60 movimientos de `HistorialViaje`.

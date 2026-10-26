@@ -5,9 +5,10 @@ import { inicioDe, puedeVerRuta } from "@/lib/permisos";
 /**
  * Protege todo el tablero: sin sesión habilitada, cualquier ruta redirige a la
  * pantalla de acceso. Quedan fuera los endpoints de autenticación, el webhook
- * público de Meta (que valida su propio token y firma), los assets de Next y
- * el ícono de la pestaña (`app/icon.png`, servido en `/icon.png`): sin eso la
- * pantalla de acceso y el rol comercial se quedarían sin él.
+ * público de Meta, los workers y el webhook de asistencia (cada uno valida su
+ * propio token, firma o Bearer), los assets de Next y el ícono de la pestaña
+ * (`app/icon.png`, servido en `/icon.png`): sin eso la pantalla de acceso y el
+ * rol comercial se quedarían sin él.
  *
  * Además aplica lo que ve cada rol: un comercial que pide una pantalla que no
  * le toca vuelve a Tiendas, y un endpoint le responde 403. El rol viaja en el
@@ -21,7 +22,8 @@ export const proxy = auth((request) => {
   if (
     ruta === "/api/whatsapp/webhook" ||
     ruta.startsWith("/api/whatsapp/worker/") ||
-    ruta.startsWith("/api/evidencias/")
+    ruta.startsWith("/api/evidencias/") ||
+    ruta === "/api/asistencia/votos"
   ) {
     return NextResponse.next();
   }

@@ -1,70 +1,70 @@
 {
-  "name": "[MX-SD] Asistencia · Supabase",
+  "name": "[MX-SD] Asistencia · PostgreSQL → Plataforma",
   "nodes": [
     {
       "parameters": {
-        "httpMethod": "POST",
-        "path": "encuestacande",
-        "responseMode": "lastNode",
-        "options": {}
+        "rule": { "interval": [{ "field": "cronExpression", "expression": "0 0 10 * * 1-6" }] }
       },
-      "id": "b7af7b92-c7e2-4ec2-a40a-1af8ad76f091",
-      "name": "pollvote",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [-520, 260],
-      "webhookId": "f2a3db9c-0dfe-4a0b-ae1f-54d2d08fcc51",
-      "notes": "Reemplaza la escritura en Google Sheets. Conservá la URL pública que recibe el proveedor de encuestas y activalo solo después de probarlo."
+      "id": "3ba448d5-7cf3-4105-ad62-962a6f504c86",
+      "name": "10:00 lun a sáb",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [-420, 300],
+      "notes": "Importa a las 10:00 de Argentina los votos emitidos el día anterior. No corre los domingos."
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            { "id": "f352a807-5b5c-4583-a422-cd9dc2bdb9bc", "name": "telefono", "value": "={{ $json.body.payload._data.Info.SenderAlt.split(/[ :@]/)[0].replace(/^521/, '52') }}", "type": "string" },
-            { "id": "f84919f3-d6dc-48ea-8391-85fca659f074", "name": "voto", "value": "={{ $json.body.payload.vote.selectedOptions[0] }}", "type": "string" },
-            { "id": "32e63282-763f-45db-bbbb-545178b9191a", "name": "timestamp", "value": "={{ $json.body.timestamp }}", "type": "string" },
-            { "id": "fd8c785a-14fb-4bff-b941-d59a9762b60d", "name": "idPoll", "value": "={{ $json.body.payload.poll.id }}", "type": "string" }
-          ]
-        },
+        "operation": "executeQuery",
+        "query": "-- La fuente es exclusivamente de lectura. Toma la última respuesta de cada\n-- chofer durante el día calendario anterior en Argentina y la asigna a la\n-- jornada actual de México. La API de la plataforma vuelve a aplicar el upsert\n-- por jornada e IdMotoboy, por lo que una reejecución no duplica votos.\nwith limites as (\n  select (now() at time zone 'America/Argentina/Buenos_Aires')::date - 1 as fecha_voto,\n         (now() at time zone 'America/Mexico_City')::date as fecha_operacion\n),\nordenados as (\n  select v.id,\n         btrim(v.id_chofer) as id_motoboy,\n         v.voto,\n         v.vote_timestamp,\n         v.id_poll,\n         l.fecha_operacion,\n         row_number() over (\n           partition by btrim(v.id_chofer)\n           order by v.vote_timestamp desc, v.id desc\n         ) as posicion\n    from public.votos v\n   cross join limites l\n   where (v.vote_timestamp at time zone 'America/Argentina/Buenos_Aires')::date = l.fecha_voto\n     and btrim(coalesce(v.id_chofer, '')) ~ '^[0-9]+$'\n)\nselect id::text as fuente_id,\n       id_motoboy,\n       voto,\n       vote_timestamp::text as vote_timestamp,\n       id_poll,\n       fecha_operacion::text as fecha_operacion\n  from ordenados\n where posicion = 1\n order by id_motoboy::numeric;",
         "options": {}
       },
-      "id": "7f1bb988-08e4-4070-b018-b42b34bbd9cf",
-      "name": "Normalizar voto",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [-280, 260]
+      "id": "b647747a-f432-49bc-8b55-b9df5af7ea7e",
+      "name": "Leer votos PostgreSQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-140, 300],
+      "credentials": { "postgres": { "id": "a9xA9T1YUmBrlRdG", "name": "Supabase - votos asistencia (lector)" } },
+      "notes": "Consulta parametrizada por fecha sobre public.votos usando el rol lector_votos. No escribe ni modifica la base fuente."
+    },
+    {
+      "parameters": {
+        "jsCode": "const normalizar = (valor) => String(valor ?? '')\n  .normalize('NFD')\n  .replace(/[\\u0300-\\u036f]/g, '')\n  .trim()\n  .toUpperCase();\nconst votos = new Map([\n  ['RUTA Y COLECTA', 'Ruta y colecta'],\n  ['RUTA Y COLECTAS', 'Ruta y colecta'],\n  ['RUTA_COLECTA', 'Ruta y colecta'],\n  ['RUTA', 'Ruta'],\n  ['NO ASISTE', 'No asiste'],\n  ['NO ASISTIRE', 'No asiste'],\n  ['NO ASISTO', 'No asiste'],\n]);\nreturn $input.all().flatMap(({ json }) => {\n  const idMotoboy = Number(json.id_motoboy);\n  const voto = votos.get(normalizar(json.voto));\n  const fechaOperacion = String(json.fecha_operacion ?? '');\n  if (!Number.isSafeInteger(idMotoboy) || idMotoboy <= 0 || !voto || !/^\\d{4}-\\d{2}-\\d{2}$/.test(fechaOperacion)) return [];\n  return [{ json: {\n    idMotoboy,\n    voto,\n    timestamp: json.vote_timestamp,\n    idPoll: json.id_poll || null,\n    fechaOperacion,\n    fuenteId: json.fuente_id,\n  } }];\n});"
+      },
+      "id": "e82030e8-1abc-4c68-ae70-6451ca95e3c4",
+      "name": "Validar votos PostgreSQL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [140, 300],
+      "notes": "Solo deja pasar IDs numéricos, fechas ISO y las tres respuestas admitidas por la plataforma."
     },
     {
       "parameters": {
         "method": "POST",
         "url": "={{ $env.ASISTENCIA_PLATAFORMA_URL }}",
         "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Authorization", "value": "={{ 'Bearer ' + $env.ASISTENCIA_WEBHOOK_SECRET }}" }
-          ]
-        },
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "={{ 'Bearer ' + $env.ASISTENCIA_WEBHOOK_SECRET }}" }] },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { telefono: $json.telefono, voto: $json.voto, timestamp: $json.timestamp, idPoll: $json.idPoll } }}",
-        "options": { "timeout": 15000 }
+        "jsonBody": "={{ { idMotoboy: $json.idMotoboy, voto: $json.voto, timestamp: $json.timestamp, idPoll: $json.idPoll, fechaOperacion: $json.fechaOperacion } }}",
+        "options": { "timeout": 20000 }
       },
-      "id": "efea9a0c-2cb7-4a2e-96bd-56071d6d0614",
+      "id": "54c71bb7-c8a7-4986-933e-ed4da909f3cc",
       "name": "Guardar voto en plataforma",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-20, 260],
-      "notes": "La plataforma resuelve teléfono -> IdMotoboy dentro de Supabase y hace el upsert de la jornada. No lleva credenciales de Supabase ni escribe Sheets."
+      "position": [420, 300],
+      "onError": "continueRegularOutput",
+      "notes": "Escritura idempotente en asistencia_votos por jornada e IdMotoboy."
     }
   ],
   "pinData": {},
   "connections": {
-    "pollvote": { "main": [[{ "node": "Normalizar voto", "type": "main", "index": 0 }]] },
-    "Normalizar voto": { "main": [[{ "node": "Guardar voto en plataforma", "type": "main", "index": 0 }]] }
+    "10:00 lun a sáb": { "main": [[{ "node": "Leer votos PostgreSQL", "type": "main", "index": 0 }]] },
+    "Leer votos PostgreSQL": { "main": [[{ "node": "Validar votos PostgreSQL", "type": "main", "index": 0 }]] },
+    "Validar votos PostgreSQL": { "main": [[{ "node": "Guardar voto en plataforma", "type": "main", "index": 0 }]] }
   },
   "active": false,
-  "settings": { "executionOrder": "v1", "timezone": "America/Argentina/Buenos_Aires" },
-  "versionId": "a0d607ce-b5af-4a0c-b7f6-a772e68089dd",
+  "settings": { "executionOrder": "v1", "timezone": "America/Argentina/Buenos_Aires", "callerPolicy": "workflowsFromSameOwner" },
   "meta": { "templateCredsSetupCompleted": true },
   "tags": []
 }
