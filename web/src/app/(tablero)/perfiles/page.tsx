@@ -4,6 +4,7 @@ import { PageHead } from "@/components/Shell";
 import { PanelPerfiles, type FilaPerfil } from "@/components/PanelPerfiles";
 import { UsoAsistente } from "@/components/UsoAsistente";
 import { usoPorPersona } from "@/lib/asistente-costos";
+import { estadoTokenExtension } from "@/lib/asistente-extension";
 import { leerUsoDelMes } from "@/lib/asistente-uso";
 import { esMesValido, mesAnterior, mesEnCurso } from "@/lib/periodos";
 import { fechaHoraArgentina } from "@/lib/formato";
@@ -31,6 +32,7 @@ export default async function Perfiles({
   const pedido = (await searchParams).uso;
   const mesUso = esMesValido(pedido) && pedido <= actual ? pedido : actual;
   const uso = admin ? await leerUsoDelMes(mesUso) : null;
+  const extension = await estadoTokenExtension(operador.email);
 
   // Quien no administra ve solo su propia fila, y no porque la pantalla la
   // esconda: la lista de los demás nunca sale del servidor. Esconder en el
@@ -64,7 +66,16 @@ export default async function Perfiles({
       {/* `puedeAdministrar` decide qué se muestra, pero cada acción vuelve a
           comprobar el rol en el servidor: el menú es una comodidad, no un
           permiso. */}
-      <PanelPerfiles perfiles={filas} yo={operador.email} puedeAdministrar={admin} />
+      <PanelPerfiles
+        perfiles={filas}
+        yo={operador.email}
+        puedeAdministrar={admin}
+        extension={{
+          disponible: extension.disponible,
+          vinculado: extension.vinculado,
+          venceEn: cuando(extension.venceEn),
+        }}
+      />
       {uso ? (
         <UsoAsistente
           mes={mesUso}

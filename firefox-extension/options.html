@@ -10,7 +10,7 @@
     <main>
       <img src="icons/rapiboy-96.png" alt="" />
       <div>
-        <h1>Datos de tienda</h1>
+        <h1>Herramientas Rapiboy</h1>
         <p>Estos valores quedan guardados solamente en este perfil de Firefox.</p>
       </div>
 
@@ -29,6 +29,35 @@
           Token de n8n
           <input id="token" name="token" type="password" required autocomplete="off" />
         </label>
+
+        <section class="bloque">
+          <h2>Asistente</h2>
+          <p>
+            Generá tu vinculación en Plataforma → Mi perfil. El panel aparecerá solo en
+            WhatsApp Web y páginas de Rapiboy.
+          </p>
+
+          <label>
+            URL del Asistente
+            <input
+              id="assistantApiUrl"
+              name="assistantApiUrl"
+              type="url"
+              placeholder="https://soporte.rapiboy.com/api/asistente/extension"
+            />
+          </label>
+
+          <label>
+            Token personal
+            <input
+              id="assistantToken"
+              name="assistantToken"
+              type="password"
+              autocomplete="off"
+              placeholder="rbx_…"
+            />
+          </label>
+        </section>
 
         <div class="acciones">
           <button type="submit">Guardar</button>

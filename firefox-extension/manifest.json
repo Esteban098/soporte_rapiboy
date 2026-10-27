@@ -1,14 +1,24 @@
 {
   "manifest_version": 2,
-  "name": "Rapiboy · Datos de tienda",
-  "version": "2.1.0",
-  "description": "Carga en el tablero de soporte la información de tienda seleccionada en Firefox.",
+  "name": "Rapiboy · Herramientas",
+  "version": "3.0.0",
+  "description": "Asistente operativo y carga de datos de tienda para Rapiboy.",
   "permissions": [
     "contextMenus",
     "notifications",
     "storage",
-    "https://linux.rapitools.com.ar/*"
+    "https://linux.rapitools.com.ar/*",
+    "https://web.whatsapp.com/*",
+    "https://rapiboy.com/*",
+    "https://*.rapiboy.com/*"
   ],
+  "content_scripts": [{
+    "matches": ["https://web.whatsapp.com/*", "https://rapiboy.com/*", "https://*.rapiboy.com/*"],
+    "js": ["assistant-panel.js"],
+    "run_at": "document_idle",
+    "all_frames": false
+  }],
+  "web_accessible_resources": ["assistant-panel.css"],
   "icons": {
     "16": "icons/rapiboy-16.png",
     "32": "icons/rapiboy-32.png",

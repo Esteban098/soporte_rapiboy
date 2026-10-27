@@ -6,7 +6,7 @@ import { inicioDe, puedeVerRuta } from "@/lib/permisos";
  * Protege todo el tablero: sin sesión habilitada, cualquier ruta redirige a la
  * pantalla de acceso. Quedan fuera los endpoints de autenticación, el webhook
  * público de Meta, los workers y el webhook de asistencia (cada uno valida su
- * propio token, firma o Bearer), los assets de Next y el ícono de la pestaña
+ * propio token, firma o Bearer), el Asistente de Firefox, los assets de Next y el ícono de la pestaña
  * (`app/icon.png`, servido en `/icon.png`): sin eso la pantalla de acceso y el
  * rol comercial se quedarían sin él.
  *
@@ -23,7 +23,8 @@ export const proxy = auth((request) => {
     ruta === "/api/whatsapp/webhook" ||
     ruta.startsWith("/api/whatsapp/worker/") ||
     ruta.startsWith("/api/evidencias/") ||
-    ruta === "/api/asistencia/votos"
+    ruta === "/api/asistencia/votos" ||
+    ruta === "/api/asistente/extension"
   ) {
     return NextResponse.next();
   }

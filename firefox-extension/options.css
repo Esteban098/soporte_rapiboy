@@ -55,3 +55,24 @@ button {
   cursor: pointer;
 }
 #estado { color: #86efac; }
+
+.bloque {
+  display: grid;
+  gap: 14px;
+  margin-top: 6px;
+  padding-top: 20px;
+  border-top: 1px solid #374151;
+}
+
+.bloque h2 {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.bloque p {
+  line-height: 1.5;
+}
+
+#estado[data-error="true"] {
+  color: #fca5a5;
+}

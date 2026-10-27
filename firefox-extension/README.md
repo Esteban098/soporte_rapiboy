@@ -1,8 +1,32 @@
-# Extensión Firefox · Datos de tienda
+# Extensión Firefox · Herramientas Rapiboy
 
 Envía el texto seleccionado en WhatsApp Web al flujo `07-firefox-gestiones`
 de n8n. El flujo interpreta el ID y los datos aportados por la tienda y actualiza
 las columnas de soporte de `public.mensual` en Supabase.
+
+También agrega el **Asistente operativo** como una pestaña fija en el borde
+inferior. Se inyecta exclusivamente en WhatsApp Web, rapiboy.com y sus
+subdominios HTTPS. No se ejecuta ni aparece en otros sitios. La conversación
+vive en la memoria del proceso de fondo y desaparece al cerrar Firefox; no se
+escribe en el almacenamiento local.
+
+## Vincular el Asistente
+
+1. En la plataforma, abrir **Mi perfil → Asistente en Firefox**.
+2. Pulsar **Generar vinculación** y copiar el token: se muestra una sola vez.
+3. En about:addons → **Rapiboy · Herramientas** → Preferencias, cargar la URL
+   HTTPS del endpoint /api/asistente/extension y el token personal rbx_.
+4. Guardar y recargar WhatsApp Web o la página Rapiboy.
+
+La URL debe pertenecer a rapiboy.com o un subdominio y terminar exactamente en
+/api/asistente/extension. La extensión rechaza cualquier otro destino antes de
+enviar el token o el historial.
+
+Cada persona usa su propio token, válido por 180 días y revocable desde Mi
+perfil. Supabase guarda únicamente SHA-256 del token, vinculado por FK a
+perfiles.id; desactivar el perfil también corta el acceso. La tabla se crea con
+web/supabase/migracion-52-asistente-extension.sql y tiene RLS sin políticas
+públicas.
 
 ## Instalación permanente (lo que usan los operadores)
 
@@ -41,7 +65,7 @@ resultado queda en `artefactos/`, con un nombre generado por AMO
 (`<hash>-<version>.xpi`). Conviene renombrarlo antes de repartirlo:
 
 ```bash
-mv artefactos/*-2.1.0.xpi artefactos/rapiboy-datos-tienda-2.1.0.xpi
+mv artefactos/*-3.0.0.xpi artefactos/asistente-rapiboy-3.0.0.xpi
 ```
 
 Renombrar no invalida la firma: va dentro del paquete, no en el nombre.
@@ -53,7 +77,7 @@ rechazar; con 0 errores la firma pasa sin intervención humana.
 
 1. Abrir Firefox y arrastrar el `.xpi` a una ventana (o `Ctrl+O` y elegirlo).
 2. Aceptar los permisos que pide el diálogo.
-3. Abrir las opciones de la extensión (`about:addons` → Datos de tienda →
+3. Abrir las opciones de la extensión (`about:addons` → Rapiboy · Herramientas →
    Preferencias) y cargar el nombre del operador y el token configurado en la
    credencial Header Auth del webhook de n8n.
 

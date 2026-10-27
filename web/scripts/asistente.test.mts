@@ -303,7 +303,7 @@ test("el uso se agrupa por persona, de quien más gastó a quien menos", () => {
 });
 
 test("el tope diario se revisa antes de gastar y el uso se registra siempre", () => {
-  const ruta = fuente("../src/app/api/asistente/route.ts");
+  const ruta = fuente("../src/lib/asistente-endpoint.ts");
   assert.ok(ruta.indexOf("llegoAlTope") < ruta.indexOf("responder(historial"), "el tope va antes de llamar al modelo");
   assert.match(ruta, /registrarUso\(/);
 
@@ -461,4 +461,36 @@ test("el asistente rechaza consultas ajenas a la operación", () => {
   assert.equal(preguntaOperativa("¿Cómo aprender japonés?"), false);
   assert.equal(preguntaOperativa("¿Qué pasó con el viaje 30878377?"), true);
   assert.equal(preguntaOperativa("¿Cuántos paquetes demorados hay hoy?"), true);
+});
+
+
+test("la extensión usa un Bearer personal revocable, no una clave compartida", () => {
+  const token = fuente("../src/lib/asistente-extension.ts");
+  const ruta = fuente("../src/app/api/asistente/extension/route.ts");
+  const proxy = fuente("../src/proxy.ts");
+  const migracion = fuente("../supabase/migracion-52-asistente-extension.sql");
+
+  assert.match(token, /randomBytes\(32\)/);
+  assert.match(token, /createHash\("sha256"\)/);
+  assert.match(token, /revocado_en: "is\.null"/);
+  assert.match(token, /vence_en: "gt\."/);
+  assert.match(token, /perfil\.rol === "comercial"/);
+  assert.equal(token.includes("OPENAI_API_KEY"), false);
+
+  assert.match(ruta, /operadorDesdeTokenExtension\(pedido\)/);
+  assert.match(ruta, /responderPedidoAsistente\(pedido, operador\)/);
+  assert.match(proxy, /ruta === "\/api\/asistente\/extension"/);
+
+  assert.match(migracion, /references public\.perfiles\(id\)/);
+  assert.match(migracion, /token_hash\s+text not null unique/);
+  assert.match(migracion, /enable row level security/);
+  assert.equal(migracion.includes("create policy"), false);
+});
+
+test("el endpoint de la extensión conserva límites, alcance y registro de uso", () => {
+  const comun = fuente("../src/lib/asistente-endpoint.ts");
+  assert.match(comun, /validarHistorial/);
+  assert.match(comun, /preguntaOperativa/);
+  assert.match(comun, /llegoAlTope/);
+  assert.match(comun, /registrarUso/);
 });

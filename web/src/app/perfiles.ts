@@ -1,6 +1,7 @@
 "use server";
 
 import { operadorActual } from "@/lib/sesion";
+import { generarTokenExtension, revocarTokenExtension } from "@/lib/asistente-extension";
 import { ROLES_PERFIL } from "@/lib/permisos";
 import {
   MINIMO_PASSWORD,
@@ -26,6 +27,10 @@ import {
  */
 
 export type Resultado = { ok: true } | { ok: false; error: string };
+
+export type ResultadoTokenExtension =
+  | { ok: true; token: string; venceEn: string }
+  | { ok: false; error: string };
 
 const ROLES: readonly RolPerfil[] = ROLES_PERFIL;
 
@@ -241,4 +246,22 @@ export async function cambiarMiPassword(actual: string, nueva: string): Promise<
   const falla = await guardarPassword(encontrado.perfil.id, nueva);
   if (falla) return { ok: false, error: falla };
   return { ok: true };
+}
+
+/** Crea o rota la vinculación personal; el secreto se entrega una sola vez. */
+export async function crearTokenAsistenteExtension(): Promise<ResultadoTokenExtension> {
+  const operador = await operadorActual();
+  if (!operador) return { ok: false, error: "No hay una sesión autorizada." };
+
+  const resultado = await generarTokenExtension(operador.email);
+  if ("error" in resultado) return { ok: false, error: resultado.error };
+  return { ok: true, token: resultado.token, venceEn: resultado.venceEn.toISOString() };
+}
+
+export async function revocarTokenAsistente(): Promise<Resultado> {
+  const operador = await operadorActual();
+  if (!operador) return { ok: false, error: "No hay una sesión autorizada." };
+
+  const error = await revocarTokenExtension(operador.email);
+  return error ? { ok: false, error } : { ok: true };
 }

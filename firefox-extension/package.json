@@ -1,9 +1,10 @@
 {
-  "name": "rapiboy-datos-tienda",
-  "version": "2.1.0",
+  "name": "rapiboy-herramientas",
+  "version": "3.0.0",
   "private": true,
-  "description": "Extensión de Firefox para cargar datos de tienda en el tablero de soporte.",
+  "description": "Extensión de Firefox con Asistente operativo y carga de datos de tienda.",
   "scripts": {
+    "test": "node --test test.cjs",
     "build": "web-ext build --overwrite-dest",
     "sign": "web-ext sign --config=firma.cjs",
     "lint": "web-ext lint"

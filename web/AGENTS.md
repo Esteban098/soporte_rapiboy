@@ -556,6 +556,20 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   razonamiento no aceptan `temperature` ni `max_tokens`. Cada respuesta deja
   en el log quién preguntó y los tokens usados.
 
+- La extensión Firefox usa POST /api/asistente/extension. Es la única excepción
+  exacta del proxy para este chat y se autentica con un Bearer personal; no
+  agregar secretos globales ni ampliar la excepción a /api/asistente.
+- Los tokens viven en asistente_extension_tokens, como SHA-256 y FK a perfiles.
+  Vencen en 180 días, se rotan/revocan desde Mi perfil y cada pedido vuelve a
+  validar que el perfil esté activo y no sea comercial.
+- El content script se inyecta únicamente en web.whatsapp.com, rapiboy.com y
+  sus subdominios. El background debe validar además sender.tab.url y que la URL
+  de API sea HTTPS Rapiboy con pathname /api/asistente/extension antes de hacer
+  fetch. El historial queda en RAM; nunca guardarlo en browser.storage.local.
+- La interfaz vive en Shadow DOM y construye contenido con textContent y nodos.
+  No usar innerHTML con respuestas del modelo. Los enlaces aceptados son solo
+  HTTPS de Rapiboy.
+
 ## Validación
 
 Desde `web/` ejecutar como mínimo:

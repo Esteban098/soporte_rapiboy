@@ -1261,6 +1261,25 @@ su política de API, no lo usa para entrenar pero puede conservarlo hasta 30
 días para control de abuso. Los comentarios de Seguimiento son texto libre: si
 alguien escribe un teléfono ahí, ese teléfono viaja.
 
+### Extensión de Firefox
+
+La misma lógica está disponible en la extensión Rapiboy · Herramientas como
+pestaña inferior, únicamente en WhatsApp Web y dominios Rapiboy. La extensión
+llama a POST /api/asistente/extension; esa ruta no usa la cookie del navegador,
+sino un Bearer personal generado en **Mi perfil → Asistente en Firefox**.
+
+El token vence a los 180 días, puede rotarse o revocarse y queda vinculado a
+perfiles.id. En asistente_extension_tokens se guarda solo SHA-256: el secreto
+en claro se muestra una vez y queda en el perfil local de Firefox. Cada pedido
+vuelve a comprobar que el perfil siga activo y no sea comercial. La ruta
+reutiliza los mismos límites, filtro operativo, herramientas y registro de uso
+del chat interno.
+
+Instalar web/supabase/migracion-52-asistente-extension.sql antes de generar la
+primera vinculación. La extensión conserva hasta 12 mensajes solamente en RAM;
+cerrar Firefox los elimina. La URL configurada debe ser HTTPS, de rapiboy.com o
+un subdominio, y terminar en /api/asistente/extension.
+
 ## Gráficos atados a la tabla
 
 Las secciones con listado de casos abren con un gráfico configurable: se elige

@@ -230,6 +230,10 @@ export const TABLA_AVISOS_PENDIENTES_MANANA =
 export const TABLA_ASISTENTE_USO =
   process.env.SUPABASE_TABLA_ASISTENTE_USO?.trim() || "asistente_uso";
 
+/** Tokens personales (solo hash) que vinculan la extensión de Firefox. */
+export const TABLA_ASISTENTE_EXTENSION_TOKENS =
+  process.env.SUPABASE_TABLA_ASISTENTE_EXTENSION_TOKENS?.trim() || "asistente_extension_tokens";
+
 /**
  * Preguntas por persona y por día de México. Un uso normal son decenas; el
  * tope está para que un bucle, un abuso o una sesión robada no se convierta

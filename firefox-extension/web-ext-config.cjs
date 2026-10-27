@@ -7,6 +7,7 @@ module.exports = {
     "web-ext-config.cjs",
     "firma.cjs",
     "firma.ejemplo.cjs",
+    "test.cjs",
     "artefactos",
     "README.md",
   ],

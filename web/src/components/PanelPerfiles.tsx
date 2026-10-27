@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import {
   cambiarActivo,
   cambiarMiPassword,
+  crearTokenAsistenteExtension,
+  revocarTokenAsistente,
   crearPerfil,
   editarMiNombre,
   resetearPassword,
@@ -39,11 +41,13 @@ export function PanelPerfiles({
   perfiles,
   yo,
   puedeAdministrar,
+  extension,
 }: {
   perfiles: FilaPerfil[];
   /** Correo de quien está mirando, para no dejarlo desactivarse solo. */
   yo: string;
   puedeAdministrar: boolean;
+  extension: { disponible: boolean; vinculado: boolean; venceEn: string };
 }) {
   const [email, setEmail] = useState("");
   const [nombre, setNombre] = useState("");
@@ -57,6 +61,8 @@ export function PanelPerfiles({
 
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
+  const [tokenExtension, setTokenExtension] = useState("");
+  const [copiado, setCopiado] = useState(false);
   const [trabajando, iniciar] = useTransition();
   const router = useRouter();
 
@@ -91,6 +97,35 @@ export function PanelPerfiles({
       () => resetearPassword(perfil.id, nuevaClave),
       `Contraseña cambiada. Pasásela a ${perfil.email} y pedile que la cambie.`,
     );
+  }
+
+  function vincularExtension() {
+    iniciar(async () => {
+      setError(null);
+      setAviso(null);
+      setCopiado(false);
+      const resultado = await crearTokenAsistenteExtension();
+      if (!resultado.ok) {
+        setError(resultado.error);
+        return;
+      }
+      setTokenExtension(resultado.token);
+      setAviso("Vinculación creada. Copiá el token ahora: no volverá a mostrarse.");
+      router.refresh();
+    });
+  }
+
+  function desvincularExtension() {
+    correr(async () => {
+      const resultado = await revocarTokenAsistente();
+      if (resultado.ok) setTokenExtension("");
+      return resultado;
+    }, "Firefox quedó desvinculado.");
+  }
+
+  async function copiarToken() {
+    await navigator.clipboard.writeText(tokenExtension);
+    setCopiado(true);
   }
 
   return (
@@ -249,6 +284,64 @@ export function PanelPerfiles({
         </div>
       </section>
       ) : null}
+
+      <section className={estilos.card}>
+        <div className={estilos.cardHead}>
+          <h2 className={estilos.cardTitle}>Asistente en Firefox</h2>
+          {extension.disponible ? (
+            <span className={extension.vinculado || tokenExtension ? propio.activo : propio.inactivo}>
+              {extension.vinculado || tokenExtension ? "Vinculado" : "Sin vincular"}
+            </span>
+          ) : null}
+        </div>
+        <p className={estilos.cardNote}>
+          Muestra el Asistente como una pestaña inferior únicamente en WhatsApp Web y en páginas
+          de Rapiboy. La conversación queda en memoria de Firefox y se borra al cerrarlo.
+        </p>
+
+        {!extension.disponible ? (
+          <p className={propio.error}>
+            Falta ejecutar web/supabase/migracion-52-asistente-extension.sql.
+          </p>
+        ) : (
+          <div className={propio.vinculacion}>
+            {extension.vinculado && extension.venceEn ? (
+              <p className={propio.detalleToken}>La vinculación vence el {extension.venceEn}.</p>
+            ) : null}
+
+            {tokenExtension ? (
+              <div className={propio.tokenBox}>
+                <strong>Copialo ahora. Por seguridad no volverá a mostrarse.</strong>
+                <code className={propio.token}>{tokenExtension}</code>
+                <button type="button" className={propio.secundario} onClick={copiarToken}>
+                  {copiado ? "Copiado" : "Copiar token"}
+                </button>
+              </div>
+            ) : null}
+
+            <div className={propio.accionesToken}>
+              <button
+                type="button"
+                className={propio.principal}
+                onClick={vincularExtension}
+                disabled={trabajando}
+              >
+                {extension.vinculado ? "Rotar vinculación" : "Generar vinculación"}
+              </button>
+              {extension.vinculado || tokenExtension ? (
+                <button
+                  type="button"
+                  className={propio.secundario}
+                  onClick={desvincularExtension}
+                  disabled={trabajando}
+                >
+                  Desvincular
+                </button>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </section>
 
       <section className={estilos.card}>
         <div className={estilos.cardHead}>
