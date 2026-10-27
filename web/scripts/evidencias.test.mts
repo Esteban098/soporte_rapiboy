@@ -111,6 +111,5 @@ assert.ok(migracionReapertura.includes("evidencias_entrega_decisiones") && migra
 assert.ok(migracionReapertura.includes("estado_proceso = 'PENDIENTE_REVISION'") && migracionReapertura.includes("'REAPERTURA'"));
 assert.ok(!/foto_ruta|foto_mime|foto_bytes|url/i.test(migracionReapertura.slice(migracionReapertura.indexOf("create table"), migracionReapertura.indexOf("create index"))), "la auditoría de decisiones no guarda fotos ni URLs");
 assert.ok(modelo.includes("revisadasRecientes") && panel.includes("Volver a pendientes"));
-assert.ok(panel.includes("¿Guardar como") && panel.includes("Sí, guardar"), "una decisión debe exigir confirmación");
 
 console.log("✓ ventana México, retención, atribución histórica y límites del modelo");

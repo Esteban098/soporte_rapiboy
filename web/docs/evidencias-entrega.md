@@ -92,7 +92,7 @@ limitar bajando `maximo_por_corrida` o eligiendo otro
 no demuestra fraude ni una entrega incorrecta. Soporte confirma, descarta o marca inconclusa.
 No se avisa al comprador, seller o driver, ni se aplican sanciones automáticas.
 
-Antes de guardar una decisión la interfaz exige una segunda confirmación. Las
+Cada decisión se guarda al pulsar su botón, sin una segunda confirmación. Las
 últimas 50 revisadas permanecen visibles mientras su copia operativa exista y
 pueden volver a pendientes durante esos siete días. Cada revisión y reapertura
 queda registrada en `evidencias_entrega_decisiones`, sin fotografía ni URL; así

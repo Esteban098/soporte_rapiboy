@@ -105,7 +105,6 @@ function puedeMostrarMapa(item: EvidenciaPanel) { return problemaGeo(item) && Bo
 
 function Caso({ item, revisado = false, onMapa }: { item: EvidenciaPanel; revisado?: boolean; onMapa: (item: EvidenciaPanel) => void }) {
   const [comentario, setComentario] = useState(""); const [mensaje, setMensaje] = useState("");
-  const [porConfirmar, setPorConfirmar] = useState<DecisionEvidencia | null>(null);
   const [pendiente, iniciar] = useTransition(); const router = useRouter();
   function decidir(decision: DecisionEvidencia) {
     iniciar(async () => { const r = await revisarEvidencia(item.id, decision, comentario); setMensaje(r.ok ? "Revisión guardada." : r.error); if (r.ok) router.refresh(); });
@@ -124,8 +123,7 @@ function Caso({ item, revisado = false, onMapa }: { item: EvidenciaPanel; revisa
         <p className={estilos.detalle}>{item.motivo}</p>
         {revisado ? <><p className={estilos.decision}><b>{item.decision ? etiquetaDecision(item.decision) : "Revisada"}</b>{item.comentarioRevision ? " · " + item.comentarioRevision : ""}</p><p className={estilos.detalle}>{item.revisadaEn ? fecha(item.revisadaEn) : ""}{item.revisadaPor ? " · " + item.revisadaPor : ""}</p><div className={estilos.acciones}><button disabled={pendiente} onClick={() => iniciar(async () => { const r = await reabrirEvidencia(item.id); setMensaje(r.ok ? "Devuelta a pendientes." : r.error); if (r.ok) router.refresh(); })}>Volver a pendientes</button></div></> : <>
           <details className={estilos.ayuda}><summary>Agregar comentario</summary><textarea aria-label={"Comentario del viaje " + item.idViaje} value={comentario} onChange={(e) => setComentario(e.target.value)} maxLength={1000} placeholder="Comentario opcional" /></details>
-          <div className={estilos.acciones}><button disabled={pendiente} onClick={() => setPorConfirmar("CONFIRMADA")}>Confirmar problema</button><button disabled={pendiente} onClick={() => setPorConfirmar("DESCARTADA")}>Descartar</button><button disabled={pendiente} onClick={() => setPorConfirmar("INCONCLUSA")}>Inconclusa</button></div>
-          {porConfirmar ? <div className={estilos.confirmacion} role="alert"><span>¿Guardar como <strong>{etiquetaDecision(porConfirmar)}</strong>?</span><button disabled={pendiente} onClick={() => decidir(porConfirmar)}>Sí, guardar</button><button disabled={pendiente} onClick={() => setPorConfirmar(null)}>Cancelar</button></div> : null}
+          <div className={estilos.acciones}><button disabled={pendiente} onClick={() => decidir("CONFIRMADA")}>Confirmar problema</button><button disabled={pendiente} onClick={() => decidir("DESCARTADA")}>Descartar</button><button disabled={pendiente} onClick={() => decidir("INCONCLUSA")}>Inconclusa</button></div>
         </>}
         {mensaje ? <p className={estilos.mensaje} role="status">{mensaje}</p> : null}
       </div>

@@ -53,9 +53,6 @@
 .ayuda summary, .anterior summary { cursor: pointer; font-weight: 650; }
 .cuerpo textarea { margin-top: 8px; width: 100%; min-height: 65px; resize: vertical; border: 1px solid var(--outline); border-radius: 10px; padding: 9px; background: var(--surface-2); color: var(--ink); font: inherit; font-size: 12px; }
 .mensaje { margin-top: 8px; font-size: 12px; color: var(--ink); }
-.confirmacion { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; padding: 10px; border-radius: 10px; background: var(--warning-soft); color: var(--warning); font-size: 12px; }
-.confirmacion button { border: 0; border-radius: 999px; padding: 7px 10px; cursor: pointer; background: var(--surface-2); color: var(--ink); }
-.confirmacion button:first-of-type { background: var(--primary); color: var(--on-primary); }
 .vacio { display: grid; justify-items: center; gap: 10px; padding: 40px 15px; color: var(--muted); font-size: 13px; }
 .vacio > span { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--surface-2); color: var(--good); font-size: 20px; }
 .vacio p { margin: 0; text-align: center; }
