@@ -145,7 +145,7 @@ evaluable» por compatibilidad), los pares ausentes/inválidos o `(0,0)` quedan
 `SIN_COORDENADAS`, y las entradas del flujo anterior sin el objeto geográfico
 quedan `NO_EVALUADA`. No se infiere una entrega fallida por falta de GPS.
 
-El radio inicial es **300 metros**, ajustable por admin entre 50 y 5.000 en
+El radio operativo es **2.000 metros**, ajustable por admin entre 50 y 5.000 en
 Configuración. Una distancia igual al límite está dentro. El radio aplicado y
 el resultado quedan guardados; cambiarlo no recalcula evaluaciones antiguas.
 `FUERA_DEL_RANGO` genera revisión humana incluso con una foto visualmente

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { actualizarConfiguracionEvidencias, reabrirEvidencia, revisarEvidencia } from "@/app/evidencias";
@@ -9,6 +9,7 @@ import { ETIQUETA_HORA_PLATAFORMA, ZONA_PLATAFORMA } from "@/lib/zona-horaria";
 import { ETIQUETAS_GEOGRAFIA } from "@/lib/evidencias-geografia";
 import { enlaceViaje } from "@/lib/enlaces";
 import { TablaOrdenable } from "./TablaOrdenable";
+import { MapaEvidencia } from "./MapaEvidencia";
 import estilos from "./evidencias.module.css";
 
 type ConfigEvidencias = { modo: "OBSERVACION" | "ACTIVO"; minimo_muestra_score: number; maximo_por_corrida: number; radio_geografico_m?: number };
@@ -27,6 +28,7 @@ export function PanelEvidencias({ pendientesHoy, pendientesAnteriores, revisadas
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [anteriores, setAnteriores] = useState(false);
   const [limite, setLimite] = useState(10);
+  const [detalleMapa, setDetalleMapa] = useState<EvidenciaPanel | null>(null);
   const coincide = (item: EvidenciaPanel) => {
     const texto = busqueda.trim().toLocaleLowerCase("es");
     if (texto && ![item.idViaje, item.driver, item.domicilio, item.estadoEvento, item.motivo].some((v) => String(v ?? "").toLocaleLowerCase("es").includes(texto))) return false;
@@ -45,7 +47,7 @@ export function PanelEvidencias({ pendientesHoy, pendientesAnteriores, revisadas
   ];
   return <div className={estilos.stack}>
     <section className={estilos.card}>
-      <div className={estilos.head}><div><h2>Centro de revisión</h2><p>Foto y ubicación, juntas para decidir. Una alerta no demuestra una entrega incorrecta.</p></div><span className={config.modo === "OBSERVACION" ? estilos.observacion : estilos.activo}>{config.modo === "OBSERVACION" ? "Observación" : "Activo"} · rango {config.radio_geografico_m ?? 300} m</span></div>
+      <div className={estilos.head}><div><h2>Centro de revisión</h2><p>Foto y ubicación, juntas para decidir. Una alerta no demuestra una entrega incorrecta.</p></div><span className={config.modo === "OBSERVACION" ? estilos.observacion : estilos.activo}>{config.modo === "OBSERVACION" ? "Observación" : "Activo"} · rango {config.radio_geografico_m ?? 2000} m</span></div>
       <div className={estilos.pestanas} role="tablist" aria-label="Revisión de evidencias">
         {tabs.map((tab) => <button key={tab.id} type="button" role="tab" id={"tab-" + tab.id} aria-selected={vista === tab.id} aria-controls={"panel-" + tab.id} onClick={() => { setVista(tab.id); setLimite(10); }}>{tab.nombre}<span>{tab.cantidad}</span></button>)}
       </div>
@@ -59,7 +61,7 @@ export function PanelEvidencias({ pendientesHoy, pendientesAnteriores, revisadas
     <section className={estilos.card} role="tabpanel" id={"panel-" + vista} aria-labelledby={"tab-" + vista}>
       {vista === "pendientes" ? <>
         <div className={estilos.head}><div><h2>Revisión pendiente · {anteriores ? "hoy y anteriores" : "hoy"}</h2><p>Revisá la foto, el domicilio y la distancia antes de decidir.</p></div><span className={estilos.contador}>{pendientes.length} por revisar</span></div>
-        {pendientes.length ? <div className={estilos.grilla}>{pendientes.slice(0, limite).map((item) => <Caso key={item.id} item={item} />)}</div> : <Vacio texto="No hay evidencias pendientes con estos filtros." />}
+        {pendientes.length ? <div className={estilos.grilla}>{pendientes.slice(0, limite).map((item) => <Caso key={item.id} item={item} onMapa={setDetalleMapa} />)}</div> : <Vacio texto="No hay evidencias pendientes con estos filtros." />}
         {pendientes.length > limite ? <button className={estilos.limpiar} onClick={() => setLimite((n) => n + 10)}>Ver 10 más · {limite} de {pendientes.length}</button> : null}
       </> : vista === "coordenadas" ? <>
         <div className={estilos.head}><div><h2>Validación geográfica</h2><p>Últimas 50 procesadas. Entregas y visitas no entregadas; se omiten IDs con datos de tienda.</p></div><span className={estilos.contador}>{coordenadas.length} resultados</span></div>
@@ -68,7 +70,7 @@ export function PanelEvidencias({ pendientesHoy, pendientesAnteriores, revisadas
           { clave: "driver", titulo: "Driver", valor: (item) => item.driver },
           { clave: "domicilio", titulo: "Domicilio", valor: (item) => item.domicilio, render: (item) => <span className={estilos.domicilioTabla}>{item.domicilio || "No informado"}{item.domicilioActual ? <small className={estilos.fuenteDomicilio}>Referencia actual del tracker</small> : null}</span> },
           { clave: "estado", titulo: "Estado del evento", valor: (item) => item.estadoEvento, render: (item) => <>{item.estadoEvento || "No informado"}{item.visitadoEvento ? <small> · Visitado</small> : null}</> },
-          { clave: "resultado", titulo: "Resultado", valor: (item) => ETIQUETAS_GEOGRAFIA[item.estadoGeografico], render: (item) => <span className={problemaGeo(item) ? estilos.observacion : estilos.detalle}>{ETIQUETAS_GEOGRAFIA[item.estadoGeografico]}</span> },
+          { clave: "resultado", titulo: "Resultado", valor: (item) => ETIQUETAS_GEOGRAFIA[item.estadoGeografico], render: (item) => puedeMostrarMapa(item) ? <button type="button" className={estilos.verMapa} onClick={() => setDetalleMapa(item)}>{ETIQUETAS_GEOGRAFIA[item.estadoGeografico]} · ver mapa</button> : <span className={problemaGeo(item) ? estilos.observacion : estilos.detalle}>{ETIQUETAS_GEOGRAFIA[item.estadoGeografico]}</span> },
           { clave: "distancia", titulo: "Distancia", valor: (item) => item.distanciaM, render: (item) => metros(item.distanciaM) },
           { clave: "radio", titulo: "Rango", valor: (item) => item.radioM, render: (item) => metros(item.radioM) },
           { clave: "foto", titulo: "Evidencia", valor: (item) => Boolean(item.fotoUrl), render: (item) => item.fotoUrl ? <a href={item.fotoUrl} target="_blank" rel="noreferrer">Ver foto ↗</a> : "—" },
@@ -77,7 +79,7 @@ export function PanelEvidencias({ pendientesHoy, pendientesAnteriores, revisadas
         <details className={estilos.ayuda}><summary>Cómo se interpreta la ubicación</summary><p>Se usa el GPS del mismo evento de la foto, no la posición actual del driver. Entregado cuenta como visita; las no entregadas requieren VisitadoMotoboy del evento. Sin GPS no se presume una entrega incorrecta. Ubicación o teléfono cargados en Mensual o Histórico omiten la comparación. Las filas antiguas pueden no tener domicilio ni evaluación; no se inventan esos datos.</p></details>
       </> : vista === "revisadas" ? <>
         <div className={estilos.head}><div><h2>Revisadas recientemente</h2><p>Últimas 50 decisiones con retención vigente. Reabrir conserva la auditoría.</p></div><span className={estilos.contador}>{revisadas.length} revisadas</span></div>
-        {revisadas.length ? <div className={estilos.grilla}>{revisadas.slice(0, limite).map((item) => <Caso key={item.id} item={item} revisado />)}</div> : <Vacio texto="No hay revisiones para mostrar." />}
+        {revisadas.length ? <div className={estilos.grilla}>{revisadas.slice(0, limite).map((item) => <Caso key={item.id} item={item} revisado onMapa={setDetalleMapa} />)}</div> : <Vacio texto="No hay revisiones para mostrar." />}
         {revisadas.length > limite ? <button className={estilos.limpiar} onClick={() => setLimite((n) => n + 10)}>Ver 10 más · {limite} de {revisadas.length}</button> : null}
       </> : <>
         <div className={estilos.head}><div><h2>Calidad por driver</h2><p>Últimos 30 días. Solo problemas confirmados afectan el score; sin sanciones automáticas.</p></div></div>
@@ -91,6 +93,7 @@ export function PanelEvidencias({ pendientesHoy, pendientesAnteriores, revisadas
       </>}
     </section>
     {admin ? <details className={estilos.anterior}><summary>Configuración de la revisión</summary><Configuracion config={config} /></details> : null}
+    {detalleMapa ? <DetalleGeografico item={detalleMapa} cerrar={() => setDetalleMapa(null)} /> : null}
   </div>;
 }
 
@@ -98,7 +101,9 @@ function Vacio({ texto }: { texto: string }) { return <div className={estilos.va
 function LinkViaje({ id }: { id: number }) { return <a className={estilos.linkViaje} href={enlaceViaje(id)} target="_blank" rel="noreferrer">#{id} ↗</a>; }
 function fecha(valor: string) { return new Date(valor).toLocaleString("es-AR", { timeZone: ZONA_PLATAFORMA }) + " " + ETIQUETA_HORA_PLATAFORMA; }
 
-function Caso({ item, revisado = false }: { item: EvidenciaPanel; revisado?: boolean }) {
+function puedeMostrarMapa(item: EvidenciaPanel) { return problemaGeo(item) && Boolean(item.puntoEvento && item.puntoDestino); }
+
+function Caso({ item, revisado = false, onMapa }: { item: EvidenciaPanel; revisado?: boolean; onMapa: (item: EvidenciaPanel) => void }) {
   const [comentario, setComentario] = useState(""); const [mensaje, setMensaje] = useState("");
   const [porConfirmar, setPorConfirmar] = useState<DecisionEvidencia | null>(null);
   const [pendiente, iniciar] = useTransition(); const router = useRouter();
@@ -114,7 +119,7 @@ function Caso({ item, revisado = false }: { item: EvidenciaPanel; revisado?: boo
         {item.estadoEvento ? <p className={estilos.estadoEvento}>{item.estadoEvento}{item.visitadoEvento ? " · Visitado" : ""}</p> : null}
         <div className={estilos.senales}>
           <div className={problemaVisual(item) ? estilos.senalAlerta : estilos.senal}><span>Calidad de foto</span><strong>{problemaVisual(item) ? "Revisar foto" : item.calidadVisual === "ACEPTABLE" ? "Utilizable" : "Sin dato"}</strong><small>{item.confianza == null ? "Sin confianza informada" : Math.round(item.confianza * 100) + "% de confianza visual"}</small></div>
-          <div className={problemaGeo(item) ? estilos.senalAlerta : estilos.senal}><span>Ubicación de la visita</span><strong>{ETIQUETAS_GEOGRAFIA[item.estadoGeografico]}</strong><small>{item.distanciaM == null ? "Sin distancia aplicable" : metros(item.distanciaM) + " del domicilio · rango " + metros(item.radioM)}</small></div>
+          <div className={problemaGeo(item) ? estilos.senalAlerta : estilos.senal}><span>Ubicación de la visita</span><strong>{ETIQUETAS_GEOGRAFIA[item.estadoGeografico]}</strong><small>{item.distanciaM == null ? "Sin distancia aplicable" : metros(item.distanciaM) + " del domicilio · rango " + metros(item.radioM)}</small>{puedeMostrarMapa(item) ? <button type="button" className={estilos.verMapa} onClick={() => onMapa(item)}>Ver mapa y evidencia</button> : null}</div>
         </div>
         <p className={estilos.detalle}>{item.motivo}</p>
         {revisado ? <><p className={estilos.decision}><b>{item.decision ? etiquetaDecision(item.decision) : "Revisada"}</b>{item.comentarioRevision ? " · " + item.comentarioRevision : ""}</p><p className={estilos.detalle}>{item.revisadaEn ? fecha(item.revisadaEn) : ""}{item.revisadaPor ? " · " + item.revisadaPor : ""}</p><div className={estilos.acciones}><button disabled={pendiente} onClick={() => iniciar(async () => { const r = await reabrirEvidencia(item.id); setMensaje(r.ok ? "Devuelta a pendientes." : r.error); if (r.ok) router.refresh(); })}>Volver a pendientes</button></div></> : <>
@@ -128,6 +133,23 @@ function Caso({ item, revisado = false }: { item: EvidenciaPanel; revisado?: boo
   </article>;
 }
 
+function DetalleGeografico({ item, cerrar }: { item: EvidenciaPanel; cerrar: () => void }) {
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") cerrar(); };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [cerrar]);
+  if (!item.puntoEvento || !item.puntoDestino) return null;
+  return <div className={estilos.modalFondo} role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) cerrar(); }}>
+    <section className={estilos.modal} role="dialog" aria-modal="true" aria-labelledby="titulo-mapa-evidencia">
+      <header className={estilos.modalHead}><div><span className={estilos.observacion}>Fuera del rango</span><h2 id="titulo-mapa-evidencia">Viaje #{item.idViaje}</h2><p>{item.driver} · {metros(item.distanciaM)} del domicilio · rango {metros(item.radioM)}</p></div><button type="button" onClick={cerrar} aria-label="Cerrar detalle">×</button></header>
+      <MapaEvidencia evento={item.puntoEvento} destino={item.puntoDestino} />
+      <div className={estilos.modalDatos}><div><span>Domicilio esperado</span><strong>{item.domicilio || "No informado"}</strong></div><div><span>Evento histórico</span><strong>{item.estadoEvento || "No informado"}{item.visitadoEvento ? " · Visitado" : ""}</strong></div></div>
+      <section className={estilos.evidenciaDetalle}><div><span>Evidencia fotográfica</span><h3>Registro asociado al evento</h3></div>{item.fotoUrl ? <a href={item.fotoUrl} target="_blank" rel="noreferrer"><Image src={item.fotoUrl} alt={`Evidencia del viaje ${item.idViaje}`} width={1000} height={760} unoptimized /></a> : <div className={estilos.sinFoto}>Vista previa no disponible</div>}<p>{item.motivo}</p></section>
+    </section>
+  </div>;
+}
+
 function etiquetaDecision(decision: DecisionEvidencia): string {
   return ({ CONFIRMADA: "problema confirmado", DESCARTADA: "descartada", INCONCLUSA: "inconclusa" } as const)[decision];
 }
@@ -136,7 +158,7 @@ function metros(valor: number | null) { return valor == null ? "—" : valor.toL
 function Configuracion({ config }: { config: ConfigEvidencias }) {
   const [modo, setModo] = useState(config.modo);
   const [minimo, setMinimo] = useState(config.minimo_muestra_score); const [maximo, setMaximo] = useState(config.maximo_por_corrida);
-  const [radio, setRadio] = useState(config.radio_geografico_m ?? 300);
+  const [radio, setRadio] = useState(config.radio_geografico_m ?? 2000);
   const [mensaje, setMensaje] = useState(""); const [pendiente, iniciar] = useTransition();
   return <div className={estilos.configuracion}><p>Solo administradores. Validá falsos positivos antes de activar alertas y score.</p><div className={estilos.form}>
     <label>Modo<select value={modo} onChange={(e) => setModo(e.target.value as typeof modo)}><option value="OBSERVACION">Observación</option><option value="ACTIVO">Activo</option></select></label>

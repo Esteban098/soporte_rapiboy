@@ -43,6 +43,7 @@
 .senal small, .senalAlerta small { font-size: 10px; color: var(--muted); line-height: 1.4; }
 .senalAlerta { background: var(--warning-soft); color: var(--warning); }
 .senalAlerta small, .senalAlerta > span { color: inherit; }
+.verMapa { justify-self: start; border: 0; border-radius: 999px; padding: 7px 10px; background: var(--primary); color: var(--on-primary); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
 .acciones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
 .acciones button, .form button { border: 0; border-radius: 999px; padding: 8px 11px; background: var(--primary); color: var(--on-primary); font: inherit; font-size: 11px; cursor: pointer; }
 .acciones button:nth-child(2), .acciones button:nth-child(3) { background: var(--surface-2); color: var(--ink); }
@@ -79,6 +80,21 @@
 .toastItem img { display: block; border-radius: 7px; object-fit: cover; }
 .toastItem span { min-width: 0; font-size: 13px; line-height: 1.35; }
 .toast a { color: var(--accent-ink); font-weight: 700; }
+.modalFondo { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; padding: 20px; background: #07131dcc; backdrop-filter: blur(5px); }
+.modal { width: min(980px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--rule); border-radius: 22px; padding: 18px; background: var(--card-background); color: var(--ink); box-shadow: 0 28px 80px #0008; }
+.modalHead { position: sticky; top: -18px; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin: -18px -18px 16px; padding: 18px; border-bottom: 1px solid var(--rule); background: color-mix(in srgb, var(--card-background) 94%, transparent); backdrop-filter: blur(12px); }
+.modalHead h2 { margin: 7px 0 3px; font-size: var(--type-title-lg); }
+.modalHead p { margin: 0; color: var(--muted); font-size: 12px; }
+.modalHead > button { flex: 0 0 auto; width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--surface-2); color: var(--ink); font: inherit; font-size: 25px; cursor: pointer; }
+.modalDatos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 14px 0 28px; }
+.modalDatos > div { display: grid; gap: 5px; min-width: 0; padding: 12px; border-radius: 12px; background: var(--surface-2); }
+.modalDatos span, .evidenciaDetalle > div > span { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .07em; }
+.modalDatos strong { overflow-wrap: anywhere; font-size: 13px; }
+.evidenciaDetalle { padding-top: 20px; border-top: 1px solid var(--rule); }
+.evidenciaDetalle h3 { margin: 4px 0 14px; font-size: var(--type-title-lg); }
+.evidenciaDetalle a { display: block; overflow: hidden; border-radius: 14px; background: var(--surface-2); }
+.evidenciaDetalle img { display: block; width: 100%; height: auto; max-height: 76vh; object-fit: contain; }
+.evidenciaDetalle > p { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
 @media (max-width: 1200px) { .grilla { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 600px) {
   .stack { padding-bottom: 72px; }
@@ -88,4 +104,8 @@
   .preview img { height: 210px; }
   .filtros > label { flex: 1 1 100%; }
   .pestanas button { flex-basis: 40%; }
+  .modalFondo { padding: 0; }
+  .modal { width: 100%; max-height: 100vh; min-height: 100vh; border: 0; border-radius: 0; padding: 12px; }
+  .modalHead { top: -12px; margin: -12px -12px 12px; padding: 12px; }
+  .modalDatos { grid-template-columns: minmax(0, 1fr); }
 }

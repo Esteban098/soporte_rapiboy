@@ -35,7 +35,15 @@ export type EvidenciaEntrada = {
   evidenciaEn: string;
   fotoUrl: string;
   domicilioDestino?: string | null;
-  geografia?: { estadoEvento: string; distanciaM: number | null; visitadoEvento: boolean };
+  geografia?: {
+    estadoEvento: string;
+    distanciaM: number | null;
+    visitadoEvento: boolean;
+    latitudEvento: number | null;
+    longitudEvento: number | null;
+    latitudDestino: number | null;
+    longitudDestino: number | null;
+  };
 };
 
 type Configuracion = {
@@ -67,6 +75,10 @@ type RevisionFila = {
   domicilio_destino?: string | null;
   estado_evento?: string | null;
   visitado_evento?: boolean | null;
+  latitud_evento?: number | null;
+  longitud_evento?: number | null;
+  latitud_destino?: number | null;
+  longitud_destino?: number | null;
   calidad_modelo?: "ACEPTABLE" | "DUDOSA" | null;
 };
 
@@ -102,6 +114,8 @@ export type EvidenciaPanel = {
   visitadoEvento: boolean | null;
   calidadVisual: "ACEPTABLE" | "DUDOSA" | null;
   domicilioActual: boolean;
+  puntoEvento: { lat: number; lon: number } | null;
+  puntoDestino: { lat: number; lon: number } | null;
 };
 
 export type ScoreDriver = {
@@ -147,11 +161,16 @@ export function validarEntrada(valor: unknown): EvidenciaEntrada {
     ...(x.geografia && typeof x.geografia === "object" ? {
       geografia: (() => {
         const g = x.geografia as Record<string, unknown>;
+        const evento = puntoEvidencia(g.latitudEvento, g.longitudEvento);
+        const destino = puntoEvidencia(g.latitudDestino, g.longitudDestino);
         return {
           estadoEvento: String(g.estadoEvento ?? "").trim().slice(0, 100),
           visitadoEvento: g.visitadoEvento === true || g.visitadoEvento === 1 || g.visitadoEvento === "1",
-          distanciaM: distanciaEvidencia(puntoEvidencia(g.latitudEvento, g.longitudEvento),
-            puntoEvidencia(g.latitudDestino, g.longitudDestino)),
+          distanciaM: distanciaEvidencia(evento, destino),
+          latitudEvento: evento?.lat ?? null,
+          longitudEvento: evento?.lon ?? null,
+          latitudDestino: destino?.lat ?? null,
+          longitudDestino: destino?.lon ?? null,
         };
       })(),
     } : {}),
@@ -182,7 +201,7 @@ export async function procesarEvidencia(entrada: EvidenciaEntrada): Promise<{ es
     if (!configEntorno) throw new Error("falta_evidencias_webhook_secret");
     const { modelo } = configEntorno;
     const resultado = await analizarFoto(foto.buffer, foto.mime, modelo);
-    const terminada = await ejecutarRpc<{ ok: boolean; estado?: EstadoGeografico }>("evidencia_entrega_finalizar_visita", {
+    const terminada = await ejecutarRpc<{ ok: boolean; estado?: EstadoGeografico }>("evidencia_entrega_finalizar_visita_mapa", {
       p_id: id, p_foto_ruta: ruta, p_foto_mime: foto.mime, p_foto_bytes: foto.buffer.byteLength,
       p_calidad: resultado.calidad, p_tipo_problema: resultado.tipo_problema,
       p_motivo: resultado.motivo, p_confianza: resultado.confianza, p_modelo: modelo,
@@ -192,6 +211,10 @@ export async function procesarEvidencia(entrada: EvidenciaEntrada): Promise<{ es
       p_distancia_m: entrada.geografia?.distanciaM ?? null,
       p_visitado_evento: entrada.geografia?.visitadoEvento ?? false,
       p_domicilio_destino: entrada.domicilioDestino ?? null,
+      p_latitud_evento: entrada.geografia?.latitudEvento ?? null,
+      p_longitud_evento: entrada.geografia?.longitudEvento ?? null,
+      p_latitud_destino: entrada.geografia?.latitudDestino ?? null,
+      p_longitud_destino: entrada.geografia?.longitudDestino ?? null,
     });
     if (!terminada?.ok) throw new Error("reclamo_perdido");
 
@@ -372,6 +395,8 @@ export async function cargarPanelEvidencias(): Promise<{
     estadoEvento: p.estado_evento?.trim() || null,
     visitadoEvento: p.visitado_evento ?? null,
     calidadVisual: p.calidad_modelo ?? null,
+    puntoEvento: puntoEvidencia(p.latitud_evento, p.longitud_evento),
+    puntoDestino: puntoEvidencia(p.latitud_destino, p.longitud_destino),
   });
   const paneles = pendientes.map(aPanel);
   const hoy = diaEvidencias();

@@ -340,18 +340,24 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   actual del driver. Compara eventos Entregado y, desde migración 49, eventos
   con `HistorialViaje.VisitadoMotoboy = 1` aunque no se entreguen. Nunca usar
   la marca actual de Viaje. Si el ID tiene ubicación
-  o teléfono en Mensual o Histórico se omite. Radio inicial 300 m, configurable
+  o teléfono en Mensual o Histórico se omite. Radio operativo 2.000 m, configurable
   por admin (50–5.000 m). Fuera de rango genera revisión humana incluso si la
   foto es aceptable; sin GPS no acusa. Finalización atómica en
-  `evidencia_entrega_finalizar_geo`; no persiste coordenadas ni las manda al
-  modelo. Conservar orden de instalación: migración, web, flujo 19. Las filas
+  `evidencia_entrega_finalizar_geo`; nunca manda coordenadas al modelo.
+  La migración 51 conserva los dos puntos solo en la fila operativa de siete
+  días y `evidencia_entrega_finalizar_visita_mapa` los guarda después de la
+  clasificación. El historial durable conserva únicamente distancia y
+  resultado, nunca coordenadas. Conservar orden de instalación: migración,
+  web, flujo 19. Las filas
   antiguas quedan sin evaluación, sin reanalizar ni alertar retroactivamente.
   La migración 49 agrega domicilio/estado/visitado únicamente a la fila
   operativa de siete días y usa `evidencia_entrega_finalizar_visita`, conservando
   la RPC 48 por compatibilidad. El historial durable no guarda domicilio.
   Evidencias tiene Pendientes, Coordenadas, Revisadas y Drivers, búsqueda y
   filtros compartidos; IDs con `enlaceViaje`. Configuración plegada y tarjetas
-  con foto sin recortar y señales visual/geográfica separadas.
+  con foto sin recortar y señales visual/geográfica separadas. Los casos fuera
+  de rango abren un detalle desplazable: mapa de OpenStreetMap bajo demanda
+  con domicilio y evento diferenciados, seguido por la fotografía.
 
 ## Límites entre flujos
 

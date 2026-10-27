@@ -34,6 +34,7 @@ const panel = await readFile(new URL("../src/components/PanelEvidencias.tsx", im
 const proxy = await readFile(new URL("../src/proxy.ts", import.meta.url), "utf8");
 const geo = await readFile(new URL("../supabase/migracion-48-evidencias-geografia.sql", import.meta.url), "utf8");
 const visitas = await readFile(new URL("../supabase/migracion-49-evidencias-visitas-domicilio.sql", import.meta.url), "utf8");
+const mapa = await readFile(new URL("../supabase/migracion-51-evidencias-mapa-2000m.sql", import.meta.url), "utf8");
 const workflow = JSON.parse(flujo);
 const consulta = workflow.nodes.find((n: { type: string }) => n.type === "n8n-nodes-base.microsoftSql").parameters.query;
 assert.ok(consulta.includes("H.Latitud AS LatitudEvento") && consulta.includes("H.Longitud AS LongitudEvento"));
@@ -49,6 +50,7 @@ assert.equal(salida[0].json.geografia.latitudEvento, 19.4);
 assert.equal(salida[0].json.geografia.estadoEvento, "Pedido no entregado");
 assert.equal(salida[0].json.geografia.visitadoEvento, true);
 assert.equal(salida[0].json.domicilioDestino, "Calle de prueba 100");
+assert.equal(salida[0].json.geografia.longitudDestino, -99.1);
 assert.ok(geo.includes("public.mensual where id = v_viaje") && geo.includes("public.mensual_historico where id = v_viaje"));
 assert.ok(geo.includes("nullif(btrim(ubicacion), '')") && geo.includes("nullif(btrim(telefono), '')"));
 assert.ok(geo.includes("if v_con_datos then") && geo.includes("'OMITIDA_DATOS_TIENDA'"));
@@ -57,13 +59,18 @@ assert.ok(geo.includes("'SIN_COORDENADAS'") && geo.includes("'NO_EVALUADA'") && 
 assert.ok(geo.includes("for update") && geo.includes("public.evidencia_entrega_finalizar("));
 assert.ok(geo.includes("v_estado = 'FUERA_DEL_RANGO' then 'PENDIENTE_REVISION'"));
 assert.ok(!/latitud|longitud/.test(geo), "no persistir coordenadas crudas en Supabase");
-assert.ok(modelo.includes('"evidencia_entrega_finalizar_visita"') && modelo.includes("p_geografia_recibida: entrada.geografia != null"));
+assert.ok(modelo.includes('"evidencia_entrega_finalizar_visita_mapa"') && modelo.includes("p_geografia_recibida: entrada.geografia != null"));
 assert.ok(visitas.includes("and not coalesce(p_visitado_evento, false)"));
 assert.ok(visitas.includes("add column if not exists domicilio_destino text") && visitas.includes("from public, anon, authenticated"));
 assert.ok(!visitas.slice(visitas.indexOf("update public.evidencias_entrega_historial")).includes("domicilio_destino"), "el historial durable no guarda domicilios");
 assert.ok(panel.includes("enlaceViaje(id)") && panel.includes('titulo: "Domicilio"') && panel.includes("Domicilio de destino"));
 for (const tab of ["Pendientes", "Coordenadas", "Revisadas", "Drivers"]) assert.ok(panel.includes(`nombre: "${tab}"`));
 assert.ok(panel.includes("ETIQUETAS_GEOGRAFIA") && panel.includes("Rango geográfico (metros)"));
+assert.ok(modelo.includes("p_latitud_evento") && modelo.includes("p_longitud_destino"));
+assert.ok(mapa.includes("radio_geografico_m = 2000") && mapa.includes("alter column radio_geografico_m set default 2000"));
+assert.ok(mapa.includes("latitud_evento") && mapa.includes("longitud_destino"));
+assert.ok(!mapa.includes("update public.evidencias_entrega_historial"), "las coordenadas no deben copiarse al historial durable");
+assert.ok(panel.includes("Ver mapa y evidencia") && panel.includes("MapaEvidencia"));
 
 for (const fragmento of ["U.IdLocalidad = 9", "U.IdModalidad IN (5, 7)", "DriverEvento", "H.Foto", "H.Fecha >= @InicioUtc", "H.Fecha < @FinUtc", "Claves ya vistas hoy"]) {
   assert.ok(flujo.includes(fragmento), `falta la relación verificada: ${fragmento}`);
