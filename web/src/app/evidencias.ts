@@ -5,6 +5,19 @@ import { actualizarFilas, ejecutarRpc } from "@/lib/supabase";
 import { TABLA_EVIDENCIAS_CONFIG } from "@/lib/config";
 import { alertasEmergentes, type DecisionEvidencia } from "@/lib/evidencias";
 import { esAdmin, operadorActual } from "@/lib/sesion";
+import { guardarRevisionesLote } from "@/lib/evidencias-lotes";
+
+export async function revisarEvidenciasLote(ids: string[], decision: DecisionEvidencia, comentario: string) {
+  const operador = await operadorActual();
+  if (!operador) return { ok: false, error: "No tenés permiso." } as const;
+  try {
+    const resultado = await guardarRevisionesLote(ids, decision, comentario, operador.email);
+    revalidatePath("/evidencias");
+    return { ok: true, ...resultado } as const;
+  } catch {
+    return { ok: false, error: "Lote inválido. Seleccioná entre 1 y 100 evidencias por envío." } as const;
+  }
+}
 
 export async function revisarEvidencia(id: string, decision: DecisionEvidencia, comentario: string) {
   const operador = await operadorActual();

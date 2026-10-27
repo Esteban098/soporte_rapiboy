@@ -358,6 +358,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   con foto sin recortar y señales visual/geográfica separadas. Los casos fuera
   de rango abren un detalle desplazable: mapa de OpenStreetMap bajo demanda
   con domicilio y evento diferenciados, seguido por la fotografía.
+  Pendientes agrupa por ID histórico del driver (nombre como respaldo) y admite
+  selección individual, por driver y de todas las filtradas, incluso plegadas.
+  Las decisiones en lote usan la misma RPC individual auditada; la acción
+  autentica al operador y procesa hasta 100 IDs deduplicados, con 5 escrituras
+  simultáneas. Informa conflictos y errores por separado. Ejecutar también
+  `node --conditions=react-server --import tsx scripts/evidencias-lotes.test.mts`.
 
 ## Límites entre flujos
 

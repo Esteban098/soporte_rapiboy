@@ -19,6 +19,18 @@
 .check input { accent-color: var(--primary); }
 .limpiar { min-height: 38px; border: 0; border-radius: 999px; padding: 8px 12px; background: var(--surface-2); color: var(--ink); cursor: pointer; }
 .grilla { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.barraLote { padding: 14px; border: 1px solid var(--outline); border-radius: 14px; background: var(--surface-2); }
+.loteSeleccion, .grupoSeleccion { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 18px; }
+.loteSeleccion strong { font-size: 12px; color: var(--accent-ink); }
+.barraLote .check, .grupoSeleccion .check { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; }
+.comentarioLote { display: grid; gap: 6px; margin-top: 12px; font-size: 12px; color: var(--muted); }
+.comentarioLote input { min-height: 38px; width: 100%; border: 1px solid var(--outline); border-radius: 10px; padding: 8px 12px; background: var(--surface); color: var(--ink); font: inherit; }
+.grupoDriver { min-width: 0; border: 1px solid var(--rule); border-radius: 14px; padding: 12px; }
+.grupoSeleccion { justify-content: space-between; padding-bottom: 10px; }
+.grupoTitulo { cursor: pointer; padding: 8px 0 14px; font-weight: 700; font-size: 15px; }
+.grupoTitulo span { margin-left: 12px; color: var(--muted); font-size: 11px; font-weight: 400; }
+.grupoDriver details > .limpiar { margin-top: 12px; }
+.casoHead input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
 .caso { min-width: 0; overflow: hidden; border: 1px solid var(--rule); border-radius: calc(var(--radio) * .75); background: var(--surface); }
 .casoHead { display: flex; flex-wrap: wrap; gap: 6px 12px; justify-content: space-between; padding: 15px 15px 10px; }
 .casoHead > div { display: flex; flex-wrap: wrap; gap: 8px 12px; }

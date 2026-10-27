@@ -98,6 +98,14 @@ pueden volver a pendientes durante esos siete días. Cada revisión y reapertura
 queda registrada en `evidencias_entrega_decisiones`, sin fotografía ni URL; así
 corregir un clic accidental no elimina la trazabilidad.
 
+Las pendientes se agrupan por driver (ID histórico, con nombre como respaldo).
+Se pueden seleccionar individualmente, por driver o todas las que coincidan
+con los filtros, incluidas las tarjetas plegadas. Las acciones masivas permiten
+confirmar, descartar o marcar inconclusas con un comentario común opcional.
+Cada caso conserva su auditoría individual y el revisor de la sesión. Los
+envíos se dividen en lotes de 100; los casos atendidos por otra persona se
+informan por separado y los errores quedan seleccionados para reintentar.
+
 ### Criterio de utilidad visual
 
 La clasificación no exige que la imagen demuestre una entrega. Es **aceptable**
