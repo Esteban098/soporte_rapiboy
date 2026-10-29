@@ -4,9 +4,11 @@ Envía el texto seleccionado en WhatsApp Web al flujo `07-firefox-gestiones`
 de n8n. El flujo interpreta el ID y los datos aportados por la tienda y actualiza
 las columnas de soporte de `public.mensual` en Supabase.
 
-También agrega el **Asistente operativo** como una pestaña fija en el borde
-inferior. Se inyecta exclusivamente en WhatsApp Web, rapiboy.com y sus
-subdominios HTTPS. No se ejecuta ni aparece en otros sitios. La conversación
+También agrega el **Asistente operativo** como una pestaña delgada en el borde
+derecho. El panel entra desde ese lateral y se minimiza al pulsar fuera. Las
+respuestas muestran negritas y enlaces autorizados sin inyectar HTML. Se
+inyecta exclusivamente en WhatsApp Web, rapiboy.com y sus subdominios HTTPS.
+No se ejecuta ni aparece en otros sitios. La conversación
 vive en la memoria del proceso de fondo y desaparece al cerrar Firefox; no se
 escribe en el almacenamiento local.
 
@@ -15,12 +17,12 @@ escribe en el almacenamiento local.
 1. En la plataforma, abrir **Mi perfil → Asistente en Firefox**.
 2. Pulsar **Generar vinculación** y copiar el token: se muestra una sola vez.
 3. En about:addons → **Rapiboy · Herramientas** → Preferencias, cargar la URL
-   HTTPS del endpoint /api/asistente/extension y el token personal rbx_.
+   `https://soporte-rapiboy.vercel.app/api/asistente/extension` y el token personal `rbx_`.
 4. Guardar y recargar WhatsApp Web o la página Rapiboy.
 
-La URL debe pertenecer a rapiboy.com o un subdominio y terminar exactamente en
-/api/asistente/extension. La extensión rechaza cualquier otro destino antes de
-enviar el token o el historial.
+La URL debe ser el despliegue oficial anterior —o un dominio HTTPS de Rapiboy—
+y terminar exactamente en `/api/asistente/extension`. La extensión rechaza
+cualquier otro destino antes de enviar el token o el historial.
 
 Cada persona usa su propio token, válido por 180 días y revocable desde Mi
 perfil. Supabase guarda únicamente SHA-256 del token, vinculado por FK a
@@ -65,7 +67,7 @@ resultado queda en `artefactos/`, con un nombre generado por AMO
 (`<hash>-<version>.xpi`). Conviene renombrarlo antes de repartirlo:
 
 ```bash
-mv artefactos/*-3.0.0.xpi artefactos/asistente-rapiboy-3.0.0.xpi
+mv artefactos/*-3.0.3.xpi artefactos/asistente-rapiboy-3.0.3.xpi
 ```
 
 Renombrar no invalida la firma: va dentro del paquete, no en el nombre.

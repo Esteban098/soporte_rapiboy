@@ -350,6 +350,15 @@ Google Sheet. Dos diferencias:
   llevada de 15 a 30 días. La de colectas realizadas es nueva: devuelve una fila
   por día, chofer y comercio, que es lo que alimenta la vista por día.
 
+La relación entre una tienda y su centro dropOff no usa un catálogo fijo. La
+rama de asignación toma el correo de `HistorialViaje.Responsable`, lo cruza con
+`Usuario.Email` y valida en `DetalleUsuario.LlevaCentroDropOff` —con nombre o
+alias `dropoff` como respaldo— que el usuario encontrado sea realmente un
+centro dropOff de México. El nombre del lugar sale del alias vigente de ese
+usuario. Por eso un centro nuevo o un cambio de responsable se incorpora en la
+siguiente corrida sin editar el SQL. Si no existe una coincidencia válida y
+única por correo, el comercio conserva su propio nombre como lugar de colecta.
+
 Las dos ramas cuelgan del mismo trigger y del mismo webhook, y corren en
 paralelo. Antes de la primera corrida hay que crear las tablas con
 `web/supabase/colectas.sql`.

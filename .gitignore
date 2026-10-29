@@ -7,3 +7,5 @@ __pycache__/
 
 # Copias locales de n8n con credenciales privadas
 /n8n/private/
+.vercel
+.env*

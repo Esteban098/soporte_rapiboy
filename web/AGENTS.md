@@ -276,6 +276,13 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   asignaciones automáticas requieren una coincidencia única del ID
   extraído del nombre del grupo. Las asignaciones `MANUAL` nunca se reemplazan
   durante una sincronización.
+- La relación operativa seller → centro dropOff vive en
+  `colectas_asignacion.lugar_colecta` y la reconstruye el flujo 06. No mantener
+  listas de correos o nombres dentro de la consulta: se resuelve automáticamente
+  con `HistorialViaje.Responsable = Usuario.Email`, validando que el usuario de
+  destino sea dropOff por `DetalleUsuario.LlevaCentroDropOff` o por su nombre o
+  alias. `sellers_activos.lleva_dropoff` clasifica al centro, pero no representa
+  la relación entre una tienda y ese centro.
   Se visualiza en dos pantallas independientes, `/sellers` y `/drivers`, dentro
   del grupo **Base de datos** del sidebar. Las lecturas pasan por
   `src/lib/directorio-datos.ts`, que es `server-only`; el JID queda en el
@@ -563,9 +570,10 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   Vencen en 180 días, se rotan/revocan desde Mi perfil y cada pedido vuelve a
   validar que el perfil esté activo y no sea comercial.
 - El content script se inyecta únicamente en web.whatsapp.com, rapiboy.com y
-  sus subdominios. El background debe validar además sender.tab.url y que la URL
-  de API sea HTTPS Rapiboy con pathname /api/asistente/extension antes de hacer
-  fetch. El historial queda en RAM; nunca guardarlo en browser.storage.local.
+  sus subdominios. El background debe validar además sender.tab.url. La URL API
+  debe ser HTTPS, usar exactamente soporte-rapiboy.vercel.app o un dominio
+  Rapiboy y tener pathname /api/asistente/extension antes de hacer fetch. El
+  historial queda en RAM; nunca guardarlo en browser.storage.local.
 - La interfaz vive en Shadow DOM y construye contenido con textContent y nodos.
   No usar innerHTML con respuestas del modelo. Los enlaces aceptados son solo
   HTTPS de Rapiboy.

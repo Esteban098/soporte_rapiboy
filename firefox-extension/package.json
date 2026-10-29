@@ -1,6 +1,6 @@
 {
   "name": "rapiboy-herramientas",
-  "version": "3.0.0",
+  "version": "3.0.3",
   "private": true,
   "description": "Extensión de Firefox con Asistente operativo y carga de datos de tienda.",
   "scripts": {

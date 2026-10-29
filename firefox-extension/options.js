@@ -15,12 +15,12 @@ function validarAsistente(url, token) {
     const host = parsed.hostname.toLowerCase();
     if (
       parsed.protocol !== "https:" ||
-      (host !== "rapiboy.com" && host.endsWith(".rapiboy.com") === false) ||
+      (host !== "soporte-rapiboy.vercel.app" && host !== "rapiboy.com" && host.endsWith(".rapiboy.com") === false) ||
       parsed.pathname !== "/api/asistente/extension" ||
       parsed.username !== "" ||
       parsed.password !== ""
     ) {
-      return "Usá el endpoint HTTPS de la plataforma en un dominio Rapiboy.";
+      return "Usá el endpoint HTTPS oficial de la plataforma.";
     }
   } catch {
     return "La URL del Asistente no es válida.";

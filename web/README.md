@@ -1277,8 +1277,8 @@ del chat interno.
 
 Instalar web/supabase/migracion-52-asistente-extension.sql antes de generar la
 primera vinculación. La extensión conserva hasta 12 mensajes solamente en RAM;
-cerrar Firefox los elimina. La URL configurada debe ser HTTPS, de rapiboy.com o
-un subdominio, y terminar en /api/asistente/extension.
+cerrar Firefox los elimina. La URL oficial es
+`https://soporte-rapiboy.vercel.app/api/asistente/extension`.
 
 ## Gráficos atados a la tabla
 

@@ -121,7 +121,7 @@ function apiPermitida(url) {
     const host = parsed.hostname.toLowerCase();
     return (
       parsed.protocol === "https:" &&
-      (host === "rapiboy.com" || host.endsWith(".rapiboy.com")) &&
+      (host === "soporte-rapiboy.vercel.app" || host === "rapiboy.com" || host.endsWith(".rapiboy.com")) &&
       parsed.pathname === "/api/asistente/extension" &&
       parsed.username === "" &&
       parsed.password === ""

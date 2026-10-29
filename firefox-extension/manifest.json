@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Rapiboy · Herramientas",
-  "version": "3.0.0",
+  "version": "3.0.3",
   "description": "Asistente operativo y carga de datos de tienda para Rapiboy.",
   "permissions": [
     "contextMenus",
@@ -10,7 +10,8 @@
     "https://linux.rapitools.com.ar/*",
     "https://web.whatsapp.com/*",
     "https://rapiboy.com/*",
-    "https://*.rapiboy.com/*"
+    "https://*.rapiboy.com/*",
+    "https://soporte-rapiboy.vercel.app/*"
   ],
   "content_scripts": [{
     "matches": ["https://web.whatsapp.com/*", "https://rapiboy.com/*", "https://*.rapiboy.com/*"],

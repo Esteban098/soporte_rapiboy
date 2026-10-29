@@ -26,6 +26,9 @@ const LUGARES = readFileSync(
   new URL("../supabase/migracion-06-lugares.sql", import.meta.url),
   "utf8",
 );
+const FLUJO_COLECTAS = JSON.parse(
+  readFileSync(new URL("../../n8n/06-colectas.json", import.meta.url), "utf8"),
+) as { nodes: { name: string; parameters: { query?: string } }[] };
 
 /**
  * El SQL sin sus comentarios: las migraciones de este proyecto explican en
@@ -156,6 +159,16 @@ test("el mapa distingue dropoff de tienda por el color del ícono", () => {
    */
   const filasBodega = [...LUGARES.matchAll(/^ {2}\('[^']*', (?:\d+|null), '[^']*', 'BODEGA',/gm)];
   assert.equal(filasBodega.length, 1);
+});
+
+test("la asignación descubre el dropOff por el email responsable, sin catálogo fijo", () => {
+  const query = FLUJO_COLECTAS.nodes.find((node) => node.name === "Consulta · asignación")?.parameters.query ?? "";
+  assert.match(query, /HistorialViaje H/);
+  assert.match(query, /H\.Responsable/);
+  assert.match(query, /UDrop\.Email/);
+  assert.match(query, /DDO\.LlevaCentroDropOff/);
+  assert.match(query, /WHERE Coincidencias = 1/);
+  assert.doesNotMatch(query, /ejorfe@gmail\.com|envios@mimoto\.mx|distmil@hotmail\.com/);
 });
 
 

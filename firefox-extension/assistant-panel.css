@@ -17,8 +17,10 @@
   --rule: #d7e2d3;
   position: fixed;
   z-index: 2147483647;
-  right: 22px;
-  bottom: 0;
+  right: 0;
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
   width: min(390px, calc(100vw - 28px));
   color: var(--ink);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -28,17 +30,28 @@
 
 .rb-tab {
   display: block;
-  margin-left: auto;
-  min-width: 150px;
-  padding: 10px 18px 11px;
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 36px;
+  min-width: 0;
+  padding: 12px 7px;
   border: 1px solid #8dca16;
-  border-bottom: 0;
-  border-radius: 18px 18px 0 0;
+  border-right: 0;
+  border-radius: 16px 0 0 16px;
   background: linear-gradient(135deg, #b9ff36, #8ee00c);
   color: #17210d;
-  box-shadow: 0 -8px 26px rgb(42 68 20 / 18%);
-  font: 750 14px/1.2 Inter, ui-sans-serif, system-ui, sans-serif;
+  box-shadow: -8px 0 26px rgb(42 68 20 / 18%);
+  font: 750 12px/1.1 Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .02em;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: translateY(-50%);
   cursor: pointer;
+}
+
+.rb-tab[aria-expanded="true"] {
+  display: none;
 }
 
 .rb-tab:focus-visible,
@@ -53,12 +66,13 @@
   height: min(590px, calc(100vh - 84px));
   overflow: hidden;
   border: 1px solid var(--rule);
-  border-bottom: 0;
-  border-radius: 24px 24px 0 0;
+  border-right: 0;
+  border-radius: 24px 0 0 24px;
   background:
     radial-gradient(circle at 90% 0%, rgb(167 245 27 / 17%), transparent 31%),
     var(--surface);
-  box-shadow: 0 -18px 55px rgb(17 31 14 / 22%);
+  box-shadow: -18px 0 55px rgb(17 31 14 / 22%);
+  animation: rb-slide-in .18s ease-out;
 }
 
 .rb-panel[hidden] {
@@ -246,6 +260,10 @@
   50% { opacity: .45; }
 }
 
+@keyframes rb-slide-in {
+  from { transform: translateX(100%); opacity: .65; }
+}
+
 @media (prefers-color-scheme: dark) {
   .rb-shell {
     --ink: #eef6eb;
@@ -291,8 +309,8 @@
 
 @media (max-width: 520px) {
   .rb-shell {
-    right: 8px;
-    width: calc(100vw - 16px);
+    right: 0;
+    width: calc(100vw - 8px);
   }
 
   .rb-panel {
@@ -301,6 +319,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .rb-panel {
+    animation: none;
+  }
+
   .rb-typing {
     animation: none;
   }

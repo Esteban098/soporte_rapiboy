@@ -85,9 +85,10 @@
     try {
       const parsed = new URL(value, state.platformOrigin || "https://rapiboy.com");
       const hostName = parsed.hostname.toLowerCase();
+      const mismoOrigenPlataforma = state.platformOrigin !== "" && parsed.origin === state.platformOrigin;
       if (
         parsed.protocol !== "https:" ||
-        (hostName !== "rapiboy.com" && hostName.endsWith(".rapiboy.com") === false)
+        (mismoOrigenPlataforma === false && hostName !== "rapiboy.com" && hostName.endsWith(".rapiboy.com") === false)
       ) return null;
       return parsed.href;
     } catch {
@@ -95,21 +96,27 @@
     }
   }
 
-  function textoConEnlaces(element, text) {
-    const pattern = /\[([^\]]{1,100})\]\(([^)\s]+)\)/g;
+  function textoConFormato(element, text) {
+    const pattern = /\[([^\]]{1,100})\]\(([^)\s]+)\)|\*\*([^*\n]{1,300})\*\*/g;
     let offset = 0;
     for (const match of text.matchAll(pattern)) {
       element.append(document.createTextNode(text.slice(offset, match.index)));
-      const href = urlSegura(match[2]);
-      if (href) {
-        const link = document.createElement("a");
-        link.href = href;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        link.textContent = match[1];
-        element.appendChild(link);
+      if (match[1]) {
+        const href = urlSegura(match[2]);
+        if (href) {
+          const link = document.createElement("a");
+          link.href = href;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = match[1];
+          element.appendChild(link);
+        } else {
+          element.append(document.createTextNode(match[0]));
+        }
       } else {
-        element.append(document.createTextNode(match[0]));
+        const strong = document.createElement("strong");
+        strong.textContent = match[3];
+        element.appendChild(strong);
       }
       offset = Number(match.index) + match[0].length;
     }
@@ -159,7 +166,7 @@
         label.className = "rb-role";
         label.textContent = item.rol === "usuario" ? "Vos" : "Asistente";
         const text = document.createElement("p");
-        textoConEnlaces(text, String(item.texto || ""));
+        textoConFormato(text, String(item.texto || ""));
         bubble.append(label, text);
         messages.appendChild(bubble);
       });
@@ -228,6 +235,11 @@
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && panel.hidden === false) setOpen(false);
   });
+  document.addEventListener("pointerdown", (event) => {
+    if (panel.hidden === false && event.composedPath().includes(host) === false) {
+      setOpen(false);
+    }
+  }, true);
 
   refresh();
 })();
