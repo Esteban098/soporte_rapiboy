@@ -52,9 +52,10 @@ nueva ejecución deja el resumen pendiente y lo envía.
 `IdEstado = 22`, identificado por operación como `EnProcesoDeDevolucion`.
 No filtra por el estado actual ni cruza IDs contra
 Mensual, Ayer, cancelados o históricos. Usa localidad 9 y modalidad 5.
-Cada viaje se guarda una vez por mes en `devoluciones_mensuales`; el mes es
-el del movimiento en México y se conservan primera y última aparición del mes.
-Un viaje puede pertenecer a varios meses si tuvo movimientos en cada uno.
+Cada viaje se guarda una vez por mes; el mes es el del movimiento en México y
+se conservan primera y última aparición. `devoluciones_mensuales` contiene solo
+el mes vigente y `devoluciones_historico` acumula los meses cerrados. Un viaje
+puede pertenecer a varios meses si tuvo movimientos en cada uno.
 
 Para las métricas de resolución, ejecutar también
 `web/supabase/migracion-40-devoluciones-tiempo.sql` antes de actualizar el flujo.
@@ -62,14 +63,16 @@ Para las métricas de resolución, ejecutar también
 entrada a devolución del mes; no acota el cierre al mes de ingreso.
 Un cierre faltante queda null y no se interpreta como devolución instantánea.
 
-1. Ejecutar `web/supabase/migracion-39-devoluciones.sql`.
+1. Ejecutar las migraciones 39, 40 y 53. La 53 crea el histórico, instala la
+   rotación transaccional y archiva los meses anteriores que ya estén cargados.
 2. Importar el flujo 17 y seleccionar credenciales SQL Server y Supabase.
 3. Configurar Header Auth del webhook: `X-Rapiboy-Token` con un secreto propio.
    Cargar el mismo valor en `N8N_TOKEN_DEVOLUCIONES` y la URL de producción
    `/webhook/actualizar-devoluciones` en `N8N_WEBHOOKS_DEVOLUCIONES`.
 4. Probar manualmente y activar: corre todos los días a las 10:00 ARG,
    reconcilia mes actual y anterior para recuperar corridas omitidas y cruces
-   de mes. El botón de plataforma envía `desde`/`hasta` y reconcilia esos meses.
+   de mes. Después del upsert archiva los meses cerrados. El botón de plataforma
+   envía `desde`/`hasta` y reconcilia esos meses con la misma rotación.
 
 La lectura convierte el calendario México al reloj de Argentina documentado
 para RapiboyData. No trunca datos ni los retira por cambiar de estado.

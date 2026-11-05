@@ -1358,20 +1358,28 @@ cambia (`src/components/useVista.ts`).
   ubican bien dentro de la zona conocida pero no sirven para leer una dirección
   puntual. Para eso está el destino escrito en la ficha del paquete.
 
-## Devoluciones mensuales
+## Devoluciones mensuales e histórico
 
-La pantalla `/devoluciones` muestra una tabla propia con los paquetes que
-pasaron por **Procesando como devolución** en RapiboyData. El mes corresponde
-al movimiento en México; conserva registros anteriores y el estado actual,
-independientemente de Mensual o Última jornada. No duplica un viaje dentro del
-mismo mes, aunque vuelva a pasar por el estado.
+La pantalla `/devoluciones` de Operación muestra únicamente los paquetes del
+mes calendario vigente en México que pasaron por **Procesando como devolución**
+en RapiboyData. La entrada **Devoluciones** de la sección existente
+**Históricos** abre `/devoluciones/historial`, conserva los meses cerrados y
+permite filtrarlos por mes o rango. El estado actual se mantiene independientemente de
+Mensual o Última jornada y un viaje no se duplica dentro del mismo mes, aunque
+vuelva a pasar por el estado.
 
-Para habilitarla, ejecutar `supabase/migracion-39-devoluciones.sql`, importar
+Para habilitarla, ejecutar `supabase/migracion-39-devoluciones.sql`,
+`supabase/migracion-40-devoluciones-tiempo.sql` y
+`supabase/migracion-53-devoluciones-historico.sql`; luego importar
 `../n8n/17-devoluciones-mensuales.json` y configurar la URL de producción en
 `N8N_WEBHOOKS_DEVOLUCIONES` y el secreto Header Auth `X-Rapiboy-Token` en
 `N8N_TOKEN_DEVOLUCIONES`. Activar el flujo tras una prueba: sincroniza a las
 07:00 de México diariamente. Actualizar consulta el período elegido.
 La programación relee el mes actual y el anterior para recuperar días omitidos.
+Al terminar, `rotar_devoluciones_historico()` copia o actualiza atómicamente
+todo mes anterior en `devoluciones_historico` y recién entonces lo retira de
+`devoluciones_mensuales`. La migración ejecuta una primera rotación para separar
+los datos que ya existían.
 
 Las métricas requieren `supabase/migracion-40-devoluciones-tiempo.sql` y el
 flujo 17 actualizado. Miden desde la primera entrada a devolución del mes

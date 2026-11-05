@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { modoDatos } from "./config";
+import { modoDatos, TABLA_DEVOLUCIONES, TABLA_DEVOLUCIONES_HISTORICO } from "./config";
 import { consultar, TablaFaltante } from "./supabase";
 
 export type Devolucion = {
@@ -19,9 +19,10 @@ export type Devolucion = {
   actualizado_en: string;
 };
 
-export const cargarDevoluciones = cache(async (): Promise<{ filas: Devolucion[]; sinTabla: boolean; sinMetricas: boolean }> => {
+type ResultadoDevoluciones = { filas: Devolucion[]; sinTabla: boolean; sinMetricas: boolean };
+
+async function cargarTablaDevoluciones(tabla: string): Promise<ResultadoDevoluciones> {
   if (modoDatos() !== "supabase") return { filas: [], sinTabla: false, sinMetricas: false };
-  const tabla = process.env.SUPABASE_TABLA_DEVOLUCIONES?.trim() || "devoluciones_mensuales";
   try {
     const filas: Devolucion[] = [];
     for (let offset = 0; ; offset += 1000) {
@@ -37,4 +38,7 @@ export const cargarDevoluciones = cache(async (): Promise<{ filas: Devolucion[];
     if (error instanceof TablaFaltante) return { filas: [], sinTabla: true, sinMetricas: false };
     throw error;
   }
-});
+}
+
+export const cargarDevolucionesActuales = cache(() => cargarTablaDevoluciones(TABLA_DEVOLUCIONES));
+export const cargarDevolucionesHistoricas = cache(() => cargarTablaDevoluciones(TABLA_DEVOLUCIONES_HISTORICO));

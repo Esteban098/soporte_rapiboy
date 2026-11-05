@@ -96,6 +96,14 @@ export const TABLA_CANCELADOS = process.env.SUPABASE_TABLA_CANCELADOS?.trim() ||
 export const TABLA_CANCELADOS_HISTORICO =
   process.env.SUPABASE_TABLA_CANCELADOS_HISTORICO?.trim() || "cancelados_historico";
 
+/** Devoluciones del mes calendario vigente en México. */
+export const TABLA_DEVOLUCIONES =
+  process.env.SUPABASE_TABLA_DEVOLUCIONES?.trim() || "devoluciones_mensuales";
+
+/** Archivo físico de devoluciones pertenecientes a meses cerrados. */
+export const TABLA_DEVOLUCIONES_HISTORICO =
+  process.env.SUPABASE_TABLA_DEVOLUCIONES_HISTORICO?.trim() || "devoluciones_historico";
+
 /** Tabla de la base con quién puede entrar al tablero y con qué permiso. */
 export const TABLA_PERFILES = process.env.SUPABASE_TABLA_PERFILES?.trim() || "perfiles";
 

@@ -121,7 +121,24 @@ test("agrupa cierres por fecha mexicana y no duplica un paquete guardado en dos 
 test("el almacenamiento es mensual e independiente y el webhook exige autorización", () => {
   assert.equal(nodo("Guardar devoluciones").parameters.table.value, "devoluciones_mensuales");
   assert.deepEqual(nodo("Guardar devoluciones").parameters.columns.matchingColumns, ["mes", "id"]);
+  assert.match(nodo("Archivar meses cerrados").parameters.query, /rotar_devoluciones_historico/);
+  assert.equal(nodo("Archivar meses cerrados").executeOnce, true);
+  assert.equal(flujo.connections["Guardar devoluciones"].main[0][0].node, "Archivar meses cerrados");
   assert.equal(nodo("Actualizar desde plataforma").parameters.authentication, "headerAuth");
   assert.equal(flujo.settings.timezone, "America/Argentina/Buenos_Aires");
   assert.equal(flujo.active, false);
+});
+
+test("la rotación archiva antes de borrar y las pantallas separan vigente de histórico", () => {
+  const migracion = readFileSync(new URL("../supabase/migracion-53-devoluciones-historico.sql", import.meta.url), "utf8");
+  const paginaActual = readFileSync(new URL("../src/app/(tablero)/devoluciones/page.tsx", import.meta.url), "utf8");
+  const paginaHistorica = readFileSync(new URL("../src/app/(tablero)/devoluciones/historial/page.tsx", import.meta.url), "utf8");
+  assert.match(migracion, /create table if not exists public\.devoluciones_historico/i);
+  assert.ok(migracion.indexOf("insert into public.devoluciones_historico") < migracion.indexOf("delete from public.devoluciones_mensuales"));
+  assert.match(migracion, /on conflict \(mes, id\) do update/i);
+  assert.match(migracion, /America\/Mexico_City/);
+  assert.match(paginaActual, /mesEnCurso/);
+  assert.doesNotMatch(paginaActual, /SelectorMeses/);
+  assert.match(paginaHistorica, /cargarDevolucionesHistoricas/);
+  assert.match(paginaHistorica, /SelectorMeses/);
 });

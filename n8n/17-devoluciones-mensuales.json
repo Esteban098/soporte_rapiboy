@@ -144,6 +144,28 @@
         100
       ],
       "id": "devoluciones-6"
+    },
+    {
+      "name": "Archivar meses cerrados",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select * from public.rotar_devoluciones_historico();",
+        "options": {}
+      },
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "REEMPLAZAR",
+          "name": "Supabase - tablero soporte"
+        }
+      },
+      "position": [
+        1100,
+        100
+      ],
+      "id": "devoluciones-7"
     }
   ],
   "connections": {
@@ -196,6 +218,17 @@
         [
           {
             "node": "Guardar devoluciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar devoluciones": {
+      "main": [
+        [
+          {
+            "node": "Archivar meses cerrados",
             "type": "main",
             "index": 0
           }

@@ -40,13 +40,19 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Modelo de datos
 
 - Devoluciones (`/devoluciones`) usa la tabla independiente
-  `devoluciones_mensuales` (migración 39). El flujo 17 busca en HistorialViaje
+  `devoluciones_mensuales` (migración 39) y muestra exclusivamente el mes
+  calendario vigente en México. `/devoluciones/historial` lee
+  `devoluciones_historico`, vive en la familia de navegación existente
+  **Históricos** y filtra meses cerrados por rango. El flujo 17 busca en HistorialViaje
   el estado `IdEstado = 22` (`EnProcesoDeDevolucion`, confirmado por operación),
   sin depender de Mensual/Ayer ni del
   estado actual. Guarda una fila por mes de movimiento en México e ID;
-  movimientos repetidos no duplican el paquete. Conserva todos los meses.
+  movimientos repetidos no duplican el paquete. La migración 53 instala una
+  rotación transaccional e idempotente: copia o actualiza los meses cerrados en
+  histórico antes de retirarlos de la tabla vigente.
   Cada día a las 10:00 ARG reconcilia el mes actual y el anterior;
-  Actualizar reconcilia el rango seleccionado y actualiza la ficha actual.
+  Actualizar reconcilia el mes actual o el rango histórico seleccionado,
+  actualiza la ficha y vuelve a ejecutar la rotación.
   Nunca elimina filas cuando el estado cambia. El webhook exige la credencial
   Header Auth `X-Rapiboy-Token`, compartida con `N8N_TOKEN_DEVOLUCIONES`.
   La migración 40 agrega `fecha_devuelto`: el primer movimiento Devuelto
@@ -62,8 +68,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   Devueltos por día de semana y ranking de fechas se basan en fecha_devuelto en
   México, excluyen domingos y deduplican por ID/fecha cuando se miran varios meses.
   Gráficas y KPIs comparten la búsqueda y filtros de la tabla; agrupación por
-  estado actual, driver de la ficha, seller, polígono o mes. Un rango de meses
-  distingue paquetes únicos de registros mensuales para no ocultar repeticiones.
+  estado actual, driver de la ficha, seller, polígono o mes. En Histórico, un
+  rango distingue paquetes únicos de registros mensuales para no ocultar repeticiones.
 
 - `mensual` y `cancelados` son tablas operativas. Del día 1 al 9 contienen el
   mes anterior y el actual; desde el día 10 deben contener solamente el actual.
