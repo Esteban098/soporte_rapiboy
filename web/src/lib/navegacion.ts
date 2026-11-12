@@ -107,6 +107,22 @@ export const FAMILIAS_NAVEGACION: FamiliaNavegacion[] = FAMILIAS.map((familia) =
   rutas: [...new Set(familia.entradas.flatMap((entrada) => [entrada.href, ...(entrada.activaEn ?? [])]))],
 }));
 
+/** Las rutas anidadas pueden pertenecer a una familia distinta de su padre. */
+export function familiaDeRuta(ruta: string): FamiliaNavegacion | undefined {
+  let seleccionada: FamiliaNavegacion | undefined;
+  let longitud = -1;
+  for (const familia of FAMILIAS_NAVEGACION) {
+    for (const base of familia.rutas) {
+      const coincide = ruta === base || (base !== "/" && ruta.startsWith(`${base}/`));
+      if (coincide && base.length > longitud) {
+        seleccionada = familia;
+        longitud = base.length;
+      }
+    }
+  }
+  return seleccionada;
+}
+
 export const SECCIONES_PRINCIPALES: SeccionPrincipal[] = [
   ...FAMILIAS_NAVEGACION.map((familia) => ({
     href: familia.principal.href,

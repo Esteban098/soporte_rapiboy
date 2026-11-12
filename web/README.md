@@ -1368,6 +1368,11 @@ permite filtrarlos por mes o rango. El estado actual se mantiene independienteme
 Mensual o Última jornada y un viaje no se duplica dentro del mismo mes, aunque
 vuelva a pasar por el estado.
 
+En el historial, la barra secundaria muestra **Casos**, **Cancelados** y
+**Devoluciones**, con Devoluciones activa y únicamente **Históricos** marcado
+en el menú lateral. La navegación usa la ruta coincidente más específica para
+distinguir el historial de la pantalla vigente de Operación.
+
 Para habilitarla, ejecutar `supabase/migracion-39-devoluciones.sql`,
 `supabase/migracion-40-devoluciones-tiempo.sql` y
 `supabase/migracion-53-devoluciones-historico.sql`; luego importar

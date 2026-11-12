@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { familiaDeRuta } from "@/lib/navegacion";
 import estilos from "./ui.module.css";
 
 export function NavLink({
@@ -34,7 +35,7 @@ export function NavLink({
 }) {
   const ruta = usePathname();
   const activo = rutasActivas
-    ? rutasActivas.some((base) => base === "/" ? ruta === "/" : ruta === base || ruta.startsWith(`${base}/`))
+    ? familiaDeRuta(ruta)?.principal.href === href
     : href === "/" || exacto ? ruta === href : ruta.startsWith(href);
 
   return (

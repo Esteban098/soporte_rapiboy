@@ -2,10 +2,26 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
+import { familiaDeRuta, FAMILIAS_NAVEGACION } from "../src/lib/navegacion";
 import { agruparDevoluciones, horasDevolucion, horasPendientesDevolucion, duracionDevolucion, resumenDevoluciones, devolucionesPorDia } from "../src/lib/devoluciones-metricas";
 
 const flujo = JSON.parse(readFileSync(new URL("../../n8n/17-devoluciones-mensuales.json", import.meta.url), "utf8"));
 const nodo = (nombre: string) => flujo.nodes.find((n: { name: string }) => n.name === nombre);
+
+test("el historial de devoluciones muestra Históricos y la devolución vigente Operación", () => {
+  for (const ruta of ["/devoluciones/historial", "/devoluciones/historial/"]) {
+    const familia = familiaDeRuta(ruta);
+    assert.equal(familia?.etiqueta, "Históricos");
+    assert.deepEqual(familia?.entradas.map((entrada) => entrada.etiqueta), ["Casos", "Cancelados", "Devoluciones"]);
+  }
+  assert.equal(familiaDeRuta("/devoluciones")?.etiqueta, "Operación");
+  for (const familia of FAMILIAS_NAVEGACION) {
+    for (const entrada of familia.entradas) {
+      assert.equal(familiaDeRuta(entrada.href)?.etiqueta, familia.etiqueta, entrada.href);
+    }
+  }
+  assert.equal(familiaDeRuta("/devoluciones-otra"), undefined);
+});
 const ejecutarRango = (body: unknown) => runInNewContext(`(function(){${nodo("Validar período").parameters.jsCode}})()`, {
   $json: { body }, Intl, Date,
 });

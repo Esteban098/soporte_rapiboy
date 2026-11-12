@@ -37,7 +37,7 @@ test("las dos rutas están en la navegación y leen mediante una capa server-onl
   assert.ok(rutas.includes("/drivers"));
   assert.ok(SECCIONES_PRINCIPALES.some((seccion) => seccion.href === "/sellers"));
   assert.match(shell, /SECCIONES_PRINCIPALES/);
-  assert.match(navegacion, /FAMILIAS_NAVEGACION/);
+  assert.match(navegacion, /familiaDeRuta/);
 
   const datos = fuente("../src/lib/directorio-datos.ts");
   assert.match(datos, /^import "server-only";/);
