@@ -7,17 +7,21 @@ import { leerSellersDirectorio } from "@/lib/directorio-datos";
 import { fechaHoraMexico, resumirDirectorio } from "@/lib/directorio";
 import { numero } from "@/lib/formato";
 import { TablaFaltante } from "@/lib/supabase";
+import { auth } from "@/auth";
+import { esComercial } from "@/lib/permisos";
 
 export const metadata = { title: "Base de datos · Sellers" };
 
 export default async function Sellers() {
-  if (modoDatos() !== "supabase") return <SinBase />;
+  const sesion = await auth();
+  const puedeActualizar = !esComercial(sesion?.user?.rol);
+  if (modoDatos() !== "supabase") return <SinBase puedeActualizar={puedeActualizar} />;
 
   let sellers;
   try {
     sellers = await leerSellersDirectorio();
   } catch (error) {
-    if (error instanceof TablaFaltante) return <SinTablas />;
+    if (error instanceof TablaFaltante) return <SinTablas puedeActualizar={puedeActualizar} />;
     throw error;
   }
 
@@ -41,7 +45,7 @@ export default async function Sellers() {
       <PageHead
         eyebrow="Base de datos · México"
         titulo="Sellers"
-        flujo="directorio"
+        flujo={puedeActualizar ? "directorio" : undefined}
         dek="Tiendas activas, grupo de WhatsApp y responsable operativo."
       />
 
@@ -84,10 +88,10 @@ export default async function Sellers() {
   );
 }
 
-function SinBase() {
+function SinBase({ puedeActualizar }: { puedeActualizar: boolean }) {
   return (
     <>
-      <PageHead eyebrow="Base de datos · México" titulo="Sellers" flujo="directorio" />
+      <PageHead eyebrow="Base de datos · México" titulo="Sellers" flujo={puedeActualizar ? "directorio" : undefined} />
       <Callout tono="warning" titulo="La plataforma no está usando Supabase">
         El directorio operativo solo está disponible con la base de Supabase activa.
       </Callout>
@@ -95,10 +99,10 @@ function SinBase() {
   );
 }
 
-function SinTablas() {
+function SinTablas({ puedeActualizar }: { puedeActualizar: boolean }) {
   return (
     <>
-      <PageHead eyebrow="Base de datos · México" titulo="Sellers" flujo="directorio" />
+      <PageHead eyebrow="Base de datos · México" titulo="Sellers" flujo={puedeActualizar ? "directorio" : undefined} />
       <Callout tono="warning" titulo="Falta la tabla sellers_activos">
         Ejecutá en Supabase las migraciones del directorio hasta la 25, en orden
         (especialmente <code>migracion-18-sellers-activos-consolidados.sql</code>),

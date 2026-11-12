@@ -2,7 +2,7 @@
  * Qué puede ver cada rol.
  *
  * `admin` y `operador` ven todo el tablero. `comercial` es el perfil del
- * equipo comercial: entra solo a Tiendas y a Colectas, y nada más.
+ * equipo comercial: entra a Tiendas, Colectas y al directorio de Sellers.
  *
  * Es un módulo puro, sin imports de servidor, porque lo usan tres lugares que
  * corren en runtimes distintos: el proxy (edge), el menú (cliente y servidor) y
@@ -26,10 +26,10 @@ export function aRol(valor: unknown): RolPerfil {
 }
 
 /**
- * Las únicas pantallas de un comercial. Exactas: `/colectas` no abre cualquier
- * cosa que empiece así, solo la asignación y su historial.
+ * Las únicas pantallas de un comercial. Exactas: `/colectas` y `/sellers` no
+ * abren cualquier cosa que empiece igual, solo estas vistas declaradas.
  */
-export const RUTAS_COMERCIAL = ["/tiendas", "/colectas", "/colectas/historial"] as const;
+export const RUTAS_COMERCIAL = ["/tiendas", "/colectas", "/colectas/historial", "/sellers"] as const;
 
 export function esComercial(rol: RolPerfil | null | undefined): boolean {
   return rol === "comercial";

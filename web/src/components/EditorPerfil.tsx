@@ -93,7 +93,7 @@ export function EditorPerfil({
             disabled={guardando || esMio}
           >
             <option value="operador">Operador</option>
-            <option value="comercial">Comercial · solo Tiendas y Colectas</option>
+            <option value="comercial">Comercial · Tiendas, Colectas y Sellers</option>
             <option value="admin">Administrador</option>
           </select>
         </label>

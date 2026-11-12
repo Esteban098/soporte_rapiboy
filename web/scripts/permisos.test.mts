@@ -15,8 +15,8 @@ import { ETIQUETA_ROL, RUTAS_COMERCIAL, aRol, inicioDe, puedeVerRuta } from "../
 
 const fuente = (ruta: string) => readFileSync(new URL(ruta, import.meta.url), "utf8");
 
-test("un comercial ve Tiendas y Colectas, y nada más", () => {
-  for (const ruta of ["/tiendas", "/colectas", "/colectas/historial", "/tiendas/", "/colectas/historial/"]) {
+test("un comercial ve Tiendas, Colectas y Sellers, y nada más", () => {
+  for (const ruta of ["/tiendas", "/colectas", "/colectas/historial", "/sellers", "/tiendas/", "/colectas/historial/", "/sellers/"]) {
     assert.ok(puedeVerRuta("comercial", ruta), ruta);
   }
   for (const ruta of [
@@ -25,7 +25,6 @@ test("un comercial ve Tiendas y Colectas, y nada más", () => {
     "/seguimiento",
     "/perfiles",
     "/live-tracker",
-    "/sellers",
     "/drivers",
     "/cobertura",
     "/colectas/otra",
@@ -35,7 +34,7 @@ test("un comercial ve Tiendas y Colectas, y nada más", () => {
   ]) {
     assert.equal(puedeVerRuta("comercial", ruta), false, ruta);
   }
-  assert.deepEqual([...RUTAS_COMERCIAL], ["/tiendas", "/colectas", "/colectas/historial"]);
+  assert.deepEqual([...RUTAS_COMERCIAL], ["/tiendas", "/colectas", "/colectas/historial", "/sellers"]);
 });
 
 test("admin, operador y quien entra por Google siguen viendo todo", () => {
@@ -72,6 +71,10 @@ test("el proxy aplica la regla y la sesión deja afuera al comercial por defecto
   const actualizar = fuente("../src/app/actualizar.ts");
   assert.match(actualizar, /sesionActual\(/);
   assert.match(actualizar, /"colectas"/);
+
+  const sellers = fuente("../src/app/(tablero)/sellers/page.tsx");
+  assert.match(sellers, /esComercial\(sesion\?\.user\?\.rol\)/);
+  assert.match(sellers, /flujo=\{puedeActualizar \? "directorio" : undefined\}/);
 });
 
 test("Meta alcanza su webhook público y la ruta autentica sus desafíos y firmas", () => {

@@ -460,14 +460,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Antes de borrar o mover datos en Supabase, contar las filas objetivo y
   verificar su destino. Después, comprobar cantidades e intersecciones.
 - No truncar tablas ni cambiar workflows activos salvo pedido explícito.
-- El rol `comercial` ve solo `/tiendas`, `/colectas` y `/colectas/historial`.
+- El rol `comercial` ve solo `/tiendas`, `/colectas`, `/colectas/historial` y
+  `/sellers`. Sellers es de solo lectura para este rol: no se muestra el botón
+  de sincronización y `/drivers` continúa cerrado.
   La regla vive una sola vez en `src/lib/permisos.ts` y la aplican el proxy,
   el menú y las acciones. `operadorActual()` y `usuarioActual()` devuelven
   `null` para un comercial, así que toda acción o endpoint nuevo queda cerrado
   para él por defecto; `sesionActual()` lo incluye y se usa solo donde
-  corresponde (refrescar colectas). La distribución editable se movió a
-  `/sellers`, que permanece restringido a admin y operador. Una pantalla nueva que
-  deba verla un comercial se agrega a `RUTAS_COMERCIAL`.
+  corresponde (refrescar colectas). La lectura del directorio vive en
+  `/sellers`; sus acciones y el resto de Base de datos permanecen restringidos
+  a admin y operador. Una pantalla nueva que deba verla un comercial se agrega
+  a `RUTAS_COMERCIAL`.
 - Los JSON de `../n8n/` son exportaciones importables. Conservar credenciales,
   conexiones, expresiones y columnas protegidas al modificarlos.
 - Para una publicación compatible: correr primero las migraciones aditivas,
