@@ -682,7 +682,10 @@ driver o seller vacío, para completar esos datos directamente desde
 RapiboyData. Es un webhook
 que recibe `{ "id": "30543375" }` y devuelve, en la misma respuesta
 (`Response Mode: Last Node`), el estado actual del viaje, su tienda y zona, y
-sus últimos 60 movimientos de `HistorialViaje`.
+sus últimos 60 movimientos de `HistorialViaje`. La primera consulta con un ID
+en la plataforma o la extensión presenta de forma fija `Viaje.Id`, domicilio,
+polígono, tienda, `ComentarioMotoboy`, `ComentarioEstado`, última evidencia y
+el cruce con Seguimiento; después el asistente continúa normalmente.
 
 - **Solo lee.** Una consulta a SQL Server con `NOLOCK`, sin escribir en
   ningún lado. Hay una prueba en `web/scripts/asistente.test.mts` que falla si

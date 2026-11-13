@@ -1229,9 +1229,21 @@ eso, contesta solo con el tablero y avisa que no pudo consultar el sistema. Si
 avisa «token rechazado», n8n respondió 403 («Authorization data is wrong!»):
 el nombre del encabezado o el valor no coinciden entre n8n y el tablero.
 
-**Qué no le llega a OpenAI:** teléfonos, ubicaciones y domicilios de clientes,
-coordenadas y domicilios de repartidores. Si hace falta uno de esos datos, la
-respuesta remite a la ficha del caso.
+**Primera respuesta por ID.** Cuando el primer mensaje de una conversación
+contiene un único ID de viaje, el servidor devuelve una ficha fija antes de
+llamar al modelo. Siempre muestra ID y estado, domicilio, polígono, tienda,
+comentario del motoboy (`Viaje.ComentarioMotoboy`), comentario del operador
+(`Viaje.ComentarioEstado`), evidencia, si tiene Seguimiento y los enlaces para
+abrir la evidencia, el reporte y el viaje en Rapiboy. Si un dato falta, lo dice
+en su lugar. Las preguntas siguientes usan el chat normal y profundizan sobre
+el ID que quedó en la conversación.
+
+La plataforma y la extensión reciben esta misma ficha desde
+`responderPedidoAsistente`; no hace falta publicar una versión nueva de la
+extensión para cambiar este contrato. Las consultas generales de las pantallas
+siguen omitiendo teléfonos, ubicaciones y domicilios cuando esos datos no son
+necesarios. La ficha inicial consulta el viaje directamente en RapiboyData y se
+entrega solo al operador autenticado.
 
 **Costo.** Cada pregunta hace de una a seis llamadas al modelo. Con
 `gpt-5-mini` ronda medio centavo de dólar por pregunta. Cada herramienta
@@ -1273,7 +1285,8 @@ perfiles.id. En asistente_extension_tokens se guarda solo SHA-256: el secreto
 en claro se muestra una vez y queda en el perfil local de Firefox. Cada pedido
 vuelve a comprobar que el perfil siga activo y no sea comercial. La ruta
 reutiliza los mismos límites, filtro operativo, herramientas y registro de uso
-del chat interno.
+del chat interno. También reutiliza la ficha inicial fija por ID; después de esa
+primera respuesta, los mensajes siguientes continúan la conversación normal.
 
 Instalar web/supabase/migracion-52-asistente-extension.sql antes de generar la
 primera vinculación. La extensión conserva hasta 12 mensajes solamente en RAM;

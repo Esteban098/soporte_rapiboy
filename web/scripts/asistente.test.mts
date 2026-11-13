@@ -14,9 +14,11 @@ import {
   cruzarEstados,
   diaLegible,
   diaValido,
+  fichaInicialPaquete,
   historialParaModelo,
   horaLocalLegible,
   momentoLegible,
+  idDePrimeraConsulta,
   idValido,
   instrucciones,
   leerArgumentos,
@@ -24,6 +26,7 @@ import {
   mesValido,
   paqueteEnRutaParaModelo,
   preguntaOperativa,
+  preguntaOperativaEnContexto,
   reporteParaModelo,
   pedidoParaModelo,
   repartidorParaModelo,
@@ -197,6 +200,7 @@ test("el historial del sistema se lee campo por campo", () => {
   if (!datos.encontrado) return;
   assert.equal(datos.en_alcance_del_tablero, true);
   assert.equal(datos.enlace_rapiboy, "https://rapiboy.com/Operador?modalidad=5&idviaje=30543375");
+  assert.equal(datos.poligono, null);
   assert.match(datos.movimientos[0].fecha!, /^11 sept? 2026, 14:05$/);
   assert.equal(datos.movimientos[0].enlace_foto, "https://files.rapiboy.com/x.jpg");
   assert.equal(datos.movimientos[1].fecha, null);
@@ -217,6 +221,67 @@ test("el historial del sistema se lee campo por campo", () => {
 
   const otraLocalidad = historialParaModelo({ encontrado: true, id: "1", viaje: { id_modalidad: 5, id_localidad: 3 } });
   assert.equal(otraLocalidad.encontrado && otraLocalidad.en_alcance_del_tablero, false);
+});
+
+test("la primera consulta con un ID genera siempre la ficha operativa completa", () => {
+  assert.equal(idDePrimeraConsulta("30448011"), "30448011");
+  assert.equal(idDePrimeraConsulta("Revisá el paquete #30.448.011"), "30448011");
+  assert.equal(idDePrimeraConsulta("Compará 30448011 con 30543375"), null);
+  assert.equal(preguntaOperativa("30.448.011"), true);
+
+  const ficha = fichaInicialPaquete({
+    id: 30448011,
+    sistema: {
+      estado_actual: "Pedido no entregado",
+      direccion: "Calle Panal 52",
+      poligono: "MX Huixquilucan B",
+      tienda: "Grupo Fuentes Automotriz",
+      comentario_motoboy: "No contestan",
+      comentario_operador: "Reprogramar con tienda",
+      evidencia_foto: "https://files.rapiboy.com/foto.jpg",
+    },
+    tablero: {
+      reportes_seguimiento: [
+        { etapa: "abierto", enlace_reporte: "/seguimiento?reporte=abc-123" },
+      ],
+    },
+    cruce: { estado_sistema: "Pedido no entregado" },
+    enlace_rapiboy: "https://rapiboy.com/Operador?modalidad=5&idviaje=30448011",
+  }, "30448011");
+
+  for (const dato of [
+    "ID 30448011", "Calle Panal 52", "MX Huixquilucan B", "Grupo Fuentes Automotriz",
+    "No contestan", "Reprogramar con tienda", "Ver evidencia", "Seguimiento: Sí · abierto",
+    "Ver seguimiento", "Abrir en Rapiboy",
+  ]) assert.ok(ficha.includes(dato), dato);
+
+  const sinDatos = fichaInicialPaquete({ id: 30448011, sistema: {}, tablero: {} }, "30448011");
+  assert.match(sinDatos, /Domicilio: No informado/);
+  assert.match(sinDatos, /Comentario del motoboy: Sin comentario/);
+  assert.match(sinDatos, /Comentario del operador: Sin comentario/);
+  assert.match(sinDatos, /Evidencia: No hay evidencia cargada/);
+  assert.match(sinDatos, /Seguimiento: No tiene seguimiento registrado/);
+});
+
+test("las preguntas siguientes conservan el contexto operativo sin abrir temas ajenos", () => {
+  const base = [
+    { rol: "usuario" as const, texto: "30448011" },
+    { rol: "asistente" as const, texto: "Ficha del paquete" },
+  ];
+  assert.equal(preguntaOperativaEnContexto([...base, { rol: "usuario", texto: "Dame más información" }]), true);
+  assert.equal(preguntaOperativaEnContexto([...base, { rol: "usuario", texto: "¿Cuándo fue el último cambio?" }]), true);
+  assert.equal(preguntaOperativaEnContexto([...base, { rol: "usuario", texto: "Enseñame japonés" }]), false);
+});
+
+test("web y extensión comparten la ficha fija antes de llamar al modelo", () => {
+  const endpoint = fuente("../src/lib/asistente-endpoint.ts");
+  const extension = fuente("../src/app/api/asistente/extension/route.ts");
+  const web = fuente("../src/app/api/asistente/route.ts");
+  assert.ok(endpoint.indexOf("idDePrimeraConsulta") < endpoint.indexOf("llegoAlTope"));
+  assert.ok(endpoint.indexOf('ejecutarHerramienta("buscar_paquete"') < endpoint.indexOf("responder(historial"));
+  assert.match(endpoint, /fichaInicialPaquete/);
+  assert.match(extension, /responderPedidoAsistente/);
+  assert.match(web, /responderPedidoAsistente/);
 });
 
 test("un viaje fuera de alcance no se detalla: el chat no ve más que el tablero", () => {

@@ -569,6 +569,16 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   diferencia de los demás webhooks, devuelve datos. Una prueba verifica las tres
   cosas. El encabezado es `ChatBot-Rapiboy-Token` (`ENCABEZADO_TOKEN_HISTORIAL`),
   el *Name* de la credencial en n8n; no es el `X-Rapiboy-Token` del flujo 07.
+- La primera pregunta de una conversación que contiene un único ID de viaje no
+  se redacta con el modelo: `asistente-endpoint.ts` ejecuta `buscar_paquete` y
+  arma una ficha fija con ID y estado, domicilio, polígono, tienda,
+  `Viaje.ComentarioMotoboy`, `Viaje.ComentarioEstado` (mostrado como comentario
+  del operador), evidencia, existencia de Seguimiento y enlaces a Seguimiento,
+  evidencia y Rapiboy. La plataforma y la extensión comparten ese endpoint, por
+  lo que el contrato se aplica a ambas. Las preguntas siguientes vuelven al
+  recorrido normal del modelo con el ID y la ficha dentro del historial. Una
+  continuación breve hereda el alcance operativo aunque no repita el ID; un
+  pedido explícitamente ajeno sigue rechazado.
 - Algunas fotos vienen de la base con la barra de Windows
   (`Firma/202609\014d2c0.jpeg`). `files.rapiboy.com` las sirve igual, pero el
   modelo escapa la barra y rompe el enlace: `enlaceFoto()` las manda con `/`.

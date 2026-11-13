@@ -1,7 +1,8 @@
 import "server-only";
 
-import { preguntaOperativa, validarHistorial } from "./asistente";
+import { fichaInicialPaquete, idDePrimeraConsulta, preguntaOperativaEnContexto, validarHistorial } from "./asistente";
 import { responder } from "./asistente-chat";
+import { ejecutarHerramienta } from "./asistente-datos";
 import { llegoAlTope, registrarUso } from "./asistente-uso";
 import { TOPE_DIARIO_ASISTENTE } from "./config";
 import type { Operador } from "./sesion";
@@ -12,11 +13,25 @@ export async function responderPedidoAsistente(pedido: Request, operador: Operad
   const historial = validarHistorial(cuerpo?.mensajes);
   if (!historial) return Response.json({ ok: false, error: "Falta la pregunta." }, { status: 400 });
 
-  if (!preguntaOperativa(historial.at(-1)!.texto)) {
+  if (!preguntaOperativaEnContexto(historial)) {
     return Response.json(
       { ok: false, error: "Solo puedo ayudar con la operación interna de Rapiboy y los datos de la plataforma." },
       { status: 422 },
     );
+  }
+
+  // La plataforma y la extensión terminan en este mismo punto. Ante el primer
+  // mensaje con un solo ID, el servidor arma la ficha mínima sin delegar al
+  // modelo qué campos conservar. Las preguntas posteriores siguen el chat
+  // normal y pueden profundizar sobre el mismo viaje.
+  const idInicial = historial.length === 1 ? idDePrimeraConsulta(historial[0].texto) : null;
+  if (idInicial) {
+    const datos = await ejecutarHerramienta("buscar_paquete", { id: idInicial });
+    return Response.json({
+      ok: true,
+      texto: fichaInicialPaquete(datos, idInicial),
+      herramientas: ["buscar_paquete"],
+    });
   }
 
   if (await llegoAlTope(operador.email)) {

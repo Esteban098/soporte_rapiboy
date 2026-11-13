@@ -68,14 +68,40 @@ const TERMINOS_OPERATIVOS = [
   "asistencia", "motoboy", "poligono", "operacion", "operativo", "plataforma", "tablero", "sistema",
   "consulta", "supabase", "n8n",
 ];
+const PEDIDO_AJENO = /\b(aprender|ensename|enséñame|receta|cocina|japones|japonés|ingles|inglés|idioma|programar|poema|cancion|canción|pelicula|película|musica|música|ejercicio|entrenamiento)\b/u;
 
 export function preguntaOperativa(texto: string): boolean {
   const limpio = normalizar(texto);
   if (!limpio) return false;
-  if (/\b(aprender|ensename|enséñame|receta|cocina|japones|japones|ingles|idioma|programar|poema|cancion|pelicula|musica|ejercicio|entrenamiento)\b/u.test(limpio)) {
-    return false;
-  }
-  return /\d{5,12}/.test(limpio) || TERMINOS_OPERATIVOS.some((termino) => limpio.includes(termino));
+  if (PEDIDO_AJENO.test(limpio)) return false;
+  return idDePrimeraConsulta(texto) !== null || /\d{5,12}/.test(limpio) ||
+    TERMINOS_OPERATIVOS.some((termino) => limpio.includes(termino));
+}
+
+/** Una continuación breve hereda el alcance, pero un pedido ajeno explícito no. */
+export function preguntaOperativaEnContexto(historial: MensajeChat[]): boolean {
+  const ultima = historial.at(-1)?.texto ?? "";
+  if (preguntaOperativa(ultima)) return true;
+  if (PEDIDO_AJENO.test(normalizar(ultima))) return false;
+  return historial.slice(0, -1).some((mensaje) => mensaje.rol === "usuario" && preguntaOperativa(mensaje.texto));
+}
+
+/**
+ * Un único ID de viaje mencionado en la primera pregunta.
+ *
+ * Se aceptan las dos formas que copia el equipo: `30448011` y `30.448.011`.
+ * Si hay más de uno, la consulta deja de ser una ficha individual y sigue el
+ * recorrido normal del asistente.
+ */
+export function idDePrimeraConsulta(texto: string): string | null {
+  const candidatos = [
+    ...(texto.match(/\b\d{7,9}\b/g) ?? []),
+    ...(texto.match(/\b\d{1,3}(?:\.\d{3}){2,3}\b/g) ?? []),
+  ];
+  const ids = [...new Set(candidatos.map((valor) => idValido(valor)).filter((valor): valor is string =>
+    Boolean(valor && /^\d{7,9}$/.test(valor)),
+  ))];
+  return ids.length === 1 ? ids[0] : null;
 }
 
 /* ---------------------------------------------------------------------------
@@ -117,8 +143,11 @@ export function instrucciones(momento = new Date()): string {
     "  Rechazá con una frase breve cualquier pedido educativo, creativo, personal o ajeno a la operación.",
     "- Como es una herramienta interna, cuando buscar_paquete o historial_viaje devuelvan la ficha completa",
     "  podés informar domicilio, teléfono, destinatario y coordenadas del viaje. Si no vienen, decilo.",
+    "- La primera respuesta ante un único ID es una ficha fija que arma el servidor. En respuestas posteriores",
+    "  conservá como contexto ese ID y respondé la consulta puntual sin volver a repetir toda la ficha, salvo",
+    "  que el operador la pida otra vez.",
     "- buscar_paquete consulta primero el sistema de Rapiboy (RapiboyData) y lo cruza con el tablero:",
-    "  - `sistema` manda para el estado actual, la tienda, la zona y los movimientos.",
+    "  - `sistema` manda para el estado actual, el domicilio, el polígono, la tienda, los comentarios, la evidencia y los movimientos.",
     "  - `tablero` es lo que trabajó el equipo: caso de entrega fallida, siniestro y cobro, reclamo y",
     "    aviso de la tienda, reportes de seguimiento, cancelación y ruta del día.",
     "  - `cruce` dice si los dos estados coinciden. Si no, contá el del sistema como el actual y aclaralo",
@@ -206,8 +235,9 @@ export const HERRAMIENTAS = [
     function: {
       name: "buscar_paquete",
       description:
-        "Consulta un paquete por su ID de viaje: primero en el sistema de Rapiboy (estado actual, tienda, " +
-        "zona y últimos movimientos) y después lo cruza con el tablero: caso de entrega fallida, siniestro " +
+        "Consulta un paquete por su ID de viaje: primero en el sistema de Rapiboy (estado actual, domicilio, " +
+        "polígono, tienda, comentarios del motoboy y del operador, evidencia y últimos movimientos) y después " +
+        "lo cruza con el tablero: caso de entrega fallida, siniestro " +
         "y cobro, reclamo y aviso de la tienda, reportes de seguimiento, cancelación y ruta del día. " +
         "Es la herramienta para cualquier pregunta sobre un paquete puntual.",
       parameters: {
@@ -630,6 +660,7 @@ export function paqueteEnRutaParaModelo(paquete: PaqueteFila) {
     fecha_visita: momentoLegible(paquete.fecha_visita),
     motivo_no_entregado: paquete.motivo_no_entregado,
     comentario_repartidor: paquete.comentario_motoboy,
+    comentario_operador: paquete.comentario_estado,
     enlace_evidencia: enlaceFoto(paquete.evidencia_foto),
     enlace_rapiboy: enlaceViaje(paquete.id_viaje),
     activo_en_ruta: paquete.activo_en_ruta,
@@ -748,7 +779,7 @@ export function historialParaModelo(crudo: unknown, maxMovimientos = 60) {
     id_estado: numero(viaje.id_estado),
     orden: numero(viaje.orden),
     tienda: cadena(viaje.tienda),
-    zona: cadena(viaje.poligono),
+    poligono: cadena(viaje.poligono),
     direccion: cadena(viaje.direccion),
     telefono: cadena(viaje.telefono),
     ciudad: cadena(viaje.ciudad),
@@ -758,7 +789,7 @@ export function historialParaModelo(crudo: unknown, maxMovimientos = 60) {
     observacion_destino: cadena(viaje.observacion_destino),
     nombre_recibe: cadena(viaje.nombre_recibe),
     comentario_motoboy: cadena(viaje.comentario_motoboy),
-    comentario_estado: cadena(viaje.comentario_estado),
+    comentario_operador: cadena(viaje.comentario_estado),
     motivo_no_entregado: cadena(viaje.motivo_no_entregado),
     motivo_no_devuelto: cadena(viaje.motivo_no_devuelto),
     latitud_destino: numero(viaje.latitud_destino),
@@ -787,6 +818,74 @@ export function historialParaModelo(crudo: unknown, maxMovimientos = 60) {
       };
     }),
   };
+}
+
+/**
+ * Primera respuesta común de la plataforma y la extensión.
+ *
+ * No la redacta el modelo: estos campos son el contrato mínimo operativo y no
+ * pueden desaparecer por una decisión de resumen. Los valores ausentes se
+ * muestran como tales, en vez de completar por inferencia.
+ */
+export function fichaInicialPaquete(crudo: unknown, idSolicitado: string): string {
+  const registro = (valor: unknown): Record<string, unknown> =>
+    valor && typeof valor === "object" && !Array.isArray(valor) ? valor as Record<string, unknown> : {};
+  const cadena = (valor: unknown): string | null =>
+    typeof valor === "string" && valor.trim() ? valor.trim() : null;
+
+  const raiz = registro(crudo);
+  const sistema = registro(raiz.sistema);
+  const tablero = registro(raiz.tablero);
+  const cruce = registro(raiz.cruce);
+  const caso = registro(tablero.caso_entrega_fallida);
+  const enRuta = registro(tablero.en_ruta);
+  const reportes = Array.isArray(tablero.reportes_seguimiento)
+    ? tablero.reportes_seguimiento.map(registro)
+    : [];
+
+  const id = cadena(raiz.id) ?? String(typeof raiz.id === "number" ? raiz.id : idSolicitado);
+  const estado = cadena(sistema.estado_actual) ?? cadena(cruce.estado_sistema) ??
+    cadena(cruce.estado_tablero) ?? cadena(enRuta.estado) ?? cadena(caso.estado) ?? "No informado";
+  const domicilio = cadena(sistema.direccion) ?? "No informado";
+  const poligono = cadena(sistema.poligono) ?? cadena(enRuta.poligono) ?? cadena(caso.poligono) ?? "No informado";
+  const tienda = cadena(sistema.tienda) ?? cadena(enRuta.tienda) ?? cadena(caso.tienda) ?? "No informada";
+  const comentarioMotoboy = cadena(sistema.comentario_motoboy) ??
+    cadena(enRuta.comentario_repartidor) ?? "Sin comentario";
+  const comentarioOperador = cadena(sistema.comentario_operador) ?? cadena(sistema.comentario_estado) ??
+    cadena(enRuta.comentario_operador) ?? "Sin comentario";
+  const evidencia = cadena(sistema.evidencia_foto) ?? cadena(enRuta.enlace_evidencia) ??
+    cadena(caso.enlace_evidencia);
+  const enlaceRapiboy = cadena(raiz.enlace_rapiboy) ?? cadena(sistema.enlace_rapiboy) ?? enlaceViaje(idSolicitado);
+
+  const etapas = new Map<string, number>();
+  for (const reporte of reportes) {
+    const etapa = cadena(reporte.etapa) ?? "sin estado";
+    etapas.set(etapa, (etapas.get(etapa) ?? 0) + 1);
+  }
+  const detalleSeguimiento = reportes.length === 0
+    ? "No tiene seguimiento registrado"
+    : reportes.length === 1
+      ? `Sí · ${cadena(reportes[0].etapa) ?? "sin estado informado"}`
+      : `Sí · ${reportes.length} reportes (${[...etapas].map(([etapa, total]) => `${total} ${etapa}`).join(", ")})`;
+
+  const lineas = [
+    `**ID ${id} · ${estado}**`,
+    `- Domicilio: ${domicilio}`,
+    `- Polígono: ${poligono}`,
+    `- Tienda: ${tienda}`,
+    `- Comentario del motoboy: ${comentarioMotoboy}`,
+    `- Comentario del operador: ${comentarioOperador}`,
+    `- Evidencia: ${evidencia ? "Disponible" : "No hay evidencia cargada"}`,
+    `- Seguimiento: ${detalleSeguimiento}`,
+  ];
+
+  if (evidencia) lineas.push(`[Ver evidencia](${evidencia})`);
+  for (const reporte of reportes.slice(0, 3)) {
+    const enlace = cadena(reporte.enlace_reporte);
+    if (enlace) lineas.push(`[Ver seguimiento](${enlace})`);
+  }
+  lineas.push(`[Abrir en Rapiboy](${enlaceRapiboy})`);
+  return lineas.join("\n");
 }
 
 /* ---------------------------------------------------------------------------
