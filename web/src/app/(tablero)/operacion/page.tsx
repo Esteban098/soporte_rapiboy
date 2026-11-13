@@ -6,6 +6,7 @@ import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
 import { PanelCasos } from "@/components/PanelCasos";
 import { ConteoTable } from "@/components/ConteoTable";
+import { columnasPara, filasDePedidos } from "@/lib/filas";
 import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Última jornada" };
@@ -81,7 +82,7 @@ export default async function Ayer() {
           titulo="En qué estado quedaron"
           nota="Los casos de la última jornada agrupados por estado, con cuáles cuentan como resueltos."
         >
-          <EstadosTable id="ayer-estados" titulo="Última jornada · en qué estado quedaron" filas={estados} />
+          <EstadosTable id="ayer-estados" titulo="Última jornada · en qué estado quedaron" filas={estados} detalle={{ titulo: "Última jornada", columnas: columnasPara(casos.campos), filas: filasDePedidos(ayer) }} />
         </Card>
 
         <Card

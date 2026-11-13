@@ -6,15 +6,17 @@ import { numero, porcentaje } from "@/lib/formato";
 import { ValorMetrica } from "../ValorMetrica";
 import { CajaTooltip } from "./Tooltip";
 import estilos from "./arco-distribucion.module.css";
+import { datoTocado } from "./tocar";
 
 type Tramo = { nombre: string; valor: number; color: string };
 
 /** Semicírculo de distribución: grosor de cada tramo = proporción real. */
-export function ArcoDistribucion({ datos, total, unidad, etiquetaCantidad = "Casos" }: {
+export function ArcoDistribucion({ datos, total, unidad, etiquetaCantidad = "Casos", onSeleccionar }: {
   datos: Tramo[];
   total: number;
   unidad: string;
   etiquetaCantidad?: string;
+  onSeleccionar?: (nombre: string) => void;
 }) {
   const patron = useId().replace(/:/g, "");
   const suma = datos.reduce((acumulado, dato) => acumulado + dato.valor, 0);
@@ -34,7 +36,11 @@ export function ArcoDistribucion({ datos, total, unidad, etiquetaCantidad = "Cas
             innerRadius="57%" outerRadius="94%" fill={`url(#${patron})`} stroke="none" isAnimationActive={false}
             style={{ pointerEvents: "none" }} />
           <Pie data={datos} dataKey="valor" nameKey="nombre" cx="50%" cy="72%" startAngle={180} endAngle={0}
-            innerRadius="66%" outerRadius="87%" paddingAngle={datos.length > 1 ? 2 : 0} cornerRadius={15} stroke="none" isAnimationActive={false}>
+            innerRadius="66%" outerRadius="87%" paddingAngle={datos.length > 1 ? 2 : 0} cornerRadius={15} stroke="none" isAnimationActive={false}
+            style={{ cursor: onSeleccionar ? "pointer" : undefined }} onClick={(entrada: unknown) => {
+              const dato = datoTocado<Tramo>(entrada);
+              if (dato?.nombre) onSeleccionar?.(dato.nombre);
+            }}>
             {datos.map((dato) => <Cell key={dato.nombre} fill={dato.color} />)}
           </Pie>
           <Pie data={datos} dataKey="valor" nameKey="nombre" cx="50%" cy="72%" startAngle={180} endAngle={0}

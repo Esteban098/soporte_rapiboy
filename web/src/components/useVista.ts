@@ -11,6 +11,7 @@ import {
   suscribirPreferencias,
 } from "@/lib/preferencias";
 import type { Columna, Fila, Filtro } from "./Tabla";
+import { filtrarFilas, seleccionVigente, textoFiltro } from "@/lib/tabla-vista";
 
 /**
  * Filtrado compartido entre una tabla y sus gráficos.
@@ -36,7 +37,7 @@ export function useVista({
     () => leerPreferencia(id, "filtros"),
     sinPreferencias,
   );
-  const seleccion = useMemo(() => parsearFiltros(filtrosCrudos), [filtrosCrudos]);
+  const seleccion = useMemo(() => seleccionVigente(parsearFiltros(filtrosCrudos), filtros), [filtrosCrudos, filtros]);
 
   const busqueda = useSyncExternalStore(
     suscribirPreferencias,
@@ -48,8 +49,8 @@ export function useVista({
     const mapa: Record<string, string[]> = {};
     for (const filtro of filtros) {
       const opciones =
-        filtro.opciones ??
-        [...new Set(filas.map((f) => String(f[filtro.clave] ?? "")).filter(Boolean))].sort();
+        [...new Set((filtro.opciones ?? filas.map((f) => textoFiltro(f[filtro.clave]))).map(textoFiltro).filter(Boolean))]
+          .sort((a, b) => a.localeCompare(b, "es", { numeric: true }));
 
       // Un filtro guardado puede apuntar a un valor que hoy no está en los
       // datos. Se agrega igual para que se vea qué está filtrando y se pueda
@@ -61,20 +62,7 @@ export function useVista({
     return mapa;
   }, [filtros, filas, seleccion]);
 
-  const filtradas = useMemo(() => {
-    const activos = Object.entries(seleccion);
-    const texto = normalizar(busqueda);
-
-    return filas.filter((fila) => {
-      for (const [clave, valores] of activos) {
-        if (!valores.includes(String(fila[clave] ?? ""))) return false;
-      }
-      if (!texto) return true;
-      return columnas.some((columna) =>
-        normalizar(String(fila[columna.clave] ?? "")).includes(texto),
-      );
-    });
-  }, [filas, seleccion, busqueda, columnas]);
+  const filtradas = useMemo(() => filtrarFilas(filas, columnas, seleccion, busqueda), [filas, seleccion, busqueda, columnas]);
 
   function alternarValor(clave: string, valor: string) {
     const actuales = seleccion[clave] ?? [];
@@ -110,12 +98,4 @@ export function useVista({
     limpiarTodo,
     hayFiltros: Object.keys(seleccion).length > 0 || busqueda !== "",
   };
-}
-
-/** Compara sin acentos ni mayúsculas, que es como busca la gente. */
-function normalizar(texto: string): string {
-  return texto
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "");
 }

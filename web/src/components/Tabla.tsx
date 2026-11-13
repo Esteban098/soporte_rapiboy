@@ -15,6 +15,7 @@ import {
   suscribirPreferencias,
 } from "@/lib/preferencias";
 import { useVista } from "./useVista";
+import { claveFilaTabla } from "@/lib/tabla-vista";
 import { EditorCaso, type Edicion } from "./EditorCaso";
 import { numero, porcentaje, decimal, duracionHoras } from "@/lib/formato";
 import { AsignarSoporteSeller } from "./AsignarSoporteSeller";
@@ -327,6 +328,10 @@ export function Tabla({
         </span>
       </div>
 
+      {filtrosActivos.length > 0 ? <div className={tabla.filtrosActivos} data-noimprimir aria-label="Filtros aplicados">
+        {filtrosActivos.flatMap(([clave, valores]) => valores.map((valor) => <button key={`${clave}:${valor}`} type="button" className={tabla.limpiar} onClick={() => alternarValor(clave, valor)} aria-label={`Quitar ${etiquetaDe(filtros, clave)}: ${valor}`}>{etiquetaDe(filtros, clave)}: {valor} ×</button>))}
+      </div> : null}
+
       <div className={tabla.encabezadoImpreso}>
         <h2>{titulo ?? "Tabla"}</h2>
         <p>
@@ -377,7 +382,7 @@ export function Tabla({
             </thead>
             <tbody>
               {visibles.map((fila, indice) => (
-                <tr key={String(fila.id ?? indice)}>
+                <tr key={claveFilaTabla(fila, indice)}>
                   {editable ? (
                     <td data-noimprimir className={tabla.celdaAccion}>
                       <button

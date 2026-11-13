@@ -13,6 +13,7 @@ import tabla from "./tabla.module.css";
 
 const ID_HOY = "asistencia-hoy";
 const ID_HISTORIAL = "asistencia-historial";
+const FILTROS_HISTORIAL = [{ clave: "respuesta", etiqueta: "Voto" }, { clave: "driver", etiqueta: "Repartidor" }];
 
 const COLUMNAS_HOY: Columna[] = [
   { clave: "id", titulo: "IdMotoboy", tipo: "numero" },
@@ -136,9 +137,9 @@ export function AsistenciaPanel({
           <label className={tabla.filtro}><span className={tabla.filtroEtiqueta}>Hasta</span><input className={tabla.select} type="date" value={hasta} min={desde} max={hoy} onChange={(e) => setHasta(e.target.value)} /></label>
         </div>
         <div className={estilos.stack}>
-          <GraficoDinamico id={ID_HISTORIAL} filas={filasGrafico} columnas={COLUMNAS_HISTORIAL} filtros={[{ clave: "respuesta", etiqueta: "Voto" }]} titulo="Historial de asistencia" tope={10} dimensiones={[{ clave: "driver", etiqueta: "Repartidor" }]} medidas={[{ clave: "asistencias", etiqueta: "Veces que trabajó", vale: (fila) => ["Ruta y colecta", "Ruta"].includes(String(fila.respuesta)) ? 1 : 0 }]} />
-          <GraficoDinamico id={`${ID_HISTORIAL}-menos`} filas={filasGrafico} columnas={COLUMNAS_HISTORIAL} filtros={[{ clave: "respuesta", etiqueta: "Voto" }]} titulo="Historial de asistencia" tope={10} orden="menor" dimensiones={[{ clave: "driver", etiqueta: "Repartidor" }]} medidas={[{ clave: "asistencias", etiqueta: "Menos jornadas trabajadas", vale: (fila) => ["Ruta y colecta", "Ruta"].includes(String(fila.respuesta)) ? 1 : 0 }]} />
-          <Tabla id={ID_HISTORIAL} titulo="Historial de asistencia" columnas={COLUMNAS_HISTORIAL} filas={historiales} filtros={[{ clave: "respuesta", etiqueta: "Voto" }, { clave: "driver", etiqueta: "Repartidor" }]} ordenInicial={{ clave: "fecha", asc: false }} vacio="No hay votos registrados en el período elegido." />
+          <GraficoDinamico id={ID_HISTORIAL} filas={filasGrafico} columnas={COLUMNAS_HISTORIAL} filtros={FILTROS_HISTORIAL} titulo="Historial de asistencia" tope={10} dimensiones={[{ clave: "driver", etiqueta: "Repartidor" }]} medidas={[{ clave: "asistencias", etiqueta: "Veces que trabajó", vale: (fila) => ["Ruta y colecta", "Ruta"].includes(String(fila.respuesta)) ? 1 : 0, incluyeDetalle: (fila) => ["Ruta y colecta", "Ruta"].includes(String(fila.respuesta)) }]} />
+          <GraficoDinamico id={ID_HISTORIAL} filas={filasGrafico} columnas={COLUMNAS_HISTORIAL} filtros={FILTROS_HISTORIAL} titulo="Historial de asistencia" tope={10} orden="menor" dimensiones={[{ clave: "driver", etiqueta: "Repartidor" }]} medidas={[{ clave: "asistencias", etiqueta: "Menos jornadas trabajadas", vale: (fila) => ["Ruta y colecta", "Ruta"].includes(String(fila.respuesta)) ? 1 : 0, incluyeDetalle: (fila) => ["Ruta y colecta", "Ruta"].includes(String(fila.respuesta)) }]} />
+          <Tabla id={ID_HISTORIAL} titulo="Historial de asistencia" columnas={COLUMNAS_HISTORIAL} filas={historiales} filtros={FILTROS_HISTORIAL} ordenInicial={{ clave: "fecha", asc: false }} vacio="No hay votos registrados en el período elegido." />
         </div>
       </Card>
     </section>

@@ -24,6 +24,7 @@ const oyentes = new Set<() => void>();
  * para que la tabla y sus gráficos miren lo mismo, no para recordarlos mañana.
  */
 const efimeros = new Map<string, string>();
+const respaldo = new Map<string, string>();
 
 function avisar() {
   for (const oyente of oyentes) oyente();
@@ -48,8 +49,10 @@ function llave(idTabla: string, clave: string): string {
  * lectura lo haría renderizar sin parar.
  */
 export function leerPreferencia(idTabla: string, clave: string): string {
+  const k = llave(idTabla, clave);
+  if (respaldo.has(k)) return respaldo.get(k)!;
   try {
-    return window.localStorage.getItem(llave(idTabla, clave)) ?? "";
+    return window.localStorage.getItem(k) ?? "";
   } catch {
     return "";
   }
@@ -69,8 +72,10 @@ export function guardarPreferencia(idTabla: string, clave: string, valor: unknow
   try {
     if (vacio) window.localStorage.removeItem(llave(idTabla, clave));
     else window.localStorage.setItem(llave(idTabla, clave), JSON.stringify(valor));
+    respaldo.delete(llave(idTabla, clave));
   } catch {
     // Sin almacenamiento disponible, la elección dura lo que dure la pantalla.
+    respaldo.set(llave(idTabla, clave), vacio ? "" : JSON.stringify(valor));
   }
   avisar();
 }

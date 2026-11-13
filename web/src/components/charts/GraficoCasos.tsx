@@ -21,15 +21,16 @@ const esEstado = (nombre: string) => (fila: Fila) =>
 /** Qué se puede medir sobre esos casos. */
 const MEDIDAS: Medida[] = [
   { clave: "casos", etiqueta: "Cantidad de casos", vale: () => 1 },
-  { clave: "abiertos", etiqueta: "Casos abiertos", vale: esAbierto },
-  { clave: "pct-abiertos", etiqueta: "% sin resolver", vale: esAbierto, modo: "porcentaje" },
-  { clave: "devueltos", etiqueta: "Devueltos", vale: esEstado("devuelto") },
-  { clave: "entregados", etiqueta: "Entregados", vale: esEstado("entregado") },
+  { clave: "abiertos", etiqueta: "Casos abiertos", vale: esAbierto, incluyeDetalle: (fila) => esAbierto(fila) === 1 },
+  { clave: "pct-abiertos", etiqueta: "% sin resolver", vale: esAbierto, modo: "porcentaje", incluyeDetalle: (fila) => esAbierto(fila) === 1 },
+  { clave: "devueltos", etiqueta: "Devueltos", vale: esEstado("devuelto"), incluyeDetalle: (fila) => esEstado("devuelto")(fila) === 1 },
+  { clave: "entregados", etiqueta: "Entregados", vale: esEstado("entregado"), incluyeDetalle: (fila) => esEstado("entregado")(fila) === 1 },
   {
     clave: "pct-entregados",
     etiqueta: "% entregados",
     vale: esEstado("entregado"),
     modo: "porcentaje",
+    incluyeDetalle: (fila) => esEstado("entregado")(fila) === 1,
   },
   {
     clave: "visitas",

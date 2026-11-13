@@ -1396,6 +1396,12 @@ Entregado se considera exitoso: no cuenta como pendiente ni muestra tiempo
 pendiente. Esta duración se muestra en horas hasta 24 h y en días al superarlas.
 Los gráficos de torta y barras se agrupan por estado, repartidor, seller,
 polígono o mes y responden a la búsqueda y filtros de la tabla.
+Tocar una barra o segmento abre una pestaña de detalle con los registros que
+componen ese valor. En pendientes se listan solo los pendientes; en tiempos,
+solo los registros con duración medida. Las gráficas por día deduplican del
+mismo modo que el listado. Operación e Historial conservan sus filtros por
+separado; los valores elegidos se muestran sobre la tabla y pueden quitarse
+individualmente.
 Se agregan volumen de cierres por día de la semana y ranking de fechas con más
 devoluciones: usan la fecha real Devuelto en México, omiten domingos y no duplican
 un mismo paquete/fecha que aparece en varios meses seleccionados.

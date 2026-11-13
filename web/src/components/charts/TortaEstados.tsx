@@ -2,7 +2,8 @@
 
 import type { FilaEstado } from "@/lib/metricas";
 import { ArcoDistribucion } from "./ArcoDistribucion";
-import { Leyenda } from "./Tooltip";
+import { Leyenda, Pista } from "./Tooltip";
+import { abrirDetalle, type Detalle } from "@/lib/detalle";
 import estilos from "./chart.module.css";
 
 function colorEstadoResumen(fila: FilaEstado, indice: number): string {
@@ -15,7 +16,7 @@ function colorEstadoResumen(fila: FilaEstado, indice: number): string {
  * Anillo de distribución para las tablas de estados. Repite exactamente los
  * mismos colores de sus barras: cambia la lectura, no el significado.
  */
-export function TortaEstados({ filas }: { filas: FilaEstado[] }) {
+export function TortaEstados({ filas, detalle }: { filas: FilaEstado[]; detalle?: Detalle }) {
   const ordenadas = [...filas].filter((fila) => fila.casos > 0).sort((a, b) => b.casos - a.casos);
   const total = ordenadas.reduce((suma, fila) => suma + fila.casos, 0);
   const datos = ordenadas.length > 9 ? [
@@ -26,7 +27,11 @@ export function TortaEstados({ filas }: { filas: FilaEstado[] }) {
 
   return (
     <div className={estilos.anillo}>
-      <ArcoDistribucion total={total} unidad="casos" datos={datos.map((fila, indice) => ({ nombre: fila.estado, valor: fila.casos, color: colorEstadoResumen(fila, indice) }))} />
+      {detalle ? <Pista que="un segmento" /> : null}
+      <ArcoDistribucion total={total} unidad="casos" datos={datos.map((fila, indice) => ({ nombre: fila.estado, valor: fila.casos, color: colorEstadoResumen(fila, indice) }))} onSeleccionar={detalle ? (nombre) => {
+        const estados = nombre === "Otros" && ordenadas.length > 9 ? ordenadas.slice(8).map((f) => f.estado) : [nombre];
+        abrirDetalle({ ...detalle, contexto: `Estado: ${nombre}`, filas: detalle.filas.filter((fila) => estados.includes(String(fila.estado))), totalUniverso: total });
+      } : undefined} />
       <Leyenda series={datos.map((fila, indice) => ({ nombre: fila.estado, color: colorEstadoResumen(fila, indice) }))} />
     </div>
   );

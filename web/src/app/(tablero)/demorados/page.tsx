@@ -5,6 +5,7 @@ import { PageHead } from "@/components/Shell";
 import { Callout, Card, Kpi } from "@/components/Card";
 import { EstadosTable } from "@/components/EstadosTable";
 import { PanelCasos } from "@/components/PanelCasos";
+import { columnasPara, filasDePedidos } from "@/lib/filas";
 import estilos from "@/components/ui.module.css";
 
 export const metadata = { title: "Demorados" };
@@ -80,7 +81,7 @@ export default async function Demorados() {
           titulo="En qué estado están frenados"
           nota="Dónde se traban los casos que no avanzan. Es la lectura que dice qué hay que destrabar, más que cuántos hay."
         >
-          <EstadosTable id="demorados-estados" titulo="Demorados · en qué estado están" filas={estados} />
+          <EstadosTable id="demorados-estados" titulo="Demorados · en qué estado están" filas={estados} detalle={{ titulo: "Demorados", columnas: columnasPara(mes.campos), filas: filasDePedidos(atrasados) }} />
         </Card>
       </div>
     </>

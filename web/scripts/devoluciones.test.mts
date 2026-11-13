@@ -2,11 +2,30 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
+import type { Fila } from "../src/components/Tabla";
 import { familiaDeRuta, FAMILIAS_NAVEGACION } from "../src/lib/navegacion";
-import { agruparDevoluciones, horasDevolucion, horasPendientesDevolucion, duracionDevolucion, resumenDevoluciones, devolucionesPorDia } from "../src/lib/devoluciones-metricas";
+import { agruparDevoluciones, horasDevolucion, horasPendientesDevolucion, duracionDevolucion, resumenDevoluciones, devolucionesPorDia, detalleGrupoDevoluciones, cierresLaboralesDevoluciones } from "../src/lib/devoluciones-metricas";
 
 const flujo = JSON.parse(readFileSync(new URL("../../n8n/17-devoluciones-mensuales.json", import.meta.url), "utf8"));
 const nodo = (nombre: string) => flujo.nodes.find((n: { name: string }) => n.name === nombre);
+
+test("el detalle de cada barra contiene exactamente los registros que aportan a esa medida", () => {
+  const filas: Fila[] = [
+    { id: 1, estado: "Devuelto", driver: "Ana", horasResolucion: 12, fechaDevueltoISO: "2026-11-13T18:00:00Z" },
+    { id: 2, estado: "Entregado", driver: "Ana", horasResolucion: null },
+    { id: 3, estado: "Devolucion", driver: "Ana", horasResolucion: null },
+    { id: 4, estado: "Devolucion", driver: "Otro", horasResolucion: null },
+  ];
+  assert.equal(detalleGrupoDevoluciones(filas, "driver", ["Ana"]).length, 3);
+  assert.deepEqual(detalleGrupoDevoluciones(filas, "driver", ["Ana"], "pendientes").map((f) => f.id), [3]);
+  assert.deepEqual(detalleGrupoDevoluciones(filas, "driver", ["Ana"], "tiempo").map((f) => f.id), [1]);
+  assert.equal(detalleGrupoDevoluciones(filas, "driver", ["Ana", "Otro"], "pendientes").length, resumenDevoluciones(filas).pendientes);
+  const duplicadas = [...filas, { ...filas[0], mes: "2026-10" }];
+  const { cierres } = cierresLaboralesDevoluciones(duplicadas);
+  assert.equal(cierres.length, 1);
+  assert.equal(cierres[0].indice, 5);
+  assert.equal(devolucionesPorDia(duplicadas).semana[4].cantidad, cierres.length);
+});
 
 test("el historial de devoluciones muestra Históricos y la devolución vigente Operación", () => {
   for (const ruta of ["/devoluciones/historial", "/devoluciones/historial/"]) {

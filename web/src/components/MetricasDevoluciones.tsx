@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { agruparDevoluciones, duracionDevolucion, resumenDevoluciones, devolucionesPorDia } from "@/lib/devoluciones-metricas";
+import { agruparDevoluciones, duracionDevolucion, resumenDevoluciones, devolucionesPorDia, detalleGrupoDevoluciones, cierresLaboralesDevoluciones } from "@/lib/devoluciones-metricas";
+import { abrirDetalle } from "@/lib/detalle";
+import { colorEstado } from "@/lib/estados";
 import { numero, porcentaje } from "@/lib/formato";
 import { Card, Kpi } from "./Card";
 import { Tabla, type Columna, type Fila, type Filtro } from "./Tabla";
 import { useVista } from "./useVista";
-import { CajaTooltip, Leyenda } from "./charts/Tooltip";
+import { CajaTooltip, Leyenda, Pista } from "./charts/Tooltip";
+import { datoTocado } from "./charts/tocar";
 import { ArcoDistribucion } from "./charts/ArcoDistribucion";
 import estilos from "./ui.module.css";
 import controles from "./tabla.module.css";
@@ -22,15 +25,15 @@ const dimensiones = [
   { clave: "mes", etiqueta: "Mes" },
 ];
 
-export function MetricasDevoluciones({ filas, columnas, filtros }: { filas: Fila[]; columnas: Columna[]; filtros: Filtro[] }) {
-  const id = "devoluciones-mensuales";
+export function MetricasDevoluciones({ id, filas, columnas, filtros }: { id: string; filas: Fila[]; columnas: Columna[]; filtros: Filtro[] }) {
   const { filtradas } = useVista({ id, filas, columnas, filtros });
   const [dimension, setDimension] = useState("estado");
   const [medida, setMedida] = useState("tiempo");
   const resumen = resumenDevoluciones(filtradas);
   const porDia = devolucionesPorDia(filtradas);
   const grupos = agruparDevoluciones(filtradas, dimension);
-  const colorGrupo = (nombre: string) => colores[Math.max(0, grupos.findIndex((grupo) => grupo.nombre === nombre)) % colores.length];
+  const colorGrupo = (nombre: string) => dimension === "estado" && colorEstado(nombre) !== "neutral"
+    ? `var(--estado-${colorEstado(nombre)})` : colores[Math.max(0, grupos.findIndex((grupo) => grupo.nombre === nombre)) % colores.length];
   const torta = grupos.length <= 7 ? grupos.map((grupo) => ({ nombre: grupo.nombre, valor: grupo.registros })) : [
     ...grupos.slice(0, 6).map((grupo) => ({ nombre: grupo.nombre, valor: grupo.registros })),
     { nombre: "Otros", valor: grupos.slice(6).reduce((total, grupo) => total + grupo.registros, 0) },
@@ -40,6 +43,18 @@ export function MetricasDevoluciones({ filas, columnas, filtros }: { filas: Fila
     valor: medida === "tiempo" ? grupo.promedio : medida === "pendientes" ? grupo.pendientes : grupo.registros,
   })).filter((grupo) => grupo.valor != null)
     .sort((a, b) => b.valor! - a.valor!).slice(0, 10);
+
+  function abrirGrupo(nombre: string, tipoMedida: string, agrupaOtros = false) {
+    const nombres = agrupaOtros ? grupos.slice(6).map((g) => g.nombre) : [nombre];
+    abrirDetalle({ titulo: "Devoluciones", contexto: `${dimensiones.find((d) => d.clave === dimension)?.etiqueta}: ${nombre} · ${tipoMedida === "tiempo" ? "Con tiempo medido" : tipoMedida === "pendientes" ? "Pendientes" : "Registros"}`,
+      columnas, filas: detalleGrupoDevoluciones(filtradas, dimension, nombres, tipoMedida), totalUniverso: filtradas.length });
+  }
+
+  function abrirDia(nombre: string) {
+    const indice = porDia.semana.findIndex((d) => d.nombre === nombre) + 1;
+    const filas = cierresLaboralesDevoluciones(filtradas).cierres.filter((c) => c.indice === indice).map((c) => c.fila);
+    abrirDetalle({ titulo: "Devoluciones", contexto: `Devueltos un ${nombre.toLowerCase()}`, columnas, filas, totalUniverso: filtradas.length });
+  }
 
   return <>
     <div className={estilos.kpis}>
@@ -70,18 +85,20 @@ export function MetricasDevoluciones({ filas, columnas, filtros }: { filas: Fila
       <div className={estilos.dashboardDos}>
         <div>
           {torta.length ? <>
-            <ArcoDistribucion total={resumen.registros} unidad="registros" etiquetaCantidad="Registros" datos={torta.map((grupo) => ({ ...grupo, color: colorGrupo(grupo.nombre) }))} />
+            <Pista que="un segmento" />
+            <ArcoDistribucion total={resumen.registros} unidad="registros" etiquetaCantidad="Registros" datos={torta.map((grupo) => ({ ...grupo, color: colorGrupo(grupo.nombre) }))} onSeleccionar={(nombre) => abrirGrupo(nombre, "cantidad", nombre === "Otros" && grupos.length > 7)} />
             <Leyenda series={torta.map((grupo) => ({ nombre: grupo.nombre, color: colorGrupo(grupo.nombre) }))} />
           </> : <p className={grafico.vacio}>No hay datos con estos filtros.</p>}
         </div>
-        <div>
+        <div className={grafico.tocable}>
+          <Pista />
           {barras.length ? <ResponsiveContainer width="100%" height={Math.max(245, barras.length * 32 + 35)}>
             <BarChart data={barras} layout="vertical" margin={{ top: 8, right: 18, bottom: 5, left: 0 }}>
               <CartesianGrid horizontal={false} stroke="var(--grid)" />
               <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: "var(--muted)", fontSize: 11 }}
                 tickFormatter={(valor) => medida === "tiempo" ? `${valor} h` : String(valor)} />
               <YAxis type="category" dataKey="nombre" width={135} axisLine={false} tickLine={false} tick={{ fill: "var(--ink-2)", fontSize: 11 }} />
-              <Bar dataKey="valor" radius={[0, 9, 9, 0]} maxBarSize={23}>
+              <Bar dataKey="valor" radius={[0, 9, 9, 0]} maxBarSize={23} onClick={(entrada: unknown) => { const dato = datoTocado<{ nombre: string }>(entrada); if (dato?.nombre) abrirGrupo(dato.nombre, medida); }}>
                 {barras.map((grupo) => <Cell key={grupo.nombre} fill={colorGrupo(grupo.nombre)} />)}
               </Bar>
               <Tooltip cursor={{ fill: "var(--accent-soft)" }} content={({ active, payload }) => {
@@ -100,12 +117,13 @@ export function MetricasDevoluciones({ filas, columnas, filtros }: { filas: Fila
     </Card>
     <div className={estilos.dashboardDos}>
       <Card titulo="Devueltos por día de la semana" nota="Lunes a sábado, según la fecha real de Devuelto en México. Cada paquete se cuenta una vez por fecha.">
+        <Pista />
         {porDia.fechas.length ? <ResponsiveContainer width="100%" height={245}>
           <BarChart data={porDia.semana} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
             <CartesianGrid vertical={false} stroke="var(--grid)" />
             <XAxis dataKey="nombre" tickFormatter={(nombre) => String(nombre).slice(0, 3)} axisLine={false} tickLine={false} tick={{ fill: "var(--muted)", fontSize: 11 }} />
             <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: "var(--muted)", fontSize: 11 }} />
-            <Bar dataKey="cantidad" radius={[9, 9, 0, 0]} maxBarSize={32}>
+            <Bar dataKey="cantidad" radius={[9, 9, 0, 0]} maxBarSize={32} cursor="pointer" onClick={(entrada: unknown) => { const dato = datoTocado<{ nombre: string }>(entrada); if (dato?.nombre) abrirDia(dato.nombre); }}>
               {porDia.semana.map((dia, indice) => <Cell key={dia.nombre} fill={colores[indice % colores.length]} />)}
             </Bar>
             <Tooltip cursor={{ fill: "var(--accent-soft)" }} content={({ active, payload }) => active && payload?.length ? <CajaTooltip titulo={payload[0].payload.nombre}
@@ -115,7 +133,7 @@ export function MetricasDevoluciones({ filas, columnas, filtros }: { filas: Fila
         {porDia.domingos > 0 ? <p className={estilos.cardNote}>{numero(porDia.domingos)} cierres en domingo excluidos de esta gráfica.</p> : null}
       </Card>
       <Card titulo="Fechas con más devoluciones" nota="Ranking de días laborales con más cierres, sobre los paquetes del período y los filtros actuales.">
-        <Tabla id="devoluciones-ranking-fechas" columnas={[
+        <Tabla id={`${id}-ranking-fechas`} columnas={[
           { clave: "dia", titulo: "Fecha (México)" }, { clave: "cantidad", titulo: "Devueltos", tipo: "numero" },
         ]} filas={porDia.fechas} ordenInicial={{ clave: "cantidad", asc: false }} vacio="No hay cierres laborales registrados." />
       </Card>

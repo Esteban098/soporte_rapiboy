@@ -124,7 +124,7 @@ export default async function Reclamos() {
           titulo="En qué terminaron los casos con datos"
           nota="El desglose completo de estados, solo para los casos donde la tienda aportó información."
         >
-          <EstadosTable id="reclamos-estados" titulo="Reclamos · en qué terminaron" filas={datos.porEstado} />
+          <EstadosTable id="reclamos-estados" titulo="Reclamos · en qué terminaron" filas={datos.porEstado} detalle={{ titulo: "Reclamos", columnas: columnasPara(mes.campos), filas }} />
         </Card>
 
       </div>

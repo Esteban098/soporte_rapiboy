@@ -70,6 +70,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   Gráficas y KPIs comparten la búsqueda y filtros de la tabla; agrupación por
   estado actual, driver de la ficha, seller, polígono o mes. En Histórico, un
   rango distingue paquetes únicos de registros mensuales para no ocultar repeticiones.
+  Operación e Historial usan IDs de vista diferentes para no heredar filtros
+  entre ambas. Las barras y segmentos abren `/detalle` con las mismas filas
+  filtradas que aportaron al valor; pendientes excluye resueltos, promedio
+  incluye solo tiempos medidos, días deduplica por viaje/fecha mexicana.
+
+- Las tablas compartidas filtran mediante `src/lib/tabla-vista.ts`: solo se
+  aplican columnas con filtro visible, OR entre valores y AND entre columnas.
+  Normalizar espacios y mostrar los valores activos para poder quitarlos.
+  Las preferencias mantienen respaldo en memoria si localStorage falla.
+  Las claves de filas distinguen ID y mes. Validar también con
+  `node --import tsx scripts/tabla-vista.test.mts` y `npm run test:devoluciones`.
 
 - `mensual` y `cancelados` son tablas operativas. Del día 1 al 9 contienen el
   mes anterior y el actual; desde el día 10 deben contener solamente el actual.

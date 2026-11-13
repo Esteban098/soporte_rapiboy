@@ -127,7 +127,7 @@ export default async function Resumen() {
           titulo="Todos los estados"
           nota="Cada estado en el que puede quedar un caso, con cuántos hay y si cuenta como resuelto."
         >
-          <EstadosTable id="mes-estados" titulo="Mensual · todos los estados" filas={estados} />
+          <EstadosTable id="mes-estados" titulo="Mensual · todos los estados" filas={estados} detalle={detalleCasos} />
         </Card>
 
         <PanelCasos

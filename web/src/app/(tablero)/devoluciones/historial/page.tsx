@@ -30,6 +30,6 @@ export default async function DevolucionesHistorial({ searchParams }: {
       dek="Archivo acumulativo de devoluciones. Elegí un mes o un rango para consultar métricas y casos anteriores." />
     {sinMetricas ? <Callout tono="warning" titulo="Falta habilitar los tiempos">Ejecutá la migración 40 y actualizá el flujo 17.</Callout> : null}
     <Card titulo="Período"><SelectorMeses meses={meses} desde={rango.desde} hasta={rango.hasta} /></Card>
-    <PanelDevoluciones filas={seleccionadas} />
+    <PanelDevoluciones id="devoluciones-historial" filas={seleccionadas} />
   </>;
 }

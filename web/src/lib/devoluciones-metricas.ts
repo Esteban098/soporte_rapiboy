@@ -39,12 +39,9 @@ export function horasDevolucion(inicio: unknown, fin: unknown): number | null {
 }
 
 /** Cantidades de cierres por fecha de México, sin domingos ni IDs repetidos. */
-export function devolucionesPorDia(filas: Fila[]) {
-  const dias = new Map<string, number>();
+export function cierresLaboralesDevoluciones(filas: Fila[]) {
   const vistos = new Set<string>();
-  const semana = Array.from({ length: 6 }, (_, indice) => ({
-    nombre: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"][indice], cantidad: 0,
-  }));
+  const cierres: { fila: Fila; dia: string; indice: number }[] = [];
   let domingos = 0;
   for (const fila of filas) {
     const cierre = instante(fila.fechaDevueltoISO);
@@ -56,6 +53,18 @@ export function devolucionesPorDia(filas: Fila[]) {
     vistos.add(clave);
     const indice = new Date(calendario).getUTCDay();
     if (indice === 0) { domingos++; continue; }
+    cierres.push({ fila, dia, indice });
+  }
+  return { cierres, domingos };
+}
+
+export function devolucionesPorDia(filas: Fila[]) {
+  const dias = new Map<string, number>();
+  const semana = Array.from({ length: 6 }, (_, indice) => ({
+    nombre: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"][indice], cantidad: 0,
+  }));
+  const { cierres, domingos } = cierresLaboralesDevoluciones(filas);
+  for (const { dia, indice } of cierres) {
     dias.set(dia, (dias.get(dia) ?? 0) + 1);
     semana[indice - 1].cantidad++;
   }
@@ -74,6 +83,15 @@ function estadoResueltoDevolucion(estado: unknown): boolean {
   return ["entregado", "devuelto"].includes(String(estado ?? "").trim().toLocaleLowerCase("es"));
 }
 
+export function pendienteDevolucion(fila: Fila): boolean {
+  return !estadoResueltoDevolucion(fila.estado) && fila.horasResolucion == null;
+}
+
+export function detalleGrupoDevoluciones(filas: Fila[], dimension: string, nombres: string[], medida = "cantidad") {
+  return filas.filter((fila) => nombres.includes(String(fila[dimension] ?? "").trim() || "Sin dato") &&
+    (medida === "pendientes" ? pendienteDevolucion(fila) : medida === "tiempo" ? typeof fila.horasResolucion === "number" && Number.isFinite(fila.horasResolucion) : true));
+}
+
 export function horasPendientesDevolucion(inicio: unknown, estado: unknown, devuelto: unknown, ahora: unknown): number | null {
   return devuelto || estadoResueltoDevolucion(estado) ? null : horasDevolucion(inicio, ahora);
 }
@@ -82,7 +100,7 @@ export function resumenDevoluciones(filas: Fila[]) {
   const tiempos = filas.flatMap((fila) => typeof fila.horasResolucion === "number" ? [fila.horasResolucion] : []);
   const cerradas = filas.filter((fila) => fila.horasResolucion != null).length;
   const devueltosSinFecha = filas.filter((fila) => estadoDevuelto(fila.estado) && fila.horasResolucion == null).length;
-  const pendientes = filas.filter((fila) => !estadoResueltoDevolucion(fila.estado) && fila.horasResolucion == null);
+  const pendientes = filas.filter(pendienteDevolucion);
   return {
     registros: filas.length,
     paquetes: new Set(filas.map((fila) => fila.id)).size,

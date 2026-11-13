@@ -104,7 +104,7 @@ export function ColectasHoy({ dia }: { dia: ColectasDelDia }) {
             ]}
             medidas={[
               { clave: "colectas", etiqueta: "Colectas", vale: () => 1 },
-              { clave: "faltantes", etiqueta: "Paquetes faltantes", vale: (fila) => Number(fila.faltantes ?? 0) },
+              { clave: "faltantes", etiqueta: "Paquetes faltantes", vale: (fila) => Number(fila.faltantes ?? 0), incluyeDetalle: (fila) => Number(fila.faltantes ?? 0) > 0 },
             ]}
           />
         </Card>

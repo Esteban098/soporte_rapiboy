@@ -26,9 +26,9 @@ function fecha(valor: string | null | undefined) {
   }).format(fecha) + " hs arg";
 }
 
-export function PanelDevoluciones({ filas }: { filas: Devolucion[] }) {
+export function PanelDevoluciones({ filas, id = "devoluciones-operacion" }: { filas: Devolucion[]; id?: string }) {
   const ahora = new Date().toISOString();
-  return <MetricasDevoluciones columnas={columnas}
+  return <MetricasDevoluciones id={id} columnas={columnas}
     filtros={[{ clave: "estado", etiqueta: "Estado" }, { clave: "repartidor", etiqueta: "Driver" }, { clave: "tienda", etiqueta: "Seller" }]}
     filas={filas.map((fila) => ({
       id: fila.id, primera: fecha(fila.primera_devolucion), ultima: fecha(fila.ultima_devolucion),

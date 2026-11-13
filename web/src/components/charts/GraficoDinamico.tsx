@@ -29,6 +29,8 @@ export type Medida = {
   etiqueta: string;
   /** Cómo cuenta cada fila. Sumar 1 es "cantidad de casos". */
   vale: (fila: Fila) => number;
+  /** Filas que aportan al valor seleccionado (por ejemplo, solo casos abiertos). */
+  incluyeDetalle?: (fila: Fila) => boolean;
   /**
    * `suma` acumula, `porcentaje` divide por los casos del grupo y `promedio`
    * saca la media. Por defecto suma.
@@ -119,7 +121,7 @@ export function GraficoDinamico({
       titulo,
       contexto: `${dimensionActiva.etiqueta}: ${nombre}`,
       columnas,
-      filas: filtradas.filter((fila) => grupoDe(fila) === nombre),
+      filas: filtradas.filter((fila) => grupoDe(fila) === nombre && (medidaActiva?.incluyeDetalle?.(fila) ?? true)),
       totalUniverso: filtradas.length,
     });
   }
