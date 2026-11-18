@@ -131,9 +131,14 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `seguimiento` usa solamente los estados `abierto` y `cerrado` en la columna
   `estado`; cualquier `tomado` legado ahí se migra a abierto. **Tomado** es
   `tomado_por` / `tomado_en` sobre un reporte abierto: cuenta como abierto en
-  totales y tiempo de resolución, se toma y suelta con un PATCH condicional
-  (solo quien lo tomó o un admin lo suelta) y se limpia al reabrir. Seguimiento
-  ofrece Resumen, Lista y Tablero. Los cerrados se consultan por semana o mes
+  totales y tiempo de resolución. La migración 55 agrega `tomado_por_2` /
+  `tomado_en_2`: máximo dos responsables distintos, con RPC y bloqueo de fila.
+  Sumarse no desplaza al primero; retirarse solo quita a quien lo pidió (un
+  admin puede retirar a otra persona explícitamente). Cerrar o reabrir conserva
+  ambas tomas; cambiar de turno no las modifica. Seguimiento abre en Tablero y
+  **Mis casos**, con acceso a **Todos**, Resumen y Lista. Mis casos incluye las
+  dos posiciones y los cierres propios; no es una nueva frontera de permisos.
+  Los cerrados se consultan por semana o mes
   de México; todos los abiertos permanecen visibles aunque sean anteriores al
   período para que ningún pendiente desaparezca de la operación. Resumen suma
   la opción Todos para métricas históricas; Lista y Tablero no cargan el
@@ -153,7 +158,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   También crea alertas deduplicadas: los paquetes abiertos con más de dos días
   sin movimiento se agrupan en una alerta por estado para admin y operador
   (nunca Comercial); un seguimiento
-  tomado con más de tres días abierto se avisa solo a quien lo tomó. Instalar
+  tomado con más de tres días abierto se avisa solo a sus responsables
+  operativos activos (hasta dos), una alerta deduplicada por destinatario. Instalar
   `supabase/migracion-30-alertas-operativas.sql` y luego
   `supabase/migracion-31-agrupar-alertas-demora.sql` después de la migración 12.
   Cada reporte conserva `driver` y `seller`
@@ -169,6 +175,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   `comentario_actualizado_en`: se escriben únicamente cuando cambia el texto,
   no al tomar, soltar, cerrar o editar solo responsables. La tarjeta usa esos
   campos para hacer visible que otra persona agregó información.
+  `supabase/migracion-55-seguimiento-dos-responsables.sql` debe instalarse antes
+  de desplegar esta versión. `seguimiento_comentarios` agrega aportes firmados
+  y conserva el texto anterior de las correcciones del motivo. El backfill es
+  una fotografía legada, no un historial reconstruido. Los nuevos comentarios
+  no reemplazan el motivo ni alteran las tomas; el último se cachea en
+  `ultimo_comentario*`. Las ediciones y los cierres usan `revision` para evitar
+  sobrescrituras; la adición de comentarios es transaccional e idempotente.
+  No agregar bandejas compartidas, nuevos estados, próximos pasos ni rotaciones
+  automáticas: se conserva el diseño simple anterior y los horarios no intervienen.
 - El **live tracker** vive en sus tablas operativas —`tracker_drivers`,
   `tracker_paquetes`, `tracker_sincronizaciones`, `tracker_demoras`— y no toca ninguna de las
   anteriores. Es la foto de la jornada en curso, no un histórico: la clave de
@@ -643,6 +658,11 @@ Para cambios en la protección de posiciones de Colectas, ejecutar también
 `PGLITE_MODULE=/ruta/temporal/node_modules/@electric-sql/pglite/dist/index.js node --import tsx scripts/colectas-ubicacion-sql.test.mts`.
 Usa PostgreSQL aislado en memoria, sin credenciales ni escrituras en Supabase;
 comprueba upserts atrasados o inválidos, cambio de jornada, idempotencia y permisos.
+
+Para Seguimiento con dos responsables ejecutar también
+`node --conditions=react-server --import tsx scripts/seguimiento-colaboracion.test.mts`
+y `PGLITE_MODULE=/ruta/temporal/node_modules/@electric-sql/pglite/dist/index.js node --import tsx scripts/seguimiento-dos-responsables-sql.test.mts`.
+La prueba SQL corre en memoria, sin acceso a Supabase ni datos reales.
 
 ## Live tracker
 

@@ -332,7 +332,7 @@ export const HERRAMIENTAS = [
           caso_id: { type: "string", description: "ID del caso reportado." },
           persona: {
             type: "string",
-            description: "Correo o parte del correo de quien lo creó, lo tomó o lo cerró.",
+            description: "Correo o parte del correo de quien lo creó, lo tomó (hasta dos responsables) o lo cerró.",
           },
           texto: { type: "string", description: "Texto a buscar en el comentario, driver o seller." },
           limite: LIMITE,
@@ -635,6 +635,7 @@ export function reporteParaModelo(reporte: Seguimiento) {
     creado: momentoLegible(reporte.creado),
     creado_por: persona(reporte.creadoPor),
     tomado_por: persona(reporte.tomadoPor),
+    tomado_por_2: persona(reporte.tomadoPor2 ?? null),
     cerrado_por: persona(reporte.atendidoPor),
     cerrado_en: momentoLegible(reporte.atendidoEn),
     driver: reporte.driver,

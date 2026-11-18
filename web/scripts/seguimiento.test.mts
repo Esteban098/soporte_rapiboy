@@ -4,6 +4,8 @@ import {
   agruparPorResponsableSeguimiento,
   colorDePersona,
   etapaDe,
+  esMiSeguimiento,
+  responsablesSeguimiento,
   inicialesDePersona,
   minutosAbierto,
   moverPeriodo,
@@ -103,6 +105,17 @@ assert.equal(tomado.estado, "abierto");
 assert.equal(etapaDe(tomado), "tomado");
 assert.equal(inicialesDePersona(tomado.tomadoPor), "EL");
 assert.equal(minutosAbierto(tomado, Date.parse("2026-09-07T08:00:00.000Z")), 120);
+
+// El mismo caso aparece en las dos bandejas personales y cuenta una sola vez.
+const entreDos = parsearSeguimiento(fila({ tomado_por: "a@example.test", tomado_en: "2026-09-07T07:00:00Z",
+  tomado_por_2: "b@example.test", tomado_en_2: "2026-09-07T08:00:00Z" }));
+assert.deepEqual(responsablesSeguimiento(entreDos), ["a@example.test", "b@example.test"]);
+assert.equal(esMiSeguimiento(entreDos, "a@example.test"), true);
+assert.equal(esMiSeguimiento(entreDos, "b@example.test"), true);
+assert.equal(esMiSeguimiento(entreDos, "c@example.test"), false);
+assert.equal(resumirSeguimientos([entreDos]).tomados, 1);
+assert.equal(agruparPorResponsableSeguimiento([entreDos]).flatMap((g) => g.reportes).length, 1);
+assert.equal(esMiSeguimiento({ ...entreDos, estado: "cerrado" }, "b@example.test"), true);
 
 // Cerrado manda sobre tomado, y el cerrado no tiene antigüedad abierta.
 const cerrado = parsearSeguimiento(

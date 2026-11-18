@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition, type CSSProperties
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cambiarEstado, tomarSeguimiento, type Resultado } from "@/app/seguimiento";
 import { EditorReporte } from "./EditorReporte";
+import { ComentariosSeguimiento } from "./ComentariosSeguimiento";
 import { NombreTienda } from "./ColorTiendas";
 import { GraficosSeguimiento } from "./GraficosSeguimiento";
 import { enlaceViaje } from "@/lib/enlaces";
@@ -15,6 +16,8 @@ import {
   agruparPorResponsableSeguimiento,
   colorDePersona,
   etapaDe,
+  esMiSeguimiento,
+  responsablesSeguimiento,
   inicialesDePersona,
   minutosAbierto,
   nombreDePersona,
@@ -79,28 +82,33 @@ export function TableroSeguimiento({
   const [responsable, setResponsable] = useState("todos");
   const [pendiente, setPendiente] = useState<string | null>(null);
   const [editando, setEditando] = useState<Seguimiento | null>(null);
+  const [comentando, setComentando] = useState<Seguimiento | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ahora, setAhora] = useState<number | null>(null);
   const [, iniciar] = useTransition();
   const router = useRouter();
   const pathname = usePathname();
   const parametros = useSearchParams();
+  const bandeja = parametros.get("bandeja") === "todos" || (foco && !parametros.has("bandeja")) ? "todos" : "mios";
 
   // La antigüedad se calcula recién en el navegador y se refresca cada minuto:
   // calcularla también en el servidor haría que los textos no coincidan al hidratar.
   useEffect(() => {
     const primero = setTimeout(() => setAhora(Date.now()), 0);
     const intervalo = setInterval(() => setAhora(Date.now()), 60_000);
+    const refrescar = setInterval(() => { if (document.visibilityState === "visible") router.refresh(); }, 30_000);
     return () => {
       clearTimeout(primero);
       clearInterval(intervalo);
+      clearInterval(refrescar);
     };
-  }, []);
+  }, [router]);
 
   const personas = useMemo(() => {
     const correos = new Set<string>();
     for (const reporte of reportes) {
       if (reporte.tomadoPor) correos.add(reporte.tomadoPor);
+      if (reporte.tomadoPor2) correos.add(reporte.tomadoPor2);
       if (reporte.atendidoPor) correos.add(reporte.atendidoPor);
     }
     return [...correos].sort();
@@ -109,12 +117,13 @@ export function TableroSeguimiento({
   const visibles = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
     return reportes.filter((reporte) => {
+      if (bandeja === "mios" && !esMiSeguimiento(reporte, yo)) return false;
       if (responsable === "mios") {
-        if (!yo || (reporte.tomadoPor !== yo && reporte.atendidoPor !== yo)) return false;
+        if (!esMiSeguimiento(reporte, yo)) return false;
       } else if (responsable === "sin-tomar") {
         if (etapaDe(reporte) !== "abierto") return false;
       } else if (responsable !== "todos") {
-        if (reporte.tomadoPor !== responsable && reporte.atendidoPor !== responsable) return false;
+        if (!responsablesSeguimiento(reporte).includes(responsable) && reporte.atendidoPor !== responsable) return false;
       }
       if (!texto) return true;
       return [
@@ -124,12 +133,14 @@ export function TableroSeguimiento({
         reporte.comentario,
         reporte.creadoPor,
         reporte.tomadoPor,
+        reporte.tomadoPor2,
+        reporte.ultimoComentario,
       ].some((valor) => (valor ?? "").toLowerCase().includes(texto));
     });
-  }, [reportes, responsable, busqueda, yo]);
+  }, [reportes, responsable, busqueda, yo, bandeja]);
   const resumen = useMemo(() => resumirSeguimientos(visibles), [visibles]);
   const mios = useMemo(
-    () => visibles.filter((r) => yo && etapaDe(r) === "tomado" && r.tomadoPor === yo).length,
+    () => visibles.filter((r) => etapaDe(r) === "tomado" && esMiSeguimiento(r, yo)).length,
     [visibles, yo],
   );
 
@@ -137,7 +148,9 @@ export function TableroSeguimiento({
     setPendiente(id);
     iniciar(async () => {
       setError(null);
-      const resultado = await accion();
+      let resultado: Resultado;
+      try { resultado = await accion(); }
+      catch { resultado = { ok: false, error: "No se pudo confirmar el cambio. Actualizá y reintentá." }; }
       setPendiente(null);
       if (!resultado.ok) {
         setError(resultado.error);
@@ -161,6 +174,13 @@ export function TableroSeguimiento({
   return (
     <div className={estilos.tablero}>
       {editando ? <EditorReporte reporte={editando} alCerrar={() => setEditando(null)} /> : null}
+      {comentando ? <ComentariosSeguimiento reporte={comentando} alCerrar={() => setComentando(null)} /> : null}
+
+      <div className={estilos.bandejas} role="group" aria-label="Bandeja de seguimiento">
+        <button type="button" className={bandeja === "mios" ? estilos.bandejaActiva : estilos.bandeja} aria-pressed={bandeja === "mios"} onClick={() => { setResponsable("todos"); navegar({ bandeja: "mios", reporte: null }); }}>Mis casos</button>
+        <button type="button" className={bandeja === "todos" ? estilos.bandejaActiva : estilos.bandeja} aria-pressed={bandeja === "todos"} onClick={() => { setResponsable("todos"); navegar({ bandeja: "todos", reporte: null }); }}>Todos</button>
+        <small>{bandeja === "mios" ? "Tus casos permanecen acá aunque cambies de turno." : "Podés sumarte a un caso: hasta dos responsables, sin desplazar a nadie."}</small>
+      </div>
 
       <NavegacionVistas
         vista={vistaInicial}
@@ -199,8 +219,7 @@ export function TableroSeguimiento({
           aria-label="Filtrar por responsable"
         >
           <option value="todos">Todos</option>
-          {yo ? <option value="mios">Míos</option> : null}
-          <option value="sin-tomar">Sin tomar</option>
+          {bandeja === "todos" ? <option value="sin-tomar">Sin tomar</option> : null}
           {personas.length > 0 ? (
             <optgroup label="Tomado o cerrado por">
               {personas.map((correo) => (
@@ -228,7 +247,7 @@ export function TableroSeguimiento({
         <p className={estilos.vacio}>
           {reportes.length === 0
             ? "Todavía no hay reportes. Se cargan desde la pestaña de abajo a la derecha."
-            : "Ningún reporte coincide con el filtro."}
+            : bandeja === "mios" ? "No tenés casos con estos filtros. Entrá en Todos para tomar uno o sumarte a otro." : "Ningún reporte coincide con el filtro."}
         </p>
       ) : (
         vistaInicial === "resumen" ? (
@@ -240,8 +259,9 @@ export function TableroSeguimiento({
             admin={admin}
             ahora={ahora}
             pendiente={pendiente}
-            alTomar={(reporte, tomar) => ejecutar(reporte.id, () => tomarSeguimiento(reporte.id, tomar))}
-            alCambiarEstado={(reporte, estado) => ejecutar(reporte.id, () => cambiarEstado(reporte.id, estado))}
+            alTomar={(reporte, tomar, objetivo) => ejecutar(reporte.id, () => tomarSeguimiento(reporte.id, tomar, objetivo))}
+            alCambiarEstado={(reporte, estado) => ejecutar(reporte.id, () => cambiarEstado(reporte.id, estado, reporte.revision))}
+            alComentar={setComentando}
             alEditar={setEditando}
           />
         ) : (
@@ -253,8 +273,10 @@ export function TableroSeguimiento({
             ahora={ahora}
             pendiente={pendiente}
             foco={foco}
-            alTomar={(reporte, tomar) => ejecutar(reporte.id, () => tomarSeguimiento(reporte.id, tomar))}
-            alCambiarEstado={(reporte, estado) => ejecutar(reporte.id, () => cambiarEstado(reporte.id, estado))}
+            mios={bandeja === "mios"}
+            alTomar={(reporte, tomar, objetivo) => ejecutar(reporte.id, () => tomarSeguimiento(reporte.id, tomar, objetivo))}
+            alCambiarEstado={(reporte, estado) => ejecutar(reporte.id, () => cambiarEstado(reporte.id, estado, reporte.revision))}
+            alComentar={setComentando}
             alEditar={setEditando}
           />
         )
@@ -383,7 +405,7 @@ function VistaResumen({
 function CargaEquipo({ reportes }: { reportes: Seguimiento[] }) {
   const tomados = reportes.filter((reporte) => etapaDe(reporte) === "tomado" && reporte.tomadoPor);
   const conteos = new Map<string, number>();
-  for (const reporte of tomados) conteos.set(reporte.tomadoPor!, (conteos.get(reporte.tomadoPor!) ?? 0) + 1);
+  for (const reporte of tomados) for (const persona of responsablesSeguimiento(reporte)) conteos.set(persona, (conteos.get(persona) ?? 0) + 1);
   const carga = [...conteos.entries()].sort((a, b) => b[1] - a[1]);
   const maximo = Math.max(1, ...carga.map(([, cantidad]) => cantidad));
   return (
@@ -410,12 +432,13 @@ type AccionesVista = {
   admin: boolean;
   ahora: number | null;
   pendiente: string | null;
-  alTomar: (reporte: Seguimiento, tomar: boolean) => void;
+  alTomar: (reporte: Seguimiento, tomar: boolean, objetivo?: string) => void;
   alCambiarEstado: (reporte: Seguimiento, estado: EstadoSeguimiento) => void;
   alEditar: (reporte: Seguimiento) => void;
+  alComentar: (reporte: Seguimiento) => void;
 };
 
-function VistaLista({ reportes, yo, admin, ahora, pendiente, alTomar, alCambiarEstado, alEditar }: AccionesVista) {
+function VistaLista({ reportes, yo, ahora, pendiente, alTomar, alCambiarEstado, alEditar, alComentar }: AccionesVista) {
   const [mostrarTodos, setMostrarTodos] = useState(false);
   const filas = mostrarTodos ? reportes : reportes.slice(0, 10);
   const grupos = agruparPorResponsableSeguimiento(filas);
@@ -435,8 +458,8 @@ function VistaLista({ reportes, yo, admin, ahora, pendiente, alTomar, alCambiarE
             </tr>
             {grupo.reportes.map((reporte) => {
           const etapa = etapaDe(reporte);
-          const mio = reporte.tomadoPor === yo;
-          const puedeSoltar = mio || admin;
+          const responsables = responsablesSeguimiento(reporte);
+          const mio = !!yo && responsables.includes(yo.trim().toLowerCase());
           const minutos = ahora === null ? null : minutosAbierto(reporte, ahora);
           return (
             <tr key={reporte.id} className={estilos[etapa]} aria-busy={pendiente === reporte.id}>
@@ -454,11 +477,12 @@ function VistaLista({ reportes, yo, admin, ahora, pendiente, alTomar, alCambiarE
               <td>{reporte.driver ?? "—"}</td>
               <td>{reporte.seller ? <NombreTienda nombre={reporte.seller} /> : "—"}</td>
               <td><span className={`${estilos.estadoPill} ${estilos[etapa]}`}><i className={estilos.punto} />{ETIQUETA_ETAPA[etapa]}</span></td>
-              <td>{reporte.tomadoPor ? nombreDePersona(reporte.tomadoPor) : reporte.atendidoPor ? nombreDePersona(reporte.atendidoPor) : "Sin asignar"}</td>
+              <td>{responsables.length ? responsables.map(nombreDePersona).join(" + ") : reporte.atendidoPor ? nombreDePersona(reporte.atendidoPor) : "Sin asignar"}</td>
               <td>{cuando(reporte.creado)}</td>
               <td>{etapa === "cerrado" ? duracion(tiempoResolucionMinutos(reporte)) : minutos === null ? "—" : compacto(minutos)}</td>
               <td><div className={estilos.listaAcciones}>
-                {etapa !== "cerrado" ? <button type="button" disabled={pendiente === reporte.id || (etapa === "tomado" && !puedeSoltar)} onClick={() => alTomar(reporte, etapa !== "tomado")}>{etapa === "tomado" ? "Soltar" : "Tomar"}</button> : null}
+                {etapa !== "cerrado" ? <button type="button" disabled={pendiente === reporte.id || !yo || (!mio && responsables.length >= 2)} onClick={() => alTomar(reporte, !mio)}>{mio ? "Soltar" : responsables.length ? "Sumarme" : "Tomar"}</button> : null}
+                <button type="button" onClick={() => alComentar(reporte)}>Comentarios</button>
                 <button type="button" onClick={() => alEditar(reporte)}>Editar</button>
                 <button type="button" disabled={pendiente === reporte.id} onClick={() => alCambiarEstado(reporte, etapa === "cerrado" ? "abierto" : "cerrado")}>{etapa === "cerrado" ? "Reabrir" : "Cerrar"}</button>
               </div></td>
@@ -481,10 +505,10 @@ function VistaLista({ reportes, yo, admin, ahora, pendiente, alTomar, alCambiarE
   );
 }
 
-function VistaTablero({ reportes, urls, yo, admin, ahora, pendiente, foco, alTomar, alCambiarEstado, alEditar }: AccionesVista & { urls: Record<string, string>; foco: string | null }) {
+function VistaTablero({ reportes, urls, yo, admin, ahora, pendiente, foco, mios, alTomar, alCambiarEstado, alEditar, alComentar }: AccionesVista & { urls: Record<string, string>; foco: string | null; mios: boolean }) {
   return (
-    <div className={estilos.columnas}>
-      {ETAPAS.map((etapa) => {
+    <div className={`${estilos.columnas} ${mios ? estilos.columnasMias : ""}`}>
+      {ETAPAS.filter((etapa) => !mios || etapa !== "abierto").map((etapa) => {
         const columna = ordenarColumna(reportes.filter((reporte) => etapaDe(reporte) === etapa), etapa);
         const grupos = agruparPorResponsableSeguimiento(columna);
         return (
@@ -498,7 +522,7 @@ function VistaTablero({ reportes, urls, yo, admin, ahora, pendiente, foco, alTom
               >
                 <h3 className={estilos.grupoTomadorTitulo}><span>{grupo.etiqueta}</span></h3>
                 <div className={estilos.tarjetas}>{grupo.reportes.map((reporte) => (
-                  <Tarjeta key={foco === reporte.id ? `${reporte.id}:foco` : reporte.id} enfocada={foco === reporte.id} reporte={reporte} urls={urls} yo={yo} admin={admin} ahora={ahora} ocupado={pendiente === reporte.id} alTomar={(tomar) => alTomar(reporte, tomar)} alCambiarEstado={(estado) => alCambiarEstado(reporte, estado)} alEditar={() => alEditar(reporte)} />
+                  <Tarjeta key={foco === reporte.id ? `${reporte.id}:foco` : reporte.id} enfocada={foco === reporte.id} reporte={reporte} urls={urls} yo={yo} admin={admin} ahora={ahora} ocupado={pendiente === reporte.id} alTomar={(tomar, objetivo) => alTomar(reporte, tomar, objetivo)} alCambiarEstado={(estado) => alCambiarEstado(reporte, estado)} alEditar={() => alEditar(reporte)} alComentar={() => alComentar(reporte)} />
                 ))}</div>
               </section>
             ))}</div> : <p className={estilos.columnaVacia}>Sin reportes</p>}
@@ -611,6 +635,7 @@ function Tarjeta({
   alTomar,
   alCambiarEstado,
   alEditar,
+  alComentar,
 }: {
   enfocada: boolean;
   reporte: Seguimiento;
@@ -619,9 +644,10 @@ function Tarjeta({
   admin: boolean;
   ahora: number | null;
   ocupado: boolean;
-  alTomar: (tomar: boolean) => void;
+  alTomar: (tomar: boolean, objetivo?: string) => void;
   alCambiarEstado: (estado: EstadoSeguimiento) => void;
   alEditar: () => void;
+  alComentar: () => void;
 }) {
   const [desplegada, setDesplegada] = useState(enfocada);
   const articulo = useRef<HTMLElement>(null);
@@ -630,9 +656,8 @@ function Tarjeta({
   useEffect(() => {
     if (enfocada) articulo.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [enfocada]);
-  const tomado = etapa === "tomado";
-  const mio = Boolean(yo) && reporte.tomadoPor === yo;
-  const puedeSoltar = mio || admin;
+  const responsables = responsablesSeguimiento(reporte);
+  const mio = Boolean(yo) && responsables.includes(yo!.trim().toLowerCase());
   const minutos = ahora === null ? null : minutosAbierto(reporte, ahora);
   const responsableVisual = etapa === "cerrado" ? reporte.atendidoPor : reporte.tomadoPor;
 
@@ -700,7 +725,9 @@ function Tarjeta({
         </p>
       ) : null}
 
-      {desplegada ? <Detalle reporte={reporte} urls={urls} /> : null}
+      {responsables.length ? <p className={estilos.coResponsables}>{responsables.map((correo) => <span key={correo}><Avatar correo={correo} />{nombreDePersona(correo)}</span>)}</p> : null}
+      {reporte.ultimoComentario ? <button type="button" className={estilos.ultimoComentario} onClick={alComentar}><strong>{nombreDePersona(reporte.ultimoComentarioPor ?? null)} · {cuando(reporte.ultimoComentarioEn ?? null)}</strong><span>{reporte.ultimoComentario}</span></button> : null}
+      {desplegada ? <Detalle reporte={reporte} urls={urls} admin={admin} alRetirar={(correo) => { if (window.confirm(`¿Retirar a ${nombreDePersona(correo)} de este caso? El otro responsable se conserva.`)) alTomar(false, correo); }} /> : null}
 
       <div className={estilos.pie}>
         {etapa === "cerrado" ? (
@@ -712,29 +739,26 @@ function Tarjeta({
           </span>
         ) : (
           <label
-            className={`${estilos.tomar} ${tomado ? estilos.tomarActivo : ""}`}
+            className={`${estilos.tomar} ${mio ? estilos.tomarActivo : ""}`}
             title={
-              tomado && !puedeSoltar
-                ? `Solo ${nombreDePersona(reporte.tomadoPor)} o un admin puede soltarlo`
-                : tomado
-                  ? "Desmarcar para soltar el caso"
-                  : "Marcar para tomar el caso"
+              mio ? "Desmarcar para salir vos; el otro responsable permanece" : responsables.length >= 2 ? "El caso ya tiene dos responsables" : "Tomar un lugar sin quitar al responsable actual"
             }
           >
             <input
               type="checkbox"
-              checked={tomado}
-              disabled={ocupado || (tomado && !puedeSoltar)}
+              checked={mio}
+              disabled={ocupado || !yo || (!mio && responsables.length >= 2)}
               onChange={(e) => alTomar(e.target.checked)}
             />
-            {tomado && reporte.tomadoPor ? <Avatar correo={reporte.tomadoPor} /> : null}
+            {mio && yo ? <Avatar correo={yo} /> : null}
             <span className={estilos.nombre}>
-              {tomado ? (mio ? "Tomado por vos" : nombreDePersona(reporte.tomadoPor)) : "Tomar"}
+              {mio ? "Tomado por vos" : responsables.length >= 2 ? "Dos responsables" : responsables.length ? "Sumarme" : "Tomar"}
             </span>
           </label>
         )}
 
         <div className={estilos.acciones} data-noimprimir>
+          <BotonIcono etiqueta="Comentarios del caso" onClick={alComentar}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6 4V6a2 2 0 0 1 2-2Z" /><path d="M7 9h10M7 13h7" /></svg></BotonIcono>
           {reporte.archivos.length > 0 && !desplegada ? (
             <span className={estilos.clips} title="Adjuntos">
               <IconoClip />
@@ -774,7 +798,7 @@ function Tarjeta({
   );
 }
 
-function Detalle({ reporte, urls }: { reporte: Seguimiento; urls: Record<string, string> }) {
+function Detalle({ reporte, urls, admin, alRetirar }: { reporte: Seguimiento; urls: Record<string, string>; admin: boolean; alRetirar: (correo: string) => void }) {
   return (
     <dl className={estilos.detalle}>
       <div>
@@ -783,14 +807,15 @@ function Detalle({ reporte, urls }: { reporte: Seguimiento; urls: Record<string,
           {nombreDePersona(reporte.creadoPor)} · {cuando(reporte.creado)}
         </dd>
       </div>
-      {reporte.tomadoPor ? (
-        <div>
+      {responsablesSeguimiento(reporte).map((correo) => (
+        <div key={correo}>
           <dt>Tomó</dt>
           <dd>
-            {nombreDePersona(reporte.tomadoPor)} · {cuando(reporte.tomadoEn)}
+            {nombreDePersona(correo)} · {cuando(correo === reporte.tomadoPor ? reporte.tomadoEn : reporte.tomadoEn2 ?? null)}
+            {admin ? <button type="button" className={estilos.retirarResponsable} onClick={() => alRetirar(correo)}>Retirar</button> : null}
           </dd>
         </div>
-      ) : null}
+      ))}
       {reporte.comentarioActualizadoEn ? (
         <div>
           <dt>Actualizó</dt>

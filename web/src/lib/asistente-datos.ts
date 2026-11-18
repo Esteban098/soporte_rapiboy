@@ -526,7 +526,7 @@ async function reportesSeguimiento(args: Record<string, unknown>) {
     (r) =>
       (!etapa || etapaDe(r) === etapa) &&
       (!caso || r.casoId === caso) &&
-      (!persona || [r.creadoPor, r.tomadoPor, r.atendidoPor].some((correo) => contiene(correo, persona))) &&
+      (!persona || [r.creadoPor, r.tomadoPor, r.tomadoPor2, r.atendidoPor].some((correo) => contiene(correo, persona))) &&
       (!buscado ||
         [r.comentario, r.driver, r.seller].some((campo) => contiene(campo, buscado))),
   );

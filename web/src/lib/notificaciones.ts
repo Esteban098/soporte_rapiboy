@@ -3,7 +3,7 @@ import { TABLA_NOTIFICACIONES, TABLA_PERFILES } from "./config";
 import { cargarPedidos, cargarSeguimientos } from "./datos";
 import { armarDirectorio, correosMencionados, type Mencionable } from "./menciones";
 import { demorados } from "./metricas";
-import { DIAS_PARA_ALERTA_SEGUIMIENTO, seguimientoVencido } from "./seguimiento";
+import { DIAS_PARA_ALERTA_SEGUIMIENTO, responsablesSeguimiento, seguimientoVencido } from "./seguimiento";
 import { consultarFresco, insertarFilas, insertarFilasSinDuplicar, TablaFaltante } from "./supabase";
 
 /**
@@ -113,7 +113,7 @@ export async function directorioDelEquipo(): Promise<Mencionable[]> {
     .filter(Boolean)
     .map((email) => ({ email }));
   const enReportes = cola.reportes
-    .flatMap((reporte) => [reporte.creadoPor, reporte.tomadoPor, reporte.atendidoPor])
+    .flatMap((reporte) => [reporte.creadoPor, ...responsablesSeguimiento(reporte), reporte.atendidoPor])
     .filter((email): email is string => Boolean(email))
     .map((email) => ({ email }));
 
@@ -197,15 +197,15 @@ export async function generarAlertasOperativas(): Promise<void> {
           clave: claveDeDemora(estado),
         })),
       ),
-      ...seguimientosVencidos.map((reporte) => ({
-        destinatario: reporte.tomadoPor!,
+      ...seguimientosVencidos.flatMap((reporte) => responsablesSeguimiento(reporte).filter((correo) => destinatarios.includes(correo)).map((correo) => ({
+        destinatario: correo,
         tipo: "seguimiento_vencido",
         autor: AUTOR_SISTEMA,
         seguimiento_id: reporte.id,
         caso_id: reporte.casoId,
         extracto: `Tu seguimiento del paquete #${reporte.casoId} lleva más de ${DIAS_PARA_ALERTA_SEGUIMIENTO} días abierto.`,
         clave: claveDeSeguimiento(reporte.id, reporte.abiertoEn),
-      })),
+      }))),
     ];
     const falla = await insertarFilasSinDuplicar(TABLA_NOTIFICACIONES, filas, "destinatario,clave");
     if (falla) console.error(`No se pudieron guardar las alertas operativas: ${falla}`);

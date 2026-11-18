@@ -1064,12 +1064,19 @@ Se carga el id del caso, driver, seller, un comentario y, si hace falta, fotos o
 reporte queda **abierto** hasta que alguien lo cierra; al cerrarlo se registra
 quién fue.
 
-La pantalla ofrece tres vistas sobre la misma cola: **Resumen** reúne KPI
+La pantalla inicia en **Mis casos** y **Tablero**. Cada usuario ve sus casos
+tomados en cualquiera de los dos lugares y los que cerró dentro del período.
+**Todos** permite consultar la cola completa y sumarse sin desplazar a nadie.
+Las tomas se conservan al cambiar de usuario, turno, cerrar o reabrir; solo se
+quitan mediante una salida explícita. Los abiertos antiguos no se pierden al
+cambiar el período. Los enlaces de notificaciones abren Todos cuando hace falta.
+
+La pantalla conserva tres vistas sobre la misma cola: **Resumen** reúne KPI
 —incluido **Casos abiertos**, que suma los reportes sin tomar y tomados—,
 actividad reciente, carga del equipo y gráficas; **Lista** presenta los campos
 operativos en una tabla con acciones; **Tablero** distribuye las tarjetas entre
 **Abierto** (rojo), **Tomado** (índigo) y **Cerrado** (verde). Las tres
-comparten búsqueda y filtro por responsable (míos, sin tomar o una persona).
+comparten búsqueda y filtro por responsable (sin tomar o una persona).
 Lista y Tablero agrupan además los pendientes por quien los tomó y los cerrados
 por quien los cerró, con divisores punteados sutiles. Los pendientes sin tomar
 y los cierres antiguos sin un cierre registrado permanecen diferenciados. Cada
@@ -1089,13 +1096,22 @@ notificación también incorpora su reporte aunque esté fuera del período.
 
 Lo que conviene saber:
 
-- **Tomado no es un estado de la base.** Es `tomado_por` / `tomado_en` sobre un
+- **Hasta dos responsables, sin perder la toma anterior.** `tomado_por` /
+  `tomado_en` y `tomado_por_2` / `tomado_en_2` son dos lugares sobre un
   reporte `abierto`, así que un tomado cuenta como abierto en los totales y en
-  el tiempo de resolución. Se toma con el checkbox de la tarjeta; la condición
-  viaja dentro del mismo PATCH, y si dos personas lo marcan a la vez gana una
-  y la otra ve quién lo tiene. Soltarlo puede quien lo tomó o un admin. Al
-  cerrar se conserva quién lo tomó; al reabrir se limpia. En una base
-  existente, ejecutar `supabase/migracion-11-seguimiento-tomado.sql`.
+  el tiempo de resolución. El checkbox toma el primer lugar o permite
+  **Sumarme** al segundo; el máximo se controla atómicamente en Postgres, no
+  solo en la pantalla. Soltar solo retira al usuario actual y conserva al otro
+  con su fecha original. Un administrador puede retirar a una persona desde
+  el detalle. El mismo caso aparece en las dos bandejas, pero cuenta una sola
+  vez en los totales; la carga por usuario lo acredita a ambos.
+- **Comentarios con historial.** El botón de comentarios abre una ventana
+  sencilla para agregar novedades con autor y fecha. No reemplazan el motivo.
+  Corregir el motivo desde Editar conserva el texto anterior. La importación
+  inicial se identifica como texto legado; no inventa intervenciones pasadas.
+  Los reintentos no duplican comentarios y una edición obsoleta no sobrescribe
+  un cambio nuevo. Instalar `supabase/migracion-55-seguimiento-dos-responsables.sql`
+  antes de desplegar. No se modifican los flujos de n8n ni los perfiles.
 - **Las tarjetas no se arrastran.** Tomar y cerrar escriben en la base y dejan
   firmado quién lo hizo; un arrastre accidental no debería poder hacer eso.
 
@@ -1171,8 +1187,8 @@ condición:
 - Los paquetes abiertos con más de dos días sin movimiento se agrupan en una
   única alerta por estado para perfiles **Administrador** y **Operador**; el rol
   Comercial no las recibe. Al tocar el aviso se abre Demorados.
-- Un seguimiento tomado que lleva más de tres días abierto se avisa solo a la
-  persona que lo tomó. Al tocarlo se abre ese seguimiento.
+- Un seguimiento tomado que lleva más de tres días abierto se avisa solo a sus
+  responsables operativos activos (hasta dos). Al tocarlo se abre ese seguimiento.
 
 Al adoptar la agrupación se debe ejecutar también
 `supabase/migracion-31-agrupar-alertas-demora.sql`; elimina las alertas previas

@@ -10,7 +10,6 @@ import { operadorActual, usuarioActual } from "@/lib/sesion";
 import {
   ESTADOS,
   etapaDe,
-  nombreDePersona,
   parsearSeguimiento,
   responsablesDesdeRapiboyData,
   type EstadoSeguimiento,
@@ -19,7 +18,6 @@ import {
 } from "@/lib/seguimiento";
 import { consultarRapiboyData } from "@/lib/rapiboy-data";
 import {
-  actualizarFila,
   actualizarFilaSi,
   borrarArchivos,
   borrarFila,
@@ -28,6 +26,7 @@ import {
   insertarFila,
   leerFila,
 } from "@/lib/supabase";
+import { comentarEn, leerComentariosEn, tomarEn } from "@/lib/seguimiento-colaboracion";
 
 /**
  * Alta de reportes y cambio de mano, desde el tablero.
@@ -131,6 +130,7 @@ export type DatosReporte = {
   comentario: string;
   /** Rutas devueltas por `prepararAdjuntos`. */
   archivos: string[];
+  revision?: number;
 };
 
 /**
@@ -283,8 +283,10 @@ export async function editarSeguimiento(id: string, datos: DatosReporte): Promis
     seller: seller || encontrados.seller,
   };
 
-  const comentarioCambio = comentario !== (anterior?.comentario_original ?? "").trim();
-  const falla = await actualizarFila(TABLA_SEGUIMIENTO, id, {
+  if (!anterior) return { ok: false, error: "Ese reporte ya no está." };
+  if (anterior.revision !== undefined && datos.revision !== anterior.revision) return { ok: false, error: "El caso cambió. Actualizalo antes de guardar; tu texto sigue en el editor." };
+  const comentarioCambio = comentario !== (anterior.comentario_original ?? "").trim();
+  const cambio = await actualizarFilaSi(TABLA_SEGUIMIENTO, id, anterior.revision === undefined ? {} : { revision: `eq.${anterior.revision}` }, {
     caso_id: casoId,
     comentario_original: comentario,
     ...responsables,
@@ -295,7 +297,8 @@ export async function editarSeguimiento(id: string, datos: DatosReporte): Promis
         }
       : {}),
   });
-  if (falla) return { ok: false, error: falla };
+  if ("error" in cambio) return { ok: false, error: cambio.error };
+  if (cambio.filas === 0) return { ok: false, error: "El caso cambió. Tu corrección no sobrescribió los datos nuevos." };
 
   await notificarMenciones({
     autor: quien,
@@ -338,64 +341,43 @@ export async function borrarSeguimiento(id: string): Promise<Resultado> {
   return { ok: true };
 }
 
-/**
- * Toma o suelta un reporte abierto.
- *
- * La condición va dentro del PATCH y no en una lectura previa: si dos personas
- * marcan el mismo caso casi a la vez, la base deja pasar a una sola y la otra
- * se entera de quién lo tiene. Soltarlo puede quien lo tomó o un admin, para
- * destrabar el caso de alguien que no está.
- */
-export async function tomarSeguimiento(id: string, tomar: boolean): Promise<Resultado> {
+/** Toma un lugar o se retira de él; sumar al segundo no desplaza al primero. */
+export async function tomarSeguimiento(id: string, tomar: boolean, objetivo?: string): Promise<Resultado> {
   const operador = await operadorActual();
   if (!operador) return { ok: false, error: "No tenés permiso para tomar reportes." };
-  if (!id.trim()) return { ok: false, error: "Falta el reporte." };
+  const resultado = await tomarEn(id, operador.email, tomar, operador.rol === "admin", objetivo);
+  if (resultado.ok) updateTag("seguimiento");
+  return resultado;
+}
 
-  const quien = operador.email;
-  const cambio = tomar
-    ? await actualizarFilaSi(
-        TABLA_SEGUIMIENTO,
-        id,
-        { estado: "eq.abierto", tomado_por: "is.null" },
-        { tomado_por: quien, tomado_en: new Date().toISOString() },
-      )
-    : await actualizarFilaSi(
-        TABLA_SEGUIMIENTO,
-        id,
-        {
-          estado: "eq.abierto",
-          tomado_por: operador.rol === "admin" ? "not.is.null" : `eq.${quien}`,
-        },
-        { tomado_por: null, tomado_en: null },
-      );
+/** Historial mínimo, solo para usuarios de soporte autenticados. */
+export async function comentariosSeguimiento(id: string, antes?: number) {
+  const operador = await operadorActual();
+  if (!operador) return { ok: false as const, error: "No tenés permiso para leer comentarios." };
+  return leerComentariosEn(id, antes);
+}
 
-  if ("error" in cambio) return { ok: false, error: cambio.error };
-
-  if (cambio.filas === 0) {
-    const fila = await leerFila<FilaSeguimiento>(TABLA_SEGUIMIENTO, id);
-    if (!fila) return { ok: false, error: "Ese reporte ya no está." };
-
-    const actual = parsearSeguimiento(fila);
-    const etapa = etapaDe(actual);
-    // Ya quedó como se pidió: un doble clic u otra pestaña llegó antes.
-    if (tomar && etapa === "tomado" && actual.tomadoPor === quien) return { ok: true };
-    if (!tomar && etapa === "abierto") return { ok: true };
-
-    if (etapa === "cerrado") return { ok: false, error: "El reporte ya está cerrado." };
-    if (tomar) return { ok: false, error: `Ya lo tomó ${nombreDePersona(actual.tomadoPor)}.` };
-    return { ok: false, error: "Solo quien lo tomó o un admin puede soltarlo." };
+/** Agrega un aporte firmado. No cambia el motivo ni los responsables. */
+export async function agregarComentarioSeguimiento(id: string, texto: string, solicitud: string): Promise<Resultado> {
+  const operador = await operadorActual();
+  if (!operador) return { ok: false, error: "No tenés permiso para comentar." };
+  const resultado = await comentarEn(id, operador.email, texto, solicitud);
+  if (resultado.ok) {
+    if (!resultado.repetida) {
+      const fila = await leerFila<FilaSeguimiento>(TABLA_SEGUIMIENTO, id).catch(() => null);
+      if (fila) await notificarMenciones({ autor: operador.email, seguimientoId: id, casoId: fila.caso_id ?? "", texto });
+    }
+    updateTag("seguimiento");
   }
-
-  updateTag("seguimiento");
-  return { ok: true };
+  return resultado;
 }
 
 /**
  * Abre o cierra un reporte. Al cerrarlo queda registrado quién lo resolvió y
- * se conserva quién lo había tomado. Volverlo a abrir limpia las dos firmas
- * porque el caso regresó a la cola.
+ * se conservan los dos responsables. Reabrir reinicia el período abierto,
+ * pero no deja a nadie sin su caso; retirarse es una acción explícita.
  */
-export async function cambiarEstado(id: string, estado: EstadoSeguimiento): Promise<Resultado> {
+export async function cambiarEstado(id: string, estado: EstadoSeguimiento, revision?: number): Promise<Resultado> {
   const quien = await usuarioActual();
   if (!quien) return { ok: false, error: "No tenés permiso para cambiar el estado." };
 
@@ -405,16 +387,18 @@ export async function cambiarEstado(id: string, estado: EstadoSeguimiento): Prom
   const filaActual = await leerFila<FilaSeguimiento>(TABLA_SEGUIMIENTO, id);
   if (!filaActual) return { ok: false, error: "Ese reporte ya no está." };
   if (parsearSeguimiento(filaActual).estado === estado) return { ok: true };
+  if (filaActual.revision !== undefined && revision !== filaActual.revision) return { ok: false, error: "El caso cambió. Actualizá antes de cerrar o reabrir." };
 
   const libera = estado === "abierto";
   const momento = new Date().toISOString();
-  const falla = await actualizarFila(TABLA_SEGUIMIENTO, id, {
+  const cambio = await actualizarFilaSi(TABLA_SEGUIMIENTO, id, { estado: `eq.${filaActual.estado}`, ...(filaActual.revision !== undefined ? { revision: `eq.${filaActual.revision}` } : {}) }, {
     estado,
     atendido_por: libera ? null : quien,
     atendido_en: libera ? null : momento,
-    ...(libera ? { abierto_en: momento, tomado_por: null, tomado_en: null } : {}),
+    ...(libera ? { abierto_en: momento } : {}),
   });
-  if (falla) return { ok: false, error: falla };
+  if ("error" in cambio) return { ok: false, error: cambio.error };
+  if (cambio.filas === 0) return { ok: false, error: "El caso cambió; no se modificó su estado." };
 
   updateTag("seguimiento");
   return { ok: true };

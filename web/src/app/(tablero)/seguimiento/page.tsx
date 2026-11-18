@@ -22,9 +22,9 @@ export default async function Seguimiento({
   }>;
 }) {
   const parametros = await searchParams;
-  const vistaInicial = parametros.vista === "lista" || parametros.vista === "tablero"
+  const vistaInicial = parametros.vista === "lista" || parametros.vista === "resumen"
     ? parametros.vista
-    : "resumen";
+    : "tablero";
   const agrupacion: PeriodoSeguimiento = parametros.periodo === "todos" && vistaInicial === "resumen"
     ? "todos"
     : parametros.periodo === "mes" ? "mes" : "semana";
@@ -44,10 +44,11 @@ export default async function Seguimiento({
       <PageHead
         eyebrow="Reportes del equipo"
         titulo="Seguimiento"
-        dek="Tomá un caso para que se sepa quién lo está trabajando. Un tomado sigue contando como abierto hasta que alguien lo cierra."
+        dek="Tus casos, sin perderlos al cambiar de turno. Hasta dos responsables por caso."
       />
 
       <div className={estilos.stack}>
+        {reportes.some((r) => r.revision === undefined) ? <Callout tono="warning" titulo="Falta habilitar los dos responsables y los comentarios">Ejecutá <code>web/supabase/migracion-55-seguimiento-dos-responsables.sql</code> antes de usar las nuevas acciones. La migración conserva los casos y sus tomas existentes.</Callout> : null}
         {sinTabla ? (
           <Callout tono="critical" titulo="Falta crear la tabla">
             La base todavía no tiene <code>seguimiento</code>. Está el script listo en{" "}

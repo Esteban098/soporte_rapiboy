@@ -46,6 +46,13 @@ export type Seguimiento = {
   comentarioActualizadoEn: Date | null;
   tomadoPor: string | null;
   tomadoEn: Date | null;
+  /** Segundo lugar opcional; no sustituye al responsable existente. */
+  tomadoPor2?: string | null;
+  tomadoEn2?: Date | null;
+  revision?: number;
+  ultimoComentario?: string | null;
+  ultimoComentarioPor?: string | null;
+  ultimoComentarioEn?: Date | null;
   atendidoPor: string | null;
   atendidoEn: Date | null;
 };
@@ -68,6 +75,12 @@ export type FilaSeguimiento = {
   /** Opcionales: no existen hasta correr `migracion-11-seguimiento-tomado.sql`. */
   tomado_por?: string | null;
   tomado_en?: string | null;
+  tomado_por_2?: string | null;
+  tomado_en_2?: string | null;
+  revision?: number;
+  ultimo_comentario?: string | null;
+  ultimo_comentario_por?: string | null;
+  ultimo_comentario_en?: string | null;
   atendido_por: string | null;
   atendido_en: string | null;
 };
@@ -102,6 +115,12 @@ export function parsearSeguimiento(fila: FilaSeguimiento): Seguimiento {
     comentarioActualizadoEn: fecha(fila.comentario_actualizado_en),
     tomadoPor: fila.tomado_por?.trim() || null,
     tomadoEn: fecha(fila.tomado_en),
+    tomadoPor2: fila.tomado_por_2?.trim() || null,
+    tomadoEn2: fecha(fila.tomado_en_2),
+    revision: fila.revision,
+    ultimoComentario: fila.ultimo_comentario ?? null,
+    ultimoComentarioPor: fila.ultimo_comentario_por ?? null,
+    ultimoComentarioEn: fecha(fila.ultimo_comentario_en),
     atendidoPor: fila.atendido_por?.trim() || null,
     atendidoEn: fecha(fila.atendido_en),
   };
@@ -142,7 +161,18 @@ export function responsablesDesdeRapiboyData(crudo: unknown): {
 
 export function etapaDe(reporte: Seguimiento): EtapaSeguimiento {
   if (reporte.estado === "cerrado") return "cerrado";
-  return reporte.tomadoPor ? "tomado" : "abierto";
+  return responsablesSeguimiento(reporte).length ? "tomado" : "abierto";
+}
+
+export function responsablesSeguimiento(reporte: Seguimiento): string[] {
+  return [...new Set([reporte.tomadoPor, reporte.tomadoPor2].filter((p): p is string => Boolean(p)).map((p) => p.trim().toLowerCase()))];
+}
+
+/** Mis casos es una vista, no un nuevo permiso. Los dos responsables ven el
+ * mismo reporte, incluidos sus cierres dentro del período seleccionado. */
+export function esMiSeguimiento(reporte: Seguimiento, correo: string | null): boolean {
+  const normalizado = correo?.trim().toLowerCase();
+  return Boolean(normalizado && (responsablesSeguimiento(reporte).includes(normalizado) || (reporte.estado === "cerrado" && reporte.atendidoPor?.trim().toLowerCase() === normalizado)));
 }
 
 export function nombreDePersona(correo: string | null): string {
@@ -173,9 +203,10 @@ export function agruparPorResponsableSeguimiento(
     const cerrado = reporte.estado === "cerrado";
     const correo = (cerrado ? reporte.atendidoPor : reporte.tomadoPor)?.trim() || null;
     const accion = cerrado ? "cierre" : "toma";
-    const clave = correo ? `${accion}:${correo.toLowerCase()}` : `__sin_${accion}__`;
+    const responsables = cerrado ? (correo ? [correo] : []) : responsablesSeguimiento(reporte);
+    const clave = responsables.length ? `${accion}:${responsables.map((p) => p.toLowerCase()).sort().join("+")}` : `__sin_${accion}__`;
     const etiqueta = correo
-      ? `${cerrado ? "Cerrado" : "Tomado"} por ${nombreDePersona(correo)}`
+      ? `${cerrado ? "Cerrado" : "Tomado"} por ${responsables.map(nombreDePersona).join(" y ")}`
       : cerrado ? "Sin cierre registrado" : "Sin tomar";
     const grupo = grupos.get(clave) ?? { clave, etiqueta, responsable: correo, reportes: [] };
     grupo.reportes.push(reporte);
@@ -254,7 +285,7 @@ export const DIAS_PARA_ALERTA_SEGUIMIENTO = 3;
 /** Un aviso vencido solo tiene destinatario si el reporte fue tomado. */
 export function seguimientoVencido(reporte: Seguimiento, ahora = Date.now()): boolean {
   return reporte.estado === "abierto" &&
-    Boolean(reporte.tomadoPor) &&
+    responsablesSeguimiento(reporte).length > 0 &&
     Boolean(reporte.abiertoEn) &&
     ahora - reporte.abiertoEn!.getTime() > DIAS_PARA_ALERTA_SEGUIMIENTO * 24 * 60 * 60 * 1000;
 }

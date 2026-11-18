@@ -26,6 +26,17 @@
   min-width: 0;
 }
 
+.bandejas { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.bandeja,.bandejaActiva { padding:8px 14px; border:1px solid var(--rule); border-radius:var(--radio-3); font:600 12.5px var(--sans); cursor:pointer; background:var(--surface); color:var(--ink-2); }
+.bandejaActiva { color:var(--accent-ink); border-color:var(--accent); background:var(--accent-soft); }
+.bandejas small { color:var(--muted); font-size:11.5px; }
+.coResponsables { display:flex; gap:6px 12px; flex-wrap:wrap; margin:0; font-size:11.5px; color:var(--ink-2); }
+.coResponsables > span { display:inline-flex; align-items:center; gap:5px; }
+.ultimoComentario { display:flex; flex-direction:column; gap:5px; padding:8px; text-align:left; border:1px solid var(--rule-soft); border-radius:8px; color:var(--ink); background:var(--surface-2); cursor:pointer; }
+.ultimoComentario strong { color:var(--muted); font:600 10.5px var(--sans); }
+.ultimoComentario span { font:400 12px/1.4 var(--sans); white-space:pre-wrap; overflow-wrap:anywhere; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.retirarResponsable { margin-left:7px; border:0; color:var(--critical); background:none; font:500 11px var(--sans); cursor:pointer; }
+
 .vistas {
   display: flex;
   gap: 4px;
@@ -386,6 +397,7 @@
   gap: 9px;
   padding: 2px 0 12px;
 }
+.columnasMias { grid-template-columns:repeat(2,minmax(0,1fr)); }
 
 .columna {
   display: flex;

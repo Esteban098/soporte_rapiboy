@@ -35,12 +35,6 @@ export function EditorReporte({
   const [guardando, iniciar] = useTransition();
   const router = useRouter();
 
-  const cambio =
-    casoId.trim() !== reporte.casoId ||
-    driver.trim() !== (reporte.driver ?? "") ||
-    seller.trim() !== (reporte.seller ?? "") ||
-    comentario.trim() !== reporte.comentario;
-
   function guardar() {
     iniciar(async () => {
       setError(null);
@@ -50,6 +44,7 @@ export function EditorReporte({
         seller,
         comentario,
         archivos: [],
+        revision: reporte.revision,
       });
 
       if (!resultado.ok) {
@@ -100,7 +95,7 @@ export function EditorReporte({
             className={estilos.entrada}
             value={driver}
             onChange={(e) => setDriver(e.target.value)}
-            placeholder="Se completa desde Mensual/Histórico si queda vacío"
+            placeholder="Se completa desde RapiboyData si queda vacío"
             disabled={guardando}
           />
         </label>
@@ -111,7 +106,7 @@ export function EditorReporte({
             className={estilos.entrada}
             value={seller}
             onChange={(e) => setSeller(e.target.value)}
-            placeholder="Se completa desde Mensual/Histórico si queda vacío"
+            placeholder="Se completa desde RapiboyData si queda vacío"
             disabled={guardando}
           />
         </label>
@@ -163,7 +158,7 @@ export function EditorReporte({
         ) : (
           <div className={estilos.acciones}>
             <button type="button" className={estilos.principal} onClick={guardar} disabled={guardando}>
-              {guardando ? "Guardando…" : cambio ? "Guardar y resumir de nuevo" : "Guardar"}
+              {guardando ? "Guardando…" : "Guardar"}
             </button>
             <button
               type="button"
