@@ -498,13 +498,13 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 11px;
   min-width: 0;
-  padding: 8px 8px 5px 12px;
+  padding: 14px 14px 12px 17px;
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--rule-soft);
-  border-radius: 12px;
+  border-radius: 16px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
   transition:
     box-shadow var(--dur-corta) var(--ease),
@@ -572,6 +572,20 @@
   border: 1px solid color-mix(in srgb, var(--caso-tomado) 38%, var(--rule-soft));
   border-radius: 8px;
 }
+.avisoAtencion {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--warning-solid) 45%, var(--rule));
+  border-radius: 11px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--warning-solid) 15%, var(--surface));
+}
+.avisoAtencion > span:last-child { display: grid; gap: 3px; }
+.avisoAtencion strong { font-size: 12px; }
+.avisoAtencion small { font-size: 11px; color: var(--ink-2); }
+.atencionIcono { display: grid; place-items: center; flex: none; width: 25px; height: 25px; border-radius: 50%; background: var(--warning-solid); color: var(--action-neutral-ink); font-weight: 800; }
 .avisoActualizacionIcono {
   display: grid;
   place-items: center;
@@ -642,12 +656,14 @@
 .responsables {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px 12px;
+  gap: 7px;
   margin: 0;
   font-size: 12px;
   color: var(--ink-2);
   overflow-wrap: anywhere;
 }
+.responsables > span { flex: 1 1 140px; padding: 8px 10px; border-radius: 9px; background: color-mix(in srgb, var(--surface) 75%, var(--surface-2)); }
+.responsables .rotulo { display: block; margin-bottom: 3px; font-size: 10px; }
 
 .rotulo {
   color: var(--muted);
@@ -655,18 +671,26 @@
 
 .detalle {
   display: grid;
-  gap: 5px;
+  gap: 0;
   margin: 0;
-  padding-top: 8px;
+  padding: 12px 10px 3px 18px;
   border-top: 1px solid var(--rule-soft);
   font-size: 12px;
+  background: var(--surface-2);
+  border-radius: 10px;
 }
 
 .detalle > div {
+  position: relative;
   display: grid;
   grid-template-columns: 62px minmax(0, 1fr);
   gap: 8px;
+  padding: 0 0 12px 12px;
+  border-left: 1px solid var(--rule);
 }
+.detalle > div::before { content: ""; position: absolute; left: -4px; top: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--tono); box-shadow: 0 0 0 3px var(--surface-2); }
+.detalle > div:last-child { border-left-color: transparent; }
+.detalle time { display: block; margin-top: 3px; color: var(--muted); font-size: 10.5px; }
 
 .detalle dt {
   color: var(--muted);
@@ -712,6 +736,9 @@
   align-items: center;
   gap: 6px;
   min-height: 30px;
+  flex-wrap: wrap;
+  padding-top: 11px;
+  border-top: 1px solid var(--rule-soft);
 }
 
 .tomar {
@@ -719,7 +746,9 @@
   align-items: center;
   gap: 7px;
   min-width: 0;
-  padding: 2px 8px 2px 6px;
+  padding: 8px 10px;
+  min-height: 36px;
+  border: 1px solid var(--rule);
   border-radius: var(--radio-3);
   font-size: 12.5px;
   color: var(--ink-2);
@@ -784,9 +813,10 @@
 .acciones {
   display: inline-flex;
   align-items: center;
-  flex: none;
-  gap: 1px;
-  margin-left: auto;
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 6px;
+  margin-top: 2px;
 }
 
 .clips {
@@ -799,20 +829,25 @@
 }
 
 .icono {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  background: none;
-  border: 0;
-  border-radius: 8px;
-  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 7px 10px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  color: var(--ink-2);
+  font: 600 11px/1.2 var(--sans);
   cursor: pointer;
   transition:
     background-color var(--dur-corta) var(--ease),
     color var(--dur-corta) var(--ease);
 }
+.icono svg { flex: none; }
+.iconoCerrar { margin-left: auto; color: var(--caso-cerrado); background: var(--caso-cerrado-fondo); border-color: color-mix(in srgb, var(--caso-cerrado) 35%, var(--rule)); }
+.retirarResponsable:hover { text-decoration: underline; }
 
 .icono:hover {
   background: var(--surface-2);

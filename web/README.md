@@ -1105,7 +1105,12 @@ Lo que conviene saber:
   con su fecha original. Un administrador puede retirar a una persona desde
   el detalle. El mismo caso aparece en las dos bandejas, pero cuenta una sola
   vez en los totales; la carga por usuario lo acredita a ambos.
-- **Comentarios con historial.** El botón de comentarios abre una ventana
+- **Necesita atención.** La tarjeta avisa cuando una toma activa supera las
+  48 horas sin cerrar. Con dos responsables cuenta la toma más antigua vigente,
+  no la creación del reporte; se actualiza cada minuto y no aparece en cerrados.
+  Las acciones muestran texto y el historial presenta una línea de tiempo con
+  autor, fecha y tipo de aporte.
+- **Comentarios con historial.** El botón Historial abre una ventana
   sencilla para agregar novedades con autor y fecha. No reemplazan el motivo.
   Corregir el motivo desde Editar conserva el texto anterior. La importación
   inicial se identifica como texto legado; no inventa intervenciones pasadas.

@@ -8,6 +8,7 @@ import {
   responsablesSeguimiento,
   inicialesDePersona,
   minutosAbierto,
+  necesitaAtencionSeguimiento,
   moverPeriodo,
   parsearSeguimiento,
   periodoActual,
@@ -137,6 +138,18 @@ const cuatroDias = Date.parse("2026-09-11T06:00:00.000Z");
 assert.equal(seguimientoVencido(tomado, cuatroDias), true);
 assert.equal(seguimientoVencido({ ...tomado, tomadoPor: null }, cuatroDias), false);
 assert.equal(seguimientoVencido(cerrado, cuatroDias), false);
+
+const toma = new Date("2026-11-16T12:00:00Z");
+const tomadoParaAtencion = { ...tomado, tomadoEn: toma };
+const limiteAtencion = toma.getTime() + 48 * 60 * 60 * 1000;
+assert.equal(necesitaAtencionSeguimiento(tomadoParaAtencion, limiteAtencion), false);
+assert.equal(necesitaAtencionSeguimiento(tomadoParaAtencion, limiteAtencion + 1), true);
+assert.equal(necesitaAtencionSeguimiento({ ...tomadoParaAtencion, estado: "cerrado" }, limiteAtencion + 1), false);
+assert.equal(necesitaAtencionSeguimiento({ ...tomadoParaAtencion, tomadoPor: null }, limiteAtencion + 1), false);
+assert.equal(necesitaAtencionSeguimiento({ ...tomadoParaAtencion, tomadoEn: null }, limiteAtencion + 1), false);
+assert.equal(necesitaAtencionSeguimiento({ ...tomadoParaAtencion, tomadoEn: new Date("inválida") }, limiteAtencion + 1), false);
+assert.equal(necesitaAtencionSeguimiento({ ...tomadoParaAtencion, tomadoEn: new Date(limiteAtencion), tomadoPor2: "otro@example.test", tomadoEn2: toma }, limiteAtencion + 1), true);
+assert.equal(necesitaAtencionSeguimiento({ ...tomadoParaAtencion, tomadoEn: new Date(limiteAtencion) }, limiteAtencion + 1), false, "el alta antigua no equivale a una toma antigua");
 
 assert.deepEqual(resumirSeguimientos([legado, tomado, cerrado]), {
   total: 3,

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { agregarComentarioSeguimiento, comentariosSeguimiento } from "@/app/seguimiento";
-import { nombreDePersona, type Seguimiento } from "@/lib/seguimiento";
+import { colorDePersona, inicialesDePersona, nombreDePersona, type Seguimiento } from "@/lib/seguimiento";
 import type { ComentarioSeguimiento } from "@/lib/seguimiento-colaboracion";
 import { fechaHoraArgentina } from "@/lib/formato";
 import { AreaMenciones } from "./AreaMenciones";
@@ -66,8 +66,11 @@ export function ComentariosSeguimiento({ reporte, alCerrar }: { reporte: Seguimi
     }
   }}>
     <div className={estilos.panel} ref={panel} tabIndex={-1}>
-      <h2 className={estilos.titulo}>Comentarios · #{reporte.casoId}</h2>
-      <p className={estilos.nota}>Cada aporte conserva autor y fecha. Comentar no cambia quién tiene tomado el caso.</p>
+      <header className={propio.cabecera}>
+        <span className={propio.eyebrow}>Historial del caso</span>
+        <h2 className={estilos.titulo}>#{reporte.casoId}</h2>
+        <p className={estilos.nota}>Novedades y cambios del motivo, con autor y fecha.</p>
+      </header>
       {antes !== null ? <button className={estilos.secundario} type="button" disabled={guardando} onClick={() => iniciar(async () => {
         try {
           const resultado = await comentariosSeguimiento(reporte.id, antes);
@@ -77,10 +80,13 @@ export function ComentariosSeguimiento({ reporte, alCerrar }: { reporte: Seguimi
           setAntes(resultado.anteriores);
         } catch { setError("No se pudieron leer los comentarios anteriores."); }
       })}>Ver anteriores</button> : null}
-      {cargando ? <p className={estilos.nota}>Cargando comentarios…</p> : <ol className={propio.historial}>{items.map((c) => <li key={c.id}>
-        <div><strong>{nombreDePersona(c.autor)}</strong><time>{fechaHoraArgentina(new Date(c.creado_en))}</time></div>
-        {c.tipo !== "comentario" ? <small>{c.tipo === "legado" ? "Comentario previo al historial" : c.tipo === "creacion" ? "Motivo inicial" : "Motivo corregido"}</small> : null}
-        <p>{c.texto}</p>{c.anterior !== null ? <details><summary>Ver texto anterior</summary><p>{c.anterior}</p></details> : null}
+      {cargando ? <p className={estilos.nota}>Cargando comentarios…</p> : items.length === 0 ? <p className={propio.vacio}>Todavía no hay novedades. Agregá el primer comentario para continuar el caso.</p> : <ol className={propio.historial} aria-label="Historial de comentarios">{items.map((c) => <li key={c.id}>
+        <span className={propio.avatar} style={{ background: colorDePersona(c.autor) }} aria-hidden="true">{inicialesDePersona(c.autor)}</span>
+        <div className={propio.evento}>
+          <div className={propio.eventoCabecera}><strong>{nombreDePersona(c.autor)}</strong><time dateTime={c.creado_en}>{fechaHoraArgentina(new Date(c.creado_en))}</time></div>
+          <small className={propio.tipo}>{c.tipo === "comentario" ? "Novedad" : c.tipo === "legado" ? "Comentario previo al historial" : c.tipo === "creacion" ? "Motivo inicial" : "Motivo corregido"}</small>
+          <p>{c.texto}</p>{c.anterior !== null ? <details><summary>Ver texto anterior</summary><p>{c.anterior}</p></details> : null}
+        </div>
       </li>)}</ol>}
       {reporte.estado === "abierto" ? <label className={estilos.campo}><span className={estilos.etiqueta}>Agregar comentario</span>
         <AreaMenciones className={`${estilos.entrada} ${estilos.area}`} value={texto} onValueChange={setTexto} rows={3} maxLength={4000} disabled={guardando} placeholder="Novedades para continuar el caso…" />

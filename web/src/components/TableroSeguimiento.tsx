@@ -20,6 +20,7 @@ import {
   responsablesSeguimiento,
   inicialesDePersona,
   minutosAbierto,
+  necesitaAtencionSeguimiento,
   nombreDePersona,
   moverPeriodo,
   resumirSeguimientos,
@@ -660,6 +661,7 @@ function Tarjeta({
   const mio = Boolean(yo) && responsables.includes(yo!.trim().toLowerCase());
   const minutos = ahora === null ? null : minutosAbierto(reporte, ahora);
   const responsableVisual = etapa === "cerrado" ? reporte.atendidoPor : reporte.tomadoPor;
+  const necesitaAtencion = ahora !== null && necesitaAtencionSeguimiento(reporte, ahora);
 
   return (
     <article
@@ -693,6 +695,11 @@ function Tarjeta({
           </span>
         ) : null}
       </div>
+
+      {necesitaAtencion ? <div className={estilos.avisoAtencion} role="status">
+        <span className={estilos.atencionIcono} aria-hidden="true">!</span>
+        <span><strong>Necesita atención</strong><small>Más de 2 días tomado sin cerrar</small></span>
+      </div> : null}
 
       {reporte.comentarioActualizadoEn ? (
         <div className={estilos.avisoActualizacion} role="status">
@@ -758,7 +765,7 @@ function Tarjeta({
         )}
 
         <div className={estilos.acciones} data-noimprimir>
-          <BotonIcono etiqueta="Comentarios del caso" onClick={alComentar}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6 4V6a2 2 0 0 1 2-2Z" /><path d="M7 9h10M7 13h7" /></svg></BotonIcono>
+          <BotonIcono etiqueta="Comentarios del caso" texto="Historial" disabled={ocupado} onClick={alComentar}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6 4V6a2 2 0 0 1 2-2Z" /><path d="M7 9h10M7 13h7" /></svg></BotonIcono>
           {reporte.archivos.length > 0 && !desplegada ? (
             <span className={estilos.clips} title="Adjuntos">
               <IconoClip />
@@ -767,16 +774,18 @@ function Tarjeta({
           ) : null}
           <BotonIcono
             etiqueta={desplegada ? "Ocultar detalle" : "Ver detalle"}
+            texto={desplegada ? "Menos" : "Detalle"}
             onClick={() => setDesplegada((valor) => !valor)}
           >
             <IconoChevron className={desplegada ? estilos.girado : ""} />
           </BotonIcono>
-          <BotonIcono etiqueta="Editar reporte" onClick={alEditar}>
+          <BotonIcono etiqueta="Editar reporte" texto="Editar" disabled={ocupado} onClick={alEditar}>
             <IconoLapiz />
           </BotonIcono>
           {etapa === "cerrado" ? (
             <BotonIcono
               etiqueta="Reabrir"
+              texto="Reabrir"
               onClick={() => alCambiarEstado("abierto")}
               disabled={ocupado}
             >
@@ -785,6 +794,7 @@ function Tarjeta({
           ) : (
             <BotonIcono
               etiqueta="Cerrar reporte"
+              texto="Cerrar caso"
               className={estilos.iconoCerrar}
               onClick={() => alCambiarEstado("cerrado")}
               disabled={ocupado}
@@ -804,14 +814,14 @@ function Detalle({ reporte, urls, admin, alRetirar }: { reporte: Seguimiento; ur
       <div>
         <dt>Reportó</dt>
         <dd>
-          {nombreDePersona(reporte.creadoPor)} · {cuando(reporte.creado)}
+          {nombreDePersona(reporte.creadoPor)} <time dateTime={reporte.creado?.toISOString()}>{cuando(reporte.creado)}</time>
         </dd>
       </div>
       {responsablesSeguimiento(reporte).map((correo) => (
         <div key={correo}>
           <dt>Tomó</dt>
           <dd>
-            {nombreDePersona(correo)} · {cuando(correo === reporte.tomadoPor ? reporte.tomadoEn : reporte.tomadoEn2 ?? null)}
+            {nombreDePersona(correo)} <time>{cuando(correo === reporte.tomadoPor ? reporte.tomadoEn : reporte.tomadoEn2 ?? null)}</time>
             {admin ? <button type="button" className={estilos.retirarResponsable} onClick={() => alRetirar(correo)}>Retirar</button> : null}
           </dd>
         </div>
@@ -820,7 +830,7 @@ function Detalle({ reporte, urls, admin, alRetirar }: { reporte: Seguimiento; ur
         <div>
           <dt>Actualizó</dt>
           <dd>
-            {nombreDePersona(reporte.comentarioActualizadoPor)} · {cuando(reporte.comentarioActualizadoEn)}
+            {nombreDePersona(reporte.comentarioActualizadoPor)} <time dateTime={reporte.comentarioActualizadoEn.toISOString()}>{cuando(reporte.comentarioActualizadoEn)}</time>
           </dd>
         </div>
       ) : null}
@@ -828,7 +838,7 @@ function Detalle({ reporte, urls, admin, alRetirar }: { reporte: Seguimiento; ur
         <div>
           <dt>Cerró</dt>
           <dd>
-            {nombreDePersona(reporte.atendidoPor)} · {cuando(reporte.atendidoEn)}
+            {nombreDePersona(reporte.atendidoPor)} <time dateTime={reporte.atendidoEn?.toISOString()}>{cuando(reporte.atendidoEn)}</time>
           </dd>
         </div>
       ) : null}
@@ -900,12 +910,14 @@ function Avatar({ correo }: { correo: string }) {
 
 function BotonIcono({
   etiqueta,
+  texto,
   onClick,
   disabled,
   className = "",
   children,
 }: {
   etiqueta: string;
+  texto?: string;
   onClick: () => void;
   disabled?: boolean;
   className?: string;
@@ -921,6 +933,7 @@ function BotonIcono({
       title={etiqueta}
     >
       {children}
+      {texto ? <span>{texto}</span> : null}
     </button>
   );
 }

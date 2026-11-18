@@ -279,6 +279,16 @@ export function minutosAbierto(reporte: Seguimiento, ahora: number): number | nu
   return Math.max(0, Math.floor((ahora - reporte.abiertoEn.getTime()) / 60_000));
 }
 
+/** Aviso visual tras 48 horas de una toma activa; no usa la fecha del alta. */
+export function necesitaAtencionSeguimiento(reporte: Seguimiento, ahora: number): boolean {
+  if (reporte.estado !== "abierto" || !Number.isFinite(ahora)) return false;
+  const tomas = [
+    reporte.tomadoPor ? reporte.tomadoEn : null,
+    reporte.tomadoPor2 ? reporte.tomadoEn2 : null,
+  ].filter((fecha): fecha is Date => Boolean(fecha) && Number.isFinite(fecha!.getTime()));
+  return tomas.some((fecha) => ahora - fecha.getTime() > 48 * 60 * 60 * 1000);
+}
+
 /** A partir de cuándo se avisa a quien tiene tomado un seguimiento abierto. */
 export const DIAS_PARA_ALERTA_SEGUIMIENTO = 3;
 
