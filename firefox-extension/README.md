@@ -12,6 +12,16 @@ No se ejecuta ni aparece en otros sitios. La conversación
 vive en la memoria del proceso de fondo y desaparece al cerrar Firefox; no se
 escribe en el almacenamiento local.
 
+Desde la versión 3.1.0 el mismo panel conserva el agente y suma
+**Seguimiento**. En WhatsApp Web detecta IDs numéricos de viaje en los mensajes
+y agrega `+ seguimiento`; si el mensaje contiene solo una imagen busca el ID en
+los 25 mensajes anteriores. Al abrirlo precarga el texto y sus metadatos, avisa
+si el viaje ya tiene reportes y permite crear otro. Driver y seller son
+opcionales: la plataforma intenta completarlos desde RapiboyData. La extensión
+no accede a Supabase ni guarda casos por sí misma; usa
+`/api/seguimiento/extension` con el mismo Bearer personal revocable del agente.
+Las imágenes del chat no se suben automáticamente en esta versión.
+
 ## Vincular el Asistente
 
 1. En la plataforma, abrir **Mi perfil → Asistente en Firefox**.
@@ -28,7 +38,8 @@ Cada persona usa su propio token, válido por 180 días y revocable desde Mi
 perfil. Supabase guarda únicamente SHA-256 del token, vinculado por FK a
 perfiles.id; desactivar el perfil también corta el acceso. La tabla se crea con
 web/supabase/migracion-52-asistente-extension.sql y tiene RLS sin políticas
-públicas.
+públicas. El endpoint de Seguimiento vuelve a comprobar el token y el perfil en
+cada consulta o alta; los perfiles comerciales continúan excluidos.
 
 ## Instalación permanente (lo que usan los operadores)
 
@@ -67,7 +78,7 @@ resultado queda en `artefactos/`, con un nombre generado por AMO
 (`<hash>-<version>.xpi`). Conviene renombrarlo antes de repartirlo:
 
 ```bash
-mv artefactos/*-3.0.3.xpi artefactos/asistente-rapiboy-3.0.3.xpi
+mv artefactos/*-3.1.0.xpi artefactos/asistente-rapiboy-3.1.0.xpi
 ```
 
 Renombrar no invalida la firma: va dentro del paquete, no en el nombre.

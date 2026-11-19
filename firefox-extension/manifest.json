@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
   "name": "Rapiboy · Herramientas",
-  "version": "3.0.3",
-  "description": "Asistente operativo y carga de datos de tienda para Rapiboy.",
+  "version": "3.1.0",
+  "description": "Asistente operativo, seguimiento y carga de datos de tienda para Rapiboy.",
   "permissions": [
     "contextMenus",
     "notifications",
@@ -16,6 +16,7 @@
   "content_scripts": [{
     "matches": ["https://web.whatsapp.com/*", "https://rapiboy.com/*", "https://*.rapiboy.com/*"],
     "js": ["assistant-panel.js"],
+    "css": ["whatsapp-cases.css"],
     "run_at": "document_idle",
     "all_frames": false
   }],

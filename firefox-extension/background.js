@@ -131,6 +131,11 @@ function apiPermitida(url) {
   }
 }
 
+function apiSeguimiento(config) {
+  if (apiPermitida(config.assistantApiUrl) === false) return "";
+  return new URL("/api/seguimiento/extension", config.assistantApiUrl).href;
+}
+
 function estadoAsistente(config) {
   return {
     mensajes: assistantMessages,
@@ -139,11 +144,16 @@ function estadoAsistente(config) {
     platformOrigin: apiPermitida(config.assistantApiUrl)
       ? new URL(config.assistantApiUrl).origin
       : "",
+    seguimientoConfigurado: Boolean(apiSeguimiento(config) && config.assistantToken),
   };
 }
 
 async function manejarAsistente(message, sender) {
-  if (message == null || typeof message.type !== "string" || message.type.startsWith("assistant:") === false) {
+  if (
+    message == null ||
+    typeof message.type !== "string" ||
+    (message.type.startsWith("assistant:") === false && message.type.startsWith("followup:") === false)
+  ) {
     return undefined;
   }
   if (paginaPermitida(sender.tab && sender.tab.url ? sender.tab.url : "") === false) {
@@ -151,6 +161,46 @@ async function manejarAsistente(message, sender) {
   }
 
   const config = await configuracion();
+
+  if (message.type === "followup:consult" || message.type === "followup:create") {
+    const endpoint = apiSeguimiento(config);
+    if (endpoint === "" || config.assistantToken === "") {
+      return { ok: false, error: "Falta vincular el Asistente en las opciones de Firefox." };
+    }
+    const casoId = String(message.casoId || "").trim().slice(0, 12);
+    if (/^\d{1,12}$/.test(casoId) === false) return { ok: false, error: "Ingresá un ID de viaje válido." };
+    const payload = message.type === "followup:consult"
+      ? { accion: "consultar", casoId }
+      : {
+          accion: "crear",
+          casoId,
+          comentario: String(message.comentario || "").trim().slice(0, 4001),
+          driver: String(message.driver || "").trim().slice(0, 201),
+          seller: String(message.seller || "").trim().slice(0, 201),
+        };
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + config.assistantToken,
+        },
+        body: JSON.stringify(payload),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (response.ok === false || body.ok !== true) {
+        return {
+          ok: false,
+          error: response.status === 401
+            ? "La vinculación venció o fue revocada. Generá una nueva desde Mi perfil."
+            : String(body.error || "No se pudo guardar el seguimiento."),
+        };
+      }
+      return { ...body, platformOrigin: new URL(config.assistantApiUrl).origin };
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : "No se pudo contactar la plataforma." };
+    }
+  }
 
   if (message.type === "assistant:get-state") {
     return { ok: true, ...estadoAsistente(config) };

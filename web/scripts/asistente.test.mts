@@ -532,6 +532,8 @@ test("el asistente rechaza consultas ajenas a la operación", () => {
 test("la extensión usa un Bearer personal revocable, no una clave compartida", () => {
   const token = fuente("../src/lib/asistente-extension.ts");
   const ruta = fuente("../src/app/api/asistente/extension/route.ts");
+  const seguimiento = fuente("../src/app/api/seguimiento/extension/route.ts");
+  const alta = fuente("../src/lib/seguimiento-alta.ts");
   const proxy = fuente("../src/proxy.ts");
   const migracion = fuente("../supabase/migracion-52-asistente-extension.sql");
 
@@ -545,6 +547,12 @@ test("la extensión usa un Bearer personal revocable, no una clave compartida", 
   assert.match(ruta, /operadorDesdeTokenExtension\(pedido\)/);
   assert.match(ruta, /responderPedidoAsistente\(pedido, operador\)/);
   assert.match(proxy, /ruta === "\/api\/asistente\/extension"/);
+  assert.match(proxy, /ruta === "\/api\/seguimiento\/extension"/);
+  assert.match(seguimiento, /operadorDesdeTokenExtension\(pedido\)/);
+  assert.match(seguimiento, /crearSeguimientoComo\(operador\.email/);
+  assert.match(seguimiento, /leerReportesDelCaso\(casoId\)/);
+  assert.match(alta, /import "server-only"/);
+  assert.match(alta, /notificarMenciones/);
 
   assert.match(migracion, /references public\.perfiles\(id\)/);
   assert.match(migracion, /token_hash\s+text not null unique/);

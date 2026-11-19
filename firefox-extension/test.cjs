@@ -19,6 +19,7 @@ test("el panel solo se inyecta en WhatsApp Web y Rapiboy", () => {
   assert.equal(manifest.content_scripts[0].all_frames, false);
   assert.equal(JSON.stringify(manifest).includes("<all_urls>"), false);
   assert.ok(manifest.permissions.includes("https://soporte-rapiboy.vercel.app/*"));
+  assert.ok(manifest.content_scripts[0].css.includes("whatsapp-cases.css"));
   assert.match(background, /documentUrlPatterns/);
 });
 
@@ -27,6 +28,8 @@ test("token e historial solo salen al endpoint HTTPS oficial", () => {
   assert.match(background, /parsed\.protocol === "https:"/);
   assert.match(background, /host === "soporte-rapiboy\.vercel\.app"/);
   assert.match(background, /parsed\.pathname === "\/api\/asistente\/extension"/);
+  assert.match(background, /\/api\/seguimiento\/extension/);
+  assert.match(background, /message\.type === "followup:create"/);
   assert.match(background, /Authorization: "Bearer " \+ config\.assistantToken/);
   assert.match(options, /host !== "soporte-rapiboy\.vercel\.app"/);
   assert.match(options, /host !== "rapiboy\.com"/);
@@ -55,4 +58,15 @@ test("el panel externo formatea respuestas y se repliega desde el lateral", () =
   assert.equal(panel.includes("innerHTML"), false);
   assert.match(panelCss, /writing-mode: vertical-rl/);
   assert.match(panelCss, /border-radius: 24px 0 0 24px/);
+});
+
+test("Seguimiento detecta viajes en WhatsApp y conserva el agente", () => {
+  assert.match(panel, /const ID_VIAJE =/);
+  assert.match(panel, /#main \[role=\"row\"\]/);
+  assert.match(panel, /MutationObserver/);
+  assert.match(panel, /revisados < 25/);
+  assert.match(panel, /type: "followup:consult"/);
+  assert.match(panel, /type: "followup:create"/);
+  assert.match(panel, /setMode\("assistant"\)/);
+  assert.equal(panel.includes("innerHTML"), false);
 });

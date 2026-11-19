@@ -9,22 +9,24 @@ import { notificarMenciones } from "@/lib/notificaciones";
 import { operadorActual, usuarioActual } from "@/lib/sesion";
 import {
   ESTADOS,
-  etapaDe,
   parsearSeguimiento,
-  responsablesDesdeRapiboyData,
   domicilioDesdeRapiboyData,
   type EstadoSeguimiento,
-  type EtapaSeguimiento,
   type FilaSeguimiento,
 } from "@/lib/seguimiento";
 import { consultarRapiboyData } from "@/lib/rapiboy-data";
 import {
+  crearSeguimientoComo,
+  leerReportesDelCaso,
+  responsablesDelCaso,
+  type DatosReporte,
+  type Previo,
+} from "@/lib/seguimiento-alta";
+import {
   actualizarFilaSi,
   borrarArchivos,
   borrarFila,
-  consultar,
   firmarSubida,
-  insertarFila,
   leerFila,
 } from "@/lib/supabase";
 import { comentarEn, leerComentariosEn, tomarEn } from "@/lib/seguimiento-colaboracion";
@@ -69,8 +71,6 @@ const MAX_COMENTARIO = 4000;
 /** Evita pegar por accidente textos largos en los nombres de responsables. */
 const MAX_RESPONSABLE = 200;
 
-/** Rutas que este código pudo haber emitido: `caso/uuid-nombre`. */
-const RUTA_VALIDA = /^[a-zA-Z0-9._-]+\/[0-9a-f-]{36}-[a-zA-Z0-9._-]+$/;
 
 /**
  * Deja el nombre del archivo apto para una ruta de Storage.
@@ -136,90 +136,11 @@ export async function prepararAdjuntos(
   return { ok: true, subidas };
 }
 
-/** Lo que se guarda de un reporte. Los archivos ya están subidos. */
-export type DatosReporte = {
-  casoId: string;
-  driver: string;
-  seller: string;
-  comentario: string;
-  /** Rutas devueltas por `prepararAdjuntos`. */
-  archivos: string[];
-  revision?: number;
-};
-
-/**
- * Completa los responsables directamente desde RapiboyData mediante el flujo
- * autenticado de solo lectura. No consulta las copias operativas de Supabase.
- *
- * Un fallo de enriquecimiento no bloquea un reporte urgente: queda registrado
- * sin el dato que faltaba y el error se deja en los logs del servidor.
- */
-async function responsablesDelCaso(
-  casoId: string,
-): Promise<{ driver: string | null; seller: string | null }> {
-  if (!/^\d{1,12}$/.test(casoId)) return { driver: null, seller: null };
-  const resultado = await consultarRapiboyData({ id: casoId, origen: "seguimiento" });
-  if (!resultado.ok) {
-    console.error(`[seguimiento] No se pudieron completar responsables: ${resultado.codigo}`);
-    return { driver: null, seller: null };
-  }
-  return responsablesDesdeRapiboyData(resultado.datos);
-}
-
 /** Guarda el comentario original del reporte y sus responsables. */
 export async function crearSeguimiento(datos: DatosReporte): Promise<Resultado> {
   const quien = await usuarioActual();
   if (!quien) return { ok: false, error: "No tenés permiso para cargar reportes." };
-
-  const casoId = datos.casoId.trim();
-  const driver = datos.driver.trim();
-  const seller = datos.seller.trim();
-  const comentario = datos.comentario.trim();
-
-  if (!casoId) return { ok: false, error: "Falta el id del caso." };
-  if (!comentario) return { ok: false, error: "Escribí un comentario antes de enviar." };
-  if (comentario.length > MAX_COMENTARIO) {
-    return { ok: false, error: "El comentario es demasiado largo." };
-  }
-  if (driver.length > MAX_RESPONSABLE || seller.length > MAX_RESPONSABLE) {
-    return { ok: false, error: "Driver o seller es demasiado largo." };
-  }
-
-  // Las rutas llegan del navegador, así que se comprueba la forma: solo se
-  // aceptan las que este código pudo haber emitido. Con el uuid de por medio no
-  // son adivinables, y el bucket es privado, así que lo peor que puede quedar
-  // es un adjunto que no abre.
-  const archivos = datos.archivos.filter((ruta) => RUTA_VALIDA.test(ruta));
-  if (archivos.length > MAX_ARCHIVOS) {
-    return { ok: false, error: `Se pueden adjuntar hasta ${MAX_ARCHIVOS} archivos.` };
-  }
-
-  const encontrados = driver && seller
-    ? { driver: null, seller: null }
-    : await responsablesDelCaso(casoId);
-  const responsables = {
-    driver: driver || encontrados.driver,
-    seller: seller || encontrados.seller,
-  };
-
-  // El id se genera acá y no en la base para poder colgarle las menciones
-  // sin pedirle a PostgREST que devuelva la fila.
-  const id = crypto.randomUUID();
-  const falla = await insertarFila(TABLA_SEGUIMIENTO, {
-    id,
-    caso_id: casoId,
-    comentario_original: comentario,
-    archivos,
-    estado: "abierto",
-    creado_por: quien,
-    ...responsables,
-  });
-  if (falla) return { ok: false, error: falla };
-
-  await notificarMenciones({ autor: quien, seguimientoId: id, casoId, texto: comentario });
-
-  updateTag("seguimiento");
-  return { ok: true };
+  return crearSeguimientoComo(quien, datos);
 }
 
 /**
@@ -230,35 +151,14 @@ export async function crearSeguimiento(datos: DatosReporte): Promise<Resultado> 
  * —a veces el segundo reporte es información nueva sobre el mismo viaje—, pero
  * quien está por escribir merece saber que ya hay algo dicho.
  */
-export type Previo = {
-  total: number;
-  /** El más reciente, para poder decidir si vale la pena cargar otro. */
-  ultimo: { texto: string; estado: EtapaSeguimiento; cuando: string | null } | null;
-};
-
 export async function reportesDelCaso(casoId: string): Promise<Previo> {
   const quien = await usuarioActual();
   const caso = casoId.trim();
   if (!quien || !caso) return { total: 0, ultimo: null };
-
-  const filas = await consultar<FilaSeguimiento>(
-    TABLA_SEGUIMIENTO,
-    { "caso_id": `eq.${caso}`, order: "created_at.desc", limit: "20" },
-    "seguimiento",
-  ).catch(() => []);
-
-  if (filas.length === 0) return { total: 0, ultimo: null };
-
-  const ultimo = parsearSeguimiento(filas[0]);
-  return {
-    total: filas.length,
-    ultimo: {
-      texto: ultimo.comentario,
-      estado: etapaDe(ultimo),
-      cuando: ultimo.creado?.toISOString() ?? null,
-    },
-  };
+  return leerReportesDelCaso(caso);
 }
+
+export type { DatosReporte, Previo } from "@/lib/seguimiento-alta";
 
 /**
  * Corrige un reporte ya cargado.

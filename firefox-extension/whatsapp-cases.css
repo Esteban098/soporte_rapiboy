@@ -1,0 +1,29 @@
+.rb-whatsapp-followup {
+  position: relative;
+  z-index: 2;
+  float: right;
+  margin: 3px 42px 3px auto;
+  padding: 4px 8px;
+  border: 1px solid #7fb719;
+  border-radius: 999px;
+  background: #a7f51b;
+  color: #17210d;
+  font: 700 11px/1.2 Arial, sans-serif;
+  cursor: pointer;
+  opacity: .92;
+}
+
+.rb-whatsapp-followup:hover,
+.rb-whatsapp-followup:focus-visible {
+  opacity: 1;
+  box-shadow: 0 0 0 3px rgb(167 245 27 / 25%);
+}
+
+.rb-whatsapp-followup-muted {
+  opacity: .45;
+}
+
+.rb-whatsapp-followup-added {
+  border-color: #5d8d08;
+  background: #dff9ae;
+}

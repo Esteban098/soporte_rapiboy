@@ -24,7 +24,8 @@ export const proxy = auth((request) => {
     ruta.startsWith("/api/whatsapp/worker/") ||
     ruta.startsWith("/api/evidencias/") ||
     ruta === "/api/asistencia/votos" ||
-    ruta === "/api/asistente/extension"
+    ruta === "/api/asistente/extension" ||
+    ruta === "/api/seguimiento/extension"
   ) {
     return NextResponse.next();
   }

@@ -20,14 +20,14 @@
   tab.className = "rb-tab";
   tab.setAttribute("aria-expanded", "false");
   tab.setAttribute("aria-controls", "rb-assistant-panel");
-  tab.textContent = "✦ Asistente";
+  tab.textContent = "✦ Rapiboy";
   shell.appendChild(tab);
 
   const panel = document.createElement("section");
   panel.id = "rb-assistant-panel";
   panel.className = "rb-panel";
   panel.hidden = true;
-  panel.setAttribute("aria-label", "Asistente Rapiboy");
+  panel.setAttribute("aria-label", "Herramientas Rapiboy");
   shell.appendChild(panel);
 
   const header = document.createElement("header");
@@ -39,7 +39,7 @@
   eyebrow.className = "rb-eyebrow";
   eyebrow.textContent = "RAPIBOY";
   const title = document.createElement("strong");
-  title.textContent = "Asistente operativo";
+  title.textContent = "Herramientas operativas";
   heading.append(eyebrow, title);
   header.appendChild(heading);
 
@@ -60,10 +60,27 @@
   headerActions.append(reset, close);
   header.appendChild(headerActions);
 
+  const modeNav = document.createElement("nav");
+  modeNav.className = "rb-mode-nav";
+  modeNav.setAttribute("aria-label", "Herramienta");
+  const assistantMode = document.createElement("button");
+  assistantMode.type = "button";
+  assistantMode.textContent = "Asistente";
+  assistantMode.className = "rb-mode-active";
+  const followupMode = document.createElement("button");
+  followupMode.type = "button";
+  followupMode.textContent = "Seguimiento";
+  modeNav.append(assistantMode, followupMode);
+  panel.appendChild(modeNav);
+
+  const assistantView = document.createElement("div");
+  assistantView.className = "rb-view rb-assistant-view";
+  panel.appendChild(assistantView);
+
   const messages = document.createElement("div");
   messages.className = "rb-messages";
   messages.setAttribute("aria-live", "polite");
-  panel.appendChild(messages);
+  assistantView.appendChild(messages);
 
   const composer = document.createElement("form");
   composer.className = "rb-composer";
@@ -77,9 +94,63 @@
   send.className = "rb-send";
   send.textContent = "Enviar";
   composer.append(textarea, send);
-  panel.appendChild(composer);
+  assistantView.appendChild(composer);
 
-  let state = { mensajes: [], ocupado: false, configurado: false, platformOrigin: "" };
+  const followupView = document.createElement("div");
+  followupView.className = "rb-view rb-followup-view";
+  followupView.hidden = true;
+  const followupIntro = document.createElement("p");
+  followupIntro.className = "rb-followup-intro";
+  followupIntro.textContent = "Creá un caso en Seguimiento. Driver y seller se completan desde RapiboyData si los dejás vacíos.";
+  const followupForm = document.createElement("form");
+  followupForm.className = "rb-followup-form";
+  function campoSeguimiento(nombre, etiqueta, opciones = {}) {
+    const label = document.createElement("label");
+    const caption = document.createElement("span");
+    caption.textContent = etiqueta;
+    if (opciones.opcional) {
+      const small = document.createElement("small");
+      small.textContent = " opcional";
+      caption.appendChild(small);
+    }
+    const control = document.createElement(opciones.area ? "textarea" : "input");
+    control.name = nombre;
+    control.maxLength = opciones.maxLength;
+    control.required = Boolean(opciones.required);
+    control.placeholder = opciones.placeholder || "";
+    if (opciones.area) control.rows = opciones.rows || 4;
+    if (opciones.inputMode) control.inputMode = opciones.inputMode;
+    label.append(caption, control);
+    return { label, control };
+  }
+  const casoCampo = campoSeguimiento("casoId", "ID del viaje", { maxLength: 12, required: true, placeholder: "30543375", inputMode: "numeric" });
+  const followupExisting = document.createElement("div");
+  followupExisting.className = "rb-followup-existing";
+  followupExisting.setAttribute("role", "status");
+  followupExisting.hidden = true;
+  const comentarioCampo = campoSeguimiento("comentario", "Comentario", { maxLength: 4000, required: true, area: true, rows: 6, placeholder: "Qué pasó y qué hace falta hacer." });
+  const followupGrid = document.createElement("div");
+  followupGrid.className = "rb-followup-grid";
+  const driverCampo = campoSeguimiento("driver", "Driver", { maxLength: 200, opcional: true });
+  const sellerCampo = campoSeguimiento("seller", "Seller", { maxLength: 200, opcional: true });
+  followupGrid.append(driverCampo.label, sellerCampo.label);
+  const followupStatus = document.createElement("p");
+  followupStatus.className = "rb-followup-status";
+  followupStatus.setAttribute("role", "status");
+  followupStatus.setAttribute("aria-live", "polite");
+  const followupSubmit = document.createElement("button");
+  followupSubmit.className = "rb-followup-submit";
+  followupSubmit.type = "submit";
+  followupSubmit.textContent = "Crear seguimiento";
+  followupForm.append(casoCampo.label, followupExisting, comentarioCampo.label, followupGrid, followupStatus, followupSubmit);
+  followupView.append(followupIntro, followupForm);
+  panel.appendChild(followupView);
+
+  const followupCase = casoCampo.control;
+  const followupComment = comentarioCampo.control;
+
+  let state = { mensajes: [], ocupado: false, configurado: false, platformOrigin: "", seguimientoConfigurado: false };
+  let mode = "assistant";
 
   function urlSegura(value) {
     try {
@@ -209,12 +280,153 @@
     render();
   }
 
+  function setMode(nextMode) {
+    mode = nextMode === "followup" ? "followup" : "assistant";
+    assistantView.hidden = mode !== "assistant";
+    followupView.hidden = mode !== "followup";
+    assistantMode.classList.toggle("rb-mode-active", mode === "assistant");
+    followupMode.classList.toggle("rb-mode-active", mode === "followup");
+    reset.hidden = mode !== "assistant";
+    if (mode === "followup") window.setTimeout(() => followupCase.focus(), 50);
+  }
+
+  async function consultarSeguimiento() {
+    const casoId = followupCase.value.trim();
+    followupExisting.hidden = true;
+    followupExisting.textContent = "";
+    if (!/^\d{1,12}$/.test(casoId)) return;
+    const result = await browser.runtime.sendMessage({ type: "followup:consult", casoId }).catch(() => null);
+    if (!result || result.ok !== true || !result.previo || result.previo.total === 0) return;
+    const previo = result.previo;
+    const ultimo = previo.ultimo;
+    followupExisting.textContent = previo.total === 1
+      ? "Este viaje ya tiene un seguimiento."
+      : `Este viaje ya tiene ${previo.total} seguimientos.`;
+    if (ultimo && ultimo.texto) {
+      followupExisting.textContent += ` Último: ${String(ultimo.texto).slice(0, 180)}`;
+    }
+    followupExisting.hidden = false;
+  }
+
+  let botonDeMensaje = null;
+
+  function abrirSeguimiento({ casoId = "", comentario = "", boton = null } = {}) {
+    setOpen(true);
+    setMode("followup");
+    followupStatus.textContent = "";
+    followupStatus.className = "rb-followup-status";
+    followupCase.value = casoId;
+    followupComment.value = comentario;
+    botonDeMensaje = boton;
+    consultarSeguimiento();
+  }
+
+  followupForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (followupSubmit.disabled) return;
+    followupStatus.textContent = "Guardando…";
+    followupStatus.className = "rb-followup-status";
+    followupSubmit.disabled = true;
+    const result = await browser.runtime.sendMessage({
+      type: "followup:create",
+      casoId: followupCase.value,
+      comentario: followupComment.value,
+      driver: driverCampo.control.value,
+      seller: sellerCampo.control.value,
+    }).catch(() => null);
+    followupSubmit.disabled = false;
+    if (!result || result.ok !== true) {
+      followupStatus.textContent = result && result.error ? result.error : "No se pudo conectar con la extensión.";
+      followupStatus.className = "rb-followup-status rb-followup-error";
+      return;
+    }
+    followupStatus.replaceChildren();
+    const ok = document.createTextNode("Seguimiento creado. ");
+    const link = document.createElement("a");
+    const origen = String(result.platformOrigin || state.platformOrigin || "");
+    link.href = origen ? new URL(result.enlace || "/seguimiento", origen).href : "https://rapiboy.com";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "Abrir en la plataforma";
+    followupStatus.append(ok, link);
+    followupStatus.className = "rb-followup-status rb-followup-ok";
+    if (botonDeMensaje) {
+      botonDeMensaje.textContent = "✓ seguimiento";
+      botonDeMensaje.classList.add("rb-followup-added");
+    }
+  });
+
+  followupCase.addEventListener("blur", consultarSeguimiento);
+  assistantMode.addEventListener("click", () => setMode("assistant"));
+  followupMode.addEventListener("click", () => setMode("followup"));
+
+  // Los IDs internos que usa Seguimiento tienen hoy entre 7 y 9 dígitos. Se
+  // excluyen teléfonos y números de envío largos para no ofrecer falsos casos.
+  const ID_VIAJE = /(?:^|\D)(\d{7,9})(?!\d)/;
+
+  function datosMensaje(row) {
+    const textos = [...row.querySelectorAll("span.selectable-text")]
+      .map((item) => item.textContent || "")
+      .filter(Boolean);
+    const contenido = textos.join("\n").trim();
+    const meta = row.querySelector("[data-pre-plain-text]")?.getAttribute("data-pre-plain-text")?.trim() || "";
+    const imagen = row.querySelector('img[src^="blob:"]');
+    return { contenido, meta, imagen, casoId: ID_VIAJE.exec(contenido)?.[1] || "" };
+  }
+
+  function idAnterior(row) {
+    const rows = [...document.querySelectorAll('#main [role="row"]')];
+    const indice = rows.indexOf(row);
+    for (let i = indice - 1, revisados = 0; i >= 0 && revisados < 25; i -= 1, revisados += 1) {
+      const id = datosMensaje(rows[i]).casoId;
+      if (id) return id;
+    }
+    return "";
+  }
+
+  function prepararMensaje(row) {
+    if (row.dataset.rapiboySeguimiento === "1") return;
+    const datos = datosMensaje(row);
+    if (!datos.casoId && !datos.imagen) return;
+    row.dataset.rapiboySeguimiento = "1";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "rb-whatsapp-followup" + (datos.casoId ? "" : " rb-whatsapp-followup-muted");
+    button.textContent = "+ seguimiento";
+    button.title = "Crear seguimiento en Rapiboy";
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const casoId = datos.casoId || idAnterior(row) || window.prompt("ID del viaje")?.trim() || "";
+      const encabezado = datos.meta ? `💬 WhatsApp Web · ${datos.meta}` : "💬 WhatsApp Web";
+      const comentario = [encabezado, datos.contenido].filter(Boolean).join("\n").slice(0, 4000);
+      abrirSeguimiento({ casoId, comentario, boton: button });
+    });
+    row.appendChild(button);
+  }
+
+  let repasoPendiente = null;
+  function repasarWhatsApp() {
+    if (location.hostname !== "web.whatsapp.com") return;
+    document.querySelectorAll('#main [role="row"]').forEach(prepararMensaje);
+  }
+
+  if (location.hostname === "web.whatsapp.com") {
+    const observer = new MutationObserver(() => {
+      window.clearTimeout(repasoPendiente);
+      repasoPendiente = window.setTimeout(repasarWhatsApp, 400);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    window.setInterval(repasarWhatsApp, 3000);
+    repasarWhatsApp();
+  }
+
   function setOpen(open) {
     panel.hidden = open === false;
     tab.setAttribute("aria-expanded", String(open));
     if (open) {
       refresh();
-      window.setTimeout(() => textarea.focus(), 50);
+      window.setTimeout(() => (mode === "assistant" ? textarea : followupCase).focus(), 50);
     }
   }
 
