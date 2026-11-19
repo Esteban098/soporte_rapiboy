@@ -533,6 +533,8 @@ test("la extensión usa un Bearer personal revocable, no una clave compartida", 
   const token = fuente("../src/lib/asistente-extension.ts");
   const ruta = fuente("../src/app/api/asistente/extension/route.ts");
   const seguimiento = fuente("../src/app/api/seguimiento/extension/route.ts");
+  const operacion = fuente("../src/app/api/operacion/extension/route.ts");
+  const waha = fuente("../src/lib/whatsapp-extension.ts");
   const alta = fuente("../src/lib/seguimiento-alta.ts");
   const proxy = fuente("../src/proxy.ts");
   const migracion = fuente("../supabase/migracion-52-asistente-extension.sql");
@@ -548,11 +550,19 @@ test("la extensión usa un Bearer personal revocable, no una clave compartida", 
   assert.match(ruta, /responderPedidoAsistente\(pedido, operador\)/);
   assert.match(proxy, /ruta === "\/api\/asistente\/extension"/);
   assert.match(proxy, /ruta === "\/api\/seguimiento\/extension"/);
+  assert.match(proxy, /ruta === "\/api\/operacion\/extension"/);
   assert.match(seguimiento, /operadorDesdeTokenExtension\(pedido\)/);
   assert.match(seguimiento, /crearSeguimientoComo\(operador\.email/);
   assert.match(seguimiento, /leerReportesDelCaso\(casoId\)/);
   assert.match(alta, /import "server-only"/);
   assert.match(alta, /notificarMenciones/);
+  assert.match(operacion, /operadorDesdeTokenExtension\(pedido\)/);
+  assert.match(operacion, /listarChatsEtiquetaWhatsapp/);
+  assert.match(operacion, /resumenTiendaExtension/);
+  assert.match(waha, /import "server-only"/);
+  assert.match(waha, /process\.env\.WAHA_API_KEY/);
+  assert.match(waha, /"X-Api-Key": config\.clave/);
+  assert.equal(operacion.includes("WAHA_API_KEY"), false, "la ruta no serializa ni conoce la clave");
 
   assert.match(migracion, /references public\.perfiles\(id\)/);
   assert.match(migracion, /token_hash\s+text not null unique/);

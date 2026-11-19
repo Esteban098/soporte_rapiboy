@@ -1318,6 +1318,17 @@ primera vinculación. La extensión conserva hasta 12 mensajes solamente en RAM;
 cerrar Firefox los elimina. La URL oficial es
 `https://soporte-rapiboy.vercel.app/api/asistente/extension`.
 
+La versión 3.2.0 agrega, solo en WhatsApp Web, dos bandejas configurables por
+label y un resumen contextual de la tienda. La extensión llama a
+`POST /api/operacion/extension` con el mismo Bearer personal. La ruta consulta
+WAHA en el servidor usando `WAHA_BASE_URL`, `WAHA_API_KEY` y
+`WAHA_SESSION_EXTENSION`; la clave nunca se serializa. Si WAHA está sin
+configurar o temporalmente caído, devuelve los grupos y labels del último
+directorio de sellers/drivers guardado en Supabase, sin extractos ni no leídos.
+El resumen cruza el ID del seller con Mensual y Seguimiento para mostrar casos
+abiertos, demorados, no entregados y siniestros. Las dos barras se pueden
+replegar y heredan las variables de tema y fuente de WhatsApp.
+
 ## Gráficos atados a la tabla
 
 Las secciones con listado de casos abren con un gráfico configurable: se elige

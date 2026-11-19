@@ -136,6 +136,11 @@ function apiSeguimiento(config) {
   return new URL("/api/seguimiento/extension", config.assistantApiUrl).href;
 }
 
+function apiOperacion(config) {
+  if (apiPermitida(config.assistantApiUrl) === false) return "";
+  return new URL("/api/operacion/extension", config.assistantApiUrl).href;
+}
+
 function estadoAsistente(config) {
   return {
     mensajes: assistantMessages,
@@ -260,3 +265,69 @@ async function manejarAsistente(message, sender) {
 }
 
 browser.runtime.onMessage.addListener(manejarAsistente);
+
+async function pedirOperacion(config, cuerpo) {
+  const endpoint = apiOperacion(config);
+  if (endpoint === "" || config.assistantToken === "") {
+    return { ok: false, error: "Falta vincular la extensión en las opciones de Firefox." };
+  }
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + config.assistantToken,
+      },
+      body: JSON.stringify(cuerpo),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || body.ok !== true) {
+      return {
+        ok: false,
+        error: response.status === 401
+          ? "La vinculación venció o fue revocada. Generá una nueva desde Mi perfil."
+          : String(body.error || "No se pudo consultar la operación."),
+      };
+    }
+    return { ...body, platformOrigin: new URL(config.assistantApiUrl).origin };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "No se pudo contactar la plataforma." };
+  }
+}
+
+async function manejarWorkspace(message, sender) {
+  if (message == null || typeof message.type !== "string" || message.type.startsWith("workspace:") === false) {
+    return undefined;
+  }
+  if (paginaPermitida(sender.tab && sender.tab.url ? sender.tab.url : "") === false) {
+    return { ok: false, error: "Página no autorizada." };
+  }
+  const config = await configuracion();
+  if (message.type === "workspace:get-settings") {
+    const valores = await browser.storage.local.get(["workspaceLabelPrimary", "workspaceLabelSecondary"]);
+    return {
+      ok: true,
+      primary: String(valores.workspaceLabelPrimary || ""),
+      secondary: String(valores.workspaceLabelSecondary || ""),
+      configurado: Boolean(apiOperacion(config) && config.assistantToken),
+    };
+  }
+  if (message.type === "workspace:save-settings") {
+    const primary = String(message.primary || "").trim().slice(0, 100);
+    const secondary = String(message.secondary || "").trim().slice(0, 100);
+    if (primary && /^[A-Za-z0-9_.:-]+$/.test(primary) === false) return { ok: false, error: "Etiqueta inválida." };
+    if (secondary && /^[A-Za-z0-9_.:-]+$/.test(secondary) === false) return { ok: false, error: "Etiqueta inválida." };
+    await browser.storage.local.set({ workspaceLabelPrimary: primary, workspaceLabelSecondary: secondary });
+    return { ok: true };
+  }
+  if (message.type === "workspace:labels") return pedirOperacion(config, { accion: "etiquetas" });
+  if (message.type === "workspace:chats") {
+    return pedirOperacion(config, { accion: "chats", etiquetaId: String(message.etiquetaId || "").slice(0, 100) });
+  }
+  if (message.type === "workspace:summary") {
+    return pedirOperacion(config, { accion: "resumen_tienda", sellerId: Number(message.sellerId) });
+  }
+  return undefined;
+}
+
+browser.runtime.onMessage.addListener(manejarWorkspace);

@@ -25,7 +25,8 @@ export const proxy = auth((request) => {
     ruta.startsWith("/api/evidencias/") ||
     ruta === "/api/asistencia/votos" ||
     ruta === "/api/asistente/extension" ||
-    ruta === "/api/seguimiento/extension"
+    ruta === "/api/seguimiento/extension" ||
+    ruta === "/api/operacion/extension"
   ) {
     return NextResponse.next();
   }

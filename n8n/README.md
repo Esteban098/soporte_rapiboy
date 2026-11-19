@@ -1,6 +1,6 @@
 # Flujos de n8n
 
-Veinte workflows. Los tres primeros reemplazan al único que escribía en el
+Veintiún workflows. Los tres primeros reemplazan al único que escribía en el
 Google Sheet; los siguientes cubren los botones Actualizar y la carga de datos
 de tienda desde Firefox. Se importan desde n8n con **Workflows ▸ Import from
 File**.
@@ -27,6 +27,22 @@ File**.
 | `18-pendientes-manana.json` | Avisa al grupo del driver cuando tiene más de 5 paquetes no visitados cerca de su domicilio manual y, desde 16, avisa además al grupo operativo | 10:50 ARG de lunes a sábado; inactivo hasta configurar y validar |
 | `19-revision-evidencias-entrega.json` | Revisa toda evidencia fotográfica de México del día, salvo Cancelado, y conserva las dudas para soporte | Cada 10 min de 18:00 a 02:00 ARG; limpieza a las 02:15 ARG |
 | `20-congelar-estadisticas-tracker.json` | Conserva la foto inmutable de la última ruta cerrada para SLA, inicios y fines de ruta | 10:30 ARG, lunes a sábado; después de la sincronización de paquetes de 10:15 |
+| `21-extension-whatsapp.json` | Expone labels y bandejas de WAHA únicamente a la plataforma, protegido con el Bearer privado existente | Webhook interno de la extensión; sin cron |
+
+## Bandejas WAHA de la extensión
+
+`21-extension-whatsapp.json` es el puente entre Vercel y el WAHA privado de la
+red de n8n. El webhook reutiliza la credencial Header Auth `ChatBot`, con el
+mismo Bearer de `N8N_WEBHOOK_WHATSAPP_SECRET`. Los tres nodos HTTP usan una
+credencial Header Auth compartida llamada `WAHA · API key`, con header
+`X-Api-Key`; la clave no se escribe en el workflow. Solo acepta tres operaciones
+cerradas: labels, chats de un label y overview de una lista validada de JID. No
+permite indicar hosts ni rutas.
+
+La plataforma deriva la URL `/webhook/extension-whatsapp` desde `N8N_URL` o
+usa `N8N_WEBHOOK_EXTENSION_WHATSAPP` si se configuró explícitamente. Si el
+webhook o WAHA fallan, la extensión conserva el fallback del último directorio
+sincronizado en Supabase.
 
 ## Resumen semanal a tiendas
 

@@ -12,15 +12,19 @@ No se ejecuta ni aparece en otros sitios. La conversación
 vive en la memoria del proceso de fondo y desaparece al cerrar Firefox; no se
 escribe en el almacenamiento local.
 
-Desde la versión 3.1.0 el mismo panel conserva el agente y suma
-**Seguimiento**. En WhatsApp Web detecta IDs numéricos de viaje en los mensajes
-y agrega `+ seguimiento`; si el mensaje contiene solo una imagen busca el ID en
-los 25 mensajes anteriores. Al abrirlo precarga el texto y sus metadatos, avisa
-si el viaje ya tiene reportes y permite crear otro. Driver y seller son
-opcionales: la plataforma intenta completarlos desde RapiboyData. La extensión
-no accede a Supabase ni guarda casos por sí misma; usa
-`/api/seguimiento/extension` con el mismo Bearer personal revocable del agente.
-Las imágenes del chat no se suben automáticamente en esta versión.
+Desde la versión 3.2.0 WhatsApp Web suma un espacio operativo integrado con su
+misma tipografía, variables de color y temas. A la izquierda aparecen dos
+bandejas por etiqueta —`Esteban` y `Drivers` por defecto—, configurables desde
+el engranaje. WAHA entrega labels, chats, extractos y no leídos; si no está
+disponible, la extensión usa el último directorio sincronizado de Supabase.
+
+Al seleccionar un grupo vinculado, el panel derecho muestra el resumen de la
+tienda, casos abiertos, Seguimientos, demorados, no entregados y siniestros. El
+agente conserva la interfaz lateral de 3.0.3 y se abre desde **Asistente**. El
+botón **Cargar seguimiento** detecta un ID de viaje reciente y crea el reporte
+por `/api/seguimiento/extension`; driver y seller se completan desde
+RapiboyData si quedan vacíos. WAHA y Supabase se consultan exclusivamente en el
+servidor: su API key nunca entra en el paquete ni en WhatsApp Web.
 
 ## Vincular el Asistente
 
@@ -78,7 +82,7 @@ resultado queda en `artefactos/`, con un nombre generado por AMO
 (`<hash>-<version>.xpi`). Conviene renombrarlo antes de repartirlo:
 
 ```bash
-mv artefactos/*-3.1.0.xpi artefactos/asistente-rapiboy-3.1.0.xpi
+mv artefactos/*-3.2.0.xpi artefactos/rapiboy-herramientas-3.2.0.xpi
 ```
 
 Renombrar no invalida la firma: va dentro del paquete, no en el nombre.
