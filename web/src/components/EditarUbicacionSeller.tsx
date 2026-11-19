@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { guardarUbicacionSeller } from "@/app/sellers";
 import estilos from "./directorio-edicion.module.css";
+import { puntoDirectorioValido } from "@/lib/directorio-mapa";
+import { EnlaceUbicacionDirectorio } from "./EnlaceUbicacionDirectorio";
 
 export function EditarUbicacionSeller({
   id,
@@ -20,19 +22,19 @@ export function EditarUbicacionSeller({
   const [direccion, setDireccion] = useState(ubicacion);
   const [lat, setLat] = useState(latitud == null ? "" : String(latitud));
   const [lon, setLon] = useState(longitud == null ? "" : String(longitud));
+  const valida = puntoDirectorioValido(latitud, longitud);
 
   if (!abierto) {
     return (
       <div className={estilos.ubicacion}>
-        {latitud != null && longitud != null ? (
+        {valida ? (
           <>
-            <span className={estilos.texto}>{ubicacion || "Ubicación manual"}</span>
-            <small className={estilos.coordenadas}>{latitud}, {longitud}</small>
+            <EnlaceUbicacionDirectorio tipo="seller" id={id} texto={ubicacion || "Ver ubicación manual"} />
           </>
         ) : (
           <span className={estilos.coordenadas}>Sin ubicación manual</span>
         )}
-        <button className={estilos.accion} type="button" onClick={() => setAbierto(true)}>{latitud != null && longitud != null ? "Editar" : "Agregar"}</button>
+        <button className={estilos.accion} type="button" onClick={() => setAbierto(true)}>{valida ? "Editar" : "Agregar"}</button>
       </div>
     );
   }

@@ -325,6 +325,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
   tablas con una cantidad inicial reducida; el resto se despliega a pedido. Las
   tablas especiales que no usan `Tabla.tsx` pasan por `TablaOrdenable.tsx` para
   conservar el mismo ordenamiento por encabezado que Ayer.
+  `/sellers/mapa` abre en otra pestaña desde una ubicación o el enlace del
+  directorio, con búsqueda por nombre, ID o domicilio y filtros por tipo y origen.
+  Manual y sistema se conservan como puntos distintos; no fusionar sucursales.
+  Solo admin/operador reciben los domicilios de drivers en este mapa conjunto,
+  autorizado para Base de datos; Comercial recibe exclusivamente sellers.
+  Nulos y `0, 0` no se dibujan ni se presentan como ubicaciones manuales válidas.
 
 - El chat de sellers vive en `seller_chat_conversaciones`,
   `seller_chat_mensajes`, `seller_chat_eventos`, `seller_chat_lecturas` y
@@ -826,8 +832,9 @@ La prueba SQL corre en memoria, sin acceso a Supabase ni datos reales.
   entre el tracker y tiendas. Tiene tres sutilezas ya resueltas —la escala real
   en píxeles medida con `ResizeObserver`, el foco de la rueda y el re-encuadre
   durante el render—: no reimplementarlas por separado.
-- El domicilio de un repartidor es dato sensible: sale del servidor solo dentro
-  del repartidor que se está mirando, nunca como tabla completa.
+- El domicilio de un repartidor es dato sensible: fuera del mapa conjunto de
+  Base de datos (`/sellers/mapa`, solo admin/operador), sale del servidor solo
+  dentro del repartidor que se está mirando. Comercial nunca recibe estos puntos.
 - El color de cada repartidor sale de su `id`, no de su posición en la lista:
   si dependiera del orden, alguien que entra a la jornada le correría el color
   a todos los demás. La paleta está ordenada para que ids corridos —lo normal—

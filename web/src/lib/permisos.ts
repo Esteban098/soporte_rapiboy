@@ -29,7 +29,7 @@ export function aRol(valor: unknown): RolPerfil {
  * Las únicas pantallas de un comercial. Exactas: `/colectas` y `/sellers` no
  * abren cualquier cosa que empiece igual, solo estas vistas declaradas.
  */
-export const RUTAS_COMERCIAL = ["/tiendas", "/colectas", "/colectas/historial", "/sellers"] as const;
+export const RUTAS_COMERCIAL = ["/tiendas", "/colectas", "/colectas/historial", "/sellers", "/sellers/mapa"] as const;
 
 export function esComercial(rol: RolPerfil | null | undefined): boolean {
   return rol === "comercial";

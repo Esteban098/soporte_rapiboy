@@ -55,6 +55,7 @@ Tres decisiones que vale la pena tener presentes:
 | `/tiendas` | **Ruta**: las **colectas de hoy** en vivo —se elige a qué repartidores ver y el mapa muestra solo esos, con el camino que ya hizo y las paradas que le faltan—. Ver [Tiendas](#tiendas). |
 | `/sellers` | **Base de datos · Sellers**: sellers activos, grupos de WhatsApp y distribución editable de tiendas. La tabla comienza reducida y se puede expandir. |
 | `/drivers` | **Base de datos · Drivers**: drivers activos y grupos de WhatsApp. La tabla comienza reducida y se puede expandir. |
+| `/sellers/mapa` | Mapa de ubicaciones manuales y de sistema. Abre desde el directorio en otra pestaña, con búsqueda por nombre, ID o dirección y filtros por tipo y origen. Soporte ve sellers y drivers; Comercial solo sellers. Los registros sin coordenadas válidas se cuentan, sin inventar puntos ni geocodificar en lote. |
 | `/chats-sellers` | **Chat de soporte sellers**: inbox humano/bot separado de Seguimiento. |
 
 Al abrir **Colectas** desde el tablero general, se abre una nueva pestaña con
@@ -1110,6 +1111,9 @@ Lo que conviene saber:
   no la creación del reporte; se actualiza cada minuto y no aparece en cerrados.
   Las acciones muestran texto y el historial presenta una línea de tiempo con
   autor, fecha y tipo de aporte.
+  El detalle compacto incorpora los comentarios de cada autor en orden de fecha,
+  con acceso a los anteriores, y consulta el domicilio del paquete en RapiboyData
+  al desplegarlo. No consulta todos los paquetes al abrir el tablero.
 - **Comentarios con historial.** El botón Historial abre una ventana
   sencilla para agregar novedades con autor y fecha. No reemplazan el motivo.
   Corregir el motivo desde Editar conserva el texto anterior. La importación

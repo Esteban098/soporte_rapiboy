@@ -3,7 +3,7 @@ import { PageHead } from "@/components/Shell";
 import { Tabla } from "@/components/Tabla";
 import estilos from "@/components/ui.module.css";
 import { modoDatos } from "@/lib/config";
-import { leerDriversDirectorio } from "@/lib/directorio-datos";
+import { leerDriversDirectorio, leerReferenciasDriversDirectorio } from "@/lib/directorio-datos";
 import { fechaHoraMexico, resumirDirectorio } from "@/lib/directorio";
 import { numero } from "@/lib/formato";
 import { TablaFaltante } from "@/lib/supabase";
@@ -13,13 +13,12 @@ export const metadata = { title: "Base de datos · Drivers" };
 export default async function Drivers() {
   if (modoDatos() !== "supabase") return <SinBase />;
 
-  let drivers;
-  try {
-    drivers = await leerDriversDirectorio();
-  } catch (error) {
-    if (error instanceof TablaFaltante) return <SinTablas />;
-    throw error;
+  const [resultado, referencias] = await Promise.allSettled([leerDriversDirectorio(), leerReferenciasDriversDirectorio()]);
+  if (resultado.status === "rejected") {
+    if (resultado.reason instanceof TablaFaltante) return <SinTablas />;
+    throw resultado.reason;
   }
+  const drivers = resultado.value;
 
   const resumen = resumirDirectorio(drivers);
   const filas = drivers.map((driver) => ({
@@ -33,6 +32,8 @@ export default async function Drivers() {
     labels: driver.labelsWaha.map((label) => label.name).join(", "),
     ubicacion: driver.ubicacionManual,
     ubicacionManual: driver.ubicacionManual,
+    ubicacionSistema: referencias.status === "fulfilled" ? referencias.value.get(driver.id) ?? "" : "",
+    entidadMapa: "driver",
     latitudManual: driver.latitudManual,
     longitudManual: driver.longitudManual,
     actualizado: fechaHoraMexico(driver.actualizadoEn),
@@ -55,7 +56,9 @@ export default async function Drivers() {
       </div>
 
       <div className={estilos.stack}>
-        <Card titulo="Base de datos · drivers" nota="Vista operativa de vínculo, condición y ubicación. Ordená o filtrá antes de abrir una edición.">
+        {referencias.status === "rejected" ? <Callout tono="warning" titulo="Sin referencias de sistema">No se pudo leer tracker_choferes. Las ubicaciones manuales siguen disponibles.</Callout> : null}
+        <Card titulo="Base de datos · drivers" nota="Vínculo, condición y ubicaciones.">
+          <a href="/sellers/mapa" target="_blank" rel="noopener noreferrer">Abrir mapa de ubicaciones ↗</a>
           <Tabla
             id="directorio-drivers"
             titulo="Base de datos · Drivers"
@@ -78,6 +81,7 @@ export default async function Drivers() {
               { clave: "condicion", titulo: "Condición", tipo: "texto" },
               { clave: "flotilla", titulo: "Flotilla", tipo: "texto" },
               { clave: "ubicacion", titulo: "Ubicación manual", tipo: "ubicacionDriver" },
+              { clave: "ubicacionSistema", titulo: "Ubicación sistema", tipo: "ubicacionSistema" },
               { clave: "actualizado", titulo: "Actualizado", tipo: "texto" },
             ]}
             vacio="No hay drivers activos sincronizados."

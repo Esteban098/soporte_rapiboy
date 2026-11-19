@@ -9,6 +9,7 @@ import {
   inicialesDePersona,
   minutosAbierto,
   necesitaAtencionSeguimiento,
+  domicilioDesdeRapiboyData,
   moverPeriodo,
   parsearSeguimiento,
   periodoActual,
@@ -140,6 +141,12 @@ assert.equal(seguimientoVencido({ ...tomado, tomadoPor: null }, cuatroDias), fal
 assert.equal(seguimientoVencido(cerrado, cuatroDias), false);
 
 const toma = new Date("2026-11-16T12:00:00Z");
+const fichaDomicilio = { encontrado: true, id: "123", viaje: { id_modalidad: 5, id_localidad: 9, direccion: " San Antonio 141 ", ciudad: "Tultepec", codigo_postal: "54966" } };
+assert.equal(domicilioDesdeRapiboyData(fichaDomicilio, "123"), "San Antonio 141, Tultepec, 54966");
+assert.equal(domicilioDesdeRapiboyData(fichaDomicilio, "456"), null);
+assert.equal(domicilioDesdeRapiboyData({ ...fichaDomicilio, viaje: { ...fichaDomicilio.viaje, id_localidad: 1 } }, "123"), null);
+assert.equal(domicilioDesdeRapiboyData({ encontrado: false }, "123"), null);
+assert.equal(domicilioDesdeRapiboyData({ ...fichaDomicilio, viaje: { ...fichaDomicilio.viaje, direccion: null } }, "123"), null);
 const tomadoParaAtencion = { ...tomado, tomadoEn: toma };
 const limiteAtencion = toma.getTime() + 48 * 60 * 60 * 1000;
 assert.equal(necesitaAtencionSeguimiento(tomadoParaAtencion, limiteAtencion), false);

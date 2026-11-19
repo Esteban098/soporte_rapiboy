@@ -34,7 +34,9 @@ test("un comercial ve Tiendas, Colectas y Sellers, y nada más", () => {
   ]) {
     assert.equal(puedeVerRuta("comercial", ruta), false, ruta);
   }
-  assert.deepEqual([...RUTAS_COMERCIAL], ["/tiendas", "/colectas", "/colectas/historial", "/sellers"]);
+  assert.deepEqual([...RUTAS_COMERCIAL], ["/tiendas", "/colectas", "/colectas/historial", "/sellers", "/sellers/mapa"]);
+  assert.equal(puedeVerRuta("comercial", "/sellers/mapa"), true);
+  assert.equal(puedeVerRuta("comercial", "/sellers/mapa/otro"), false);
 });
 
 test("admin, operador y quien entra por Google siguen viendo todo", () => {

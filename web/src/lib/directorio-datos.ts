@@ -6,6 +6,14 @@ import {
 } from "./config";
 import { consultarTodo } from "./supabase";
 import type { DriverDirectorio, SellerDirectorio } from "./directorio";
+import { coordenadaDirectorio, puntoDirectorioValido } from "./directorio-mapa";
+
+export async function leerReferenciasDriversDirectorio(): Promise<Map<number, string>> {
+  const filas = await consultarTodo<{ id_motoboy: number; nombre: string; latitud: number; longitud: number }>(
+    "tracker_choferes", { select: "id_motoboy,nombre,latitud,longitud" }, "id_motoboy.asc",
+  );
+  return new Map(filas.filter((f) => puntoDirectorioValido(f.latitud, f.longitud)).map((f) => [f.id_motoboy, f.nombre || "Ver domicilio de sistema"]));
+}
 
 type SellerFila = {
   id_seller?: number | string;
@@ -95,8 +103,8 @@ export async function leerSellersDirectorio(): Promise<SellerDirectorio[]> {
       grupoWhatsapp: texto(fila.grupo_nombre) || null,
       labelsWaha: labelsWaha(fila.labels_waha),
       ubicacionManual: texto(fila.ubicacion_manual),
-      latitudManual: Number.isFinite(Number(fila.latitud_manual)) ? Number(fila.latitud_manual) : null,
-      longitudManual: Number.isFinite(Number(fila.longitud_manual)) ? Number(fila.longitud_manual) : null,
+      latitudManual: coordenadaDirectorio(fila.latitud_manual),
+      longitudManual: coordenadaDirectorio(fila.longitud_manual),
       asignacion: fila.grupo_nombre ? "AUTOMATICO" : null,
       soporteAsignado: fila.soporte_asignado,
       actualizadoEn: texto(fila.actualizado_en),
@@ -118,8 +126,8 @@ export async function leerDriversDirectorio(): Promise<DriverDirectorio[]> {
       grupoWhatsapp: texto(fila.grupo_nombre) || null,
       labelsWaha: etiquetas,
       ubicacionManual: texto(fila.ubicacion_manual),
-      latitudManual: Number.isFinite(Number(fila.latitud_manual)) ? Number(fila.latitud_manual) : null,
-      longitudManual: Number.isFinite(Number(fila.longitud_manual)) ? Number(fila.longitud_manual) : null,
+      latitudManual: coordenadaDirectorio(fila.latitud_manual),
+      longitudManual: coordenadaDirectorio(fila.longitud_manual),
       asignacion: fila.grupo_nombre ? "AUTOMATICO" : null,
       actualizadoEn: texto(fila.actualizado_en),
     };

@@ -34,6 +34,7 @@ export default async function Sellers() {
     asignacion: seller.asignacion === "MANUAL" ? "Manual" : seller.asignacion === "AUTOMATICO" ? "Automática" : "",
     soporte: seller.soporteAsignado,
     ubicacionManual: seller.ubicacionManual,
+    ubicacionSistema: seller.direccion,
     latitudManual: seller.latitudManual,
     longitudManual: seller.longitudManual,
     estadoSistema: seller.offlineSistema ? "Offline en Rapiboy" : "Online en Rapiboy",
@@ -57,7 +58,8 @@ export default async function Sellers() {
       </div>
 
       <div className={estilos.stack}>
-        <Card titulo="Base de datos · sellers" nota="Vista operativa: vínculo, responsable y ubicación. Los filtros acotan la lista antes de trabajar.">
+        <Card titulo="Base de datos · sellers" nota="Vínculo, responsable y ubicaciones.">
+          <a href="/sellers/mapa" target="_blank" rel="noopener noreferrer">Abrir mapa de ubicaciones ↗</a>
           <Tabla
             id="directorio-sellers"
             titulo="Base de datos · Sellers"
@@ -77,6 +79,7 @@ export default async function Sellers() {
               { clave: "grupo", titulo: "Grupo", tipo: "texto" },
               { clave: "soporte", titulo: "Soporte", tipo: "soporte" },
               { clave: "ubicacionManual", titulo: "Ubicación manual", tipo: "ubicacion" },
+              { clave: "ubicacionSistema", titulo: "Ubicación sistema", tipo: "ubicacionSistema" },
               { clave: "estadoSistema", titulo: "Estado sistema", tipo: "texto" },
               { clave: "actualizado", titulo: "Actualizado", tipo: "texto" },
             ]}

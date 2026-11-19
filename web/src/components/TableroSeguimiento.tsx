@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cambiarEstado, tomarSeguimiento, type Resultado } from "@/app/seguimiento";
 import { EditorReporte } from "./EditorReporte";
 import { ComentariosSeguimiento } from "./ComentariosSeguimiento";
+import { EventosDetalleSeguimiento } from "./EventosDetalleSeguimiento";
 import { NombreTienda } from "./ColorTiendas";
 import { GraficosSeguimiento } from "./GraficosSeguimiento";
 import { enlaceViaje } from "@/lib/enlaces";
@@ -701,7 +702,7 @@ function Tarjeta({
         <span><strong>Necesita atención</strong><small>Más de 2 días tomado sin cerrar</small></span>
       </div> : null}
 
-      {reporte.comentarioActualizadoEn ? (
+      {reporte.comentarioActualizadoEn && !desplegada ? (
         <div className={estilos.avisoActualizacion} role="status">
           <span className={estilos.avisoActualizacionIcono} aria-hidden="true">✦</span>
           <span>
@@ -732,8 +733,8 @@ function Tarjeta({
         </p>
       ) : null}
 
-      {responsables.length ? <p className={estilos.coResponsables}>{responsables.map((correo) => <span key={correo}><Avatar correo={correo} />{nombreDePersona(correo)}</span>)}</p> : null}
-      {reporte.ultimoComentario ? <button type="button" className={estilos.ultimoComentario} onClick={alComentar}><strong>{nombreDePersona(reporte.ultimoComentarioPor ?? null)} · {cuando(reporte.ultimoComentarioEn ?? null)}</strong><span>{reporte.ultimoComentario}</span></button> : null}
+      {responsables.length && !desplegada ? <p className={estilos.coResponsables}>{responsables.map((correo) => <span key={correo}><Avatar correo={correo} />{nombreDePersona(correo)}</span>)}</p> : null}
+      {reporte.ultimoComentario && !desplegada ? <button type="button" className={estilos.ultimoComentario} onClick={alComentar}><strong>{nombreDePersona(reporte.ultimoComentarioPor ?? null)} · {cuando(reporte.ultimoComentarioEn ?? null)}</strong><span>{reporte.ultimoComentario}</span></button> : null}
       {desplegada ? <Detalle reporte={reporte} urls={urls} admin={admin} alRetirar={(correo) => { if (window.confirm(`¿Retirar a ${nombreDePersona(correo)} de este caso? El otro responsable se conserva.`)) alTomar(false, correo); }} /> : null}
 
       <div className={estilos.pie}>
@@ -811,37 +812,7 @@ function Tarjeta({
 function Detalle({ reporte, urls, admin, alRetirar }: { reporte: Seguimiento; urls: Record<string, string>; admin: boolean; alRetirar: (correo: string) => void }) {
   return (
     <dl className={estilos.detalle}>
-      <div>
-        <dt>Reportó</dt>
-        <dd>
-          {nombreDePersona(reporte.creadoPor)} <time dateTime={reporte.creado?.toISOString()}>{cuando(reporte.creado)}</time>
-        </dd>
-      </div>
-      {responsablesSeguimiento(reporte).map((correo) => (
-        <div key={correo}>
-          <dt>Tomó</dt>
-          <dd>
-            {nombreDePersona(correo)} <time>{cuando(correo === reporte.tomadoPor ? reporte.tomadoEn : reporte.tomadoEn2 ?? null)}</time>
-            {admin ? <button type="button" className={estilos.retirarResponsable} onClick={() => alRetirar(correo)}>Retirar</button> : null}
-          </dd>
-        </div>
-      ))}
-      {reporte.comentarioActualizadoEn ? (
-        <div>
-          <dt>Actualizó</dt>
-          <dd>
-            {nombreDePersona(reporte.comentarioActualizadoPor)} <time dateTime={reporte.comentarioActualizadoEn.toISOString()}>{cuando(reporte.comentarioActualizadoEn)}</time>
-          </dd>
-        </div>
-      ) : null}
-      {reporte.estado === "cerrado" ? (
-        <div>
-          <dt>Cerró</dt>
-          <dd>
-            {nombreDePersona(reporte.atendidoPor)} <time dateTime={reporte.atendidoEn?.toISOString()}>{cuando(reporte.atendidoEn)}</time>
-          </dd>
-        </div>
-      ) : null}
+      <EventosDetalleSeguimiento reporte={reporte} admin={admin} alRetirar={alRetirar} />
       {reporte.archivos.length > 0 ? (
         <div>
           <dt>Adjuntos</dt>

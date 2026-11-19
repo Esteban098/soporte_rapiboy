@@ -756,11 +756,12 @@
 
 .tableCompacta {
   font-size: 0.775rem;
+  line-height: 1.25;
 }
 
 .tableCompacta th,
 .tableCompacta td {
-  padding: 3px 5px;
+  padding: 4px 6px;
 }
 
 .tableCompacta th {

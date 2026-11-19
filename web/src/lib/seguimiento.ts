@@ -164,6 +164,17 @@ export function etapaDe(reporte: Seguimiento): EtapaSeguimiento {
   return responsablesSeguimiento(reporte).length ? "tomado" : "abierto";
 }
 
+export function domicilioDesdeRapiboyData(crudo: unknown, casoId: string): string | null {
+  if (!crudo || typeof crudo !== "object") return null;
+  const datos = crudo as Record<string, unknown>;
+  if (datos.encontrado !== true || String(datos.id) !== casoId || !datos.viaje || typeof datos.viaje !== "object") return null;
+  const viaje = datos.viaje as Record<string, unknown>;
+  if (Number(viaje.id_modalidad) !== 5 || Number(viaje.id_localidad) !== 9) return null;
+  if (typeof viaje.direccion !== "string" || !viaje.direccion.trim()) return null;
+  return [viaje.direccion, viaje.barrio, viaje.ciudad, viaje.codigo_postal]
+    .filter((v): v is string => typeof v === "string" && Boolean(v.trim())).map((v) => v.trim()).join(", ") || null;
+}
+
 export function responsablesSeguimiento(reporte: Seguimiento): string[] {
   return [...new Set([reporte.tomadoPor, reporte.tomadoPor2].filter((p): p is string => Boolean(p)).map((p) => p.trim().toLowerCase()))];
 }

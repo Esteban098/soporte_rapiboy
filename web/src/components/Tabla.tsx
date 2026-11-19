@@ -21,6 +21,7 @@ import { numero, porcentaje, decimal, duracionHoras } from "@/lib/formato";
 import { AsignarSoporteSeller } from "./AsignarSoporteSeller";
 import { EditarUbicacionSeller } from "./EditarUbicacionSeller";
 import { EditarUbicacionDriver } from "./EditarUbicacionDriver";
+import { EnlaceUbicacionDirectorio } from "./EnlaceUbicacionDirectorio";
 import { ChipCaso, TextoEstado } from "./Card";
 import estilos from "./ui.module.css";
 import tabla from "./tabla.module.css";
@@ -48,7 +49,8 @@ export type TipoColumna =
   | "tienda"
   | "soporte"
   | "ubicacion"
-  | "ubicacionDriver";
+  | "ubicacionDriver"
+  | "ubicacionSistema";
 
 export type Columna = {
   clave: string;
@@ -493,6 +495,10 @@ function Celda({
 
   if (columna.tipo === "ubicacionDriver") {
     return <td className={clase}><EditarUbicacionDriver id={Number(fila.id)} ubicacion={String(fila.ubicacionManual ?? "")} latitud={fila.latitudManual == null ? null : Number(fila.latitudManual)} longitud={fila.longitudManual == null ? null : Number(fila.longitudManual)} /></td>;
+  }
+
+  if (columna.tipo === "ubicacionSistema") {
+    return <td className={clase}>{valor ? <EnlaceUbicacionDirectorio tipo={fila.entidadMapa === "driver" ? "driver" : "seller"} id={Number(fila.id)} origen="sistema" texto={String(valor)} /> : "—"}</td>;
   }
 
   if (valor == null || valor === "") {

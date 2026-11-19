@@ -12,6 +12,7 @@ import {
   etapaDe,
   parsearSeguimiento,
   responsablesDesdeRapiboyData,
+  domicilioDesdeRapiboyData,
   type EstadoSeguimiento,
   type EtapaSeguimiento,
   type FilaSeguimiento,
@@ -27,6 +28,19 @@ import {
   leerFila,
 } from "@/lib/supabase";
 import { comentarEn, leerComentariosEn, tomarEn } from "@/lib/seguimiento-colaboracion";
+import { uuidSeguimiento } from "@/lib/seguimiento-colaboracion";
+
+export async function domicilioSeguimiento(id: string): Promise<{ ok: true; domicilio: string | null } | { ok: false; error: string }> {
+  if (!await operadorActual()) return { ok: false, error: "No tenés permiso para consultar el domicilio." };
+  if (!uuidSeguimiento(id)) return { ok: false, error: "Reporte inválido." };
+  try {
+    const reporte = await leerFila<FilaSeguimiento>(TABLA_SEGUIMIENTO, id);
+    if (!reporte?.caso_id || !/^\d{1,12}$/.test(reporte.caso_id)) return { ok: false, error: "No se encontró el paquete del reporte." };
+    const resultado = await consultarRapiboyData({ id: reporte.caso_id, origen: "seguimiento-domicilio" });
+    if (!resultado.ok) return { ok: false, error: "No se pudo consultar el domicilio en RapiboyData. Reintentá en un momento." };
+    return { ok: true, domicilio: domicilioDesdeRapiboyData(resultado.datos, reporte.caso_id) };
+  } catch { return { ok: false, error: "No se pudo consultar el domicilio. Reintentá en un momento." }; }
+}
 
 /**
  * Alta de reportes y cambio de mano, desde el tablero.
