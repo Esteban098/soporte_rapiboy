@@ -830,10 +830,14 @@ todo. Repetir la función es seguro.
   convertir ni asumir una moneda que la consulta no informa.
 - `valor_70` es una columna generada por Postgres: `round(valor_producto * 0.70, 2)`.
   Si falta el valor declarado, también queda en `null`.
-- `cobrado` es booleano, por defecto `false`. Se marca o desmarca desde las
-  tablas de Siniestrados, tanto operativa como histórica, con sesión válida.
-  La edición registra al operador y la fecha en `editado_por` y `editado_en`.
-  n8n no modifica esta marca; la rotación la conserva y recalcula el 70%.
+- `siniestro_avisado` y `cobrado` son booleanos manuales. El circuito admite
+  pendiente, avisado y cobrado: puede haber aviso sin cobro, pero nunca cobro
+  sin aviso. Marcar Cobrado activa Avisado en la misma transacción; desmarcarlo
+  conserva Avisado. Ambos checks se editan tanto en operación como en histórico,
+  registran operador y fecha, se auditan y quedan protegidos de los refrescos.
+- La tabla se ubica debajo del gráfico y abre en variante compacta con ID,
+  Estado, Driver, Seller, Monto, Monto 70%, Avisado, Cobrado, Motivo y
+  Comentario. El selector de columnas permite recuperar el resto.
 - `motivo_siniestro` y `comentario_siniestro` son campos manuales de
   Siniestrados. El motivo se elige entre **Perdido en Deposito**, **Roto**,
   **Perdido por driver**, **Mal entregado** y **Otros**; el comentario es texto
@@ -887,6 +891,11 @@ Mensual e Histórico: si **Actualizar** o cualquier upsert automático intenta
 mandar un valor distinto, la base conserva el último valor auditado. Solo la
 función transaccional del checkbox puede registrar primero una nueva decisión y
 aplicarla.
+
+Finalmente, ejecutar `supabase/migracion-56-siniestrados-avisado.sql`. Agrega
+Avisado a Mensual e Histórico, migra todo cobro existente como ya avisado,
+instala la restricción `cobrado => avisado`, audita el nuevo check y reinstala
+la rotación para conservar ambas marcas. No modifica importes ni elimina casos.
 
 La migración no intenta reconstruir checks históricos perdidos. Para recuperar
 esos valores hace falta un backup o una lista confirmada de viajes cobrados;

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { actualizarCobroSiniestrado } from "../src/lib/supabase";
+import { actualizarAvisoSiniestrado, actualizarCobroSiniestrado } from "../src/lib/supabase";
 
 test("guardar un cobro usa la operación transaccional con auditoría", async (t) => {
   const urlAnterior = process.env.SUPABASE_URL;
@@ -42,6 +42,44 @@ test("guardar un cobro usa la operación transaccional con auditoría", async (t
   const fetchSimulado = t.mock.method(globalThis, "fetch", async () => new Response("denegado", { status: 403 }));
   assert.match((await actualizarCobroSiniestrado(123, true, "local"))!, /rechazó/);
   fetchSimulado.mock.restore();
+});
+
+test("guardar Avisado usa su RPC y valida el estado devuelto", async (t) => {
+  const urlAnterior = process.env.SUPABASE_URL;
+  const claveAnterior = process.env.SUPABASE_SERVICE_KEY;
+  process.env.SUPABASE_URL = "https://base-de-prueba.invalid";
+  process.env.SUPABASE_SERVICE_KEY = "clave-de-prueba";
+  t.after(() => {
+    if (urlAnterior === undefined) delete process.env.SUPABASE_URL;
+    else process.env.SUPABASE_URL = urlAnterior;
+    if (claveAnterior === undefined) delete process.env.SUPABASE_SERVICE_KEY;
+    else process.env.SUPABASE_SERVICE_KEY = claveAnterior;
+  });
+
+  const fetchSimulado = t.mock.method(globalThis, "fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = new URL(String(input));
+    assert.equal(url.pathname, "/rest/v1/rpc/marcar_aviso_siniestrado");
+    assert.deepEqual(JSON.parse(String(init?.body)), {
+      p_id: 123,
+      p_avisado: true,
+      p_quien: "operador@prueba.invalid",
+    });
+    return Response.json([{ id: 123, avisado: true, cobrado: false, origen: "mensual" }]);
+  });
+  assert.equal(await actualizarAvisoSiniestrado(123, true, "operador@prueba.invalid"), null);
+  assert.equal(fetchSimulado.mock.callCount(), 1);
+});
+
+test("la migración 56 impide cobrar sin avisar y conserva ambos checks", () => {
+  const sql = readFileSync(new URL("../supabase/migracion-56-siniestrados-avisado.sql", import.meta.url), "utf8");
+  assert.match(sql, /add column if not exists siniestro_avisado boolean not null default false/);
+  assert.match(sql, /check \(cobrado is not true or siniestro_avisado is true\)/);
+  assert.match(sql, /create table if not exists public\.siniestrados_avisos_historial/);
+  assert.match(sql, /create or replace function public\.marcar_aviso_siniestrado/);
+  assert.match(sql, /Un siniestro cobrado no puede quedar sin avisar/);
+  assert.match(sql, /avisado_nuevo := avisado_previo or p_cobrado/);
+  assert.match(sql, /siniestro_avisado = excluded\.siniestro_avisado/);
+  assert.match(sql, /grant execute on function public\.marcar_aviso_siniestrado[\s\S]*?service_role/);
 });
 
 test("la migración bloquea el caso, audita el cambio y conserva cobrado al rotar", () => {

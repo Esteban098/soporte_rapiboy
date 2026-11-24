@@ -6,6 +6,7 @@ import { enlaceViaje } from "@/lib/enlaces";
 import { CeldaTexto } from "./CeldaTexto";
 import { NombreTienda } from "./ColorTiendas";
 import { CobroSiniestrado } from "./CobroSiniestrado";
+import { AvisoSiniestrado } from "./AvisoSiniestrado";
 import type { OrigenCobro } from "@/lib/siniestrados";
 import {
   guardarPreferencia,
@@ -43,6 +44,7 @@ export type TipoColumna =
   | "estado"
   | "caso"
   | "cobrado"
+  | "avisadoSiniestro"
   | "aviso"
   | "dias"
   /** Un comercio, pintado con el color de quien lo tiene asignado. */
@@ -82,6 +84,7 @@ export function Tabla({
   soloEdicion = false,
   cobros,
   compacta = false,
+  columnasIniciales,
 }: {
   /** Identifica la tabla para recordar qué columnas ocultó cada persona. */
   id: string;
@@ -111,6 +114,8 @@ export function Tabla({
   cobros?: OrigenCobro;
   /** Variante densa para directorios: conserva controles y legibilidad. */
   compacta?: boolean;
+  /** Columnas visibles al abrir por primera vez; el menú conserva todas. */
+  columnasIniciales?: readonly string[];
 }) {
   const [orden, setOrden] = useState<Orden>(ordenInicial ?? null);
   const [edicion, setEdicion] = useState<Edicion | null>(null);
@@ -124,7 +129,14 @@ export function Tabla({
     () => leerPreferencia(id, "columnas"),
     sinPreferencias,
   );
-  const ocultas = useMemo(() => new Set(parsearColumnasOcultas(ocultasCrudas)), [ocultasCrudas]);
+  const ocultas = useMemo(() => {
+    if (ocultasCrudas) {
+      return new Set(parsearColumnasOcultas(ocultasCrudas).filter((clave) => clave !== "__todas__"));
+    }
+    if (!columnasIniciales) return new Set<string>();
+    const visibles = new Set(columnasIniciales);
+    return new Set(columnas.filter((columna) => !visibles.has(columna.clave)).map((columna) => columna.clave));
+  }, [columnas, columnasIniciales, ocultasCrudas]);
 
   const {
     seleccion,
@@ -203,7 +215,7 @@ export function Tabla({
   }
 
   function cambiarOcultas(proximo: Set<string>) {
-    guardarPreferencia(id, "columnas", [...proximo]);
+    guardarPreferencia(id, "columnas", proximo.size === 0 && columnasIniciales ? ["__todas__"] : [...proximo]);
   }
 
   function alternarColumna(clave: string) {
@@ -515,6 +527,19 @@ function Celda({
         <td>
           {cobros && typeof valor === "boolean" ? (
             <CobroSiniestrado id={Number(fila.id)} cobrado={valor} origen={cobros} />
+          ) : valor === true ? "Sí" : valor === false ? "No" : "—"}
+        </td>
+      );
+    case "avisadoSiniestro":
+      return (
+        <td>
+          {cobros && typeof valor === "boolean" ? (
+            <AvisoSiniestrado
+              id={Number(fila.id)}
+              avisado={valor}
+              cobrado={fila.cobrado === true}
+              origen={cobros}
+            />
           ) : valor === true ? "Sí" : valor === false ? "No" : "—"}
         </td>
       );

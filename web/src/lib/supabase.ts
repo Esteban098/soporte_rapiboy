@@ -229,6 +229,29 @@ export async function actualizarCobroSiniestrado(
   return null;
 }
 
+/** Marca el aviso de un siniestro y conserva la relación cobrado => avisado. */
+export async function actualizarAvisoSiniestrado(
+  id: number,
+  avisado: boolean,
+  quien: string,
+): Promise<string | null> {
+  const respuesta = await pedir("rpc/marcar_aviso_siniestrado", {
+    method: "POST",
+    body: JSON.stringify({ p_id: id, p_avisado: avisado, p_quien: quien }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!respuesta.ok) return motivoDeFalla(respuesta);
+  const filas = await respuesta.json() as { id: number; avisado: boolean; cobrado: boolean; origen: string }[];
+  if (filas.length !== 1 || Number(filas[0].id) !== id || filas[0].avisado !== avisado) {
+    return "No se pudo confirmar el aviso guardado. Actualizá la tabla.";
+  }
+  if (filas[0].cobrado && !filas[0].avisado) {
+    return "La base devolvió un cobro sin aviso. Actualizá la tabla.";
+  }
+  return null;
+}
+
 /** Borra una fila por id. Devuelve `null` si salió bien. */
 export async function borrarFila(tabla: string, id: string | number): Promise<string | null> {
   const respuesta = await pedir(`${encodeURIComponent(tabla)}?id=eq.${encodeURIComponent(id)}`, {

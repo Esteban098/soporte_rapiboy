@@ -1,6 +1,6 @@
 import { cargarPedidosHistoricos } from "@/lib/datos";
 import { mesesDisponibles, resolverRango } from "@/lib/periodos";
-import { COLUMNAS_COBRO, siniestradosHistoricos } from "@/lib/siniestrados";
+import { COLUMNAS_COBRO, COLUMNAS_INICIALES_SINIESTRADOS, TITULOS_COLUMNAS_SINIESTRADOS, siniestradosHistoricos } from "@/lib/siniestrados";
 import { modoDatos } from "@/lib/config";
 import { mesCorto, mesLargo } from "@/lib/formato";
 import { PageHead } from "@/components/Shell";
@@ -52,22 +52,26 @@ export default async function SiniestradosHistorial({
         <SelectorMeses meses={disponibles} desde={rango.desde} hasta={rango.hasta} />
       </Card>
       <ResumenSiniestrados pedidos={filtrados} />
-      {modoDatos() === "supabase" && !campos.includes("cobrado") ? (
-        <Callout tono="warning" titulo="Falta habilitar los cobros en la base">
-          Ejecutá la migración 03 de cobros de siniestrados y actualizá esta pantalla.
-          Hasta entonces, el 70% y Cobrado aparecen sin datos y no se pueden editar.
+      {modoDatos() === "supabase" && (!campos.includes("cobrado") || !campos.includes("siniestroAvisado")) ? (
+        <Callout tono="warning" titulo="Falta habilitar la gestión de siniestros en la base">
+          Ejecutá las migraciones 03 y 56 y actualizá esta pantalla.
+          Hasta entonces, Avisado o Cobrado pueden aparecer sin datos y no se pueden editar.
         </Callout>
       ) : null}
       <div className={estilos.stack}>
         <PanelCasos
           editable
           soloEdicion
-          id="siniestrados-historial-casos"
+          id="siniestrados-historial-casos-v2"
           titulo={`Siniestrados históricos · ${periodo}`}
-          nota="Valor producto es el importe declarado; Valor al 70% es la bonificación. La lista refleja el estado vigente y puede cambiar al actualizar el período."
+          nota="Monto es el importe declarado y Monto 70% es la bonificación. La lista refleja el estado vigente y puede cambiar al actualizar el período."
           columnasExtra={COLUMNAS_COBRO}
-          cobros={modoDatos() === "supabase" && campos.includes("cobrado") ? "historico" : undefined}
+          cobros={modoDatos() === "supabase" && campos.includes("cobrado") && campos.includes("siniestroAvisado") ? "historico" : undefined}
           dimensionInicial="repartidor"
+          tablaDebajo
+          compacta
+          columnasIniciales={COLUMNAS_INICIALES_SINIESTRADOS}
+          titulosColumnas={TITULOS_COLUMNAS_SINIESTRADOS}
           casos={{ pedidos: filtrados, campos: [...new Set([...campos, "valorProducto" as const])] }}
           vacio="No hay paquetes siniestrados en el período seleccionado."
         />

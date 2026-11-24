@@ -29,6 +29,10 @@ export function PanelCasos({
   columnasExtra = [],
   cobros,
   dimensionInicial,
+  tablaDebajo = false,
+  compacta = false,
+  columnasIniciales,
+  titulosColumnas,
 }: {
   id: string;
   titulo: string;
@@ -52,13 +56,21 @@ export function PanelCasos({
   cobros?: OrigenCobro;
   /** Agrupación inicial del gráfico, sin alterar los controles disponibles. */
   dimensionInicial?: string;
+  /** Ubica el listado a todo el ancho debajo del gráfico. */
+  tablaDebajo?: boolean;
+  compacta?: boolean;
+  columnasIniciales?: readonly string[];
+  titulosColumnas?: Record<string, string>;
 }) {
-  const columnas = [...columnasPara(casos.campos), ...columnasExtra];
+  const columnas = [...columnasPara(casos.campos), ...columnasExtra].map((columna) => ({
+    ...columna,
+    titulo: titulosColumnas?.[columna.clave] ?? columna.titulo,
+  }));
   const filas = filasDadas ?? filasDePedidos(casos.pedidos);
 
   return (
     <Card>
-      <div className={estilos.datosDivididos}>
+      <div className={tablaDebajo ? estilos.datosApilados : estilos.datosDivididos}>
         <section>
           <h2 className={estilos.panelDatosTitulo}>{tituloGrafico}</h2>
           <p className={estilos.panelDatosNota}>{notaGrafico}</p>
@@ -86,6 +98,8 @@ export function PanelCasos({
             editable={editable}
             soloEdicion={soloEdicion}
             cobros={cobros}
+            compacta={compacta}
+            columnasIniciales={columnasIniciales}
           />
         </section>
       </div>

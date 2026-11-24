@@ -658,6 +658,17 @@
   border-left: 1px solid var(--rule-soft);
 }
 
+.datosApilados {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+}
+
+.datosApilados > * + * {
+  padding-top: 20px;
+  border-top: 1px solid var(--rule-soft);
+}
+
 .panelDatosTitulo {
   margin: 0 0 3px;
   font-family: var(--heading);

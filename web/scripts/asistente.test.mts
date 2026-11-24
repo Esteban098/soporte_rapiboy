@@ -155,7 +155,7 @@ test("ninguna herramienta escribe", () => {
   // vive en un cliente compartido con Seguimiento y también es solo lectura.
   const datos = fuente("../src/lib/asistente-datos.ts");
   const sistema = fuente("../src/lib/rapiboy-data.ts");
-  for (const escritura of ["insertarFila", "actualizarFila", "borrarFila", "actualizarCobroSiniestrado", "method: \"PATCH\"", "method: \"DELETE\""]) {
+  for (const escritura of ["insertarFila", "actualizarFila", "borrarFila", "actualizarCobroSiniestrado", "actualizarAvisoSiniestrado", "method: \"PATCH\"", "method: \"DELETE\""]) {
     assert.ok(!datos.includes(escritura), escritura);
     assert.ok(!sistema.includes(escritura), escritura);
   }

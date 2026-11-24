@@ -93,6 +93,7 @@ export function filasDePedidos(pedidos: Pedido[], hoy = Date.now()): Fila[] {
     tienda: pedido.tienda,
     valorProducto: pedido.valorProducto,
     valor70: pedido.valor70,
+    siniestroAvisado: pedido.siniestroAvisado,
     cobrado: pedido.cobrado,
     motivoSiniestro: pedido.motivoSiniestro,
     comentarioSiniestro: pedido.comentarioSiniestro,

@@ -9,11 +9,32 @@ export function esOrigenCobro(valor: unknown): valor is OrigenCobro {
 }
 
 export const COLUMNAS_COBRO: Columna[] = [
-  { clave: "valor70", titulo: "Valor al 70%", tipo: "decimal" },
+  { clave: "valor70", titulo: "Monto 70%", tipo: "decimal" },
+  { clave: "siniestroAvisado", titulo: "Avisado", tipo: "avisadoSiniestro" },
   { clave: "cobrado", titulo: "Cobrado", tipo: "cobrado" },
   { clave: "motivoSiniestro", titulo: "Motivo", tipo: "texto" },
   { clave: "comentarioSiniestro", titulo: "Comentario", tipo: "texto" },
 ];
+
+export const COLUMNAS_INICIALES_SINIESTRADOS = [
+  "id",
+  "estado",
+  "repartidor",
+  "tienda",
+  "valorProducto",
+  "valor70",
+  "siniestroAvisado",
+  "cobrado",
+  "motivoSiniestro",
+  "comentarioSiniestro",
+] as const;
+
+export const TITULOS_COLUMNAS_SINIESTRADOS: Record<string, string> = {
+  id: "ID",
+  repartidor: "Driver",
+  tienda: "Seller",
+  valorProducto: "Monto",
+};
 
 export const MOTIVOS_SINIESTRO = [
   "Perdido en Deposito",

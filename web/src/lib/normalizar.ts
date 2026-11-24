@@ -30,6 +30,8 @@ export type Pedido = {
   /** Valor declarado del producto; null si el origen todavía no lo informa. */
   valorProducto: number | null;
   valor70: number | null;
+  /** null indica que la fuente todavía no tiene la gestión de aviso del siniestro. */
+  siniestroAvisado: boolean | null;
   /** null indica que la fuente todavía no tiene la columna de cobro. */
   cobrado: boolean | null;
   /**
@@ -160,6 +162,7 @@ export type CampoPedido =
   | "visitas"
   | "valorProducto"
   | "valor70"
+  | "siniestroAvisado"
   | "cobrado"
   | "motivoSiniestro"
   | "comentarioSiniestro"
@@ -206,6 +209,7 @@ const ALIAS: Record<Exclude<CampoPedido, "demora">, string[]> = {
   visitas: ["visitas"],
   valorProducto: ["valor_producto", "valorproducto", "valor producto", "valordeclaradocompleto"],
   valor70: ["valor_70", "valor70"],
+  siniestroAvisado: ["siniestro_avisado", "siniestro avisado", "siniestroavisado"],
   cobrado: ["cobrado"],
   motivoSiniestro: ["motivo_siniestro", "motivo siniestro", "motivosiniestro"],
   comentarioSiniestro: ["comentario_siniestro", "comentario siniestro", "comentariosiniestro"],
@@ -349,6 +353,7 @@ export function parsearPedido(fila: string[], mapa: MapaColumnas): Pedido | null
   const valorProducto = Number(valorCrudo);
   const valor70Crudo = celda(fila, mapa.valor70);
   const valor70 = Number(valor70Crudo);
+  const avisadoCrudo = celda(fila, mapa.siniestroAvisado).toLowerCase();
   const cobradoCrudo = celda(fila, mapa.cobrado).toLowerCase();
   const cerrado = cerradoDe(fila, mapa, normalizado);
 
@@ -364,6 +369,7 @@ export function parsearPedido(fila: string[], mapa: MapaColumnas): Pedido | null
     visitas: visitasCrudo !== "" && Number.isFinite(visitas) ? visitas : null,
     valorProducto: valorCrudo !== "" && Number.isFinite(valorProducto) ? valorProducto : null,
     valor70: valor70Crudo !== "" && Number.isFinite(valor70) ? valor70 : null,
+    siniestroAvisado: avisadoCrudo === "true" ? true : avisadoCrudo === "false" ? false : null,
     cobrado: cobradoCrudo === "true" ? true : cobradoCrudo === "false" ? false : null,
     mes: mesDe(creacion ?? ultimoMovimiento),
     devuelto: ESTADOS_DEVOLUCION.has(normalizado),

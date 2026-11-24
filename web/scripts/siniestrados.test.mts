@@ -10,6 +10,7 @@ import {
   siniestradosOperativos,
   esOrigenCobro,
   COLUMNAS_COBRO,
+  COLUMNAS_INICIALES_SINIESTRADOS,
 } from "../src/lib/siniestrados";
 
 const encabezado = ["id", "fecha_creacion", "fecha_programado", "estado", "valor_producto"];
@@ -46,19 +47,23 @@ test("la ventana operativa coincide con Mensual, incluido el corte en hora de M�
   assert.deepEqual(siniestradosOperativos(anioNuevo, new Date("2027-01-10T18:00:00Z")).map(p => p.id), [7]);
 });
 
-test("el cobro distingue false de datos ausentes y el 70% viene de la base", () => {
-  const mapaCobros = mapearColumnas([...encabezado, "valor_70", "cobrado"]);
-  const fila = ["123", "2026-09-01", "2026-09-06", "Siniestrado", "1250.50", "875.35"];
+test("aviso, cobro y 70% se normalizan sin confundir datos ausentes", () => {
+  const mapaCobros = mapearColumnas([...encabezado, "valor_70", "siniestro_avisado", "cobrado"]);
+  const fila = ["123", "2026-09-01", "2026-09-06", "Siniestrado", "1250.50", "875.35", "true"];
   const cobrado = parsearPedido([...fila, "true"], mapaCobros)!;
   assert.equal(cobrado.valor70, 875.35);
+  assert.equal(cobrado.siniestroAvisado, true);
   assert.equal(cobrado.cobrado, true);
   assert.equal(parsearPedido([...fila, "false"], mapaCobros)?.cobrado, false);
   assert.equal(parsearPedido([...fila, ""], mapaCobros)?.cobrado, null);
   assert.equal(pedido(1, "2026-09").valor70, null);
+  assert.equal(pedido(1, "2026-09").siniestroAvisado, null);
   assert.equal(pedido(1, "2026-09").cobrado, null);
+  assert.equal(filasDePedidos([cobrado])[0].siniestroAvisado, true);
   assert.equal(filasDePedidos([cobrado])[0].cobrado, true);
   assert.equal(filasDePedidos([cobrado])[0].valor70, 875.35);
-  assert.deepEqual(COLUMNAS_COBRO.map(c => c.clave), ["valor70", "cobrado", "motivoSiniestro", "comentarioSiniestro"]);
+  assert.deepEqual(COLUMNAS_COBRO.map(c => c.clave), ["valor70", "siniestroAvisado", "cobrado", "motivoSiniestro", "comentarioSiniestro"]);
+  assert.deepEqual([...COLUMNAS_INICIALES_SINIESTRADOS], ["id", "estado", "repartidor", "tienda", "valorProducto", "valor70", "siniestroAvisado", "cobrado", "motivoSiniestro", "comentarioSiniestro"]);
   assert.equal(esOrigenCobro("mensual"), true);
   assert.equal(esOrigenCobro("historico"), true);
   for (const origen of [null, "perfiles", "mensual_historico", "", 1, {}]) {
@@ -116,7 +121,7 @@ for (const [archivo, consulta, transformar, guardar] of flujos) {
     }
     const columnas = nodo(guardar).parameters.columns!.value;
     assert.equal(columnas.valor_producto, "={{ $json.valor_producto }}");
-    for (const campo of ["reclamo_tienda", "ubicacion", "telefono", "aviso", "avisado_en", "foto", "editado_por", "editado_en", "cobrado", "valor_70", "motivo_siniestro", "comentario_siniestro"]) {
+    for (const campo of ["reclamo_tienda", "ubicacion", "telefono", "aviso", "avisado_en", "foto", "editado_por", "editado_en", "cobrado", "siniestro_avisado", "valor_70", "motivo_siniestro", "comentario_siniestro"]) {
       assert.ok(!(campo in columnas), `No debe actualizar ${campo}`);
     }
     if (archivo.startsWith("04")) {
@@ -165,6 +170,8 @@ test("las altas distinguen paquete, información de tienda y siniestro", () => {
   const editor = readFileSync(new URL("../src/components/EditorCaso.tsx", import.meta.url), "utf8");
   const acciones = readFileSync(new URL("../src/app/casos.ts", import.meta.url), "utf8");
   assert.match(pagina, /<PanelCasos\s+editable/);
+  assert.match(pagina, /tablaDebajo/);
+  assert.match(pagina, /columnasIniciales=\{COLUMNAS_INICIALES_SINIESTRADOS\}/);
   assert.match(editor, /Agregar paquete siniestrado/);
   assert.match(editor, /Información de tienda/);
   assert.match(editor, /!nuevo && !mostrarSiniestro/);
